@@ -5,13 +5,34 @@
     "paths": {
       "@/*": [
         "./*"
+      ],
+      "react-native-svg": [
+        "./node_modules/react-native-svg"
       ]
-    }
+    },
+    "types": [
+      "react-native-svg"
+    ],
+    "jsx": "react-native",
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "moduleResolution": "node"
   },
   "include": [
     "**/*.ts",
     "**/*.tsx",
     ".expo/types/**/*.ts",
-    "expo-env.d.ts"
+    "expo-env.d.ts",
+    "types/**/*.d.ts",
+    "declarations.d.ts",
+    "nativewind-env.d.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "babel.config.js",
+    "metro.config.js",
+    "jest.config.js"
   ]
 }

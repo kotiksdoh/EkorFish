@@ -1,8 +1,9 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
+import '../../global.css';
 
 import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
+import { SvgIcon } from '@/components/ui/custom-icon';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
@@ -15,19 +16,78 @@ export default function TabLayout() {
         tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
         headerShown: false,
         tabBarButton: HapticTab,
+        tabBarShowLabel: false,
       }}>
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          tabBarIcon: ({ color, focused }) =>             
+          <SvgIcon 
+            name="home" 
+            size={24} 
+            color={color} 
+            focused={focused}
+        />,
         }}
       />
       <Tabs.Screen
-        name="explore"
+        name="dashboard"
         options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+          tabBarIcon: ({ color, focused }) =>             
+          <SvgIcon 
+            name="dashboard" 
+            size={24} 
+            color={color} 
+            focused={focused}
+        />,
+        }}
+      />
+      <Tabs.Screen
+        name="ai"
+        options={{
+          tabBarIcon: ({ color, focused }) =>             
+          <SvgIcon 
+            name="ai" 
+            size={24} 
+            color={color} 
+            focused={focused}
+        />,
+        }}
+      />
+      <Tabs.Screen
+        name="heart"
+        options={{
+          tabBarIcon: ({ color, focused }) =>             
+          <SvgIcon 
+            name="heart" 
+            size={24} 
+            color={color} 
+            focused={focused}
+        />,
+        }}
+      />
+      <Tabs.Screen
+        name="shop"
+        options={{
+          tabBarIcon: ({ color, focused }) =>       
+          <SvgIcon 
+            name="shop" 
+            size={24} 
+            color={color} 
+            focused={focused}
+          />,
+        }}
+      />
+      <Tabs.Screen
+        name="user"
+        options={{
+          tabBarIcon: ({ color, focused }) =>       
+          <SvgIcon 
+            name="user" 
+            size={24} 
+            color={color} 
+            focused={focused}
+          />,
         }}
       />
     </Tabs>
