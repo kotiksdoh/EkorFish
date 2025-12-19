@@ -172,13 +172,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 12,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    gap: 1,
+    // backgroundColor: 'rgba(0,0,0,0.3)',
+    // paddingHorizontal: 12,
+    // paddingVertical: 6,
     // borderRadius: 20,
   },
   indicatorButton: {
-    padding: 4,
+    // padding: 4,
   },
 });

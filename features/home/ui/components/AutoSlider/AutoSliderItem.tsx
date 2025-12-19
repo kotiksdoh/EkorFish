@@ -78,7 +78,7 @@ const styles = StyleSheet.create({
     height: 100,
     borderBottomRightRadius: 24,
     borderBottomLeftRadius: 24,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    // backgroundColor: 'rgba(0,0,0,0.4)',
   },
   textContainer: {
     position: 'absolute',
