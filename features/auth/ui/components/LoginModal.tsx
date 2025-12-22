@@ -1,14 +1,17 @@
 import CloseIcon from '@/assets/icons/AuthIcons/Close.svg';
-import Checkbox from 'expo-checkbox'; // Импортируем нормальный чекбокс
+import LogoIcon from '@/assets/icons/AuthIcons/logo.svg';
+import { ThemedText } from '@/components/themed-text';
+import { CustomCheckbox } from '@/features/shared/ui/components/CustomCheckBox';
+import AnimatedTextInput from '@/features/shared/ui/components/CustomInput';
+
 import React, { useState } from 'react';
 import {
-    Modal,
-    SafeAreaView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Modal,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 interface LoginModalProps {
   visible: boolean;
@@ -57,58 +60,67 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 
           {/* Логотип */}
           <View style={styles.logoContainer}>
-            {/* <SvgIcon name="logo" size={48} color="#203686" /> */}
+            <LogoIcon  />
+            <ThemedText style={styles.logoContainer} lightColor={'#80818B'} >Поставки продуктов{'\n'}для HoReCa</ThemedText>
           </View>
 
+          <View style={styles.afterLogoContent}>
           {/* Заголовок */}
-          <Text style={styles.modalTitle}>Авторизация</Text>
+          <ThemedText style={styles.modalTitle} lightColor={'#1B1B1C'}>Авторизация</ThemedText>
+            {/* Описание */}
+            <ThemedText style={styles.modalDescription} lightColor={'#80818B'}>
+              Мы отправим сообщение с кодом{'\n'}для входа.
+            </ThemedText>
 
-          {/* Описание */}
-          <Text style={styles.modalDescription}>
-            Мы отправим сообщение с кодом{'\n'}для входа.
-          </Text>
+            {/* Поле ввода номера */}
+            <View style={styles.inputContainer}>
+              {/* <TextInput
+                style={styles.input}
+                placeholder="Номер телефона или E-mail"
+                placeholderTextColor="#80818B"
+                keyboardType="phone-pad"
+                value={phoneNumber}
+                onChangeText={setPhoneNumber}
+                maxLength={11}
+              /> */}
+              <AnimatedTextInput
+                value={phoneNumber}
+                onChangeText={setPhoneNumber}
+              />
+            </View>
 
-          {/* Поле ввода номера */}
-          <View style={styles.inputContainer}>
-            <TextInput
-              style={styles.input}
-              placeholder="Номер телефона"
-              placeholderTextColor="rgba(32, 54, 134, 0.5)"
-              keyboardType="phone-pad"
-              value={phoneNumber}
-              onChangeText={setPhoneNumber}
-              maxLength={11}
-            />
+            {/* Чекбокс согласия */}
+            <View style={styles.checkboxContainer}>
+              <View style={styles.checkboxContainerInner}>
+              <CustomCheckbox
+                style={styles.checkbox}
+                value={agreedToTerms}
+                onValueChange={setAgreedToTerms}
+                // color={agreedToTerms ? '#203686' : undefined}
+                // hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              />
+              </View>
+              <ThemedText style={styles.checkboxText} lightColor={'#80818B'} >
+                Я принимаю{' '}
+                <Text style={styles.checkboxLink}>Политику конфиденциальности</Text>
+                {'\n'}и{' '}
+                <Text style={styles.checkboxLink}>Согласие на обработку персональных данных</Text>
+              </ThemedText>
+            </View>
+
+            {/* Кнопка Войти */}
+            <TouchableOpacity
+              style={[
+                styles.modalLoginButton,
+                isLoginButtonDisabled && styles.modalLoginButtonDisabled
+              ]}
+              onPress={handleLogin}
+              disabled={isLoginButtonDisabled}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.modalLoginButtonText}>Войти</Text>
+            </TouchableOpacity>
           </View>
-
-          {/* Чекбокс согласия */}
-          <View style={styles.checkboxContainer}>
-            <Checkbox
-              style={styles.checkbox}
-              value={agreedToTerms}
-              onValueChange={setAgreedToTerms}
-              color={agreedToTerms ? '#203686' : undefined}
-            />
-            <Text style={styles.checkboxText}>
-              Я принимаю{' '}
-              <Text style={styles.checkboxLink}>Политику конфиденциальности</Text>
-              {'\n'}и{' '}
-              <Text style={styles.checkboxLink}>Согласие на обработку персональных данных</Text>
-            </Text>
-          </View>
-
-          {/* Кнопка Войти */}
-          <TouchableOpacity
-            style={[
-              styles.modalLoginButton,
-              isLoginButtonDisabled && styles.modalLoginButtonDisabled
-            ]}
-            onPress={handleLogin}
-            disabled={isLoginButtonDisabled}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.modalLoginButtonText}>Войти</Text>
-          </TouchableOpacity>
         </View>
       </SafeAreaView>
     </Modal>
@@ -122,7 +134,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#EBEDF0',
+    backgroundColor: '#ffff',
     // borderTopLeftRadius: 24,
     // borderTopRightRadius: 24,
     paddingHorizontal: 20,
@@ -136,20 +148,32 @@ const styles = StyleSheet.create({
   },
   logoContainer: {
     alignItems: 'flex-start',
-    marginBottom: 24,
+    display:'flex',
+    flexDirection: 'row',
+    gap: 12,
+    alignContent: 'center'
+  },
+  logoText: {
+    fontWeight: 500,
+    fontSize: 14,
+
   },
   modalTitle: {
     fontSize: 24,
     fontWeight: '600',
-    color: '#203686',
+    // color: '#203686',
     marginBottom: 12,
   },
+  afterLogoContent: {
+    marginTop: 40,
+
+  },
   modalDescription: {
+    marginTop: 8,
     fontSize: 16,
     fontWeight: '500',
-    color: '#203686',
     lineHeight: 24,
-    marginBottom: 32,
+    marginBottom: 24,
   },
   inputContainer: {
     marginBottom: 24,
@@ -157,36 +181,48 @@ const styles = StyleSheet.create({
   input: {
     height: 50,
     width: '100%',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#03051E08',
     borderRadius: 12,
     paddingHorizontal: 12,
     fontSize: 16,
-    color: '#203686',
+    color: '#1B1B1C',
     borderWidth: 1,
-    borderColor: 'rgba(32, 54, 134, 0.2)',
+    borderColor: 'transparent',
   },
   checkboxContainer: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginBottom: 32,
+    marginBottom: 24,
+    borderRadius: 6,
+
+  },
+  checkboxContainerInner: {
+    borderRadius: 6,
+    overflow: 'hidden',
+    marginRight: 14
+    // width: 20,
+    // height: 20,
   },
   checkbox: {
     marginRight: 12,
     marginTop: 2,
-    width: 24,
-    height: 24,
+    width: 20,
+    height: 20,
     borderRadius: 6,
-    borderWidth: 2,
+    borderWidth: 0,
+    backgroundColor: '#F2F4F7'
   },
+  
   checkboxText: {
     flex: 1,
     fontSize: 14,
-    color: '#203686',
+    // color: '#203686',
     lineHeight: 20,
   },
   checkboxLink: {
-    textDecorationLine: 'underline',
+    textDecorationLine: 'none',
     fontWeight: '600',
+    color: '#203686'
   },
   modalLoginButton: {
     height: 56,
