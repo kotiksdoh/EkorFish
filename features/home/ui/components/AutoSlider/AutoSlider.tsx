@@ -1,17 +1,19 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-    Dimensions,
-    FlatList,
-    NativeScrollEvent,
-    NativeSyntheticEvent,
-    StyleSheet,
-    TouchableOpacity,
-    View,
+  Dimensions,
+  FlatList,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+  StatusBar,
+  StyleSheet,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { AutoSliderItem } from './AutoSliderItem';
 import { ProgressIndicator } from './ProgressIndicator';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const STATUS_BAR_HEIGHT = StatusBar.currentHeight || 0;
 const SLIDER_HEIGHT = 282;
 
 export interface SlideItem {
@@ -158,8 +160,8 @@ export const AutoSlider: React.FC<AutoSliderProps> = ({
 const styles = StyleSheet.create({
   container: {
     height: SLIDER_HEIGHT,
-    position: 'relative',
-    backgroundColor: '#fff', // Временный фон для видимости
+    marginTop: -STATUS_BAR_HEIGHT, // ЗАХОДИТ ЗА СТАТУС БАР
+    // backgroundColor: '#fff',
   },
   indicatorsContainer: {
     position: 'absolute',
@@ -173,10 +175,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     gap: 1,
-    // backgroundColor: 'rgba(0,0,0,0.3)',
-    // paddingHorizontal: 12,
-    // paddingVertical: 6,
-    // borderRadius: 20,
   },
   indicatorButton: {
     // padding: 4,

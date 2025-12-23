@@ -1,7 +1,9 @@
-import { PrimaryButton } from '@/features/shared/ui/components/PrimartyButton';
+import { ThemedView } from '@/components/themed-view';
 import React from 'react';
-import { SafeAreaView, ScrollView, Text, View } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
 import { AutoSlider, SlideItem } from '../components/AutoSlider';
+import DeliveryInfoCard from '../components/DeliveryInfoCard';
+import SearchInput from '@/features/auth/ui/components/SearchInput';
 
 // Временные данные для слайдера (замените на реальные URL)
 const SLIDER_ITEMS: SlideItem[] = [
@@ -43,68 +45,31 @@ export const HomeScreen = () => {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-background">
+    // <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
       <ScrollView 
         className="flex-1"
         showsVerticalScrollIndicator={false}
       >
         {/* Слайдер */}
-        <View className="mb-6">
+        <ThemedView lightColor={'#FFFFFF'} style={styles.container}>
           <AutoSlider
             items={SLIDER_ITEMS}
             autoPlayInterval={4000}
             showIndicators={true}
           />
-        </View>
-
-        {/* Контент */}
-        <View className="px-4">
-          <Text className="text-2xl font-bold text-primary mb-4">
-            Добро пожаловать в EkorFish!
-          </Text>
-          
-          <Text className="text-base text-gray-600 mb-6">
-            Платформа для настоящих рыбаков. Находите лучшие места, 
-            покупайте снасти и общайтесь с единомышленниками.
-          </Text>
-
-          {/* Примеры использования кнопки */}
-          <View className="space-y-4 mb-8">
-            <PrimaryButton
-              title="Начать рыбалку"
-              onPress={handleButtonPress}
-              variant="primary"
-              size="lg"
-              fullWidth
-            />
-
-            <PrimaryButton
-              title="Каталог снастей"
-              onPress={handleButtonPress}
-              variant="secondary"
-              size="md"
-              fullWidth
-            />
-
-            <PrimaryButton
-              title="Подробнее"
-              onPress={handleButtonPress}
-              variant="outline"
-              size="md"
-              fullWidth
-            />
-
-            <PrimaryButton
-              title="Загрузка..."
-              onPress={handleButtonPress}
-              variant="primary"
-              size="md"
-              loading={true}
-              fullWidth
-            />
-          </View>
-        </View>
+          <SearchInput/>
+          <DeliveryInfoCard/>
+        </ThemedView>
       </ScrollView>
-    </SafeAreaView>
+    // </SafeAreaView>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+    paddingBottom: 16
+  },
+ 
+});

@@ -1,21 +1,14 @@
 const { getDefaultConfig } = require('expo/metro-config');
 const { withNativeWind } = require('nativewind/metro');
 
+/** @type {import('expo/metro-config').MetroConfig} */
 const config = getDefaultConfig(__dirname, {
+  // Включите CSS поддержку для NativeWind
   isCSSEnabled: true,
 });
 
-// Уберите старую настройку SVG трансформера
-config.transformer = {
-  ...config.transformer,
-  babelTransformerPath: require.resolve('react-native-svg-transformer/expo'),
-};
+// УДАЛИТЬ весь блок про transformer и resolver для SVG!
+// Нативная поддержка SVG уже включена.
 
-config.resolver = {
-  ...config.resolver,
-  assetExts: config.resolver.assetExts.filter(ext => ext !== 'svg'),
-  sourceExts: [...config.resolver.sourceExts, 'svg'],
-};
-
-// Примените NativeWind в конце
+// Примените NativeWind в конце (как и было)
 module.exports = withNativeWind(config, { input: './global.css' });

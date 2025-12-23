@@ -1,3 +1,4 @@
+import { useThemeColor } from '@/hooks/use-theme-color';
 import React, { useRef, useState } from 'react';
 import {
     Animated,
@@ -16,6 +17,8 @@ interface AnimatedTextInputProps extends Omit<TextInputProps, 'style'> {
   maxLength?: number;
   style?: any;
   inputStyle?: any;
+  lightColor?: string;
+  darkColor?: string;
 }
 
 const AnimatedTextInput: React.FC<AnimatedTextInputProps> = ({
@@ -27,8 +30,11 @@ const AnimatedTextInput: React.FC<AnimatedTextInputProps> = ({
   maxLength = 11,
   style,
   inputStyle,
+  lightColor,
+  darkColor,
   ...props
 }) => {
+    const color = useThemeColor({ light: lightColor, dark: darkColor }, 'text');
   const [isFocused, setIsFocused] = useState(false);
   const animatedValue = useState(new Animated.Value(value ? 1 : 0))[0];
   const inputRef = useRef<TextInput>(null);
@@ -99,6 +105,7 @@ const AnimatedTextInput: React.FC<AnimatedTextInputProps> = ({
             { 
               paddingTop: 20,
               paddingBottom: 10,
+              color: color
             }
           ]}
           placeholder=""
