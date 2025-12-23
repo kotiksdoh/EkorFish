@@ -3,7 +3,9 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { CustomCheckbox } from '@/features/shared/ui/components/CustomCheckBox';
 import AnimatedTextInput from '@/features/shared/ui/components/CustomInput';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
 
+import { PrimaryButton } from '@/features/home';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Modal,
@@ -14,6 +16,7 @@ import {
   View
 } from 'react-native';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { getCode } from '../../authSlice';
 
 interface LoginModalProps {
   visible: boolean;
@@ -36,6 +39,9 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   const insets = useSafeAreaInsets();
   const codeInputRefs = useRef<TextInput[]>([]);
 
+  const loading = useAppSelector((state) => state.auth.isLoading);
+
+  const dispatch = useAppDispatch()
   // Инициализируем refs
   useEffect(() => {
     codeInputRefs.current = codeInputRefs.current.slice(0, 4);
@@ -45,11 +51,14 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     if (!phoneNumber || !agreedToTerms) {
       return;
     }
-    
-    // Симуляция отправки кода
-    setShowCodeInput(true);
-    setIsTimerActive(true);
-    setError(null);
+    dispatch(getCode({
+      contact: phoneNumber
+    }))
+      // Симуляция отправки кода
+      // TODO реализовать логику
+      setShowCodeInput(true);
+      setIsTimerActive(true);
+      setError(null);
   };
 
   const handleCodeInputChange = (text: string, index: number) => {
@@ -180,17 +189,14 @@ export const LoginModal: React.FC<LoginModalProps> = ({
               {!showCodeInput ? (
                 // ЭКРАН АВТОРИЗАЦИИ
                 <>
-                  {/* Заголовок */}
                   <ThemedText style={styles.modalTitle} lightColor={'#1B1B1C'}>
                     Авторизация
                   </ThemedText>
                   
-                  {/* Описание */}
                   <ThemedText style={styles.modalDescription} lightColor={'#80818B'}>
                     Мы отправим сообщение с кодом{'\n'}для входа.
                   </ThemedText>
 
-                  {/* Поле ввода номера */}
                   <View style={styles.inputContainer}>
                     <AnimatedTextInput
                       // style={styles.input}
@@ -199,7 +205,6 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                       keyboardType="phone-pad"
                       value={phoneNumber}
                       onChangeText={setPhoneNumber}
-                      maxLength={11}
                       autoFocus
                     />
                   </View>
@@ -223,17 +228,28 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                   </View>
 
                   {/* Кнопка Войти */}
-                  <TouchableOpacity
+                  <PrimaryButton
+                    title="Войти"
+                    onPress={handleLogin}
+                    variant="primary"
+                    size="md"
+                    loading={loading}
+                    activeOpacity={0.8}
+                    fullWidth
+                    disabled={isLoginButtonDisabled || loading}
+                  />
+                  {/* <TouchableOpacity
                     style={[
                       styles.modalLoginButton,
                       isLoginButtonDisabled && styles.modalLoginButtonDisabled
                     ]}
                     onPress={handleLogin}
-                    disabled={isLoginButtonDisabled}
+                    disabled={isLoginButtonDisabled || loading}
+                  
                     activeOpacity={0.8}
                   >
                     <Text style={styles.modalLoginButtonText}>Войти</Text>
-                  </TouchableOpacity>
+                  </TouchableOpacity> */}
                 </>
               ) : (
                 // ЭКРАН ПОДТВЕРЖДЕНИЯ КОДА
@@ -296,17 +312,6 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                       </TouchableOpacity>
                     )}
                   </View>
-
-                  {/* Кнопка назад к авторизации */}
-                  {/* <TouchableOpacity
-                    style={styles.backButton}
-                    onPress={() => setShowCodeInput(false)}
-                    activeOpacity={0.7}
-                  >
-                    <ThemedText style={styles.backButtonText} lightColor={'#203686'}>
-                      Назад к авторизации
-                    </ThemedText>
-                  </TouchableOpacity> */}
                 </>
               )}
             </View>

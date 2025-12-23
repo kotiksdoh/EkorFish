@@ -20,7 +20,7 @@ export const getCode = createAsyncThunk(
   "user/login",
   async (payload: any, { rejectWithValue }) => {
     try {
-      const data = await api.admin.post("api/auth/login/", payload);
+      const data = await api.admin.post("/api/Account/send-verification-code", payload);
       return data;
     } catch (error) {
       console.log(error);

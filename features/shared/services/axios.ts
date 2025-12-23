@@ -1,6 +1,7 @@
 import axios from "axios";
 
-export const baseUrl = `${import.meta.env.VITE_PROD_PATH}`;
+export const baseUrl = `http://192.168.222.229:9191`;
+// 192.168.222.239:13333/swagger/index.html
 
   export const ax = axios.create();
 

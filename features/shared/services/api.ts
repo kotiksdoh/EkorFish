@@ -1,7 +1,8 @@
 // import { openNotification } from "../helpers/notifications";
+import { Toast } from "toastify-react-native";
 import {
     ax,
-  } from "./axios";
+} from "./axios";
   
   export const axiosErrorHandler = (err: any) => {
     try {
@@ -75,7 +76,7 @@ import {
       if (statusCode) {
         notificationText = `Код ошибки: ${statusCode}. ${errorMessage}`;
       }
-      
+      Toast.error(notificationText)
       // Открываем уведомление
     //   openNotification({
     //     type: "error",
@@ -84,6 +85,7 @@ import {
       
     } catch (error) {
       console.error('Error in axiosErrorHandler:', error);
+      Toast.error('Произошла непредвиденная ошибка')
       
       // Фолбэк на случай ошибки в обработчике ошибок
     //   openNotification({

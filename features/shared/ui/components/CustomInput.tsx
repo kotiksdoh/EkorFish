@@ -27,7 +27,7 @@ const AnimatedTextInput: React.FC<AnimatedTextInputProps> = ({
   keyboardType = "phone-pad",
   value = '',
   onChangeText,
-  maxLength = 11,
+  maxLength = 50,
   style,
   inputStyle,
   lightColor,

@@ -39,14 +39,7 @@
           }
         }
       ],
-      "expo-web-browser",
-      [
-        "react-native-recaptcha-v3",
-        {
-          "androidSiteKey": "6LeUhjIsAAAAAMu8_IXw2oX0HsC_HSZUF2higB3k",
-          "iOSSiteKey": "6LeUhjIsAAAAAMu8_IXw2oX0HsC_HSZUF2higB3k"
-        }
-      ]
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,
