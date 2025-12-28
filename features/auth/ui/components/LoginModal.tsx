@@ -81,6 +81,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 
   const insets = useSafeAreaInsets();
   const codeInputRefs = useRef<TextInput[]>([]);
+  const [isPasting, setIsPasting] = useState(false);
 
   const loading = useAppSelector((state) => state.auth.isLoading);
   const company = useAppSelector((state) => state.auth.company);
@@ -108,29 +109,105 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       }
     })
   };
-
+  const handlePasteCode = async (pastedText: string) => {
+    // Очищаем текст от всего, кроме цифр
+    const cleanedCode = pastedText.replace(/\D/g, '');
+    
+    // Берем первые 4 цифры
+    const codeDigits = cleanedCode.substring(0, 4).split('');
+    
+    if (codeDigits.length === 4) {
+      // Заполняем все поля
+      const newCode = [...confirmationCode];
+      codeDigits.forEach((digit, index) => {
+        if (index < 4) {
+          newCode[index] = digit;
+        }
+      });
+      
+      setConfirmationCode(newCode);
+      
+      // Фокусируемся на последнем поле
+      if (codeInputRefs.current[3]) {
+        codeInputRefs.current[3].focus();
+      }
+      
+      // Автоматически отправляем на проверку
+      setTimeout(() => {
+        verifyCode(newCode.join(''));
+      }, 100);
+    } else if (codeDigits.length > 0) {
+      // Если вставили меньше 4 цифр, заполняем сколько есть
+      const newCode = [...confirmationCode];
+      codeDigits.forEach((digit, index) => {
+        if (index < 4) {
+          newCode[index] = digit;
+          if (codeInputRefs.current[index]) {
+            codeInputRefs.current[index].focus();
+          }
+        }
+      });
+      setConfirmationCode(newCode);
+    }
+  };
   const handleCodeInputChange = (text: string, index: number) => {
-    const singleChar = text.length > 1 ? text.charAt(text.length - 1) : text;
+    // Автоматически обрабатываем вставку длинного текста
+    if (text.length > 1) {
+      // Очищаем текст от всего, кроме цифр
+      const cleanedCode = text.replace(/\D/g, '');
+      const codeDigits = cleanedCode.substring(0, 4).split('');
+      
+      if (codeDigits.length === 4) {
+        // Заполняем все поля
+        const newCode = [...confirmationCode];
+        codeDigits.forEach((digit, idx) => {
+          if (idx < 4) {
+            newCode[idx] = digit;
+          }
+        });
+        
+        setConfirmationCode(newCode);
+        
+        // Фокусируемся на последнем поле
+        if (codeInputRefs.current[3]) {
+          codeInputRefs.current[3].focus();
+        }
+        
+        // Автоматически отправляем на проверку
+        setTimeout(() => {
+          verifyCode(newCode.join(''));
+        }, 100);
+        return;
+      }
+    }
+    
+    // Обычная обработка одного символа
+    const singleChar = text.length > 0 ? text.charAt(text.length - 1) : '';
     
     const newCode = [...confirmationCode];
     newCode[index] = singleChar;
     setConfirmationCode(newCode);
+    
     if (singleChar && index < 3) {
       codeInputRefs.current[index + 1]?.focus();
     }
+    
     if (!singleChar && index > 0) {
       codeInputRefs.current[index - 1]?.focus();
     }
+    
     if (newCode.every(char => char !== '')) {
       verifyCode(newCode.join(''));
     }
   };
+
 
   const handleKeyPress = (event: any, index: number) => {
     if (event.nativeEvent.key === 'Backspace' && !confirmationCode[index] && index > 0) {
       codeInputRefs.current[index - 1]?.focus();
     }
   };
+
 
   const verifyCode = (code: string) => {
     dispatch(sendCode({contact: phoneNumber, verificationCode: code})).then((res: any) => 
@@ -400,7 +477,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                   
                   {/* Описание */}
                   <ThemedText style={styles.modalDescriptionAfterPhone} lightColor={'#80818B'}>
-                    Мы отправили 4-x значный код{'\n'}на номер {phoneNumber}.
+                    Мы отправили 4-x значный код{'\n'}на номер +{phoneNumber}.
                   </ThemedText>
 
                   {/* Контейнер для 4 инпутов */}
@@ -415,7 +492,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                         }}
                         style={[
                           styles.codeInput,
-                          error && styles.codeInputError
+                          error && styles.codeInputError,
+                          loading && styles.codeInputDisabled
                         ]}
                         value={confirmationCode[index]}
                         onChangeText={(text) => handleCodeInputChange(text, index)}
@@ -427,11 +505,11 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                         placeholder=""
                         placeholderTextColor={error ? '#FF3B30' : '#80818B'}
                         editable={!loading}
-                        
+                        selectTextOnFocus={!loading}
+                        contextMenuHidden={loading}
                       />
                     ))}
                   </View>
-
                   {/* Сообщение об ошибке */}
                   {error && (
                     <ThemedText style={styles.errorText} lightColor={'#FF3B30'}>
@@ -446,7 +524,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                         Отправить код еще раз через 00:{timer.toString().padStart(2, '0')}
                       </ThemedText>
                     ) : (
-                      <TouchableOpacity onPress={handleResendCode} activeOpacity={0.7}>
+                      <TouchableOpacity  disabled={loading} onPress={handleResendCode} activeOpacity={0.7}>
                         <ThemedText style={styles.resendText} lightColor={'#203686'}>
                           Отправить код еще раз
                         </ThemedText>
@@ -980,6 +1058,10 @@ const styles = StyleSheet.create({
     borderColor: '#FF3B30',
     backgroundColor: '#FF3B3010',
   },
+  codeInputDisabled: {
+    backgroundColor: '#F2F4F7',
+    opacity: 0.5,
+  },
   errorText: {
     fontSize: 14,
     fontWeight: '500',
@@ -998,6 +1080,9 @@ const styles = StyleSheet.create({
   resendText: {
     fontSize: 14,
     fontWeight: 500,
+  },
+  resendTextDisabled: {
+    opacity: 0.5,
   },
   backButton: {
     paddingVertical: 12,
