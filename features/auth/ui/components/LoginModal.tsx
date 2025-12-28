@@ -1,4 +1,4 @@
-import { BriefcaseIcon, CloseIcon, LogoIcon, ProfileIcon } from '@/assets/icons/icons.js';
+import { BriefcaseIcon, CloseIcon, LogoIcon, MessageIcon, PhoneIcon, ProfileIcon } from '@/assets/icons/icons.js';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { CustomCheckbox } from '@/features/shared/ui/components/CustomCheckBox';
@@ -12,7 +12,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Image,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   StyleSheet,
   Text,
   TextInput,
@@ -20,6 +22,7 @@ import {
   View
 } from 'react-native';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
+import manager from '../../../../assets/icons/png/manager.png';
 import { compliteCompany, compliteProfile, getCode, searchCompany, sendCode } from '../../authSlice';
 import { ModalHeader } from '../Header';
 // import Error from '../../../../assets/icons/png/error.png'
@@ -61,6 +64,10 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 
   const [selectedAccountType, setSelectedAccountType] = useState('')
 
+  // const [currentScenario, setCurrentScenarion] = useState<AuthScenario>(AuthScenario.NEED_ACC_TYPE)
+  // const [currentScreen, setCurrentScreen] = useState<ScreensScenario>(ScreensScenario.COMPANY_SEARCH)
+
+
   const [currentScenario, setCurrentScenarion] = useState<AuthScenario>(AuthScenario.DEFAULT)
   const [currentScreen, setCurrentScreen] = useState<ScreensScenario>(ScreensScenario.ACC_TYPE)
 
@@ -86,7 +93,15 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   const loading = useAppSelector((state) => state.auth.isLoading);
   const company = useAppSelector((state) => state.auth.company);
 
-
+  // const company = {
+  //   id: 1,
+  //   inn: 1111,
+  //   kpp: 1111,
+  //   name: 'OOO Romashka',
+  //   foundationDate: '17.01.2002',
+  //   legalAddress: 'OOO Romashka',
+  //   contactPerson: 'OOO Romashka'
+  // }
   const dispatch = useAppDispatch()
   // Инициализируем refs
   useEffect(() => {
@@ -704,10 +719,14 @@ export const LoginModal: React.FC<LoginModalProps> = ({
               setCurrentScreen(ScreensScenario.ACC_TYPE)
           }}
         />
-        <ThemedView style={stylesRegUser.modalContentInnerRegUser} lightColor={'#FFFFFF'}>
-          <View>
-            <ThemedText style={stylesAccType.accountTypeTitle}>
+
+        <ThemedView lightColor={'#FFFFFF'} style={[stylesRegUser.modalContentInnerRegUser, { flex: 1 }]}>
+          <View >
+            {/* <ThemedText style={stylesAccType.accountTypeTitle}>
               Данные вашей компании
+            </ThemedText> */}
+            <ThemedText style={stylesSearchComp.textUp}>
+              Ваш номер телефона найден, но не привязан к компании. Пожалуйста, введите ИНН вашей организации.
             </ThemedText>
             <View style={stylesRegUser.inputConteiner}>
               <AnimatedTextInput
@@ -715,22 +734,40 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                 placeholderTextColor="#80818B"
                 value={inn}
                 onChangeText={setInn}
+                maxLength={10}
+                // keyboardType="phone-pad"
+                // autoFocus={true} // Автофокус на поле
               />
             </View>
+            { !inn ? 
+            <ThemedText lightColor='#80818B' darkColor='#FBFCFF80' style={stylesSearchComp.textDown}>
+              На данном этапе можно добавить только одну компанию. Остальные вы сможете привязать позже в личном кабинете.
+            </ThemedText>
+            : <></>
+            }
           </View>
-          <View style={stylesRegUser.buttonUserReg}>
+          <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        // style={stylesRegUser.modalContentInnerRegUser}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}
+      >
+          <View style={[
+            stylesSearchComp.buttonUserReg // Поднимаем кнопку
+          ]}>
             <PrimaryButton
-                title="Найти компанию"
-                onPress={() => handleSearchCompany()}
-                variant="primary"
-                size="md"
-                loading={loading}
-                activeOpacity={0.8}
-                fullWidth
-                disabled={loading}
-                style={stylesAccType.continueButton}
-              />
-            </View>
+              title="Найти компанию"
+              onPress={() => handleSearchCompany()}
+              variant="primary"
+              size="md"
+              loading={loading}
+              activeOpacity={0.8}
+              fullWidth
+              disabled={loading || inn.length < 10}
+              style={stylesAccType.continueButton}
+            />
+          </View>
+          </KeyboardAvoidingView>
+
         </ThemedView>
       </ThemedView>
       : currentScreen === ScreensScenario.COMPANY_PICK ?
@@ -742,10 +779,10 @@ export const LoginModal: React.FC<LoginModalProps> = ({
               setCurrentScreen(ScreensScenario.COMPANY_SEARCH)
           }}
         />
-        <ThemedView style={stylesRegUser.modalContentInnerRegUser} lightColor={'#FFFFFF'}>
           {
           // Object.keys(company).length === 0 
           company === null ?
+        <ThemedView style={stylesError.modalContentErr} lightColor={'#FFFFFF'}>
             <View style={stylesError.errorContainer}>
               <Image
                 source={require('../../../../assets/icons/png/error.png')} // Замените на путь к вашей картинке
@@ -776,36 +813,74 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                 />
               {/* </View> */}
             </View>
+        </ThemedView>
+
           :
+        <>
+        <ThemedView style={stylesCompany.main} lightColor={'#FFFFFF'}>
+
             <View>
               <ThemedText style={stylesAccType.accountTypeTitle}>
                   Проверьте данные
               </ThemedText>
               <ThemedText lightColor='#80818B'>
-                  Мы нашли вашу компанию в нашей базе:
+                  Мы нашли несколько компаний привязанных к вашему логину:
               </ThemedText>
-              <View>
-                <ThemedText>
+              <ThemedView 
+                lightColor='#F2F4F7'
+                darkColor='#F2F4F7'
+                style={stylesCompany.companyContainer}
+              >
+                {/* Название компании */}
+                <ThemedText 
+                  style={stylesCompany.companyName}
+                  lightColor='#1B1B1C'
+                  darkColor='#1B1B1C'
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                >
                   {company?.name}
                 </ThemedText>
-                <View>
-                  <ThemedText>
-                    ИНН/КПП
+                
+                {/* ИНН/КПП */}
+                <View style={stylesCompany.row}>
+                  <ThemedText 
+                    style={stylesCompany.label}
+                    lightColor='#80818B'
+                    darkColor='#80818B'
+                  >
+                    ИНН/КПП:
                   </ThemedText>
-                  <ThemedText>
+                  <ThemedText 
+                    style={stylesCompany.value}
+                    lightColor='#1B1B1C'
+                    darkColor='#1B1B1C'
+                  >
                     {company?.inn}/{company?.kpp}
                   </ThemedText>
                 </View>
-                <View>
-                  <ThemedText>
-                    Юр. адрес
+                
+                {/* Юридический адрес */}
+                <View style={stylesCompany.row}>
+                  <ThemedText 
+                    style={stylesCompany.label}
+                    lightColor='#80818B'
+                    darkColor='#80818B'
+                  >
+                    Юр. адрес:
                   </ThemedText>
-                  <ThemedText>
+                  <ThemedText 
+                    style={stylesCompany.value}
+                    lightColor='#1B1B1C'
+                    darkColor='#1B1B1C'
+                    numberOfLines={2}
+                    ellipsizeMode="tail"
+                  >
                     {company?.legalAddress}
                   </ThemedText>
                 </View>
-              </View>
-              <View style={stylesRegUser.buttonUserReg}>
+              </ThemedView>
+              <View style={stylesCompany.button}>
                 <PrimaryButton
                     title="Подтвердить"
                     onPress={() => handelCompliteOrg()}
@@ -819,9 +894,84 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                   />
               </View>
             </View>
-
-          }
         </ThemedView>
+        <ThemedView style={stylesCompany.main} lightColor={'#FFFFFF'}>
+          <ThemedText style={stylesAccType.accountTypeTitle}>
+            Если данные не верны,{'\n'}свяжитесь с менеджером
+          </ThemedText>
+          <ThemedView style={stylesManager.container} lightColor='#F2F4F7' darkColor='#F2F4F7'>
+              <ThemedText 
+                style={stylesManager.yourManager}
+                lightColor='#80818B'
+                darkColor='#80818B'
+              >
+                Ваш менеджер
+              </ThemedText>
+              
+              <View style={stylesManager.managerInfo}>
+                {/* Фото менеджера */}
+                <View style={stylesManager.avatarContainer}>
+                  <Image
+                    source={manager}
+                    // source={{ uri: 'https://example.com/manager-photo.jpg' }} 
+                    style={stylesManager.avatar}
+                    resizeMode="cover"
+                  />
+                </View>
+                
+                {/* Имя менеджера */}
+                <View style={stylesManager.nameContainer}>
+                  <ThemedText 
+                    style={stylesManager.managerName}
+                    lightColor='#1B1B1C'
+                    darkColor='#1B1B1C'
+                    numberOfLines={2}
+                  >
+                    Иванова Мария Сергеевна
+                  </ThemedText>
+                </View>
+              </View>
+              
+              <View style={stylesManager.actionsContainer}>
+                <TouchableOpacity 
+                  style={stylesManager.actionButton}
+                  onPress={() => console.log('Написать сообщение')}
+                  activeOpacity={0.7}
+                >
+                  <View style={stylesManager.buttonContent}>
+                    <MessageIcon width={24} height={24} />
+                    <ThemedText 
+                      style={stylesManager.buttonText}
+                      lightColor='#203686'
+                      darkColor='#203686'
+                    >
+                      Написать
+                    </ThemedText>
+                  </View>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={stylesManager.actionButton}
+                  onPress={() => console.log('Позвонить')}
+                  activeOpacity={0.7}
+                >
+                  <View style={stylesManager.buttonContent}>
+                    <PhoneIcon width={24} height={24} />
+                    <ThemedText 
+                      style={stylesManager.buttonText}
+                      lightColor='#203686'
+                      darkColor='#203686'
+                    >
+                      Позвонить
+                    </ThemedText>
+                  </View>
+                </TouchableOpacity>
+              </View>
+          </ThemedView>
+        </ThemedView>
+
+        </>
+          }
       </ThemedView>
       : currentScreen === ScreensScenario.COMPANY_REG ?
       <ThemedView lightColor={'#EBEDF0'} style={styles.modalContent}>
@@ -853,6 +1003,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({
               placeholderTextColor="#80818B"
               value={inn}
               onChangeText={setInn}
+              maxLength={10}
+              // keyboardType="phone-pad"
             />
             <AnimatedTextInput
               placeholder="КПП"
@@ -1173,13 +1325,47 @@ const stylesRegUser = StyleSheet.create({
   }
 })
 
+const stylesSearchComp = StyleSheet.create({
+  inputConteiner: {
+    gap: 16
+  },
+  modalContentInnerRegUser: {
+    marginTop: 8,
+    padding: 16,
+    borderRadius: 24,
+    height: '90%',
+    justifyContent:'space-between'
+  },
+  buttonUserReg: {
+    // marginTop: 'auto',
+    marginBottom: 60
+  },
+  textUp:{
+    fontWeight: 500,
+    marginBottom: 24,
+    fontSize: 16
+  },
+  textDown:{
+    fontWeight: 400,
+    fontSize: 14,
+    marginTop: 4
+  }
+})
+
 const stylesError = StyleSheet.create({
+  modalContentErr: {
+    marginTop: 8,
+    padding: 16,
+    borderRadius: 24,
+    height: '100%',
+    justifyContent:'space-between'
+  },
   errorContainer: {
     display: 'flex',
     justifyContent:'center',
     alignItems: 'center',
-    marginTop: 'auto',
-    marginBottom: 'auto'
+    marginTop: '40%',
+    marginBottom: '50%'
   },
   mainErr:{
     fontWeight: 600,
@@ -1204,3 +1390,147 @@ const stylesRegCompany = StyleSheet.create({
       gap: 16
   }
 })
+
+const stylesCompany = StyleSheet.create({
+  button: {
+
+  },
+  main:{
+    // paddingHorizontal: 16
+    marginTop: 8,
+    padding: 16,
+    borderRadius: 24,
+    // height: '100%',
+    justifyContent:'space-between'
+  },
+  companyContainer: {
+    width: '100%',
+    minHeight: 104,
+    borderRadius: 16,
+    marginHorizontal: 16,
+    padding: 16,
+    marginTop: 16,
+    marginBottom: 24,
+    alignSelf: 'center', 
+  },
+  companyName: {
+    fontFamily: 'Montserrat',
+    fontWeight: '600',
+    fontSize: 16,
+    lineHeight: 20, // 16 * 1.25 = 20
+    letterSpacing: 0,
+    marginBottom: 16,
+    fontVariant: ['lining-nums', 'proportional-nums'],
+  },
+  row: {
+    flexDirection: 'row',
+    // justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  label: {
+    fontFamily: 'Montserrat',
+    fontWeight: '500',
+    fontSize: 14,
+    lineHeight: 18.2, // 14 * 1.3 = 18.2
+    letterSpacing: 0,
+    // flex: 1, // Занимает 1 часть
+    marginRight: 8,
+  },
+  value: {
+    fontFamily: 'Montserrat',
+    fontWeight: '500',
+    fontSize: 14,
+    lineHeight: 18.2,
+    letterSpacing: 0,
+    // flex: 2, // Занимает 2 части (в 2 раза шире лейбла)
+    textAlign: 'right',
+    fontVariant: ['lining-nums', 'proportional-nums'],
+  },
+});
+
+const stylesManager = StyleSheet.create({
+  container: {
+    width: '100%',
+    minHeight: 232,
+    borderRadius: 16,
+    paddingTop: 12,
+    paddingRight: 16,
+    paddingBottom: 16,
+    paddingLeft: 16,
+    alignSelf: 'center',
+    marginTop: 16,
+  },
+  yourManager: {
+    fontFamily: 'Montserrat',
+    fontWeight: '600',
+    fontSize: 14,
+    lineHeight: 18.2, // 14 * 1.3 = 18.2
+    letterSpacing: -0.02, // -2%
+    marginBottom: 16,
+    fontVariant: ['lining-nums', 'proportional-nums'],
+  },
+  managerInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  avatarContainer: {
+    marginRight: 16,
+  },
+  avatar: {
+    width: 100,
+    height: 100,
+    borderRadius: 100,
+  },
+  nameContainer: {
+    flex: 1,
+  },
+  managerName: {
+    fontFamily: 'Montserrat',
+    fontWeight: '600',
+    fontSize: 18,
+    lineHeight: 22,
+    letterSpacing: 0,
+  },
+  actionsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  actionButton: {
+    flex: 1,
+    height: 48,
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingTop: 8,
+    paddingRight: 32,
+    paddingBottom: 8,
+    paddingLeft: 32,
+    borderWidth: 1,
+    borderColor: '#F0F3F7',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  buttonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  buttonText: {
+    fontFamily: 'Montserrat',
+    fontWeight: '500',
+    fontSize: 16,
+    lineHeight: 16, // 16 * 1.0 = 16
+    letterSpacing: 0,
+    // fontVariant: ['lining-nums', 'proportional-nums'],
+  },
+});

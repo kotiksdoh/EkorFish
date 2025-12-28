@@ -15,16 +15,16 @@ export default function SpecialOffers() {
             img: barabulkaImage,
             isFrozen: true,
             name: 'Барабулька н/р 12шт х 0,6кг 1/12 Араката dsds sds',
-            kgPrice: 1130.30,
-            fullPrice: 15130.40
+            kgPrice: '1130.30',
+            fullPrice: '15130.40'
         },
         {
             id: 2,
             img: semgaImage,
             isFrozen: true,
             name: 'Барабулька н/р 12шт х 0,6кг 1/12 Араката',
-            kgPrice: 1130.30,
-            fullPrice: 15130.40
+            kgPrice: '1130.30',
+            fullPrice: '15130.40'
         }
     ]
 

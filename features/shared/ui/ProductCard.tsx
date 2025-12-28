@@ -83,14 +83,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             {/* Цена за кг */}
             <View style={styles.kgPriceRow}>
               <ThemedText lightColor='#203686' darkColor='#4C94FF' style={styles.kgPrice}>
-                {kgPrice ? formatPrice(kgPrice) : '0,00'}
+                {kgPrice ? kgPrice : '0,00'}
               </ThemedText>
-              <ThemedText lightColor='#203686' darkColor='#4C94FF' style={styles.kgLabel}> ₽ / кг</ThemedText>
+              <ThemedText lightColor='#203686' darkColor='#4C94FF' style={styles.kgLabel}>₽ / кг</ThemedText>
             </View>
             
             {/* Полная цена */}
             <ThemedText lightColor='#80818B' darkColor='#FBFCFF80' style={styles.fullPrice}>
-              {fullPrice ? `${formatPrice(fullPrice)}₽` : '0,00 ₽'}
+              {fullPrice ? `${fullPrice}₽` : '0,00 ₽'}
             </ThemedText>
           </View>
           
@@ -196,8 +196,8 @@ const styles = StyleSheet.create({
     fontVariant: ['lining-nums', 'proportional-nums'],
   },
   cartButton: {
-    width: 35,
-    height: 35,
+    width: 40,
+    height: 40,
     borderRadius: 10,
     backgroundColor: '#FFED32',
     justifyContent: 'center',
