@@ -1,12 +1,16 @@
 // features/auth/authSlice.ts
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
 import api, { axiosErrorHandler } from '../shared/services/api';
+import { axdef } from '../shared/services/axios';
+import { getInlineParams } from '../shared/services/utils';
 
 interface AuthState {
   user: any | null
   error: string | null;
   isLoading: boolean;
   phoneNumber: string | null;
+  company: any;
 }
 
 const initialState: AuthState = {
@@ -14,13 +18,67 @@ const initialState: AuthState = {
   error: null,
   isLoading: false,
   phoneNumber: null,
+  company: null
 };
 
 export const getCode = createAsyncThunk(
-  "user/login",
+  "user/getCode",
   async (payload: any, { rejectWithValue }) => {
     try {
       const data = await api.admin.post("/api/Account/send-verification-code", payload);
+      return data;
+    } catch (error) {
+      console.log(error);
+      return rejectWithValue(error);
+    }
+  }
+);
+
+export const sendCode = createAsyncThunk(
+  "user/sendCode",
+  async (payload: any, { rejectWithValue }) => {
+    try {
+      debugger
+      const data = await api.admin.post("/api/Account/verify-code", payload);
+      return data;
+    } catch (error) {
+      console.log(error);
+      return rejectWithValue(error);
+    }
+  }
+);
+
+export const compliteProfile = createAsyncThunk(
+  "user/compliteProfile",
+  async (payload: any, { rejectWithValue }) => {
+    try {
+      const data = await axdef.post("/api/Account/complete-profile", payload);
+      return data;
+    } catch (error) {
+      console.log(error);
+      return rejectWithValue(error);
+    }
+  }
+);
+
+export const compliteCompany = createAsyncThunk(
+  "user/compliteCompany",
+  async (payload: any, { rejectWithValue }) => {
+    try {
+      const data = await axdef.post("/api/Account/companies", payload);
+      return data;
+    } catch (error) {
+      console.log(error);
+      return rejectWithValue(error);
+    }
+  }
+);
+
+export const searchCompany = createAsyncThunk(
+  "user/searchCompany",
+  async (payload: any, { rejectWithValue }) => {
+    try {
+      const data = await axdef.get("/api/Account/companies?" + getInlineParams(payload));
       return data;
     } catch (error) {
       console.log(error);
@@ -49,21 +107,84 @@ const authSlice = createSlice({
     },
   },
   extraReducers: (builder) => {
+
+    builder.addCase(searchCompany.pending, (state) => {
+      state.isLoading = true;
+    });
+    builder.addCase(searchCompany.fulfilled, (state, action) => {
+      state.isLoading = false;
+      console.log('payloadComp', action.payload.data.data)
+      state.company = action.payload.data.data;
+    });
+    builder.addCase(searchCompany.rejected, (state, action) => {
+      state.isLoading = false;
+      axiosErrorHandler(action?.payload);
+
+    });
+
+    builder.addCase(compliteProfile.pending, (state) => {
+      state.isLoading = true;
+    });
+    builder.addCase(compliteProfile.fulfilled, (state, action) => {
+      state.isLoading = false;
+    });
+    builder.addCase(compliteProfile.rejected, (state, action) => {
+      state.isLoading = false;
+      axiosErrorHandler(action?.payload);
+
+    });
+    
+
+    builder.addCase(compliteCompany.pending, (state) => {
+      state.isLoading = true;
+    });
+    builder.addCase(compliteCompany.fulfilled, (state, action) => {
+      state.isLoading = false;
+    });
+    builder.addCase(compliteCompany.rejected, (state, action) => {
+      state.isLoading = false;
+      axiosErrorHandler(action?.payload);
+
+    });
+
     builder.addCase(getCode.pending, (state) => {
       state.isLoading = true;
     });
     builder.addCase(getCode.fulfilled, (state, action) => {
       state.isLoading = false;
-      console.log('action', action.payload)
-      if (action.payload?.data?.data?.access && action.payload.data?.data?.refresh) {
-        localStorage.setItem("token", action.payload?.data?.data?.access);
-        localStorage.setItem(
-          "token_refresh",
-          action.payload?.data?.data?.refresh
-        );
-      }
     });
     builder.addCase(getCode.rejected, (state, action) => {
+      state.isLoading = false;
+      console.log('action')
+      axiosErrorHandler(action?.payload);
+
+    });
+
+    builder.addCase(sendCode.pending, (state) => {
+      state.isLoading = true;
+    });
+    builder.addCase(sendCode.fulfilled, (state, action) => {
+      state.isLoading = false;
+      console.log('action', action.payload)
+      debugger
+      if (action.payload?.data?.data?.tokens?.accessToken && action.payload.data?.data?.tokens?.refreshToken) {
+        // Используем async/await
+        debugger
+        (async () => {
+          try {
+            await AsyncStorage.setItem("token", action.payload?.data?.data?.tokens?.accessToken);
+            await AsyncStorage.setItem(
+              "token_refresh",
+              action.payload.data?.data?.tokens?.refreshToken
+            );
+            console.log('Tokens saved to AsyncStorage');
+          } catch (error) {
+            console.error('Error saving tokens:', error);
+          }
+        })();
+      }
+    });
+    builder.addCase(sendCode.rejected, (state, action) => {
       state.isLoading = false;
       console.log('action')
       axiosErrorHandler(action?.payload);

@@ -224,3 +224,144 @@ export const CloseIcon = ({ width = 20, height = 20, fill = '#80818B', ...props 
       />
     </Svg>
   );
+
+  export const ProfileIcon = ({ 
+    width = 32, 
+    height = 32, 
+    fill = '#1B1B1C',
+    ...props 
+  }) => (
+    <Svg 
+      width={width} 
+      height={height} 
+      viewBox="0 0 32 32" 
+      fill="none"
+      {...props}
+    >
+      <Path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M10.667 12.8C10.667 18.2462 12.8489 20 16.0003 20C19.1409 20 21.3337 18.3161 21.3337 13.28C21.3337 10.281 19.2421 8 16.0003 8C12.6236 8 10.667 9.95798 10.667 12.8Z"
+        fill={fill}
+      />
+      <Path
+        d="M4 28C5.26695 25.3415 6.96675 22.7832 9.81332 22.0283C11.3097 21.6315 13.3236 21.3334 15.9974 21.3334C18.6706 21.3334 20.6839 21.6309 22.1798 22.0272C25.0282 22.7818 26.7295 25.3414 28 28H4Z"
+        fill={fill}
+      />
+    </Svg>
+  );
+
+export const BriefcaseIcon = ({ 
+  width = 32, 
+  height = 32, 
+  fill = '#1B1B1C',
+  ...props 
+}) => (
+  <Svg 
+    width={width} 
+    height={height} 
+    viewBox="0 0 32 32" 
+    fill="none"
+    {...props}
+  >
+    <Path
+      d="M27 11.1089V16.7209C27 17.6708 26.2755 18.4452 25.3917 18.4452H18.5719V16.9274C18.5719 15.6625 17.6108 14.6299 16.4226 14.6299H15.5726C14.3892 14.6299 13.4233 15.6625 13.4233 16.9274V18.4452H6.60834C5.71965 18.4452 5 17.6708 5 16.7209V11.1089C5 10.1589 5.71965 9.38968 6.60834 9.38968H25.3917C26.2755 9.38968 27 10.1589 27 11.1089ZM26.2031 19.3332C26.0389 19.6172 19.0018 19.4262 18.5719 19.4778V20.34C18.5719 21.6049 17.6108 22.6374 16.4226 22.6374H15.5726C14.3892 22.6374 13.4233 21.6049 13.4233 20.34V19.4778H6.60834C6.02393 19.4778 5.45401 19.261 5 18.8686V25.2808C5 26.2307 5.71965 27 6.60834 27H25.3917C26.2755 27 27 26.2307 27 25.2808V18.8686C26.7633 19.0699 26.4929 19.2351 26.2031 19.3332ZM16.4226 21.5997C17.0746 21.5997 17.6059 21.0318 17.6059 20.3348V19.4726C17.6059 18.8686 17.6059 17.5366 17.6059 16.9222C17.6059 16.2252 17.0746 15.6573 16.4226 15.6573H15.5726C14.9205 15.6573 14.3892 16.2252 14.3892 16.9222V18.4401V20.3348C14.3892 21.0318 14.9205 21.5997 15.5726 21.5997H16.4226ZM15.9976 6.27133C17.8378 6.27133 19.0452 6.87539 20.1851 8.35711H21.861C19.2191 3.8758 12.7761 3.88613 10.1293 8.35711H11.8101C12.9548 6.87023 14.1622 6.27133 15.9976 6.27133Z"
+      fill={fill}
+    />
+  </Svg>
+);
+
+
+export const CalendarFilledIcon = ({ 
+  width = 24, 
+  height = 24, 
+  stroke = '#1B1B1C',
+  fill = '#F5F5F5', // светлый фон для контраста
+  strokeWidth = 1.5,
+  ...props 
+}) => (
+  <Svg 
+    width={width} 
+    height={height} 
+    viewBox="0 0 24 24" 
+    fill="none"
+    {...props}
+  >
+    {/* Основной прямоугольник с заливкой */}
+    <Path
+      fillRule="evenodd"
+      clipRule="evenodd"
+      d="M16.2383 3.57922H7.77096C4.83427 3.57922 3 5.21516 3 8.22225V17.2719C3 20.3263 4.83427 22 7.77096 22H16.229C19.175 22 21 20.3546 21 17.3475V8.22225C21.0092 5.21516 19.1842 3.57922 16.2383 3.57922Z"
+      fill={fill}
+      stroke={stroke}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    
+    {/* Остальные линии (без заливки) */}
+    <Path
+      d="M3.09277 9.40421H20.9167"
+      stroke={stroke}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <Path
+      d="M16.442 13.3097H16.4512"
+      stroke={stroke}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <Path
+      d="M12.0045 13.3097H12.0137"
+      stroke={stroke}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <Path
+      d="M7.55818 13.3097H7.56744"
+      stroke={stroke}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <Path
+      d="M16.442 17.1962H16.4512"
+      stroke={stroke}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <Path
+      d="M12.0045 17.1962H12.0137"
+      stroke={stroke}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <Path
+      d="M7.55818 17.1962H7.56744"
+      stroke={stroke}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <Path
+      d="M16.0433 2V5.29078"
+      stroke={stroke}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <Path
+      d="M7.96515 2V5.29078"
+      stroke={stroke}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);

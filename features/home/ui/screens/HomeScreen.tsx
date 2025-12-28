@@ -4,6 +4,7 @@ import { ScrollView, StyleSheet } from 'react-native';
 import { AutoSlider, SlideItem } from '../components/AutoSlider';
 import DeliveryInfoCard from '../components/DeliveryInfoCard';
 import SearchInput from '@/features/auth/ui/components/SearchInput';
+import SpecialOffers from '../components/SpecialOffers/SpecialOffers';
 
 // Временные данные для слайдера (замените на реальные URL)
 const SLIDER_ITEMS: SlideItem[] = [
@@ -59,7 +60,9 @@ export const HomeScreen = () => {
           />
           <SearchInput/>
           <DeliveryInfoCard/>
+          
         </ThemedView>
+        <SpecialOffers/>
       </ScrollView>
     // </SafeAreaView>
   );

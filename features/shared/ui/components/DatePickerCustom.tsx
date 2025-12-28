@@ -1,15 +1,17 @@
+import { CalendarFilledIcon } from '@/assets/icons/icons';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import React, { useRef, useState } from 'react';
 import {
-  Animated,
-  StyleSheet,
-  TextInput,
-  TextInputProps,
-  TouchableWithoutFeedback,
-  View,
+    Animated,
+    StyleSheet,
+    TextInput,
+    TouchableOpacity,
+    TouchableWithoutFeedback,
+    View,
 } from 'react-native';
+import DateTimePickerModal from "react-native-modal-datetime-picker";
 
-interface AnimatedTextInputProps extends Omit<TextInputProps, 'style'> {
+interface DatePickerWithIconProps {
   placeholder?: string;
   placeholderTextColor?: string;
   value?: string;
@@ -21,10 +23,9 @@ interface AnimatedTextInputProps extends Omit<TextInputProps, 'style'> {
   darkColor?: string;
 }
 
-const AnimatedTextInput: React.FC<AnimatedTextInputProps> = ({
-  placeholder = "Номер телефона или E-mail",
+export const DatePickerWithIcon: React.FC<DatePickerWithIconProps> = ({
+  placeholder = "Дата рождения",
   placeholderTextColor = "#80818B",
-  keyboardType = "default",
   value = '',
   onChangeText,
   maxLength = 50,
@@ -34,13 +35,39 @@ const AnimatedTextInput: React.FC<AnimatedTextInputProps> = ({
   darkColor,
   ...props
 }) => {
-    const color = useThemeColor({ light: lightColor, dark: darkColor }, 'text');
+  const color = useThemeColor({ light: lightColor, dark: darkColor }, 'text');
   const [isFocused, setIsFocused] = useState(false);
+  const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
   const animatedValue = useState(new Animated.Value(value ? 1 : 0))[0];
   const inputRef = useRef<TextInput>(null);
 
+  const showDatePicker = () => {
+    setDatePickerVisibility(true);
+  };
+
+  const hideDatePicker = () => {
+    setDatePickerVisibility(false);
+  };
+
+  const handleConfirm = (selectedDate: Date) => {
+    const formattedDate = selectedDate.toLocaleDateString('ru-RU');
+    if (onChangeText) {
+      onChangeText(formattedDate);
+    }
+    
+    // Анимация placeholder
+    Animated.timing(animatedValue, {
+      toValue: 1,
+      duration: 200,
+      useNativeDriver: false,
+    }).start();
+    
+    hideDatePicker();
+  };
+
   const handleFocus = () => {
     setIsFocused(true);
+    showDatePicker(); // Показываем date picker при фокусе
     Animated.timing(animatedValue, {
       toValue: 1,
       duration: 200,
@@ -53,19 +80,6 @@ const AnimatedTextInput: React.FC<AnimatedTextInputProps> = ({
     if (!value) {
       Animated.timing(animatedValue, {
         toValue: 0,
-        duration: 200,
-        useNativeDriver: false,
-      }).start();
-    }
-  };
-
-  const handleChangeText = (text: string) => {
-    if (onChangeText) {
-      onChangeText(text);
-    }
-    if (!isFocused && text) {
-      Animated.timing(animatedValue, {
-        toValue: 1,
         duration: 200,
         useNativeDriver: false,
       }).start();
@@ -92,11 +106,12 @@ const AnimatedTextInput: React.FC<AnimatedTextInputProps> = ({
   };
 
   return (
-    <TouchableWithoutFeedback onPress={() => inputRef.current?.focus()}>
+    <TouchableWithoutFeedback onPress={showDatePicker}>
       <View style={[styles.container, style]}>
         <Animated.Text style={[styles.placeholder, animatedStyle]}>
           {placeholder}
         </Animated.Text>
+        
         <TextInput
           ref={inputRef}
           style={[
@@ -105,18 +120,40 @@ const AnimatedTextInput: React.FC<AnimatedTextInputProps> = ({
             { 
               paddingTop: 20,
               paddingBottom: 10,
-              color: color
+              color: color,
+              paddingRight: 40, 
             }
           ]}
           placeholder=""
-          keyboardType={keyboardType as any}
           value={value}
-          onChangeText={handleChangeText}
+          onChangeText={onChangeText}
           onFocus={handleFocus}
           onBlur={handleBlur}
           maxLength={maxLength}
           textAlignVertical="center"
+          editable={false} 
+          pointerEvents="none" 
           {...props}
+        />
+        
+        <TouchableOpacity 
+          onPress={showDatePicker} 
+          style={styles.iconContainer}
+          activeOpacity={0.7}
+        >
+          <CalendarFilledIcon width={20} height={20} />
+        </TouchableOpacity>
+
+        <DateTimePickerModal
+          isVisible={isDatePickerVisible}
+          mode="date"
+          onConfirm={handleConfirm}
+          onCancel={hideDatePicker}
+          maximumDate={new Date()} // Нельзя выбрать будущую дату для рождения
+          locale="ru_RU"
+          cancelTextIOS="Отмена"
+          confirmTextIOS="Выбрать"
+        //   headerTextIOS="Выберите дату"
         />
       </View>
     </TouchableWithoutFeedback>
@@ -142,15 +179,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#1B1B1C',
     backgroundColor: 'transparent',
-    fontWeight: 500,
-    
+    fontWeight: '500',
   },
   placeholder: {
     position: 'absolute',
     zIndex: 1,
     backgroundColor: 'transparent',
     includeFontPadding: false,
+    fontWeight: '500',
+  },
+  iconContainer: {
+    position: 'absolute',
+    right: 12,
+    padding: 8,
+    zIndex: 2,
   },
 });
-
-export default AnimatedTextInput;

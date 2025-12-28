@@ -1,15 +1,13 @@
 import React from 'react';
 import {
-  TouchableOpacity,
-  Text,
   ActivityIndicator,
-  ViewStyle,
-  TextStyle,
+  Text,
+  TouchableOpacity,
   TouchableOpacityProps,
-  View,
+  View
 } from 'react-native';
 
-export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost';
+export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'third';
 export type ButtonSize = 'sm' | 'md' | 'lg';
 
 interface PrimaryButtonProps extends TouchableOpacityProps {
@@ -40,6 +38,8 @@ export const PrimaryButton: React.FC<PrimaryButtonProps> = ({
     secondary: 'bg-secondary border-secondary',
     outline: 'bg-transparent border-primary border',
     ghost: 'bg-transparent border-transparent',
+    third: 'bg-third border-transparent',
+
   };
 
   const sizeStyles: Record<ButtonSize, string> = {
@@ -59,6 +59,7 @@ export const PrimaryButton: React.FC<PrimaryButtonProps> = ({
     secondary: 'text-primary',
     outline: 'text-primary',
     ghost: 'text-primary',
+    third: 'text-blackAndBlack'
   };
 
   const baseStyles = cn(

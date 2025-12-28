@@ -17,14 +17,12 @@ export const ProgressIndicator: React.FC<ProgressIndicatorProps> = ({
   const progressWidth = useRef(new Animated.Value(6)).current; // Начальная ширина 6px
   const isActive = index === currentIndex;
   
-  console.log(`Indicator ${index}: active=${isActive}, playing=${isPlaying}, interval=${autoPlayInterval}`);
 
   useEffect(() => {
     // Останавливаем текущую анимацию
     progressWidth.stopAnimation();
     
     if (isActive && isPlaying && autoPlayInterval > 0) {
-      console.log(`Starting animation for indicator ${index}`);
       
       // Сбрасываем ширину на начальную (6px = точка)
       progressWidth.setValue(6);
@@ -36,11 +34,9 @@ export const ProgressIndicator: React.FC<ProgressIndicatorProps> = ({
         easing: Easing.linear,
         useNativeDriver: false, // width не поддерживает useNativeDriver
       }).start(({ finished }) => {
-        console.log(`Animation ${index} finished:`, finished);
       });
     } else {
       // Для неактивных индикаторов - просто точка (6px)
-      console.log(`Resetting indicator ${index} to dot`);
       progressWidth.setValue(6);
     }
   }, [isActive, isPlaying, autoPlayInterval, progressWidth]);

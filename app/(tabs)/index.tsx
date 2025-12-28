@@ -30,6 +30,7 @@ export default function Index() {
         visible={loginModalVisible}
         onClose={() => setLoginModalVisible(false)}
         onLogin={handleLogin}
+        enumFlag={'login'}
       />
       <HomeScreen />
     </>

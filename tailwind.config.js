@@ -9,6 +9,8 @@ module.exports = {
         secondary: '#FFED32',
         background: '#FFFFFF',
         surface: '#EBEDF0',
+        third: '#F2F4F7',
+        blackAndBlack: '#1B1B1C'
       },
       fontSize: {
         'xs': ['12px', { lineHeight: '16px' }],

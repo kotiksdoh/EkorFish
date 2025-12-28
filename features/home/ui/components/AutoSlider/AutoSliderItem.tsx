@@ -29,7 +29,7 @@ export const AutoSliderItem: React.FC<AutoSliderItemProps> = ({
           style={styles.image}
           resizeMode="cover"
           onError={(e) => console.log('Image error:', e.nativeEvent.error)}
-          onLoad={() => console.log('Image loaded:', item.imageUrl)}
+          onLoad={() => console.log('')}
         />
         
         {/* Градиент overlay */}

@@ -1,4 +1,4 @@
-import { CloseIcon, LogoIcon } from '@/assets/icons/icons.js';
+import { BriefcaseIcon, CloseIcon, LogoIcon, ProfileIcon } from '@/assets/icons/icons.js';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { CustomCheckbox } from '@/features/shared/ui/components/CustomCheckBox';
@@ -6,8 +6,11 @@ import AnimatedTextInput from '@/features/shared/ui/components/CustomInput';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 
 import { PrimaryButton } from '@/features/home';
+import { DatePickerWithIcon } from '@/features/shared/ui/components/DatePickerCustom';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useEffect, useRef, useState } from 'react';
 import {
+  Image,
   Modal,
   StyleSheet,
   Text,
@@ -16,15 +19,33 @@ import {
   View
 } from 'react-native';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { getCode } from '../../authSlice';
-
+import { compliteCompany, compliteProfile, getCode, searchCompany, sendCode } from '../../authSlice';
+import { ModalHeader } from '../Header';
+// import Error from '../../../../assets/icons/png/error.png'
 interface LoginModalProps {
   visible: boolean;
   onClose: () => void;
   onLogin: (phoneNumber: string) => void;
+  enumFlag?: string;
+}
+
+export enum AuthScenario {
+  DEFAULT = 'login', //дефолт сценарий для появления логин страницы
+  NEED_ACC_TYPE = 'need_acc_type', // сценарий на выбора типа аккаунта 
+  REG_NEED = 'reg_need', // сценарий для необходимой регисатрации
+  NEED_COMPANY = 'need_company', //сценарий на попадание выбор типа аккаунта
+}
+
+export enum ScreensScenario {
+  ACC_TYPE = 'acc_type', // экран выбора типа акк
+  USER_REG = 'user_reg', // экран рега юзера
+  COMPANY_SEARCH = 'company_search', // экран поиска компании
+  COMPANY_REG = 'company_reg', // экран реги компании
+  COMPANY_PICK = 'company_pick',// экран выбора компании
 }
 
 export const LoginModal: React.FC<LoginModalProps> = ({
+  enumFlag,
   visible,
   onClose,
   onLogin,
@@ -36,10 +57,33 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   const [isTimerActive, setIsTimerActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showCodeInput, setShowCodeInput] = useState(false);
+
+  const [selectedAccountType, setSelectedAccountType] = useState('')
+
+  const [currentScenario, setCurrentScenarion] = useState<AuthScenario>(AuthScenario.DEFAULT)
+  const [currentScreen, setCurrentScreen] = useState<ScreensScenario>(ScreensScenario.ACC_TYPE)
+
+  const [surname, setSurname] = useState('')
+  const [name, setName] = useState('')
+  const [secondName, setSecondName] = useState('')
+  const [birthDate, setBirthDate] = useState('17.01.2002')
+
+  const [orgName, setOrgName] = useState('')
+  const [kpp, setKpp] = useState('')
+  const [legalAddress, setLegalAddress] = useState('')
+  const [contactPerson, setContactPerson] = useState('')
+  const [dateCreated, setDateCreated] = useState('17.01.2002')
+  // const [phone, setPhone] = useState(phoneNumber)
+  // const [email, setEmail] = useState('')
+
+  const [inn, setInn] = useState('')
+
   const insets = useSafeAreaInsets();
   const codeInputRefs = useRef<TextInput[]>([]);
 
   const loading = useAppSelector((state) => state.auth.isLoading);
+  const company = useAppSelector((state) => state.auth.company);
+
 
   const dispatch = useAppDispatch()
   // Инициализируем refs
@@ -53,39 +97,34 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     }
     dispatch(getCode({
       contact: phoneNumber
-    }))
-      // Симуляция отправки кода
-      // TODO реализовать логику
-      setShowCodeInput(true);
-      setIsTimerActive(true);
-      setError(null);
+    })).then((res: any) => {
+      if(getCode.fulfilled.match(res)){
+        setShowCodeInput(true);
+        setIsTimerActive(true);
+        setError(null);
+      }else{
+        return;
+      }
+    })
   };
 
   const handleCodeInputChange = (text: string, index: number) => {
-    // Ограничиваем ввод одним символом
     const singleChar = text.length > 1 ? text.charAt(text.length - 1) : text;
     
     const newCode = [...confirmationCode];
     newCode[index] = singleChar;
     setConfirmationCode(newCode);
-    
-    // Автоматически переходим к следующему полю при вводе
     if (singleChar && index < 3) {
       codeInputRefs.current[index + 1]?.focus();
     }
-    
-    // Переход к предыдущему полю при удалении
     if (!singleChar && index > 0) {
       codeInputRefs.current[index - 1]?.focus();
     }
-    
-    // Проверяем, если все поля заполнены
     if (newCode.every(char => char !== '')) {
       verifyCode(newCode.join(''));
     }
   };
 
-  // Обработка backspace
   const handleKeyPress = (event: any, index: number) => {
     if (event.nativeEvent.key === 'Backspace' && !confirmationCode[index] && index > 0) {
       codeInputRefs.current[index - 1]?.focus();
@@ -93,29 +132,64 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   };
 
   const verifyCode = (code: string) => {
-    // Пример ошибки (заглушка)
-    const hasError = false; // Здесь будет реальная проверка
-    
-    if (hasError) {
-      setError('Неверный код подтверждения');
-      // Подсвечиваем поля красным
-      setConfirmationCode(['', '', '', '']);
-      codeInputRefs.current[0]?.focus();
-    } else {
-      setError(null);
-      // Если код верный, вызываем onLogin
-      onLogin(phoneNumber);
-      resetModal();
+    dispatch(sendCode({contact: phoneNumber, verificationCode: code})).then((res: any) => 
+    {
+      if(sendCode.fulfilled.match(res)){
+        //TODO дальнейший сценарий
+        // setError(null);
+        // onLogin(phoneNumber);
+        debugger
+        console.log('res.payload', res.payload)
+        console.log('res.payload.data', res.payload.data)
+        console.log('res.payload.data.data', res.payload.data.data)
+
+
+        if(res.payload.data.data.needUserType){
+          
+            setCurrentScenarion(AuthScenario.NEED_ACC_TYPE)
+            setCurrentScreen(ScreensScenario.ACC_TYPE)
+            debugger
+        }else if(!res.payload.data.data.needUserType && res.payload.data.data.needInformationForType === 'Individual'){
+            setCurrentScenarion(AuthScenario.REG_NEED)
+            setCurrentScreen(ScreensScenario.USER_REG)
+            debugger
+        }else if(!res.payload.data.data.needUserType && res.payload.data.data.needInformationForType === 'Legal')
+        {
+            setCurrentScenarion(AuthScenario.NEED_ACC_TYPE)
+            setCurrentScreen(ScreensScenario.ACC_TYPE)
+            debugger
+        }else if(!res.payload.data.data.needUserType && res.payload.data.data.needInformationForType === null){
+            resetModal()
+        }
+        // setCurrentScenarion()
+        
+        debugger
+        // resetModal();
+      }else{
+        setError('Неверный код подтверждения');
+        setConfirmationCode(['', '', '', '']);
+        codeInputRefs.current[0]?.focus();
+      }
+      debugger
     }
+    )
   };
 
   const handleResendCode = () => {
-    if (!isTimerActive) {
-      setTimer(60);
-      setIsTimerActive(true);
-      setError(null);
-      // Здесь будет запрос на повторную отправку кода
-    }
+    dispatch(getCode({
+      contact: phoneNumber
+    })).then((res: any) => {
+      if(getCode.fulfilled.match(res)){
+        if (!isTimerActive) {
+          setTimer(60);
+          setIsTimerActive(true);
+          setError(null);
+        }
+      }else{
+        return;
+      }
+    })
+
   };
 
   // Таймер для повторной отправки
@@ -153,6 +227,72 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 
   const isLoginButtonDisabled = !phoneNumber || !agreedToTerms;
 
+  const handelCompliteProfile = () => {
+    dispatch(compliteProfile({
+      // email: email,
+      firstName: name,
+      lastName: surname,
+      patronymic: secondName,
+      birthDate: birthDate,
+      // contact: phone
+    })).then((res) => 
+      {
+      if(compliteProfile.fulfilled.match(res)){
+        resetModal()
+        handleClose()
+      }
+      }
+    )
+  }
+
+  const handleAcceptCompany = () => {
+    dispatch(compliteCompany({
+      "name": orgName,
+      "inn": inn,
+      "foundationDate": dateCreated,
+      "kpp": kpp,
+      "legalAddress": legalAddress,
+      "contactPerson": contactPerson
+    })).then((res) => 
+      {
+      if(compliteProfile.fulfilled.match(res)){
+        resetModal()
+        handleClose()
+      }
+      }
+    )
+  }
+  const handelCompliteOrg = () => {
+    dispatch(compliteCompany({
+      "id": company?.id,
+      "name": company?.name,
+      "inn": company?.inn,
+      "foundationDate": company?.foundationDate,
+      "kpp": company?.kpp,
+      "legalAddress": company.legalAddress,
+      "contactPerson": company.contactPerson
+    })).then((res) => 
+      {
+      if(compliteProfile.fulfilled.match(res)){
+        resetModal()
+        handleClose()
+      }
+      }
+    )
+  }
+
+  const handleSearchCompany = () => {
+    dispatch(searchCompany({search: inn})).then((res: any) =>
+      {
+        if(searchCompany.rejected.match(res)){
+          setCurrentScreen(ScreensScenario.COMPANY_PICK)
+        }else{
+          setCurrentScreen(ScreensScenario.COMPANY_PICK)
+        }
+      }
+    )
+  }
+
   return (
     <Modal
       animationType="slide"
@@ -160,10 +300,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       visible={visible}
       onRequestClose={handleClose}
     >
-      {/* <SafeAreaView style={styles.modalContainer}> */}
       <SafeAreaProvider>
-      {/* <SafeAreaView style={{ flex: 1, backgroundColor: "transparent" }}> */}
-      {/* <View style={{ paddingTop: insets.top }}> */}
+      {currentScenario === 'login' ?
         <ThemedView lightColor={'#EBEDF0'} style={styles.modalContent}>
           <ThemedView  style={styles.modalContentInner} lightColor={'#FFFFFF'}>
             {/* Крестик закрытия */}
@@ -205,7 +343,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                       keyboardType="phone-pad"
                       value={phoneNumber}
                       onChangeText={setPhoneNumber}
-                      autoFocus
+                      // autoFocus
                     />
                   </View>
 
@@ -238,18 +376,6 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                     fullWidth
                     disabled={isLoginButtonDisabled || loading}
                   />
-                  {/* <TouchableOpacity
-                    style={[
-                      styles.modalLoginButton,
-                      isLoginButtonDisabled && styles.modalLoginButtonDisabled
-                    ]}
-                    onPress={handleLogin}
-                    disabled={isLoginButtonDisabled || loading}
-                  
-                    activeOpacity={0.8}
-                  >
-                    <Text style={styles.modalLoginButtonText}>Войти</Text>
-                  </TouchableOpacity> */}
                 </>
               ) : (
                 // ЭКРАН ПОДТВЕРЖДЕНИЯ КОДА
@@ -287,6 +413,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                         autoFocus={index === 0}
                         placeholder=""
                         placeholderTextColor={error ? '#FF3B30' : '#80818B'}
+                        editable={!loading}
+                        
                       />
                     ))}
                   </View>
@@ -317,17 +445,378 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             </View>
           </ThemedView>
         </ThemedView>
-      {/* </View> */}
-      {/* </SafeAreaView> */}
+      : (currentScenario === AuthScenario.NEED_ACC_TYPE && currentScreen === ScreensScenario.ACC_TYPE) ?
+          <ThemedView lightColor={'#EBEDF0'} style={styles.modalContent}>
+            <ModalHeader
+              title='Регистрация'
+              showBackButton={true}
+              onBackPress={
+                () =>{
+                    setCurrentScenarion(AuthScenario.DEFAULT)
+                }
+              }
+            />
+            <ThemedView style={stylesAccType.modalContentInnerReg} lightColor={'#FFFFFF'}>
+              
+              {/* Заголовок выбора типа аккаунта */}
+              <ThemedText style={stylesAccType.accountTypeTitle}>
+                Выберите тип аккаунта
+              </ThemedText>
+              
+              {/* Контейнер для карточек выбора */}
+              <View style={stylesAccType.accountTypeContainer}>
+                
+                {/* Карточка "Частное лицо" */}
+                <TouchableOpacity 
+                  style={[
+                    stylesAccType.accountTypeCard,
+                    selectedAccountType === 'personal' ? stylesAccType.accountTypeCardSelected : stylesAccType.accountTypeCardDefault
+                  ]}
+                  onPress={() => setSelectedAccountType('personal')}
+                >
+                  {/* Иконка для частного лица (замени на свою SVG иконку) */}
+                  <View style={stylesAccType.accountTypeIcon}>
+                    <ProfileIcon/>
+                  </View>
+                  <ThemedText style={stylesAccType.accountTypeText}>
+                    Частное лицо
+                  </ThemedText>
+                </TouchableOpacity>
+                
+                {/* Карточка "Бизнес-аккаунт" */}
+                <TouchableOpacity 
+                  style={[
+                    stylesAccType.accountTypeCard,
+                    selectedAccountType === 'business' ? stylesAccType.accountTypeCardSelected : stylesAccType.accountTypeCardDefault
+                  ]}
+                  onPress={() => setSelectedAccountType('business')}
+                >
+                  {/* Иконка для бизнеса (замени на свою SVG иконку) */}
+                  <View style={stylesAccType.accountTypeIcon}>
+                    <BriefcaseIcon/>
+                  </View>
+                  <ThemedText style={stylesAccType.accountTypeText}>
+                    Бизнес-аккаунт
+                  </ThemedText>
+                </TouchableOpacity>
+                
+              </View>
+              
+              {/* Кнопка "Продолжить" */}
+              <PrimaryButton
+                title="Продолжить"
+                onPress={() => {
+                  // currentScreen === ScreensScenario.USER_REG
+                  console.log('ffffff', AsyncStorage.getItem('token'))
+                  if(selectedAccountType === 'personal'){
+                    setCurrentScreen(ScreensScenario.USER_REG)
+                  }else{
+                    setCurrentScreen(ScreensScenario.COMPANY_SEARCH)
+                  }
+                }}
+                variant="primary"
+                size="md"
+                loading={loading}
+                activeOpacity={0.8}
+                fullWidth
+                disabled={!selectedAccountType}
+                style={stylesAccType.continueButton}
+              />
+              
+            </ThemedView>
+          </ThemedView>
+      : (currentScenario === AuthScenario.REG_NEED || currentScreen === ScreensScenario.USER_REG) ?
+      <ThemedView lightColor={'#EBEDF0'} style={styles.modalContent}>
+        <ModalHeader
+          title='Регистрация'
+          showBackButton={true}
+          onBackPress={
+            () =>{
+              if(currentScenario === AuthScenario.NEED_ACC_TYPE){
+                setCurrentScenarion(AuthScenario.NEED_ACC_TYPE)
+                setCurrentScreen(ScreensScenario.ACC_TYPE)
+              }else{
+                setCurrentScenarion(AuthScenario.DEFAULT)
+              }
+            }
+          }
+        />
+        <ThemedView style={stylesRegUser.modalContentInnerRegUser} lightColor={'#FFFFFF'}>
+          <View>
+          <ThemedText style={stylesAccType.accountTypeTitle}>
+            Заполните ваши данные
+          </ThemedText>
+          <View style={stylesRegUser.inputConteiner}>
+            <AnimatedTextInput
+              placeholder="Фамилия"
+              placeholderTextColor="#80818B"
+              value={surname}
+              onChangeText={setSurname}
+            />
+            <AnimatedTextInput
+              placeholder="Имя"
+              placeholderTextColor="#80818B"
+              value={name}
+              onChangeText={setName}
+            />
+            <AnimatedTextInput
+              placeholder="Отчество"
+              placeholderTextColor="#80818B"
+              value={secondName}
+              onChangeText={setSecondName}
+            />
+            <DatePickerWithIcon
+              placeholder="Дата рождения"
+              placeholderTextColor="#80818B"
+              // TODO
+              value={birthDate}
+              onChangeText={setBirthDate}
+            />
+            {/* <AnimatedTextInput
+              placeholder="Телефон"
+              placeholderTextColor="#80818B"
+              keyboardType="phone-pad"
+              value={phone}
+              onChangeText={setPhone}
+            />
+            <AnimatedTextInput
+              placeholder="E-mail"
+              placeholderTextColor="#80818B"
+              value={email}
+              onChangeText={setEmail}
+            /> */}
+          </View>
+          </View>
+          <View style={stylesRegUser.buttonUserReg}>
+          <PrimaryButton
+            title="Продолжить"
+            onPress={() => handelCompliteProfile()}
+            variant="primary"
+            size="md"
+            loading={loading}
+            activeOpacity={0.8}
+            fullWidth
+            disabled={!birthDate || !secondName || !name || !surname || loading}
+            style={stylesAccType.continueButton}
+          />
+          </View>
+        </ThemedView>
+      </ThemedView>
+      : currentScreen === ScreensScenario.COMPANY_SEARCH ?
+
+      <ThemedView lightColor={'#EBEDF0'} style={styles.modalContent}>
+        <ModalHeader
+          title='Привязка к компании'
+          showBackButton={true}
+          onBackPress={() => {
+              setCurrentScenarion(AuthScenario.NEED_ACC_TYPE)
+              setCurrentScreen(ScreensScenario.ACC_TYPE)
+          }}
+        />
+        <ThemedView style={stylesRegUser.modalContentInnerRegUser} lightColor={'#FFFFFF'}>
+          <View>
+            <ThemedText style={stylesAccType.accountTypeTitle}>
+              Данные вашей компании
+            </ThemedText>
+            <View style={stylesRegUser.inputConteiner}>
+              <AnimatedTextInput
+                placeholder="ИНН"
+                placeholderTextColor="#80818B"
+                value={inn}
+                onChangeText={setInn}
+              />
+            </View>
+          </View>
+          <View style={stylesRegUser.buttonUserReg}>
+            <PrimaryButton
+                title="Найти компанию"
+                onPress={() => handleSearchCompany()}
+                variant="primary"
+                size="md"
+                loading={loading}
+                activeOpacity={0.8}
+                fullWidth
+                disabled={loading}
+                style={stylesAccType.continueButton}
+              />
+            </View>
+        </ThemedView>
+      </ThemedView>
+      : currentScreen === ScreensScenario.COMPANY_PICK ?
+      <ThemedView lightColor={'#EBEDF0'} style={styles.modalContent}>
+        <ModalHeader
+          title='Привязка к компании'
+          showBackButton={true}
+          onBackPress={() => {
+              setCurrentScreen(ScreensScenario.COMPANY_SEARCH)
+          }}
+        />
+        <ThemedView style={stylesRegUser.modalContentInnerRegUser} lightColor={'#FFFFFF'}>
+          {
+          // Object.keys(company).length === 0 
+          company === null ?
+            <View style={stylesError.errorContainer}>
+              <Image
+                source={require('../../../../assets/icons/png/error.png')} // Замените на путь к вашей картинке
+                style={styles.image}
+                resizeMode="contain"
+              />
+              <ThemedText style={stylesError.mainErr}>
+                Ошибка
+              </ThemedText>
+              <ThemedText lightColor='#80818B' style={stylesError.secondErr}>
+                Компания с таким ИНН не найдена
+              </ThemedText>
+              {/* <View> */}
+                <PrimaryButton
+                  title="Ввести данные компании"
+                  onPress={() => {
+                    setCurrentScreen(ScreensScenario.COMPANY_REG)
+                    // setInn('')
+                    }
+                  }
+                  variant="primary"
+                  size="md"
+                  loading={loading}
+                  activeOpacity={0.8}
+                  fullWidth
+                  disabled={loading}
+                  style={stylesError.continueButton}
+                />
+              {/* </View> */}
+            </View>
+          :
+            <View>
+              <ThemedText style={stylesAccType.accountTypeTitle}>
+                  Проверьте данные
+              </ThemedText>
+              <ThemedText lightColor='#80818B'>
+                  Мы нашли вашу компанию в нашей базе:
+              </ThemedText>
+              <View>
+                <ThemedText>
+                  {company?.name}
+                </ThemedText>
+                <View>
+                  <ThemedText>
+                    ИНН/КПП
+                  </ThemedText>
+                  <ThemedText>
+                    {company?.inn}/{company?.kpp}
+                  </ThemedText>
+                </View>
+                <View>
+                  <ThemedText>
+                    Юр. адрес
+                  </ThemedText>
+                  <ThemedText>
+                    {company?.legalAddress}
+                  </ThemedText>
+                </View>
+              </View>
+              <View style={stylesRegUser.buttonUserReg}>
+                <PrimaryButton
+                    title="Подтвердить"
+                    onPress={() => handelCompliteOrg()}
+                    variant="primary"
+                    size="md"
+                    loading={loading}
+                    activeOpacity={0.8}
+                    fullWidth
+                    disabled={loading}
+                    style={stylesAccType.continueButton}
+                  />
+              </View>
+            </View>
+
+          }
+        </ThemedView>
+      </ThemedView>
+      : currentScreen === ScreensScenario.COMPANY_REG ?
+      <ThemedView lightColor={'#EBEDF0'} style={styles.modalContent}>
+        <ModalHeader
+          title='Привязка к компании'
+          showBackButton={true}
+          onBackPress={() => {
+              setCurrentScreen(ScreensScenario.COMPANY_SEARCH)
+          }}
+        />
+        <ThemedView style={stylesRegUser.modalContentInnerRegUser} lightColor={'#FFFFFF'}>
+          <View>
+          <ThemedText style={stylesAccType.accountTypeTitle}>
+            Введите данные компании
+          </ThemedText>
+          {/* const [orgName, setOrgName] = useState('')
+  const [kpp, setKpp] = useState('')
+  const [legalAddress, setLegalAddress] = useState('')
+  const [contactPerson, setContactPerson] = useState('') */}
+          <View style={stylesRegCompany.regCompanyBlock}>
+            <AnimatedTextInput
+              placeholder="Полное наименование организации"
+              placeholderTextColor="#80818B"
+              value={orgName}
+              onChangeText={setOrgName}
+            />
+            <AnimatedTextInput
+              placeholder="ИНН"
+              placeholderTextColor="#80818B"
+              value={inn}
+              onChangeText={setInn}
+            />
+            <AnimatedTextInput
+              placeholder="КПП"
+              placeholderTextColor="#80818B"
+              value={kpp}
+              onChangeText={setKpp}
+            />
+            <AnimatedTextInput
+              placeholder="Юридический адрес"
+              placeholderTextColor="#80818B"
+              value={legalAddress}
+              onChangeText={setLegalAddress}
+            />
+            <AnimatedTextInput
+              placeholder="ФИО контактного лица"
+              placeholderTextColor="#80818B"
+              value={contactPerson}
+              onChangeText={setContactPerson}
+            />
+            <DatePickerWithIcon
+              placeholder="Дата образования вашей компании"
+              placeholderTextColor="#80818B"
+              // TODO
+              value={dateCreated}
+              onChangeText={setDateCreated}
+            />
+          
+          </View>
+          </View>
+          <View style={stylesRegUser.buttonUserReg}>
+          <PrimaryButton
+            title="Продолжить"
+            onPress={() => handelCompliteOrg()}
+            variant="primary"
+            size="md"
+            loading={loading}
+            activeOpacity={0.8}
+            fullWidth
+            disabled={!orgName || !inn || !kpp || !legalAddress || !contactPerson || !dateCreated ||  loading}
+            style={stylesAccType.continueButton}
+          />
+          </View>
+        </ThemedView>
+      </ThemedView>
+      : null}
       </SafeAreaProvider>
-      {/* </SafeAreaView> */}
     </Modal>
-
-
   );
 };
 
 const styles = StyleSheet.create({
+  image: {
+    width: 86,
+    height: 86,
+  },
   modalContainer: {
     flex: 1,
     justifyContent: 'flex-end',
@@ -506,3 +995,114 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
+
+const stylesAccType = StyleSheet.create({
+  modalContent: {
+    flex: 1,
+  },
+  modalContentInner: {
+    flex: 1,
+    padding: 16,
+  },
+  modalContentInnerReg: {
+    marginTop: 8,
+    padding: 16,
+    borderRadius: 24
+  },
+  accountTypeTitle: {
+    fontSize: 20,
+    fontWeight: 600,
+    marginBottom: 16,
+    // textAlign: 'center',
+  },
+  accountTypeContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 32,
+    gap: 8
+  },
+  accountTypeCard: {
+    // width: 181,
+    height: 92,
+    borderRadius: 16,
+    paddingBottom: 16,
+    paddingTop: 16,
+    paddingLeft: 31,
+    paddingRight: 31,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  accountTypeCardDefault: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#F0F3F7',
+    color: '#1B1B1C'
+  },
+  accountTypeCardSelected: {
+    backgroundColor: '#ECF5FE',
+    borderWidth: 1,
+    borderColor: '#203686',
+    color: '#203686'
+
+  },
+  accountTypeIcon: {
+    marginBottom: 8,
+  },
+  accountTypeText: {
+    fontSize: 14,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  continueButton: {
+    marginTop: 'auto',
+  },
+})
+
+const stylesRegUser = StyleSheet.create({
+  inputConteiner: {
+    gap: 16
+  },
+  modalContentInnerRegUser: {
+    marginTop: 8,
+    padding: 16,
+    borderRadius: 24,
+    height: '90%',
+    justifyContent:'space-between'
+  },
+  buttonUserReg: {
+    // marginTop: 'auto',
+    marginBottom: 120
+  }
+})
+
+const stylesError = StyleSheet.create({
+  errorContainer: {
+    display: 'flex',
+    justifyContent:'center',
+    alignItems: 'center',
+    marginTop: 'auto',
+    marginBottom: 'auto'
+  },
+  mainErr:{
+    fontWeight: 600,
+    fontSize: 24,
+    marginTop: 24,
+
+  },
+  secondErr:{
+    fontWeight: 500,
+    fontSize: 16,
+    marginTop: 8,
+    marginBottom:24,
+  },
+  continueButton: {
+    // marginTop: 24,
+  },
+})
+
+const stylesRegCompany = StyleSheet.create({
+  regCompanyBlock: {
+      marginTop: 24,
+      gap: 16
+  }
+})
