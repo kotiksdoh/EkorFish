@@ -1,5 +1,6 @@
 import barabulkaImage from '@/assets/icons/png/barabulka.png';
 import semgaImage from '@/assets/icons/png/semga.png';
+import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { ProductCard } from '@/features/shared/ui/ProductCard';
 import { PrimaryButton } from '@/features/shared/ui/components/PrimartyButton';
@@ -29,6 +30,7 @@ export default function SpecialOffers() {
 
   return (
     <ThemedView lightColor='#FFFFFF' style={styles.container}>
+      <ThemedText style={styles.productsContainerText}>Специальные предложения</ThemedText>
         <View style={styles.productsContainer}>
         {products.map((item) => 
         <ProductCard
@@ -58,15 +60,19 @@ export default function SpecialOffers() {
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'column',
-    alignItems: 'center',
-    // justifyContent: 'space-between',
+    alignItems: 'flex-start', // Изменить с 'center' на 'flex-start'
     paddingHorizontal: 16,
     paddingVertical: 16,
-    borderRadius: 8, 
-    // margin: 16,
+    borderRadius: 24,
     marginTop: 20,
     overflow: 'hidden',
     position: 'relative'
+  },
+  productsContainerText: {
+    alignSelf: 'flex-start', // Добавить эту строку
+    marginBottom: 24,
+    fontWeight: 600,
+    fontSize: 20
   },
   productsContainer: {
     flexDirection: 'row',

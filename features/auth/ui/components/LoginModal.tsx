@@ -7,6 +7,7 @@ import { useAppDispatch, useAppSelector } from '@/store/hooks';
 
 import { PrimaryButton } from '@/features/home';
 import { DatePickerWithIcon } from '@/features/shared/ui/components/DatePickerCustom';
+import SmartInput from '@/features/shared/ui/components/SmartInput';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useEffect, useRef, useState } from 'react';
 import {
@@ -336,7 +337,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                   </ThemedText>
 
                   <View style={styles.inputContainer}>
-                    <AnimatedTextInput
+                    {/* <AnimatedTextInput
                       // style={styles.input}
                       placeholder="Номер телефона или E-mail"
                       placeholderTextColor="#80818B"
@@ -344,6 +345,18 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                       value={phoneNumber}
                       onChangeText={setPhoneNumber}
                       // autoFocus
+                    /> */}
+                    <SmartInput
+                      placeholder="Номер телефона или E-mail"
+                      placeholderTextColor="#80818B"
+                      value={phoneNumber}
+                      onChangeText={(cleanText, formattedText, isPhone) => {
+                        console.log('Чистый номер для бэка:', cleanText); // "79999998899"
+                        console.log('Форматированный текст:', formattedText); // "+7 (999) 999-88-99"
+                        console.log('Это телефон?', isPhone); // true или false
+                        setPhoneNumber(cleanText);
+                      }}
+                      autoFocus
                     />
                   </View>
 

@@ -15,16 +15,16 @@ import { View } from 'react-native';
 // import UserIcon from '@/assets/icons/User.svg';
 import {
   AiIcon,
+  AiIconFill,
   DashBoardIcon,
+  DashBoardIconFill,
   HeartIcon,
+  HeartIconFill,
   HomeIcon,
   HomeIconFill,
   ShopIcon,
-  UserIcon,
-  DashBoardIconFill,
-  AiIconFill,
-  HeartIconFill,
-  ShopIconFill
+  ShopIconFill,
+  UserIcon
 } from '@/assets/icons/icons.js';
 // UserIcon_fill пока не используем
 
@@ -48,42 +48,42 @@ export function SvgIcon({ name, size = 28, color, focused = false }: SvgIconProp
       case 'home':
       case 'home-active':
         if (focused || name === 'home-active') {
-          return <HomeIconFill width={size} height={size} fill={iconColor} />;
+          return <HomeIconFill width={size} height={size} fill={color} />;
         }
-        return <HomeIcon width={size} height={size} fill={iconColor} />;
+        return <HomeIcon width={size} height={size} fill={color} />;
       
       case 'dashboard':
       case 'dashboard-active':
         if (focused || name === 'dashboard-active') {
-          return <DashBoardIconFill width={size} height={size} fill={iconColor} />;
+          return <DashBoardIconFill width={size} height={size} fill={color} />;
         }
-        return <DashBoardIcon width={size} height={size} fill={iconColor} />;
+        return <DashBoardIcon width={size} height={size} fill={color} />;
       
       case 'ai':
       case 'ai-active':
         if (focused || name === 'ai-active') {
-          return <AiIconFill width={size} height={size} fill={iconColor} />;
+          return <AiIconFill width={size} height={size} fill={color} />;
         }
-        return <AiIcon width={size} height={size} fill={iconColor} />;
+        return <AiIcon width={size} height={size} fill={color} />;
       
       case 'heart':
       case 'heart-active':
         if (focused || name === 'heart-active') {
-          return <HeartIconFill width={size} height={size} fill={iconColor} />;
+          return <HeartIconFill width={size} height={size} fill={color} />;
         }
-        return <HeartIcon width={size} height={size} fill={iconColor} />;
+        return <HeartIcon width={size} height={size} fill={color} />;
       
       case 'shop':
       case 'shop-active':
         if (focused || name === 'shop-active') {
-          return <ShopIconFill width={size} height={size} fill={iconColor} />;
+          return <ShopIconFill width={size} height={size} fill={color} />;
         }
-        return <ShopIcon width={size} height={size} fill={iconColor} />;
+        return <ShopIcon width={size} height={size} fill={color} />;
       
       case 'user':
       case 'user-active':
         // Пока используем одну иконку для обоих состояний
-        return <UserIcon width={size} height={size} fill={iconColor} />;
+        return <UserIcon width={size} height={size} fill={color} />;
       
       default:
         return null;

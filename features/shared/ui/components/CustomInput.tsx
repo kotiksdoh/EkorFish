@@ -2,6 +2,7 @@ import { useThemeColor } from '@/hooks/use-theme-color';
 import React, { useRef, useState } from 'react';
 import {
   Animated,
+  Platform,
   StyleSheet,
   TextInput,
   TextInputProps,
@@ -101,14 +102,14 @@ const AnimatedTextInput: React.FC<AnimatedTextInputProps> = ({
           ref={inputRef}
           style={[
             styles.input,
+            Platform.OS === 'android' && styles.inputAndroid, // Специальные стили для Android
             inputStyle,
             { 
-              paddingTop: 20,
-              paddingBottom: 10,
               color: color
             }
           ]}
           placeholder=""
+          placeholderTextColor="transparent" // Делаем плейсхолдер прозрачным
           keyboardType={keyboardType as any}
           value={value}
           onChangeText={handleChangeText}
@@ -142,14 +143,22 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#1B1B1C',
     backgroundColor: 'transparent',
-    fontWeight: 500,
-    
+    fontWeight: '500',
+    paddingTop: 20, // Для iOS
+    paddingBottom: 10,
+  },
+  inputAndroid: {
+    paddingTop: Platform.OS === 'android' ? 25 : 20, // Больше paddingTop для Android
+    paddingBottom: Platform.OS === 'android' ? 5 : 10,
+    includeFontPadding: false, // Важно для Android - убираем стандартные отступы шрифта
+    textAlignVertical: 'center', // Центрируем текст по вертикали
   },
   placeholder: {
     position: 'absolute',
     zIndex: 1,
     backgroundColor: 'transparent',
     includeFontPadding: false,
+    pointerEvents: 'none', // Чтобы не перехватывал тапы
   },
 });
 

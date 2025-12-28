@@ -1,7 +1,7 @@
-import { CartIcon, HeartIcon, SnowflakeIcon } from '@/assets/icons/icons.js';
+import { CartIcon, LikeIcon, SnowflakeIcon } from '@/assets/icons/icons.js';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import React from 'react';
+import React, { useState } from 'react';
 import { Image, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 interface ProductCardProps {
@@ -29,6 +29,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     });
   };
 
+  const [isLiked, setIsLiked] = useState(false);
+
+  const handleLikePress = () => {
+    setIsLiked(!isLiked);
+    console.log(`Товар ${id} ${isLiked ? 'удален из' : 'добавлен в'} избранное`);
+  };
+
   return (
     <ThemedView lightColor='#FFFFFF' style={styles.container}>
       {/* Верхняя часть с изображением и иконками */}
@@ -47,8 +54,19 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         )}
         
         {/* Иконка сердечка справа сверху */}
-        <TouchableOpacity style={styles.heartIcon}>
-          <HeartIcon />
+        <TouchableOpacity 
+          style={[
+            styles.heartIcon,
+            isLiked && styles.heartIconActive // Добавляем стиль для активного состояния
+          ]} 
+          onPress={handleLikePress}
+          activeOpacity={0.7}
+        >
+          {isLiked ? (
+            <LikeIcon isFilled={true} /> 
+          ) : (
+            <LikeIcon isFilled={false} /> 
+          )}
         </TouchableOpacity>
       </View>
       
@@ -72,7 +90,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             
             {/* Полная цена */}
             <ThemedText lightColor='#80818B' darkColor='#FBFCFF80' style={styles.fullPrice}>
-              {fullPrice ? formatPrice(fullPrice) : '0,00'}
+              {fullPrice ? `${formatPrice(fullPrice)}₽` : '0,00 ₽'}
             </ThemedText>
           </View>
           
@@ -89,17 +107,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'column',
-    width: 179, // Ширина как у изображения
+    width: '50%', // Ширина как у изображения
     borderRadius: 8,
     overflow: 'hidden',
     marginRight: 12, // Отступ между карточками
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
     elevation: 3,
   },
   imageContainer: {
@@ -122,11 +133,11 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   heartIcon: {
-    width: 14,
-    height: 13,
+    width: 16,
+    height: 16,
     position: 'absolute',
     top: 2,
-    right: 15,
+    right: 4,
     padding: 2,
     // backgroundColor: 'rgba(255, 255, 255, 0.8)',
     borderRadius: 4,
@@ -193,5 +204,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 12,
     marginLeft: 8,
+  },
+  heartIconActive: {
   },
 });

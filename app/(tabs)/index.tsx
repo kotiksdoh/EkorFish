@@ -1,7 +1,6 @@
 
 import { LoginModal } from '@/features/auth/ui/components/LoginModal';
 import { HomeScreen } from '@/features/home';
-import { HomeHeader } from '@/features/home/ui/components/HomeHeader';
 import { useState } from 'react';
 
 export default function Index() {
@@ -21,18 +20,20 @@ export default function Index() {
   };
   return (
     <>
-      <HomeHeader 
+      {/* <HomeHeader 
         title="EkorFish" 
         transparent={true} 
         onLoginPress={handleLoginPress}
-      />
+      /> */}
       <LoginModal
         visible={loginModalVisible}
         onClose={() => setLoginModalVisible(false)}
         onLogin={handleLogin}
         enumFlag={'login'}
       />
-      <HomeScreen />
+      <HomeScreen
+        handleLoginPress={handleLoginPress}
+      />
     </>
   );
 }
