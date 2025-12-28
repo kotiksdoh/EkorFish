@@ -1,3 +1,5 @@
+import barabulkaImage from '@/assets/icons/png/barabulka.png';
+import semgaImage from '@/assets/icons/png/semga.png';
 import { ThemedView } from '@/components/themed-view';
 import { ProductCard } from '@/features/shared/ui/ProductCard';
 import { PrimaryButton } from '@/features/shared/ui/components/PrimartyButton';
@@ -9,15 +11,15 @@ export default function SpecialOffers() {
     const products = [
         {
             id: 1,
-            img: '',
+            img: barabulkaImage,
             isFrozen: true,
-            name: 'Барабулька н/р 12шт х 0,6кг 1/12 Араката',
+            name: 'Барабулька н/р 12шт х 0,6кг 1/12 Араката dsds sds',
             kgPrice: 1130.30,
             fullPrice: 15130.40
         },
         {
             id: 2,
-            img: '',
+            img: semgaImage,
             isFrozen: true,
             name: 'Барабулька н/р 12шт х 0,6кг 1/12 Араката',
             kgPrice: 1130.30,
@@ -68,6 +70,8 @@ const styles = StyleSheet.create({
   },
   productsContainer: {
     flexDirection: 'row',
+    marginBottom: 24,
+
   },
   buttonContainer: {
     marginTop: 24,

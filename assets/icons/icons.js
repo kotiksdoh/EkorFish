@@ -365,3 +365,48 @@ export const CalendarFilledIcon = ({
     />
   </Svg>
 );
+
+export const SnowflakeIcon = ({ width = 16, height = 16, stroke = '#4C94FF', ...props }) => (
+  <Svg width={width} height={height} viewBox="0 0 16 16" fill="none" {...props}>
+    <Path d="M8.0199 2V14" stroke={stroke} strokeMiterlimit="10" strokeLinecap="round"/>
+    <Path d="M5.85522 2.38747L8.02007 4.50098" stroke={stroke} strokeMiterlimit="10" strokeLinecap="round"/>
+    <Path d="M10.1847 2.38747L8.0199 4.50098" stroke={stroke} strokeMiterlimit="10" strokeLinecap="round"/>
+    <Path d="M10.1847 13.6594L8.0199 11.5459" stroke={stroke} strokeMiterlimit="10" strokeLinecap="round"/>
+    <Path d="M5.85522 13.6594L8.02007 11.5459" stroke={stroke} strokeMiterlimit="10" strokeLinecap="round"/>
+    <Path d="M13.1232 4.65677L2.91675 11.3433" stroke={stroke} strokeMiterlimit="10" strokeLinecap="round"/>
+    <Path d="M11.5876 3.11764L10.9962 6.05029" stroke={stroke} strokeMiterlimit="10" strokeLinecap="round"/>
+    <Path d="M14.0001 6.62769L10.9962 6.05037" stroke={stroke} strokeMiterlimit="10" strokeLinecap="round"/>
+    <Path d="M4.4126 12.9084L5.00396 9.9758" stroke={stroke} strokeMiterlimit="10" strokeLinecap="round"/>
+    <Path d="M2 9.39849L5.00388 9.97583" stroke={stroke} strokeMiterlimit="10" strokeLinecap="round"/>
+    <Path d="M2.87683 4.65677L13.0833 11.3433" stroke={stroke} strokeMiterlimit="10" strokeLinecap="round"/>
+    <Path d="M4.4126 3.11764L5.00396 6.05029" stroke={stroke} strokeMiterlimit="10" strokeLinecap="round"/>
+    <Path d="M2 6.62769L5.00388 6.05037" stroke={stroke} strokeMiterlimit="10" strokeLinecap="round"/>
+    <Path d="M11.5876 12.9084L10.9962 9.9758" stroke={stroke} strokeMiterlimit="10" strokeLinecap="round"/>
+    <Path d="M14.0001 9.39849L10.9962 9.97583" stroke={stroke} strokeMiterlimit="10" strokeLinecap="round"/>
+  </Svg>
+);
+
+export const LikeIcon = ({ width = 10, height = 10, fill = '#80818B', ...props }) => (
+  <Svg width={width} height={height} viewBox="0 0 16 16" fill="none" {...props}>
+    <Path fillRule="evenodd" clipRule="evenodd" d="M6.97224 1.82071C7.3991 2.03689 7.7466 2.28992 8.0001 2.50265C8.25359 2.28992 8.60107 2.03689 9.02791 1.82071C9.9952 1.33081 11.3874 1.02782 12.953 1.8207C13.953 2.32719 14.6295 3.09356 14.9979 4.02403C15.3614 4.94198 15.4108 5.98121 15.2358 7.03558C14.9378 8.83198 13.7099 10.4349 12.4489 11.67C11.1722 12.9205 9.77223 13.8795 8.9827 14.3796C8.37839 14.7623 7.62183 14.7623 7.01751 14.3796C6.22798 13.8795 4.82802 12.9205 3.55124 11.67C2.2902 10.435 1.06236 8.83198 0.764294 7.03558C0.589349 5.98121 0.63873 4.94198 1.00217 4.02403C1.37056 3.09356 2.04707 2.32719 3.04715 1.8207C4.61275 1.02782 6.00493 1.33081 6.97224 1.82071ZM7.49219 3.85692C7.61884 4.00589 7.80453 4.09178 8.00012 4.09177C8.19536 4.09177 8.38074 4.00618 8.50737 3.85769C8.50752 3.85752 8.50766 3.85735 8.50781 3.85718C8.50798 3.85698 8.50815 3.85677 8.50832 3.85657L8.51844 3.84522C8.52881 3.8337 8.54624 3.81474 8.57039 3.78974C8.6188 3.73964 8.69358 3.66597 8.79207 3.5798C8.99055 3.40618 9.27699 3.18915 9.63034 3.01019C10.3243 2.65871 11.258 2.45687 12.3506 3.01019C13.0639 3.37145 13.5114 3.89136 13.7582 4.51485C14.01 5.15086 14.0672 5.93327 13.9205 6.81734C13.6928 8.18919 12.7146 9.54348 11.516 10.7175C10.3331 11.876 9.01976 12.7778 8.26928 13.2531C8.10057 13.36 7.89964 13.36 7.73093 13.2531C6.98044 12.7778 5.66711 11.876 4.48419 10.7175C3.28553 9.54348 2.30727 8.18919 2.07964 6.81734C1.93296 5.93327 1.99007 5.15086 2.24187 4.51485C2.48873 3.89136 2.93623 3.37145 3.64956 3.01019C4.74211 2.45687 5.67581 2.65871 6.36983 3.01019C6.72319 3.18915 7.00965 3.40618 7.20813 3.57981C7.30663 3.66598 7.38142 3.73965 7.42983 3.78976C7.45398 3.81475 7.47141 3.83372 7.48179 3.84523L7.49219 3.85692Z" fill={fill}/>
+  </Svg>
+);
+
+export const CartIcon = ({ width = 20, height = 20, stroke = '#203686', ...props }) => (
+  <Svg width={width} height={height} viewBox="0 0 20 20" fill="none" {...props}>
+    <G clipPath="url(#clip0_431_3403)">
+      <Path d="M0.833374 7.72729C1.72945 7.72729 2.49371 8.3601 2.63909 9.22237L3.96138 17.0659C4.08257 17.7848 4.7228 18.3334 5.49439 18.3334H14.5057C15.2773 18.3334 15.9175 17.7848 16.0387 17.0659L17.3609 9.22267C17.5061 8.36131 18.2693 7.72733 19.1644 7.72733C19.1652 7.72733 19.1659 7.72733 19.1667 7.72733" stroke={stroke} strokeWidth="2" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
+      <Path d="M0.833374 7.72729H19.1667" stroke={stroke} strokeWidth="2" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
+      <Path d="M6.8927 10.7576V15.303" stroke={stroke} strokeWidth="2" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
+      <Path d="M10 10.7576V15.303" stroke={stroke} strokeWidth="2" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
+      <Path d="M13.1073 10.7576V15.303" stroke={stroke} strokeWidth="2" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
+      <Path d="M3.94067 7.72723L7.04802 1.66663" stroke={stroke} strokeWidth="2" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
+      <Path d="M16.0594 7.72723L12.952 1.66663" stroke={stroke} strokeWidth="2" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
+    </G>
+    <Defs>
+      <ClipPath id="clip0_431_3403">
+        <Rect width="20" height="20" fill="white"/>
+      </ClipPath>
+    </Defs>
+  </Svg>
+);
