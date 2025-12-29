@@ -7,6 +7,7 @@ import { useAppDispatch, useAppSelector } from '@/store/hooks';
 
 import { PrimaryButton } from '@/features/home';
 import { DatePickerWithIcon } from '@/features/shared/ui/components/DatePickerCustom';
+// import SmartInput from '@/features/shared/ui/components/SmartInput';
 import SmartInput from '@/features/shared/ui/components/SmartInput';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useEffect, useRef, useState } from 'react';
@@ -16,14 +17,13 @@ import {
   Modal,
   Platform,
   StyleSheet,
-  Text,
   TextInput,
   TouchableOpacity,
   View
 } from 'react-native';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import manager from '../../../../assets/icons/png/manager.png';
-import { compliteCompany, compliteProfile, getCode, searchCompany, sendCode } from '../../authSlice';
+import { compliteCompany, compliteProfile, getCode, getMyInfo, searchCompany, sendCode } from '../../authSlice';
 import { ModalHeader } from '../Header';
 // import Error from '../../../../assets/icons/png/error.png'
 interface LoginModalProps {
@@ -38,6 +38,9 @@ export enum AuthScenario {
   NEED_ACC_TYPE = 'need_acc_type', // сценарий на выбора типа аккаунта 
   REG_NEED = 'reg_need', // сценарий для необходимой регисатрации
   NEED_COMPANY = 'need_company', //сценарий на попадание выбор типа аккаунта
+
+  PHIS_USER = 'phis_user'// Экран подтверждения физ лица
+
 }
 
 export enum ScreensScenario {
@@ -46,6 +49,8 @@ export enum ScreensScenario {
   COMPANY_SEARCH = 'company_search', // экран поиска компании
   COMPANY_REG = 'company_reg', // экран реги компании
   COMPANY_PICK = 'company_pick',// экран выбора компании
+
+  PHIS_USER = 'phis_user'// Экран подтверждения физ лица
 }
 
 export const LoginModal: React.FC<LoginModalProps> = ({
@@ -238,7 +243,6 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 
 
         if(res.payload.data.data.needUserType){
-          
             setCurrentScenarion(AuthScenario.NEED_ACC_TYPE)
             setCurrentScreen(ScreensScenario.ACC_TYPE)
             debugger
@@ -251,8 +255,18 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             setCurrentScenarion(AuthScenario.NEED_ACC_TYPE)
             setCurrentScreen(ScreensScenario.ACC_TYPE)
             debugger
-        }else if(!res.payload.data.data.needUserType && res.payload.data.data.needInformationForType === null){
-            resetModal()
+        }else if(!res.payload.data.data.needUserType && (res.payload.data.data.needInformationForType === null || res.payload.data.data.needInformationForType === undefined) ){
+          console.log('dfdfdfffff')
+          dispatch(getMyInfo('')).then((res) => {
+            if(getMyInfo.fulfilled.match(res)){
+              // resetModal()
+              // handleClose()
+              setCurrentScenarion(AuthScenario.PHIS_USER)
+
+              setCurrentScreen(ScreensScenario.PHIS_USER)
+              console.log(res)
+            }
+          })
         }
         // setCurrentScenarion()
         
@@ -331,8 +345,14 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     })).then((res) => 
       {
       if(compliteProfile.fulfilled.match(res)){
-        resetModal()
-        handleClose()
+        dispatch(getMyInfo('')).then((res) => {
+          if(getMyInfo.fulfilled.match(res)){
+            setCurrentScreen(ScreensScenario.ACC_TYPE)
+            setCurrentScenarion(AuthScenario.DEFAULT)
+            resetModal()
+            handleClose()
+          }
+        })
       }
       }
     )
@@ -348,9 +368,15 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       "contactPerson": contactPerson
     })).then((res) => 
       {
-      if(compliteProfile.fulfilled.match(res)){
-        resetModal()
-        handleClose()
+      if(compliteCompany.fulfilled.match(res)){
+        dispatch(getMyInfo('')).then((res) => {
+          if(getMyInfo.fulfilled.match(res)){
+            setCurrentScreen(ScreensScenario.ACC_TYPE)
+            setCurrentScenarion(AuthScenario.DEFAULT)
+            resetModal()
+            handleClose()
+          }
+        })
       }
       }
     )
@@ -362,18 +388,36 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       "inn": company?.inn,
       "foundationDate": company?.foundationDate,
       "kpp": company?.kpp,
-      "legalAddress": company.legalAddress,
-      "contactPerson": company.contactPerson
+      "legalAddress": company?.legalAddress,
+      "contactPerson": company?.contactPerson
     })).then((res) => 
       {
       if(compliteProfile.fulfilled.match(res)){
-        resetModal()
-        handleClose()
+        // resetModal()
+        // handleClose()
+        dispatch(getMyInfo('')).then((res) => {
+          if(getMyInfo.fulfilled.match(res)){
+            setCurrentScreen(ScreensScenario.ACC_TYPE)
+            setCurrentScenarion(AuthScenario.DEFAULT)
+            resetModal()
+            handleClose()
+          }
+        })
+
       }
       }
     )
   }
-
+  const handleInitUser = () => {
+    dispatch(getMyInfo('')).then((res) => {
+      if(getMyInfo.fulfilled.match(res)){
+        setCurrentScreen(ScreensScenario.ACC_TYPE)
+        setCurrentScenarion(AuthScenario.DEFAULT)
+        resetModal()
+        handleClose()
+      }
+    })
+  }
   const handleSearchCompany = () => {
     dispatch(searchCompany({search: inn})).then((res: any) =>
       {
@@ -411,7 +455,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
               <View style={styles.logoContainerInner}>
               <LogoIcon />
               </View>
-              <ThemedText style={styles.logoText} lightColor={'#80818B'}>
+              <ThemedText style={styles.logoText} lightColor={'#80818B'} darkColor='#70798E'>
                 Поставки продуктов{'\n'}для HoReCa
               </ThemedText>
             </View>
@@ -424,7 +468,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                     Авторизация
                   </ThemedText>
                   
-                  <ThemedText style={styles.modalDescription} lightColor={'#80818B'}>
+                  <ThemedText style={styles.modalDescription} lightColor={'#80818B'} darkColor='#FBFCFF80'>
                     Мы отправим сообщение с кодом{'\n'}для входа.
                   </ThemedText>
 
@@ -459,14 +503,15 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                         style={styles.checkbox}
                         value={agreedToTerms}
                         onValueChange={setAgreedToTerms}
-                    
+                        lightColor={'#F2F4F7'}
+                        darkColor={'#202022'}
                       />
                     </View>
-                    <ThemedText style={styles.checkboxText} lightColor={'#80818B'}>
+                    <ThemedText style={styles.checkboxText} lightColor={'#80818B'} darkColor='#FBFCFF80'>
                       Я принимаю{' '}
-                      <Text style={styles.checkboxLink}>Политику конфиденциальности</Text>
+                      <ThemedText darkColor='#FBFCFF80' style={styles.checkboxLink}>Политику конфиденциальности</ThemedText>
                       {'\n'}и{' '}
-                      <Text style={styles.checkboxLink}>Согласие на обработку персональных данных</Text>
+                      <ThemedText style={styles.checkboxLink}>Согласие на обработку персональных данных</ThemedText>
                     </ThemedText>
                   </View>
 
@@ -559,6 +604,14 @@ export const LoginModal: React.FC<LoginModalProps> = ({
               onBackPress={
                 () =>{
                     setCurrentScenarion(AuthScenario.DEFAULT)
+                    //
+                    resetModal()
+                    // setConfirmationCode(['', '', '', '']);
+                    // setTimer(60);
+                    // setIsTimerActive(false);
+                    // setError(null);
+                    // setShowCodeInput(false);
+                    // setPhoneNumber()
                 }
               }
             />
@@ -793,7 +846,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                 Ошибка
               </ThemedText>
               <ThemedText lightColor='#80818B' style={stylesError.secondErr}>
-                Компания с таким ИНН не найдена
+                Компания с таким ИНН не найдена или привязана к другому номеру
               </ThemedText>
               {/* <View> */}
                 <PrimaryButton
@@ -1037,7 +1090,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
           <View style={stylesRegUser.buttonUserReg}>
           <PrimaryButton
             title="Продолжить"
-            onPress={() => handelCompliteOrg()}
+            onPress={() => handleAcceptCompany()}
             variant="primary"
             size="md"
             loading={loading}
@@ -1049,7 +1102,114 @@ export const LoginModal: React.FC<LoginModalProps> = ({
           </View>
         </ThemedView>
       </ThemedView>
-      : null}
+      : currentScreen === ScreensScenario.PHIS_USER ? 
+      <ThemedView lightColor={'#FFFFFF'} style={styles.modalContent}>
+        <ThemedView lightColor={'#FFFFFF'} style={phisUser.innerContainer}>
+            <View style={phisUser.attention}>
+            <Image
+                source={require('../../../../assets/icons/png/warning.png')} // Замените на путь к вашей картинке
+                style={styles.image}
+                resizeMode="contain"
+              />
+              <ThemedText style={phisUser.attentionMainText}>
+                Внимание!
+              </ThemedText>
+              <ThemedText lightColor='#80818B' darkColor='#FBFCFF80' style={phisUser.attentionSecondText}>
+                Данный номер телефона в нашей базе числится как аккаунт физического лица.
+              </ThemedText>
+            </View>
+            <View style={phisUser.underWarningText}>
+              <ThemedText>
+                Если вы планировали войти как юридическое лицо или у вас есть бизнес-аккаунт, пожалуйста, свяжитесь с вашим менеджером для внесения исправлений.
+              </ThemedText>
+
+              <ThemedView style={stylesManager.container} lightColor='#F2F4F7' darkColor='#F2F4F7'>
+              <ThemedText 
+                style={stylesManager.yourManager}
+                lightColor='#80818B'
+                darkColor='#80818B'
+              >
+                Ваш менеджер
+              </ThemedText>
+              
+              <View style={stylesManager.managerInfo}>
+                {/* Фото менеджера */}
+                <View style={stylesManager.avatarContainer}>
+                  <Image
+                    source={manager}
+                    // source={{ uri: 'https://example.com/manager-photo.jpg' }} 
+                    style={stylesManager.avatar}
+                    resizeMode="cover"
+                  />
+                </View>
+                
+                {/* Имя менеджера */}
+                <View style={stylesManager.nameContainer}>
+                  <ThemedText 
+                    style={stylesManager.managerName}
+                    lightColor='#1B1B1C'
+                    darkColor='#1B1B1C'
+                    numberOfLines={2}
+                  >
+                    Иванова Мария Сергеевна
+                  </ThemedText>
+                </View>
+              </View>
+              
+              <View style={stylesManager.actionsContainer}>
+                <TouchableOpacity 
+                  style={stylesManager.actionButton}
+                  onPress={() => console.log('Написать сообщение')}
+                  activeOpacity={0.7}
+                >
+                  <View style={stylesManager.buttonContent}>
+                    <MessageIcon width={24} height={24} />
+                    <ThemedText 
+                      style={stylesManager.buttonText}
+                      lightColor='#203686'
+                      darkColor='#203686'
+                    >
+                      Написать
+                    </ThemedText>
+                  </View>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={stylesManager.actionButton}
+                  onPress={() => console.log('Позвонить')}
+                  activeOpacity={0.7}
+                >
+                  <View style={stylesManager.buttonContent}>
+                    <PhoneIcon width={24} height={24} />
+                    <ThemedText 
+                      style={stylesManager.buttonText}
+                      lightColor='#203686'
+                      darkColor='#203686'
+                    >
+                      Позвонить
+                    </ThemedText>
+                  </View>
+                </TouchableOpacity>
+              </View>
+          </ThemedView>
+            </View>
+            <View style={phisUser.button}>
+            <PrimaryButton
+            title="Продолжить"
+            onPress={() => handleInitUser()}
+            variant="primary"
+            size="md"
+            loading={loading}
+            activeOpacity={0.8}
+            fullWidth
+            // disabled={}
+            
+          />
+          </View>
+        </ThemedView>
+
+      </ThemedView>
+      : <></>}
       </SafeAreaProvider>
     </Modal>
   );
@@ -1145,7 +1305,7 @@ const styles = StyleSheet.create({
   checkboxContainerInner: {
     borderRadius: 6,
     overflow: 'hidden',
-    marginRight: 14
+    marginRight: 13
   },
   checkbox: {
     marginRight: 12,
@@ -1163,7 +1323,7 @@ const styles = StyleSheet.create({
   },
   checkboxLink: {
     textDecorationLine: 'none',
-    fontWeight: '600',
+    fontWeight: '500',
     color: '#203686'
   },
   modalLoginButton: {
@@ -1534,3 +1694,43 @@ const stylesManager = StyleSheet.create({
     // fontVariant: ['lining-nums', 'proportional-nums'],
   },
 });
+const phisUser = StyleSheet.create({
+  innerContainer: {
+    width: '100%',
+    minHeight: 232,
+    borderRadius: 16,
+    paddingTop: 12,
+    paddingRight: 16,
+    paddingBottom: 16,
+    paddingLeft: 16,
+    alignSelf: 'center',
+    marginTop: 20,
+  },
+  attention:{
+    display:'flex',
+    justifyContent:'center',
+    alignItems:'center'
+    // flexDirection:
+  },
+  attentionMainText:{
+    fontWeight: 600,
+    fontSize: 24,
+    marginTop: 24
+  },
+  attentionSecondText:{
+    textAlign: 'center',
+    fontWeight: 500,
+    fontSize: 16,
+    marginTop: 8,
+
+  },
+  underWarningText:{
+    marginTop: 24,
+    fontSize: 16,
+    fontWeight: 500,
+    marginBottom: 24
+  },
+  button:{
+    marginTop: '28%'
+  }
+})

@@ -1,7 +1,8 @@
+import { LemonIcon, PersonCircleIcon } from '@/assets/icons/icons.js';
 import { ThemedText } from '@/components/themed-text';
+import { useAppSelector } from '@/store/hooks';
 import React from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
-
 interface HomeHeaderProps {
   title?: string;
   transparent?: boolean;
@@ -13,11 +14,14 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
   transparent = true,
   onLoginPress,
 }) => {
+  const me = useAppSelector((state) => state.auth.me);
+  console.log('mee',me)
   return (
     <View style={[
       styles.header,
       transparent && styles.headerTransparent
     ]}>
+      { me === null ?
       <View style={styles.headerContent}>
         <View></View>
         <TouchableOpacity
@@ -28,6 +32,22 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
           <ThemedText style={styles.loginButtonText}>Войти</ThemedText>
         </TouchableOpacity>
       </View>
+      :
+      <View style={styles.headerContent}>
+      <TouchableOpacity
+        style={styles.headInfo}
+        // onPress={onLoginPress}
+        activeOpacity={0.7}
+      >
+        <PersonCircleIcon/>
+        <ThemedText lightColor='#FBFCFF' darkColor='#FBFCFF'>{me?.companies.length === 0 ? me?.individualProfile?.firstName : me?.individualProfile?.firstName}</ThemedText>
+      </TouchableOpacity>
+      <View style={styles.headInfoBonus}>
+        <LemonIcon/>
+        <ThemedText lightColor='#FBFCFF' darkColor='#FBFCFF'>222</ThemedText>
+      </View>
+      </View>
+      } 
     </View>
   );
 };
@@ -75,4 +95,14 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#1B1B1C',
   },
+  headInfo:{
+    gap:8,
+    display:'flex',
+    flexDirection:'row',
+  },
+  headInfoBonus:{
+    gap:4,
+    display:'flex',
+    flexDirection:'row',
+  }
 });

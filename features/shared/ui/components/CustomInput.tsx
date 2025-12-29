@@ -1,3 +1,4 @@
+import { ThemedView } from '@/components/themed-view';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import React, { useRef, useState } from 'react';
 import {
@@ -6,8 +7,7 @@ import {
   StyleSheet,
   TextInput,
   TextInputProps,
-  TouchableWithoutFeedback,
-  View,
+  TouchableWithoutFeedback
 } from 'react-native';
 
 interface AnimatedTextInputProps extends Omit<TextInputProps, 'style'> {
@@ -94,7 +94,7 @@ const AnimatedTextInput: React.FC<AnimatedTextInputProps> = ({
 
   return (
     <TouchableWithoutFeedback onPress={() => inputRef.current?.focus()}>
-      <View style={[styles.container, style]}>
+      <ThemedView lightColor='#03051E08' darkColor='#ECEFFA0D' style={[styles.container, style]}>
         <Animated.Text style={[styles.placeholder, animatedStyle]}>
           {placeholder}
         </Animated.Text>
@@ -119,7 +119,7 @@ const AnimatedTextInput: React.FC<AnimatedTextInputProps> = ({
           textAlignVertical="center"
           {...props}
         />
-      </View>
+      </ThemedView>
     </TouchableWithoutFeedback>
   );
 };

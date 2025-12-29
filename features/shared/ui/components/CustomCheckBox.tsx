@@ -1,9 +1,14 @@
+import { useThemeColor } from '@/hooks/use-theme-color';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
-export const CustomCheckbox = ({ style, value, onValueChange }) => {
+export const CustomCheckbox = ({ style, value, onValueChange, lightColor, darkColor }) => {
+
+  const backgroundColor = useThemeColor({ light: lightColor, dark: darkColor }, 'background');
+  // const borderColor =  useThemeColor({ light: borderLightColor, dark: borderDarkColor }, '');
   return (
     <TouchableOpacity
       style={[
+      { backgroundColor },
         styles.customCheckbox,
         value && styles.customCheckboxChecked
       ]}
@@ -22,7 +27,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     borderWidth: 1,
     borderColor: '#D8DADE',
-    backgroundColor: '#F2F4F7',
+    // backgroundColor: '#F2F4F7',
     justifyContent: 'center',
     alignItems: 'center',
   },

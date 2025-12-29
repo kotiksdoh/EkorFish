@@ -1,13 +1,13 @@
+import { ThemedView } from '@/components/themed-view';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-    Animated,
-    Platform,
-    StyleSheet,
-    TextInput,
-    TextInputProps,
-    TouchableWithoutFeedback,
-    View,
+  Animated,
+  Platform,
+  StyleSheet,
+  TextInput,
+  TextInputProps,
+  TouchableWithoutFeedback
 } from 'react-native';
 
 interface SmartInputProps extends Omit<TextInputProps, 'style' | 'value' | 'onChangeText'> {
@@ -170,7 +170,7 @@ const SmartInput: React.FC<SmartInputProps> = ({
 
   return (
     <TouchableWithoutFeedback onPress={() => inputRef.current?.focus()}>
-      <View style={[styles.container, style]}>
+      <ThemedView lightColor='#03051E08' darkColor='#ECEFFA0D' style={[styles.container, style]}>
         <Animated.Text style={[styles.placeholder, animatedStyle]}>
           {placeholder}
         </Animated.Text>
@@ -195,7 +195,7 @@ const SmartInput: React.FC<SmartInputProps> = ({
           autoCorrect={false}
           {...props}
         />
-      </View>
+      </ThemedView>
     </TouchableWithoutFeedback>
   );
 };
@@ -204,7 +204,7 @@ const styles = StyleSheet.create({
   container: {
     height: 50,
     width: '100%',
-    backgroundColor: '#03051E08',
+    // backgroundColor: '#03051E08',
     borderRadius: 12,
     borderWidth: 0.1,
     borderColor: 'transparent',

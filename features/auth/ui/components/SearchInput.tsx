@@ -1,6 +1,6 @@
 import { MenuIcon, ScannerIcon, SearchIcon } from '@/assets/icons/icons';
 import React from 'react';
-import { View, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { StyleSheet, TextInput, TouchableOpacity, View, useColorScheme } from 'react-native';
 
 interface SearchInputProps {
   value?: string;
@@ -9,6 +9,7 @@ interface SearchInputProps {
   disabled?: boolean;
   onScannerPress?: () => void;
   onMenuPress?: () => void;
+  theme?: 'light' | 'dark' | 'auto'; // Добавляем опцию темы
 }
 
 const SearchInput: React.FC<SearchInputProps> = ({
@@ -18,7 +19,17 @@ const SearchInput: React.FC<SearchInputProps> = ({
   disabled = false,
   onScannerPress,
   onMenuPress,
+  theme = 'auto', // По умолчанию автоматическая тема
 }) => {
+  const systemTheme = useColorScheme(); // Получаем системную тему
+  const currentTheme = theme === 'auto' ? systemTheme : theme;
+  const isDarkMode = currentTheme === 'dark';
+  
+  // Определяем цвета для разных тем
+  const menuButtonBg = isDarkMode ? '#202022' : '#F2F4F7'; // В темной теме белая кнопка, в светлой - темная
+  const menuIconColor = isDarkMode ? '#FFFFFF' : '#202022'; // В темной теме черная иконка, в светлой - белая
+  const menuIconDisabledColor = '#A0A0A0'; // Серый для disabled состояния
+  
   return (
     <View style={styles.container}>
       {/* Основной контейнер поиска */}
@@ -50,13 +61,20 @@ const SearchInput: React.FC<SearchInputProps> = ({
         </TouchableOpacity>
       </View>
       
+      {/* Кнопка меню (бургер) */}
       <TouchableOpacity
-        style={[styles.menuButton, disabled && styles.menuButtonDisabled]}
+        style={[
+          styles.menuButton, 
+          { backgroundColor: menuButtonBg },
+          disabled && styles.menuButtonDisabled
+        ]}
         onPress={onMenuPress}
         disabled={disabled}
         activeOpacity={0.7}
       >
-        <MenuIcon stroke={disabled ? '#A0A0A0' : '#1B1B1C'} />
+        <MenuIcon 
+          stroke={disabled ? menuIconDisabledColor : menuIconColor}
+        />
       </TouchableOpacity>
     </View>
   );
@@ -64,7 +82,6 @@ const SearchInput: React.FC<SearchInputProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    // marginTop: 16,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
@@ -75,8 +92,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#03051E08',
-    borderWidth: 1,
-    borderColor: '#E4E4E7',
     borderRadius: 12,
     height: 48,
     paddingHorizontal: 12,
@@ -111,14 +126,10 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 12,
-    backgroundColor: '#F2F4F7',
     justifyContent: 'center',
     alignItems: 'center',
-    paddingTop: 1,
-    paddingHorizontal: 12,
   },
   menuButtonDisabled: {
-    backgroundColor: '#F0F0F0',
     opacity: 0.5,
   },
 });

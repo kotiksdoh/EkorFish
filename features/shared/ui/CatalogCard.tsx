@@ -1,7 +1,7 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import React from 'react';
-import { Dimensions, Image, StyleSheet, View } from 'react-native';
+import React, { useState } from 'react';
+import { ActivityIndicator, Dimensions, Image, StyleSheet, View } from 'react-native';
 
 interface CatalogCardProps {
   id?: number;
@@ -14,7 +14,6 @@ const PADDING_HORIZONTAL = 16;
 const GAP = 12;
 const NUM_COLUMNS = 3;
 
-// Вычисляем ширину карточки динамически
 const cardWidth = (screenWidth - (PADDING_HORIZONTAL * 2) - (GAP * (NUM_COLUMNS - 1))) / NUM_COLUMNS;
 
 export const CatalogCard: React.FC<CatalogCardProps> = ({
@@ -22,7 +21,9 @@ export const CatalogCard: React.FC<CatalogCardProps> = ({
   img,
   name,
 }) => {
- 
+  const [isImageLoading, setIsImageLoading] = useState(true);
+  const [imageError, setImageError] = useState(false);
+
   return (
     <ThemedView lightColor='#FFFFFF' darkColor='#151516' style={styles.container}>
       <View style={styles.textContainer}>
@@ -38,13 +39,48 @@ export const CatalogCard: React.FC<CatalogCardProps> = ({
       </View>
       
       <View style={styles.imageWrapper}>
-        <View style={styles.imageContainer}>
-          <Image
-            source={img} 
-            style={styles.image}
-            resizeMode="cover"
-          />
-        </View>
+        {/* Индикатор загрузки */}
+        {isImageLoading && (
+          <View style={[styles.imageContainer, styles.loadingContainer]}>
+            <ActivityIndicator 
+              size="small" 
+              color="#CCCCCC"
+              style={styles.loader}
+            />
+          </View>
+        )}
+        
+        {/* Сообщение об ошибке */}
+        {imageError && (
+          <View style={[styles.imageContainer, styles.errorContainer]}>
+            <ThemedText style={styles.errorText}>
+              Не удалось загрузить изображение
+            </ThemedText>
+          </View>
+        )}
+        
+        {/* Изображение */}
+        {img && !imageError && (
+          <View style={styles.imageContainer}>
+            <Image
+              source={img}
+              style={[
+                styles.image,
+                isImageLoading && styles.imageHidden
+              ]}
+              resizeMode="cover"
+              onLoadStart={() => {
+                setIsImageLoading(true);
+                setImageError(false);
+              }}
+              onLoadEnd={() => setIsImageLoading(false)}
+              onError={() => {
+                setIsImageLoading(false);
+                setImageError(true);
+              }}
+            />
+          </View>
+        )}
       </View>
     </ThemedView>
   );
@@ -54,11 +90,11 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'column',
     width: '31%',
-    height: 159, // Соотношение сторон 1:1.35
+    height: 159,
     borderRadius: 8,
     overflow: 'hidden',
     marginBottom: 12,
-    shadowColor: '#000',
+    // shadowColor: '#000',
     shadowOffset: {
       width: 0,
       height: 2,
@@ -88,18 +124,42 @@ const styles = StyleSheet.create({
   },
   imageWrapper: {
     flex: 1,
-    marginTop: 40, 
+    marginTop: 40,
     overflow: 'hidden',
     borderBottomLeftRadius: 8,
     borderBottomRightRadius: 8,
+    // backgroundColor: '#F5F5F5', // Фон для скелетона
   },
   imageContainer: {
     width: '100%',
-    height: '120%', 
-    marginTop: 30, 
+    height: '120%',
+    marginTop: 30,
   },
   image: {
     width: '100%',
     height: '100%',
+  },
+  imageHidden: {
+    opacity: 0,
+    position: 'absolute',
+  },
+  loadingContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    // backgroundColor: '#F0F0F0',
+  },
+  errorContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    // backgroundColor: '#F8D7DA',
+  },
+  errorText: {
+    fontSize: 10,
+    color: '#721C24',
+    textAlign: 'center',
+    paddingHorizontal: 4,
+  },
+  loader: {
+    position: 'absolute',
   },
 });

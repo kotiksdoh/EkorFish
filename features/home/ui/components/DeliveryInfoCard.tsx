@@ -4,10 +4,10 @@ import React from 'react';
 import { Image, StyleSheet, View } from 'react-native';
 export default function DeliveryInfoCard() {
   return (
-    <ThemedView style={styles.container}>
+    <ThemedView lightColor='#E1F0FF' darkColor='#212945' style={styles.container}>
       <View style={styles.textContainer}>
-        <ThemedText style={styles.text}>
-          При заказе до 11:00{'\n'} доставим в тот же день {'\n'}в Москве и Санкт-Петербурге
+        <ThemedText lightColor='#1B1B1C' darkColor='#FBFCFF' style={styles.text}>
+          При заказе до 11:00{'\n'}доставим в тот же день {'\n'}в Москве и Санкт-Петербурге
         </ThemedText>
       </View>
       <Image
@@ -24,7 +24,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     // justifyContent: 'space-between',
-    backgroundColor: '#E1F0FF',
+    // backgroundColor: ,
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 8, 
@@ -47,7 +47,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 18.2, 
     letterSpacing: 0,
-    color: '#000000', 
+    // color: '#000000', 
     width: '70%'
 
   },

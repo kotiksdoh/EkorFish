@@ -11,6 +11,7 @@ interface AuthState {
   isLoading: boolean;
   phoneNumber: string | null;
   company: any;
+  me: any
 }
 
 const initialState: AuthState = {
@@ -18,7 +19,9 @@ const initialState: AuthState = {
   error: null,
   isLoading: false,
   phoneNumber: null,
-  company: null
+  company: null,
+  me:null
+
 };
 
 export const getCode = createAsyncThunk(
@@ -87,6 +90,20 @@ export const searchCompany = createAsyncThunk(
   }
 );
 
+export const getMyInfo = createAsyncThunk(
+  "user/getMyInfo",
+  async (payload: any, { rejectWithValue }) => {
+    try {
+      const data = await axdef.get("/api/Account/my-info");
+      return data;
+    } catch (error) {
+      console.log(error);
+      return rejectWithValue(error);
+    }
+  }
+);
+
+
 const authSlice = createSlice({
   name: 'auth',
   initialState,
@@ -118,6 +135,22 @@ const authSlice = createSlice({
     });
     builder.addCase(searchCompany.rejected, (state, action) => {
       state.isLoading = false;
+      console.log('action.payload.reject', JSON.stringify(action?.payload))
+      axiosErrorHandler(action?.payload);
+
+    });
+
+    builder.addCase(getMyInfo.pending, (state) => {
+      state.isLoading = true;
+    });
+    builder.addCase(getMyInfo.fulfilled, (state, action) => {
+      state.isLoading = false;
+      console.log('payloadMe', action.payload.data)
+      state.me = action.payload.data.data;
+    });
+    builder.addCase(getMyInfo.rejected, (state, action) => {
+      state.isLoading = false;
+      // console.log('action.payload.reject', JSON.stringify(action?.payload))
       axiosErrorHandler(action?.payload);
 
     });

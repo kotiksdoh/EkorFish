@@ -41,7 +41,19 @@ export const HomeScreen = ({ handleLoginPress }: { handleLoginPress: () => void 
   const handleButtonPress = () => {
     console.log('Button pressed!');
   };
-
+  // useFocusEffect(
+  //   React.useCallback(() => {
+  //     // Устанавливаем для этого экрана
+  //     setStatusBarStyle('dark');
+  //     setStatusBarBackgroundColor('#FFFFFF', false);
+      
+  //     return () => {
+  //       // Сбрасываем при уходе (опционально)
+  //       setStatusBarStyle('auto');
+  //       setStatusBarBackgroundColor('transparent', false);
+  //     };
+  //   }, [])
+  // );
   return (
     // <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
       <ScrollView 

@@ -1,16 +1,17 @@
 import { CartIcon, LikeIcon, SnowflakeIcon } from '@/assets/icons/icons.js';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import React, { useState } from 'react';
-import { Image, StyleSheet, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, Image, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 interface ProductCardProps {
   id?: number;
-  img?: any;
+  img?: any; // ImageSourcePropType или число (require) или объект {uri: string}
   isFrozen?: boolean;
   name?: string;
   kgPrice?: any;
   fullPrice?: any;
+  isImageLoading?: boolean; // Можно передавать извне
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({
@@ -20,8 +21,43 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   name,
   kgPrice,
   fullPrice,
+  isImageLoading: externalLoading = false,
 }) => {
-  // Функция для форматирования цены с пробелами
+  const [isImageLoaded, setIsImageLoaded] = useState(false);
+  const [isImageLoading, setIsImageLoading] = useState(true);
+  const [imageError, setImageError] = useState(false);
+  const [isLiked, setIsLiked] = useState(false);
+
+  // Если передали внешний статус загрузки
+  useEffect(() => {
+    if (!externalLoading && img) {
+      setIsImageLoading(true);
+      setIsImageLoaded(false);
+      setImageError(false);
+    }
+  }, [img, externalLoading]);
+
+  const handleLikePress = () => {
+    setIsLiked(!isLiked);
+    console.log(`Товар ${id} ${isLiked ? 'удален из' : 'добавлен в'} избранное`);
+  };
+
+  const handleImageLoadStart = () => {
+    setIsImageLoading(true);
+    setImageError(false);
+  };
+
+  const handleImageLoadEnd = () => {
+    setIsImageLoading(false);
+    setIsImageLoaded(true);
+  };
+
+  const handleImageError = () => {
+    setIsImageLoading(false);
+    setImageError(true);
+  };
+
+  // Функция для форматирования цены
   const formatPrice = (price: number) => {
     return price.toLocaleString('ru-RU', {
       minimumFractionDigits: 2,
@@ -29,58 +65,80 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     });
   };
 
-  const [isLiked, setIsLiked] = useState(false);
-
-  const handleLikePress = () => {
-    setIsLiked(!isLiked);
-    console.log(`Товар ${id} ${isLiked ? 'удален из' : 'добавлен в'} избранное`);
-  };
-
   return (
     <ThemedView lightColor='#FFFFFF' style={styles.container}>
-      {/* Верхняя часть с изображением и иконками */}
+      {/* Верхняя часть с изображением */}
       <View style={styles.imageContainer}>
-        <Image
-          source={img} // Замените на ваш путь
-          style={styles.image}
-          resizeMode="cover"
-        />
+        {!isImageLoaded && (isImageLoading || externalLoading) && (
+          <View style={[styles.image, styles.imageLoadingContainer]}>
+            <ActivityIndicator 
+              size="small" 
+              color="#666666"
+              style={styles.loader}
+            />
+          </View>
+        )}
         
-        {/* Иконка снежинки слева сверху */}
-        {isFrozen && (
+        {imageError && (
+          <View style={[styles.image, styles.imageErrorContainer]}>
+            <ThemedText style={styles.errorText}>Не удалось загрузить</ThemedText>
+          </View>
+        )}
+        
+        {/* Основное изображение */}
+        {img && !imageError && (
+          <Image
+            source={img}
+            style={[
+              styles.image,
+              (!isImageLoaded || isImageLoading || externalLoading) && styles.imageHidden
+            ]}
+            resizeMode="cover"
+            onLoadStart={handleImageLoadStart}
+            onLoadEnd={handleImageLoadEnd}
+            onError={handleImageError}
+          />
+        )}
+        
+        {/* Иконки поверх изображения */}
+        {isFrozen && !isImageLoading && (
           <View style={styles.frozenIcon}>
             <SnowflakeIcon />
           </View>
         )}
         
-        {/* Иконка сердечка справа сверху */}
         <TouchableOpacity 
           style={[
             styles.heartIcon,
-            isLiked && styles.heartIconActive // Добавляем стиль для активного состояния
+            isLiked && styles.heartIconActive
           ]} 
           onPress={handleLikePress}
           activeOpacity={0.7}
         >
-          {isLiked ? (
-            <LikeIcon isFilled={true} /> 
-          ) : (
-            <LikeIcon isFilled={false} /> 
+          {!isImageLoading && (
+            isLiked ? (
+              <LikeIcon isFilled={true} /> 
+            ) : (
+              <LikeIcon isFilled={false} /> 
+            )
           )}
         </TouchableOpacity>
       </View>
       
       {/* Нижняя часть с информацией */}
       <View style={styles.infoContainer}>
-        {/* Название товара (обрезаем до 2 строк) */}
-        <ThemedText lightColor='#1B1B1C' darkColor='#FBFCFF' style={styles.name} numberOfLines={2} ellipsizeMode="tail">
+        <ThemedText 
+          lightColor='#1B1B1C' 
+          darkColor='#FBFCFF' 
+          style={styles.name} 
+          numberOfLines={2} 
+          ellipsizeMode="tail"
+        >
           {name || 'Название товара'}
         </ThemedText>
         
-        {/* Цена и кнопка в одной строке */}
         <View style={styles.priceRow}>
           <View style={styles.priceContainer}>
-            {/* Цена за кг */}
             <View style={styles.kgPriceRow}>
               <ThemedText lightColor='#203686' darkColor='#4C94FF' style={styles.kgPrice}>
                 {kgPrice ? kgPrice : '0,00'}
@@ -88,13 +146,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               <ThemedText lightColor='#203686' darkColor='#4C94FF' style={styles.kgLabel}>₽ / кг</ThemedText>
             </View>
             
-            {/* Полная цена */}
             <ThemedText lightColor='#80818B' darkColor='#FBFCFF80' style={styles.fullPrice}>
               {fullPrice ? `${fullPrice}₽` : '0,00 ₽'}
             </ThemedText>
           </View>
           
-          {/* Кнопка корзины */}
           <TouchableOpacity style={styles.cartButton}>
             <CartIcon />
           </TouchableOpacity>
@@ -107,20 +163,44 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'column',
-    width: '50%', // Ширина как у изображения
+    width: '50%',
     borderRadius: 8,
     overflow: 'hidden',
-    marginRight: 12, // Отступ между карточками
+    marginRight: 12,
     elevation: 3,
   },
   imageContainer: {
     position: 'relative',
     width: '100%',
     height: 138,
+    // backgroundColor: '#F5F5F5', // Фон пока грузится
   },
   image: {
     width: '100%',
     height: '100%',
+  },
+  imageHidden: {
+    opacity: 0,
+    position: 'absolute',
+  },
+  imageLoadingContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F5F5F5',
+  },
+  imageErrorContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    // backgroundColor: '#F8D7DA',
+  },
+  errorText: {
+    fontSize: 10,
+    color: '#721C24',
+    textAlign: 'center',
+    padding: 4,
+  },
+  loader: {
+    position: 'absolute',
   },
   frozenIcon: {
     width: 16,
@@ -129,8 +209,8 @@ const styles = StyleSheet.create({
     top: 2,
     left: 2,
     padding: 2,
-    // backgroundColor: 'rgba(255, 255, 255, 0.8)',
     borderRadius: 4,
+    zIndex: 2,
   },
   heartIcon: {
     width: 16,
@@ -139,8 +219,8 @@ const styles = StyleSheet.create({
     top: 2,
     right: 4,
     padding: 2,
-    // backgroundColor: 'rgba(255, 255, 255, 0.8)',
     borderRadius: 4,
+    zIndex: 2,
   },
   infoContainer: {
     padding: 12,
@@ -149,11 +229,10 @@ const styles = StyleSheet.create({
     fontFamily: 'Montserrat',
     fontWeight: '600',
     fontSize: 14,
-    lineHeight: 17.5, // 14 * 1.25 = 17.5
+    lineHeight: 17.5,
     letterSpacing: 0,
-    // color: '#000000',
     marginBottom: 8,
-    minHeight: 35, // Минимальная высота для 2 строк
+    minHeight: 35,
   },
   priceRow: {
     flexDirection: 'row',
@@ -172,27 +251,21 @@ const styles = StyleSheet.create({
     fontFamily: 'Montserrat',
     fontWeight: '600',
     fontSize: 16,
-    lineHeight: 19.8, // 18 * 1.1 = 19.8
+    lineHeight: 19.8,
     letterSpacing: 0,
-    // color: '#000000',
-    // Для lining-nums и proportional-nums
     fontVariant: ['lining-nums', 'proportional-nums'],
   },
   kgLabel: {
     fontFamily: 'Montserrat',
     fontWeight: '400',
     fontSize: 18,
-    // lineHeight: 13.2,
-    // color: '#666666',
   },
   fullPrice: {
     fontFamily: 'Montserrat',
     fontWeight: '500',
     fontSize: 12,
-    lineHeight: 14.4, // 12 * 1.2 = 14.4
-    letterSpacing: -0.02, // -2%
-    // color: '#666666',
-    // Для lining-nums и proportional-nums
+    lineHeight: 14.4,
+    letterSpacing: -0.02,
     fontVariant: ['lining-nums', 'proportional-nums'],
   },
   cartButton: {
@@ -205,6 +278,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     marginLeft: 8,
   },
-  heartIconActive: {
-  },
+  heartIconActive: {},
 });
