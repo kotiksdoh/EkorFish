@@ -80,13 +80,13 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   const [surname, setSurname] = useState('')
   const [name, setName] = useState('')
   const [secondName, setSecondName] = useState('')
-  const [birthDate, setBirthDate] = useState('17.01.2002')
+  const [birthDate, setBirthDate] = useState('')
 
   const [orgName, setOrgName] = useState('')
   const [kpp, setKpp] = useState('')
   const [legalAddress, setLegalAddress] = useState('')
   const [contactPerson, setContactPerson] = useState('')
-  const [dateCreated, setDateCreated] = useState('17.01.2002')
+  const [dateCreated, setDateCreated] = useState('')
   // const [phone, setPhone] = useState(phoneNumber)
   // const [email, setEmail] = useState('')
 
@@ -98,7 +98,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 
   const loading = useAppSelector((state) => state.auth.isLoading);
   const company = useAppSelector((state) => state.auth.company);
-
+  const predUserData = useAppSelector((state) => state.auth.predUserData);
   // const company = {
   //   id: 1,
   //   inn: 1111,
@@ -262,8 +262,14 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             if(getMyInfo.fulfilled.match(res)){
               // resetModal()
               // handleClose()
+              console.log('res?.payload?.data?.data',res?.payload?.data?.data)
+              if(res?.payload?.data?.data?.companies.length > 0){
+                  resetModal()
+                  handleClose()
+              }else{
               setCurrentScenarion(AuthScenario.PHIS_USER)
               setCurrentScreen(ScreensScenario.PHIS_USER)
+              }
               console.log(res)
             }
           })
@@ -434,6 +440,19 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   const codeInputBackgroundColor = currentTheme === 'dark' ? '#ECEFFA0D' : '#F2F4F7';
   const codeInputColor = currentTheme === 'dark' ? '#FBFCFF' : '#1B1B1C';
   const managerButtonsColor = currentTheme === 'dark' ? '#2E2E32' : '#FFFFFF';
+  const isDarkMode = currentTheme === 'dark';
+
+const getCardStyle = (isSelected: boolean) => {
+  if (isDarkMode) {
+    return isSelected 
+      ? stylesAccType.accountTypeCardSelectedDark
+      : stylesAccType.accountTypeCardDefaultDark;
+  } else {
+    return isSelected
+      ? stylesAccType.accountTypeCardSelected
+      : stylesAccType.accountTypeCardDefault;
+  }
+};
   return (
     <Modal
       animationType="slide"
@@ -602,7 +621,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
           </ThemedView>
         </ThemedView>
       : (currentScenario === AuthScenario.NEED_ACC_TYPE && currentScreen === ScreensScenario.ACC_TYPE) ?
-          <ThemedView lightColor={'#EBEDF0'} style={styles.modalContent}>
+          <ThemedView lightColor={'#EBEDF0'} darkColor='#040508' style={styles.modalContent}>
             <ModalHeader
               title='Регистрация'
               showBackButton={true}
@@ -631,38 +650,66 @@ export const LoginModal: React.FC<LoginModalProps> = ({
               <View style={stylesAccType.accountTypeContainer}>
                 
                 {/* Карточка "Частное лицо" */}
-                <TouchableOpacity 
-                  style={[
-                    stylesAccType.accountTypeCard,
-                    selectedAccountType === 'personal' ? stylesAccType.accountTypeCardSelected : stylesAccType.accountTypeCardDefault
-                  ]}
-                  onPress={() => setSelectedAccountType('personal')}
-                >
-                  {/* Иконка для частного лица (замени на свою SVG иконку) */}
-                  <View style={stylesAccType.accountTypeIcon}>
-                    <ProfileIcon/>
-                  </View>
-                  <ThemedText style={stylesAccType.accountTypeText}>
-                    Частное лицо
-                  </ThemedText>
-                </TouchableOpacity>
-                
-                {/* Карточка "Бизнес-аккаунт" */}
-                <TouchableOpacity 
-                  style={[
-                    stylesAccType.accountTypeCard,
-                    selectedAccountType === 'business' ? stylesAccType.accountTypeCardSelected : stylesAccType.accountTypeCardDefault
-                  ]}
-                  onPress={() => setSelectedAccountType('business')}
-                >
-                  {/* Иконка для бизнеса (замени на свою SVG иконку) */}
-                  <View style={stylesAccType.accountTypeIcon}>
-                    <BriefcaseIcon/>
-                  </View>
-                  <ThemedText style={stylesAccType.accountTypeText}>
-                    Бизнес-аккаунт
-                  </ThemedText>
-                </TouchableOpacity>
+              <TouchableOpacity 
+                style={[
+                  stylesAccType.accountTypeCard,
+                  getCardStyle(selectedAccountType === 'personal')
+                ]}
+                onPress={() => setSelectedAccountType('personal')}
+              >
+                <View style={stylesAccType.accountTypeIcon}>
+                  <ProfileIcon 
+                    theme={currentTheme}
+                    isSelected={selectedAccountType === 'personal'}
+                    fill={currentTheme === 'dark' ? 
+                      (selectedAccountType === 'personal' ? '#4C94FF' : '#FBFCFF80')
+                      :
+                      (selectedAccountType === 'personal' ? '#1B1B1C' : '#1B1B1C')
+                    }
+                  />
+                </View>
+                <ThemedText darkColor={
+                      selectedAccountType === 'personal' ? '#4C94FF' : '#FBFCFF80'
+                } 
+                lightColor={
+                    selectedAccountType === 'personal' ? '#203686' : '#1B1B1C'
+                } style={[
+                  stylesAccType.accountTypeText,
+                ]}>
+                  Частное лицо
+                </ThemedText>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={[
+                  stylesAccType.accountTypeCard,
+                  getCardStyle(selectedAccountType === 'business')
+                ]}
+                onPress={() => setSelectedAccountType('business')}
+              >
+                <View style={stylesAccType.accountTypeIcon}>
+                  <BriefcaseIcon 
+                    theme={currentTheme}
+                    isSelected={selectedAccountType === 'business'}
+                    fill={currentTheme === 'dark' ? 
+                      (selectedAccountType === 'business' ? '#4C94FF' : '#FBFCFF80')
+                      :
+                      (selectedAccountType === 'business' ? '#1B1B1C' : '#1B1B1C')
+                    }
+
+                  />
+                </View>
+                <ThemedText darkColor={
+                      selectedAccountType === 'business' ? '#4C94FF' : '#FBFCFF80'
+                } 
+                lightColor={
+                    selectedAccountType === 'business' ? '#203686' : '#1B1B1C'
+                } style={[
+                  stylesAccType.accountTypeText,
+                ]}>
+                  Бизнес-аккаунт
+                </ThemedText>
+              </TouchableOpacity>
                 
               </View>
               
@@ -690,7 +737,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             </ThemedView>
           </ThemedView>
       : (currentScenario === AuthScenario.REG_NEED || currentScreen === ScreensScenario.USER_REG) ?
-      <ThemedView lightColor={'#EBEDF0'} style={styles.modalContent}>
+      <ThemedView lightColor={'#EBEDF0'} darkColor='#040508' style={styles.modalContent}>
         <ModalHeader
           title='Регистрация'
           showBackButton={true}
@@ -768,9 +815,14 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       </ThemedView>
       : currentScreen === ScreensScenario.COMPANY_SEARCH ?
 
-      <ThemedView lightColor={'#EBEDF0'} style={styles.modalContent}>
+      <ThemedView lightColor={'#EBEDF0'} darkColor='#040508' style={styles.modalContent}>
         <ModalHeader
-          title='Привязка к компании'
+          title= {
+            ( predUserData?.needUserType === false && predUserData?.needInformationForType === 'Legal') 
+              ? 'Привязка к компании' 
+              : 'Регистрация'
+            }
+          // 'Привязка к компании'
           showBackButton={true}
           onBackPress={() => {
               setCurrentScenarion(AuthScenario.NEED_ACC_TYPE)
@@ -783,9 +835,12 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             {/* <ThemedText style={stylesAccType.accountTypeTitle}>
               Данные вашей компании
             </ThemedText> */}
+            { ( predUserData?.needUserType === false && predUserData?.needInformationForType === 'Legal')  ?
             <ThemedText style={stylesSearchComp.textUp}>
               Ваш номер телефона найден, но не привязан к компании. Пожалуйста, введите ИНН вашей организации.
             </ThemedText>
+            : <></>
+            }
             <View style={stylesRegUser.inputConteiner}>
               <AnimatedTextInput
                 placeholder="ИНН"
@@ -829,9 +884,13 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         </ThemedView>
       </ThemedView>
       : currentScreen === ScreensScenario.COMPANY_PICK ?
-      <ThemedView lightColor={'#EBEDF0'} style={styles.modalContent}>
+      <ThemedView lightColor={'#EBEDF0'} darkColor='#040508' style={styles.modalContent}>
         <ModalHeader
-          title='Привязка к компании'
+          title= {
+            ( predUserData?.needUserType === false && predUserData?.needInformationForType === 'Legal') 
+              ? 'Привязка к компании' 
+              : 'Регистрация'
+            }
           showBackButton={true}
           onBackPress={() => {
               setCurrentScreen(ScreensScenario.COMPANY_SEARCH)
@@ -957,7 +1016,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
           <ThemedText style={stylesAccType.accountTypeTitle}>
             Если данные не верны,{'\n'}свяжитесь с менеджером
           </ThemedText>
-          <ThemedView style={stylesManager.container} lightColor='#F2F4F7' darkColor='#F2F4F7'>
+              <ThemedView style={stylesManager.container} lightColor='#F2F4F7' darkColor='#202022'>
               <ThemedText 
                 style={stylesManager.yourManager}
                 lightColor='#80818B'
@@ -982,7 +1041,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                   <ThemedText 
                     style={stylesManager.managerName}
                     lightColor='#1B1B1C'
-                    darkColor='#1B1B1C'
+                    darkColor='#FBFCFF'
                     numberOfLines={2}
                   >
                     Иванова Мария Сергеевна
@@ -991,17 +1050,19 @@ export const LoginModal: React.FC<LoginModalProps> = ({
               </View>
               
               <View style={stylesManager.actionsContainer}>
+                <ThemedView style={stylesManager.bigButton} lightColor='#FFFFFF' darkColor='#2E2E32'>
                 <TouchableOpacity 
-                  style={stylesManager.actionButton}
+                //
+                  style={[ stylesManager.actionButton]}
                   onPress={() => console.log('Написать сообщение')}
                   activeOpacity={0.7}
                 >
                   <View style={stylesManager.buttonContent}>
-                    <MessageIcon width={24} height={24} />
+                    <MessageIcon fill={currentTheme === 'dark' ? '#FBFCFF' : '#203686'} width={24} height={24} />
                     <ThemedText 
                       style={stylesManager.buttonText}
                       lightColor='#203686'
-                      darkColor='#203686'
+                      darkColor='#FBFCFF'
                     >
                       Написать
                     </ThemedText>
@@ -1009,21 +1070,22 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                 </TouchableOpacity>
                 
                 <TouchableOpacity 
-                  style={stylesManager.actionButton}
+                  style={[ stylesManager.actionButton]}
                   onPress={() => console.log('Позвонить')}
                   activeOpacity={0.7}
                 >
                   <View style={stylesManager.buttonContent}>
-                    <PhoneIcon width={24} height={24} />
+                    <PhoneIcon fill={currentTheme === 'dark' ? '#FBFCFF' : '#203686'} width={24} height={24} />
                     <ThemedText 
                       style={stylesManager.buttonText}
                       lightColor='#203686'
-                      darkColor='#203686'
+                      darkColor='#FBFCFF'
                     >
                       Позвонить
                     </ThemedText>
                   </View>
                 </TouchableOpacity>
+                </ThemedView>
               </View>
           </ThemedView>
         </ThemedView>
@@ -1032,9 +1094,13 @@ export const LoginModal: React.FC<LoginModalProps> = ({
           }
       </ThemedView>
       : currentScreen === ScreensScenario.COMPANY_REG ?
-      <ThemedView lightColor={'#EBEDF0'} style={styles.modalContent}>
+      <ThemedView lightColor={'#EBEDF0'} darkColor='#040508' style={styles.modalContent}>
         <ModalHeader
-          title='Привязка к компании'
+          title= {
+            ( predUserData?.needUserType === false && predUserData?.needInformationForType === 'Legal') 
+              ? 'Привязка к компании' 
+              : 'Регистрация'
+            }
           showBackButton={true}
           onBackPress={() => {
               setCurrentScreen(ScreensScenario.COMPANY_SEARCH)
@@ -1162,10 +1228,10 @@ export const LoginModal: React.FC<LoginModalProps> = ({
               </View>
               
               <View style={stylesManager.actionsContainer}>
-                <ThemedView lightColor='#FFFFFF' darkColor='#2E2E32'>
+                <ThemedView style={stylesManager.bigButton} lightColor='#FFFFFF' darkColor='#2E2E32'>
                 <TouchableOpacity 
                 //
-                  style={[{backgroundColor: managerButtonsColor}, stylesManager.actionButton]}
+                  style={[ stylesManager.actionButton]}
                   onPress={() => console.log('Написать сообщение')}
                   activeOpacity={0.7}
                 >
@@ -1182,7 +1248,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                 </TouchableOpacity>
                 
                 <TouchableOpacity 
-                  style={[{backgroundColor: managerButtonsColor}, stylesManager.actionButton]}
+                  style={[ stylesManager.actionButton]}
                   onPress={() => console.log('Позвонить')}
                   activeOpacity={0.7}
                 >
@@ -1464,6 +1530,17 @@ const stylesAccType = StyleSheet.create({
     color: '#203686'
 
   },
+  accountTypeCardDefaultDark: {
+    backgroundColor: '#151516',
+    borderWidth: 1,
+    borderColor: '#252527',
+  },
+  accountTypeCardSelectedDark: {
+    backgroundColor: 'rgba(56, 129, 238, 0.1)', // прозрачный синий
+    borderWidth: 1,
+    borderColor: '#3881EE',
+  },
+  
   accountTypeIcon: {
     marginBottom: 8,
   },
@@ -1630,6 +1707,14 @@ const stylesManager = StyleSheet.create({
     alignSelf: 'center',
     marginTop: 16,
   },
+  bigButton:{
+    display:'flex',
+    flexDirection:'row',
+    borderRadius: 16,
+    paddingHorizontal: 32,
+    gap: 28
+  },
+
   yourManager: {
     fontFamily: 'Montserrat',
     fontWeight: '600',
@@ -1675,9 +1760,9 @@ const stylesManager = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingTop: 8,
-    paddingRight: 32,
+    // paddingRight: 12,
     paddingBottom: 8,
-    paddingLeft: 10,
+    // paddingLeft: 12,
     // borderWidth: 1,
     // borderColor: '#F0F3F7',
     // shadowColor: '#000',

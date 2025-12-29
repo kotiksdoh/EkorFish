@@ -1,13 +1,13 @@
 import { CalendarFilledIcon } from '@/assets/icons/icons';
+import { ThemedView } from '@/components/themed-view'; // Добавьте этот импорт
 import { useThemeColor } from '@/hooks/use-theme-color';
 import React, { useRef, useState } from 'react';
 import {
-    Animated,
-    StyleSheet,
-    TextInput,
-    TouchableOpacity,
-    TouchableWithoutFeedback,
-    View,
+  Animated,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  TouchableWithoutFeedback
 } from 'react-native';
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 
@@ -107,7 +107,11 @@ export const DatePickerWithIcon: React.FC<DatePickerWithIconProps> = ({
 
   return (
     <TouchableWithoutFeedback onPress={showDatePicker}>
-      <View style={[styles.container, style]}>
+      <ThemedView 
+        style={[styles.container, style]}
+        lightColor='#03051E08'
+        darkColor='#ECEFFA0D'
+      >
         <Animated.Text style={[styles.placeholder, animatedStyle]}>
           {placeholder}
         </Animated.Text>
@@ -155,7 +159,7 @@ export const DatePickerWithIcon: React.FC<DatePickerWithIconProps> = ({
           confirmTextIOS="Выбрать"
         //   headerTextIOS="Выберите дату"
         />
-      </View>
+      </ThemedView>
     </TouchableWithoutFeedback>
   );
 };
@@ -164,7 +168,6 @@ const styles = StyleSheet.create({
   container: {
     height: 50,
     width: '100%',
-    backgroundColor: '#03051E08',
     borderRadius: 12,
     borderWidth: 0.1,
     borderColor: 'transparent',
@@ -187,6 +190,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     includeFontPadding: false,
     fontWeight: '500',
+    pointerEvents: 'none', // Добавьте эту строку
   },
   iconContainer: {
     position: 'absolute',

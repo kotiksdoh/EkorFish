@@ -64,7 +64,8 @@ export const CatalogCard: React.FC<CatalogCardProps> = ({
         {img && !imageError && (
           <View style={styles.imageContainer}>
             <Image
-              source={{ uri: img }}
+              // source={{ uri: img }}
+              source={img}
               style={[
                 styles.image,
                 isImageLoading && styles.imageHidden

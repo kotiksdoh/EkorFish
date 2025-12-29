@@ -2,7 +2,9 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 
 // export const baseUrl = `http://192.168.222.229:9191`;
-export const baseUrl = `http://192.168.222.239:13333`;
+// export const baseUrl = `http://192.168.222.239:13333`;
+export const baseUrl = `http://46.29.13.61:13333`;
+
 // 192.168.222.239:13333/swagger/index.html
 
   export const ax = axios.create();

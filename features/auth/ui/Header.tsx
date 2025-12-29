@@ -49,7 +49,7 @@ export const ModalHeader: React.FC<ModalHeaderProps> = ({ title, onBackPress, sh
     },
     backButtonText: {
       fontSize: 32,
-      color: '#1B1B1C',
+      // color: '#1B1B1C',
       fontWeight: 300
     },
     title: {

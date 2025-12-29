@@ -14,6 +14,7 @@ interface AuthState {
   me: any
   sliders: any[]
   categories: any[]
+  predUserData: any
 }
 
 const initialState: AuthState = {
@@ -24,7 +25,8 @@ const initialState: AuthState = {
   company: null,
   me:null,
   sliders: [],
-  categories: []
+  categories: [],
+  predUserData: null
 };
 
 export const getCode = createAsyncThunk(
@@ -266,8 +268,10 @@ const authSlice = createSlice({
       state.isLoading = false;
       console.log('action', action.payload)
       debugger
+
       if (action.payload?.data?.data?.tokens?.accessToken && action.payload.data?.data?.tokens?.refreshToken) {
         // Используем async/await
+        state.predUserData = action.payload?.data?.data
         debugger
         (async () => {
           try {

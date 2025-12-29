@@ -324,7 +324,7 @@ export const CalendarFilledIcon = ({
   width = 24, 
   height = 24, 
   stroke = '#1B1B1C',
-  fill = '#F5F5F5', // светлый фон для контраста
+  fill = 'none', // светлый фон для контраста
   strokeWidth = 1.5,
   ...props 
 }) => (

@@ -35,7 +35,7 @@ const AnimatedTextInput: React.FC<AnimatedTextInputProps> = ({
   darkColor,
   ...props
 }) => {
-    const color = useThemeColor({ light: lightColor, dark: darkColor }, 'text');
+  const color = useThemeColor({ light: lightColor, dark: darkColor }, 'text');
   const [isFocused, setIsFocused] = useState(false);
   const animatedValue = useState(new Animated.Value(value ? 1 : 0))[0];
   const inputRef = useRef<TextInput>(null);
@@ -94,7 +94,11 @@ const AnimatedTextInput: React.FC<AnimatedTextInputProps> = ({
 
   return (
     <TouchableWithoutFeedback onPress={() => inputRef.current?.focus()}>
-      <ThemedView lightColor='#03051E08' darkColor='#ECEFFA0D' style={[styles.container, style]}>
+      <ThemedView 
+        style={[styles.container, style]}
+        lightColor='#03051E08'
+        darkColor='#ECEFFA0D'
+      >
         <Animated.Text style={[styles.placeholder, animatedStyle]}>
           {placeholder}
         </Animated.Text>
@@ -102,14 +106,14 @@ const AnimatedTextInput: React.FC<AnimatedTextInputProps> = ({
           ref={inputRef}
           style={[
             styles.input,
-            Platform.OS === 'android' && styles.inputAndroid, // Специальные стили для Android
+            Platform.OS === 'android' && styles.inputAndroid,
             inputStyle,
             { 
               color: color
             }
           ]}
           placeholder=""
-          placeholderTextColor="transparent" // Делаем плейсхолдер прозрачным
+          placeholderTextColor="transparent"
           keyboardType={keyboardType as any}
           value={value}
           onChangeText={handleChangeText}
@@ -128,7 +132,6 @@ const styles = StyleSheet.create({
   container: {
     height: 50,
     width: '100%',
-    backgroundColor: '#03051E08',
     borderRadius: 12,
     borderWidth: 0.1,
     borderColor: 'transparent',
@@ -144,21 +147,21 @@ const styles = StyleSheet.create({
     color: '#1B1B1C',
     backgroundColor: 'transparent',
     fontWeight: '500',
-    paddingTop: 20, // Для iOS
+    paddingTop: 20,
     paddingBottom: 10,
   },
   inputAndroid: {
-    paddingTop: Platform.OS === 'android' ? 25 : 20, // Больше paddingTop для Android
+    paddingTop: Platform.OS === 'android' ? 25 : 20,
     paddingBottom: Platform.OS === 'android' ? 5 : 10,
-    includeFontPadding: false, // Важно для Android - убираем стандартные отступы шрифта
-    textAlignVertical: 'center', // Центрируем текст по вертикали
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   placeholder: {
     position: 'absolute',
     zIndex: 1,
     backgroundColor: 'transparent',
     includeFontPadding: false,
-    pointerEvents: 'none', // Чтобы не перехватывал тапы
+    pointerEvents: 'none',
   },
 });
 

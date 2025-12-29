@@ -43,7 +43,17 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
         activeOpacity={0.7}
       >
         <PersonCircleIcon/>
-        <ThemedText lightColor='#FBFCFF' darkColor='#FBFCFF'>{me?.companies.length === 0 ? me?.individualProfile?.firstName : me?.individualProfile?.firstName}</ThemedText>
+        <ThemedText 
+          lightColor='#FBFCFF' 
+          darkColor='#FBFCFF'
+          numberOfLines={1}
+          ellipsizeMode="tail"
+          style={{ maxWidth: 150 }} // Примерная ширина для 24 символов
+        >
+          {me?.companies.length === 0 ? 
+          `${me?.individualProfile?.firstName} ${me?.individualProfile?.lastName} ${me?.individualProfile?.patronymic}`
+           : me?.companies[0]?.name}
+        </ThemedText>
       </TouchableOpacity>
       <View style={styles.headInfoBonus}>
         <LemonIcon/>
