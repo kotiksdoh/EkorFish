@@ -19,7 +19,8 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  View
+  View,
+  useColorScheme
 } from 'react-native';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import manager from '../../../../assets/icons/png/manager.png';
@@ -262,7 +263,6 @@ export const LoginModal: React.FC<LoginModalProps> = ({
               // resetModal()
               // handleClose()
               setCurrentScenarion(AuthScenario.PHIS_USER)
-
               setCurrentScreen(ScreensScenario.PHIS_USER)
               console.log(res)
             }
@@ -429,7 +429,11 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       }
     )
   }
-
+  const systemTheme = useColorScheme(); 
+  const currentTheme = systemTheme || 'light' 
+  const codeInputBackgroundColor = currentTheme === 'dark' ? '#ECEFFA0D' : '#F2F4F7';
+  const codeInputColor = currentTheme === 'dark' ? '#FBFCFF' : '#1B1B1C';
+  const managerButtonsColor = currentTheme === 'dark' ? '#2E2E32' : '#FFFFFF';
   return (
     <Modal
       animationType="slide"
@@ -453,7 +457,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             {/* Логотип */}
             <View style={styles.logoContainer}>
               <View style={styles.logoContainerInner}>
-              <LogoIcon />
+              <LogoIcon theme={currentTheme}/>
               </View>
               <ThemedText style={styles.logoText} lightColor={'#80818B'} darkColor='#70798E'>
                 Поставки продуктов{'\n'}для HoReCa
@@ -509,9 +513,9 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                     </View>
                     <ThemedText style={styles.checkboxText} lightColor={'#80818B'} darkColor='#FBFCFF80'>
                       Я принимаю{' '}
-                      <ThemedText darkColor='#FBFCFF80' style={styles.checkboxLink}>Политику конфиденциальности</ThemedText>
+                      <ThemedText lightColor='#203686' darkColor='#4C94FF' style={styles.checkboxLink}>Политику конфиденциальности</ThemedText>
                       {'\n'}и{' '}
-                      <ThemedText style={styles.checkboxLink}>Согласие на обработку персональных данных</ThemedText>
+                      <ThemedText lightColor='#203686' darkColor='#4C94FF' style={styles.checkboxLink}>Согласие на обработку персональных данных</ThemedText>
                     </ThemedText>
                   </View>
 
@@ -536,7 +540,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                   </ThemedText>
                   
                   {/* Описание */}
-                  <ThemedText style={styles.modalDescriptionAfterPhone} lightColor={'#80818B'}>
+                  <ThemedText style={styles.modalDescriptionAfterPhone} lightColor={'#80818B'} darkColor='#FBFCFF80'>
                     Мы отправили 4-x значный код{'\n'}на номер +{phoneNumber}.
                   </ThemedText>
 
@@ -552,6 +556,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                         }}
                         style={[
                           styles.codeInput,
+                          { backgroundColor: codeInputBackgroundColor, color: codeInputColor },
                           error && styles.codeInputError,
                           loading && styles.codeInputDisabled
                         ]}
@@ -571,21 +576,21 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                     ))}
                   </View>
                   {/* Сообщение об ошибке */}
-                  {error && (
+                  {/* {error && (
                     <ThemedText style={styles.errorText} lightColor={'#FF3B30'}>
                       {error}
                     </ThemedText>
-                  )}
+                  )} */}
 
                   {/* Таймер и кнопка повторной отправки */}
                   <View style={styles.resendContainer}>
                     {isTimerActive ? (
-                      <ThemedText style={styles.timerText} lightColor={'#80818B'}>
-                        Отправить код еще раз через 00:{timer.toString().padStart(2, '0')}
+                      <ThemedText style={styles.timerText} lightColor={'#80818B'} darkColor={'#4C94FF'}>
+                        Отправить код еще раз • 00:{timer.toString().padStart(2, '0')}
                       </ThemedText>
                     ) : (
                       <TouchableOpacity  disabled={loading} onPress={handleResendCode} activeOpacity={0.7}>
-                        <ThemedText style={styles.resendText} lightColor={'#203686'}>
+                        <ThemedText style={styles.resendText} lightColor={'#203686'} darkColor='#4C94FF'>
                           Отправить код еще раз
                         </ThemedText>
                       </TouchableOpacity>
@@ -1123,7 +1128,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                 Если вы планировали войти как юридическое лицо или у вас есть бизнес-аккаунт, пожалуйста, свяжитесь с вашим менеджером для внесения исправлений.
               </ThemedText>
 
-              <ThemedView style={stylesManager.container} lightColor='#F2F4F7' darkColor='#F2F4F7'>
+              <ThemedView style={stylesManager.container} lightColor='#F2F4F7' darkColor='#202022'>
               <ThemedText 
                 style={stylesManager.yourManager}
                 lightColor='#80818B'
@@ -1148,7 +1153,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                   <ThemedText 
                     style={stylesManager.managerName}
                     lightColor='#1B1B1C'
-                    darkColor='#1B1B1C'
+                    darkColor='#FBFCFF'
                     numberOfLines={2}
                   >
                     Иванова Мария Сергеевна
@@ -1157,17 +1162,19 @@ export const LoginModal: React.FC<LoginModalProps> = ({
               </View>
               
               <View style={stylesManager.actionsContainer}>
+                <ThemedView lightColor='#FFFFFF' darkColor='#2E2E32'>
                 <TouchableOpacity 
-                  style={stylesManager.actionButton}
+                //
+                  style={[{backgroundColor: managerButtonsColor}, stylesManager.actionButton]}
                   onPress={() => console.log('Написать сообщение')}
                   activeOpacity={0.7}
                 >
                   <View style={stylesManager.buttonContent}>
-                    <MessageIcon width={24} height={24} />
+                    <MessageIcon fill={currentTheme === 'dark' ? '#FBFCFF' : '#203686'} width={24} height={24} />
                     <ThemedText 
                       style={stylesManager.buttonText}
                       lightColor='#203686'
-                      darkColor='#203686'
+                      darkColor='#FBFCFF'
                     >
                       Написать
                     </ThemedText>
@@ -1175,21 +1182,22 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                 </TouchableOpacity>
                 
                 <TouchableOpacity 
-                  style={stylesManager.actionButton}
+                  style={[{backgroundColor: managerButtonsColor}, stylesManager.actionButton]}
                   onPress={() => console.log('Позвонить')}
                   activeOpacity={0.7}
                 >
                   <View style={stylesManager.buttonContent}>
-                    <PhoneIcon width={24} height={24} />
+                    <PhoneIcon fill={currentTheme === 'dark' ? '#FBFCFF' : '#203686'} width={24} height={24} />
                     <ThemedText 
                       style={stylesManager.buttonText}
                       lightColor='#203686'
-                      darkColor='#203686'
+                      darkColor='#FBFCFF'
                     >
                       Позвонить
                     </ThemedText>
                   </View>
                 </TouchableOpacity>
+                </ThemedView>
               </View>
           </ThemedView>
             </View>
@@ -1314,21 +1322,22 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 6,
     borderWidth: 0,
-    backgroundColor: '#F2F4F7'
+    // backgroundColor: '#F2F4F7'
   },
   checkboxText: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 13,
     lineHeight: 20,
   },
   checkboxLink: {
     textDecorationLine: 'none',
     fontWeight: '500',
-    color: '#203686'
+    // color: '#203686',
+    fontSize: 13,
   },
   modalLoginButton: {
     height: 56,
-    backgroundColor: '#203686',
+    // backgroundColor: '#203686',
     borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
@@ -1362,7 +1371,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     fontSize: 24,
     fontWeight: '600',
-    color: '#1B1B1C',
+    // color: '#1B1B1C',
     textAlign: 'center',
   },
   codeInputError: {
@@ -1656,22 +1665,22 @@ const stylesManager = StyleSheet.create({
   actionsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 8,
+    // gap: 8,
   },
   actionButton: {
-    flex: 1,
+    // flex: 1,
     height: 48,
     borderRadius: 16,
-    backgroundColor: '#FFFFFF',
+    // backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
     paddingTop: 8,
     paddingRight: 32,
     paddingBottom: 8,
-    paddingLeft: 32,
-    borderWidth: 1,
-    borderColor: '#F0F3F7',
-    shadowColor: '#000',
+    paddingLeft: 10,
+    // borderWidth: 1,
+    // borderColor: '#F0F3F7',
+    // shadowColor: '#000',
     shadowOffset: {
       width: 0,
       height: 2,

@@ -1,5 +1,6 @@
 import { ThemedView } from '@/components/themed-view';
 import SearchInput from '@/features/auth/ui/components/SearchInput';
+import { useAppSelector } from '@/store/hooks';
 import React from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
 import { AutoSlider, SlideItem } from '../components/AutoSlider';
@@ -38,6 +39,7 @@ const SLIDER_ITEMS: SlideItem[] = [
 ];
 
 export const HomeScreen = ({ handleLoginPress }: { handleLoginPress: () => void }) => {
+const sliderItems = useAppSelector((state) => state.auth.sliders);
   const handleButtonPress = () => {
     console.log('Button pressed!');
   };
@@ -68,7 +70,7 @@ export const HomeScreen = ({ handleLoginPress }: { handleLoginPress: () => void 
         {/* Слайдер */}
         <ThemedView lightColor={'#FFFFFF'} style={styles.container}>
           <AutoSlider
-            items={SLIDER_ITEMS}
+            items={sliderItems}
             autoPlayInterval={4000}
             showIndicators={true}
           />

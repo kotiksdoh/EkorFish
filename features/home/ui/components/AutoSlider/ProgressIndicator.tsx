@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Animated, Easing, StyleSheet } from 'react-native';
+import { View, Animated, Easing, StyleSheet, useColorScheme } from 'react-native';
 
 interface ProgressIndicatorProps {
   index: number;
@@ -40,7 +40,9 @@ export const ProgressIndicator: React.FC<ProgressIndicatorProps> = ({
       progressWidth.setValue(6);
     }
   }, [isActive, isPlaying, autoPlayInterval, progressWidth]);
-
+  const systemTheme = useColorScheme(); 
+  const currentTheme = systemTheme || 'light' 
+  const codeBackgroundColor = currentTheme === 'dark' ? '#202022' : '#F2F4F7';
   // Только активный слайд показывает анимирующуюся линию
   if (isActive) {
     return (
@@ -51,6 +53,7 @@ export const ProgressIndicator: React.FC<ProgressIndicatorProps> = ({
               styles.progress,
               {
                 width: progressWidth,
+                backgroundColor:codeBackgroundColor
               }
             ]} 
           />
@@ -76,7 +79,7 @@ const styles = StyleSheet.create({
   },
   progress: {
     height: '100%',
-    backgroundColor: '#FFFFFF', // bg-white
+    // backgroundColor: '#FFFFFF', // bg-white
     borderRadius: 9999,
   },
   dot: {

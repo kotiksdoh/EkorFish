@@ -1,8 +1,7 @@
-import { useEffect, useState } from 'react';
-import { Platform } from 'react-native';
-import * as Font from 'expo-font';
 import * as SplashScreenExpo from 'expo-splash-screen';
+import { useEffect, useState } from 'react';
 // import { loadAppData } from '@/store/slices/appSlice';
+import { getCategoryItems, getSliderItems } from '@/features/auth/authSlice';
 import { store } from '@/store/store';
 
 // Предотвращаем автоматическое скрытие сплеш-скрина
@@ -19,8 +18,8 @@ const loadAppResources = async () => {
     // 1. Загружаем шрифты
 
     // 2. Инициализируем данные приложения
-    // await store.dispatch(loadAppData()).unwrap();
-
+    await store.dispatch(getSliderItems('')).unwrap();
+    await store.dispatch(getCategoryItems('')).unwrap();
     // 3. Другие инициализации (если нужны)
     // - Кэширование изображений
     // - Загрузка конфигурации

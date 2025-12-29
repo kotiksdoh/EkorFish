@@ -2,7 +2,7 @@ import { LemonIcon, PersonCircleIcon } from '@/assets/icons/icons.js';
 import { ThemedText } from '@/components/themed-text';
 import { useAppSelector } from '@/store/hooks';
 import React from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View, useColorScheme } from 'react-native';
 interface HomeHeaderProps {
   title?: string;
   transparent?: boolean;
@@ -16,6 +16,9 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
 }) => {
   const me = useAppSelector((state) => state.auth.me);
   console.log('mee',me)
+  const systemTheme = useColorScheme(); 
+  const currentTheme = systemTheme || 'light' 
+  const codeBackgroundColor = currentTheme === 'dark' ? '#202022' : '#F2F4F7';
   return (
     <View style={[
       styles.header,
@@ -25,11 +28,11 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
       <View style={styles.headerContent}>
         <View></View>
         <TouchableOpacity
-          style={styles.loginButton}
+          style={[{  backgroundColor: codeBackgroundColor }, styles.loginButton]}
           onPress={onLoginPress}
           activeOpacity={0.7}
         >
-          <ThemedText style={styles.loginButtonText}>Войти</ThemedText>
+          <ThemedText darkColor='#FBFCFF' lightColor='#1B1B1C' style={styles.loginButtonText}>Войти</ThemedText>
         </TouchableOpacity>
       </View>
       :
@@ -80,7 +83,7 @@ const styles = StyleSheet.create({
   loginButton: {
     paddingHorizontal: 16,
     paddingVertical: 3,
-    backgroundColor: '#FFFFFF',
+    // backgroundColor: '#FFFFFF',
     borderRadius: 8,
     borderWidth: 1,
     borderColor: 'rgba(32, 54, 134, 0.2)',
@@ -93,7 +96,7 @@ const styles = StyleSheet.create({
   loginButtonText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#1B1B1C',
+    // color: '#1B1B1C',
   },
   headInfo:{
     gap:8,

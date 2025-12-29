@@ -42,10 +42,19 @@ export const PrimaryButton: React.FC<PrimaryButtonProps> = ({
   
   // Определяем цвет для primary варианта в зависимости от темы
   const primaryColor = isDarkMode ? '#3881EE' : '#203686';
-  const textColor = variant === 'primary' ? '#FFFFFF' : primaryColor;
-  const activityIndicatorColor = variant === 'primary' ? '#FFFFFF' : primaryColor;
   
-  // Обновляем variantStyles с динамическим цветом для primary
+  // Определяем стили для третьей кнопки в зависимости от темы
+  const thirdButtonStyles = isDarkMode ? {
+    backgroundColor: '#202022',
+    borderColor: 'transparent',
+    textColor: '#FBFCFF'
+  } : {
+    backgroundColor: '#F5F5F5',
+    borderColor: 'transparent',
+    textColor: '#000000' // или '#1B1B1C' если хотите темно-серый
+  };
+  
+  // Обновляем variantStyles с учетом темы для third
   const variantStyles: Record<ButtonVariant, any> = {
     primary: {
       backgroundColor: primaryColor,
@@ -65,10 +74,31 @@ export const PrimaryButton: React.FC<PrimaryButtonProps> = ({
       borderColor: 'transparent',
     },
     third: {
-      backgroundColor: '#F5F5F5',
-      borderColor: 'transparent',
+      backgroundColor: thirdButtonStyles.backgroundColor,
+      borderColor: thirdButtonStyles.borderColor,
     },
   };
+
+  // Определяем цвет текста для каждого варианта
+  const getTextColor = () => {
+    switch (variant) {
+      case 'primary':
+        return '#FFFFFF';
+      case 'secondary':
+        return primaryColor;
+      case 'outline':
+        return primaryColor;
+      case 'ghost':
+        return primaryColor;
+      case 'third':
+        return thirdButtonStyles.textColor;
+      default:
+        return primaryColor;
+    }
+  };
+
+  const textColor = getTextColor();
+  const activityIndicatorColor = variant === 'primary' ? '#FFFFFF' : primaryColor;
 
   const sizeStyles: Record<ButtonSize, any> = {
     sm: {
@@ -166,12 +196,16 @@ export const PrimaryButtonWithTailwind: React.FC<PrimaryButtonProps> = ({
   // Динамический класс для primary цвета
   const primaryColorClass = isDarkMode ? 'bg-[#3881EE] border-[#3881EE]' : 'bg-[#203686] border-[#203686]';
   
+  // Определяем классы для third кнопки
+  const thirdButtonClass = isDarkMode ? 'bg-[#202022] border-transparent' : 'bg-[#F5F5F5] border-transparent';
+  const thirdTextColorClass = isDarkMode ? 'text-[#FBFCFF]' : 'text-black'; // или 'text-[#1B1B1C]'
+  
   const variantClasses: Record<ButtonVariant, string> = {
     primary: primaryColorClass,
     secondary: 'bg-secondary border-secondary',
     outline: `bg-transparent border ${isDarkMode ? 'border-[#3881EE]' : 'border-[#203686]'}`,
     ghost: 'bg-transparent border-transparent',
-    third: 'bg-third border-transparent',
+    third: thirdButtonClass,
   };
 
   const sizeClasses: Record<ButtonSize, string> = {
@@ -191,7 +225,7 @@ export const PrimaryButtonWithTailwind: React.FC<PrimaryButtonProps> = ({
     secondary: isDarkMode ? 'text-[#3881EE]' : 'text-[#203686]',
     outline: isDarkMode ? 'text-[#3881EE]' : 'text-[#203686]',
     ghost: isDarkMode ? 'text-[#3881EE]' : 'text-[#203686]',
-    third: 'text-blackAndBlack'
+    third: thirdTextColorClass,
   };
 
   const baseClasses = cn(

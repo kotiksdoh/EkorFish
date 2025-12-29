@@ -2,7 +2,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
 import api, { axiosErrorHandler } from '../shared/services/api';
-import { axdef } from '../shared/services/axios';
+import { axdef, baseUrl } from '../shared/services/axios';
 import { getInlineParams } from '../shared/services/utils';
 
 interface AuthState {
@@ -12,6 +12,8 @@ interface AuthState {
   phoneNumber: string | null;
   company: any;
   me: any
+  sliders: any[]
+  categories: any[]
 }
 
 const initialState: AuthState = {
@@ -20,8 +22,9 @@ const initialState: AuthState = {
   isLoading: false,
   phoneNumber: null,
   company: null,
-  me:null
-
+  me:null,
+  sliders: [],
+  categories: []
 };
 
 export const getCode = createAsyncThunk(
@@ -103,6 +106,31 @@ export const getMyInfo = createAsyncThunk(
   }
 );
 
+export const getSliderItems = createAsyncThunk(
+  "user/getSliderItems",
+  async (payload: any, { rejectWithValue }) => {
+    try {
+      const data = await axdef.get("/api/AdditionalInformation/banners");
+      return data;
+    } catch (error) {
+      console.log(error);
+      return rejectWithValue(error);
+    }
+  }
+);
+
+export const getCategoryItems = createAsyncThunk(
+  "user/getCategoryItems",
+  async (payload: any, { rejectWithValue }) => {
+    try {
+      const data = await axdef.get("/api/Product/categories");
+      return data;
+    } catch (error) {
+      console.log(error);
+      return rejectWithValue(error);
+    }
+  }
+);
 
 const authSlice = createSlice({
   name: 'auth',
@@ -136,6 +164,44 @@ const authSlice = createSlice({
     builder.addCase(searchCompany.rejected, (state, action) => {
       state.isLoading = false;
       console.log('action.payload.reject', JSON.stringify(action?.payload))
+      axiosErrorHandler(action?.payload);
+
+    });
+
+    builder.addCase(getSliderItems.pending, (state) => {
+      state.isLoading = true;
+    });
+    builder.addCase(getSliderItems.fulfilled, (state, action) => {
+      state.isLoading = false;
+      console.log('payloadComp', action.payload.data.data);
+      const stringArray = action.payload.data.data; 
+      state.sliders = stringArray.map((imgUrl: any, index: any) => ({
+        id: index + 1, 
+        imageUrl: `${baseUrl}/${imgUrl}`   
+      }));
+      console.log('sliders', state.sliders)
+    });
+    builder.addCase(getSliderItems.rejected, (state, action) => {
+      state.isLoading = false;
+      // console.log('action.payload.reject', JSON.stringify(action?.payload))
+      axiosErrorHandler(action?.payload);
+
+    });
+    builder.addCase(getCategoryItems.pending, (state) => {
+      state.isLoading = true;
+    });
+    builder.addCase(getCategoryItems.fulfilled, (state, action) => {
+      state.isLoading = false;
+      console.log('payloadMe', action.payload.data)
+      state.categories = action.payload.data.data;
+      state.categories = action.payload.data.data.map((item: any) => ({
+        ...item, 
+        imageUrl: `${baseUrl}/${item.imageUrl}` 
+      }));
+    });
+    builder.addCase(getCategoryItems.rejected, (state, action) => {
+      state.isLoading = false;
+      // console.log('action.payload.reject', JSON.stringify(action?.payload))
       axiosErrorHandler(action?.payload);
 
     });
