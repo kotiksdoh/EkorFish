@@ -1,7 +1,8 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { ActivityIndicator, Dimensions, Image, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Dimensions, Image, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 interface CatalogCardProps {
   id?: number;
@@ -23,8 +24,17 @@ export const CatalogCard: React.FC<CatalogCardProps> = ({
 }) => {
   const [isImageLoading, setIsImageLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
-
+  const router = useRouter();
+  
+  const handlePress = () => {
+    console.log('Navigating to catalog-detail with:', { id, name });
+    if (id && name) {
+      // Навигация через Expo Router
+      router.push(`/catalog-detail?catalogId=${id}&catalogName=${encodeURIComponent(name)}`);
+    }
+  };
   return (
+    <TouchableOpacity onPress={handlePress} activeOpacity={0.7} style={styles.touchableContainer}>
     <ThemedView lightColor='#FFFFFF' darkColor='#151516' style={styles.container}>
       <View style={styles.textContainer}>
         <ThemedText 
@@ -85,13 +95,18 @@ export const CatalogCard: React.FC<CatalogCardProps> = ({
         )}
       </View>
     </ThemedView>
+    </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
+  touchableContainer: {
+    width: '31%', // Переносим ширину сюда
+    marginBottom: 12,
+  },
   container: {
     flexDirection: 'column',
-    width: '31%',
+    width: '100%',
     height: 159,
     borderRadius: 8,
     overflow: 'hidden',

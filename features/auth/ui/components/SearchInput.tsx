@@ -9,7 +9,9 @@ interface SearchInputProps {
   disabled?: boolean;
   onScannerPress?: () => void;
   onMenuPress?: () => void;
-  theme?: 'light' | 'dark' | 'auto'; // Добавляем опцию темы
+  theme?: 'light' | 'dark' | 'auto';
+  isActiveButton?: boolean;
+  isHeader?: boolean;
 }
 
 const SearchInput: React.FC<SearchInputProps> = ({
@@ -19,7 +21,9 @@ const SearchInput: React.FC<SearchInputProps> = ({
   disabled = false,
   onScannerPress,
   onMenuPress,
-  theme = 'auto', // По умолчанию автоматическая тема
+  theme = 'auto', 
+  isActiveButton = true,
+  isHeader
 }) => {
   const systemTheme = useColorScheme(); // Получаем системную тему
   const currentTheme = theme === 'auto' ? systemTheme : theme;
@@ -31,6 +35,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
   const menuIconDisabledColor = '#A0A0A0'; // Серый для disabled состояния
   
   return (
+
     <View style={styles.container}>
       {/* Основной контейнер поиска */}
       <View style={[styles.searchContainer, disabled && styles.disabled]}>
@@ -51,6 +56,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
         />
         
         {/* Иконка сканера справа */}
+        {/* {isActiveButton ? */}
         <TouchableOpacity
           style={[styles.scannerButton, disabled && styles.buttonDisabled]}
           onPress={onScannerPress}
@@ -59,9 +65,12 @@ const SearchInput: React.FC<SearchInputProps> = ({
         >
           <ScannerIcon stroke={disabled ? '#A0A0A0' : '#80818B'} />
         </TouchableOpacity>
+        {/* // : <></>
+        // } */}
       </View>
       
       {/* Кнопка меню (бургер) */}
+      {isActiveButton ?
       <TouchableOpacity
         style={[
           styles.menuButton, 
@@ -76,7 +85,10 @@ const SearchInput: React.FC<SearchInputProps> = ({
           stroke={disabled ? menuIconDisabledColor : menuIconColor}
         />
       </TouchableOpacity>
+      : <></>
+      }
     </View>
+
   );
 };
 

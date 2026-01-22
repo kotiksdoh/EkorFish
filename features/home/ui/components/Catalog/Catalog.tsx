@@ -1,59 +1,56 @@
-import chiken from '@/assets/icons/png/chiken.png';
-import conserv from '@/assets/icons/png/conserv.png';
-import fish from '@/assets/icons/png/fish.png';
-import otherMeet from '@/assets/icons/png/otherMeet.png';
 import { ThemedText } from '@/components/themed-text';
 import { CatalogCard } from '@/features/shared/ui/CatalogCard';
+import { useAppSelector } from '@/store/hooks';
 import React from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
 
 export default function Catalog() {
   // Пример данных каталога
-  // const catalog = useAppSelector((state) => state.auth.categories);
+  const catalog = useAppSelector((state) => state.auth.categories);
   // console.log('catalog', catalog)
-  const catalog = [
-    {
-      id: 1,
-      imageUrl: fish, 
-      name: 'Рыба свежая и замороженная'
-    },
-    {
-      id: 2,
-      imageUrl: chiken,
-      name: 'Морепродукты и ракообразные'
-    },
-    {
-      id: 3,
-      imageUrl: conserv,
-      name: 'Икра и деликатесы'
-    },
-    {
-      id: 4,
-      imageUrl: otherMeet,
-      name: 'Готовая продукция и полуфабрикаты'
-    },
-    {
-      id: 5,
-      imageUrl: fish,
-      name: 'Консервы и закуски'
-    },
-    {
-      id: 6,
-      imageUrl: chiken,
-      name: 'Спецпредложения и акции'
-    },
-    {
-      id: 7,
-      imageUrl: conserv,
-      name: 'Премиум сегмент эксклюзив'
-    },
-    {
-      id: 8,
-      imageUrl: otherMeet,
-      name: 'Сезонные уловы и новинки'
-    },
-  ];
+  // const catalog = [
+  //   {
+  //     id: 1,
+  //     imageUrl: fish, 
+  //     name: 'Рыба свежая и замороженная'
+  //   },
+  //   {
+  //     id: 2,
+  //     imageUrl: chiken,
+  //     name: 'Морепродукты и ракообразные'
+  //   },
+  //   {
+  //     id: 3,
+  //     imageUrl: conserv,
+  //     name: 'Икра и деликатесы'
+  //   },
+  //   {
+  //     id: 4,
+  //     imageUrl: otherMeet,
+  //     name: 'Готовая продукция и полуфабрикаты'
+  //   },
+  //   {
+  //     id: 5,
+  //     imageUrl: fish,
+  //     name: 'Консервы и закуски'
+  //   },
+  //   {
+  //     id: 6,
+  //     imageUrl: chiken,
+  //     name: 'Спецпредложения и акции'
+  //   },
+  //   {
+  //     id: 7,
+  //     imageUrl: conserv,
+  //     name: 'Премиум сегмент эксклюзив'
+  //   },
+  //   {
+  //     id: 8,
+  //     imageUrl: otherMeet,
+  //     name: 'Сезонные уловы и новинки'
+  //   },
+  // ];
 
   return (
     <View style={styles.container}>

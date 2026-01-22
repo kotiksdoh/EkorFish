@@ -125,7 +125,7 @@ export const getCategoryItems = createAsyncThunk(
   "user/getCategoryItems",
   async (payload: any, { rejectWithValue }) => {
     try {
-      const data = await axdef.get("/api/Product/categories");
+      const data = await axdef.get("/api/Catalog/categories");
       return data;
     } catch (error) {
       console.log(error);

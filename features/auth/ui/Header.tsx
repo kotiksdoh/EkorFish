@@ -7,9 +7,11 @@ interface ModalHeaderProps {
     title?: string;
     onBackPress?: () => void;
     showBackButton?: boolean;
+    content?: any;
   }
   
-export const ModalHeader: React.FC<ModalHeaderProps> = ({ title, onBackPress, showBackButton = true }) => (
+export const ModalHeader: React.FC<ModalHeaderProps> = ({ title, onBackPress, showBackButton = true, content }) => (
+    <ThemedView lightColor={'#FFFFFF'} darkColor='#151516' style={headerStyles.allCont}>
     <ThemedView  lightColor={'#FFFFFF'} darkColor='#151516' style={headerStyles.container}>
       {showBackButton && (
         <TouchableOpacity style={headerStyles.backButton} onPress={onBackPress}>
@@ -20,9 +22,17 @@ export const ModalHeader: React.FC<ModalHeaderProps> = ({ title, onBackPress, sh
         {title}
       </ThemedText>
     </ThemedView>
+      {content ? content : null}
+
+    </ThemedView>
   );
 
   const headerStyles = StyleSheet.create({
+    allCont: {
+      width: '100%',
+      borderBottomRightRadius: 24,
+      borderBottomLeftRadius: 24,
+    },
     container: {
       width: '100%',
     //   height: 120,
