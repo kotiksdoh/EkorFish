@@ -69,7 +69,7 @@ const styles = StyleSheet.create({
     position: 'relative'
   },
   productsContainerText: {
-    alignSelf: 'flex-start', // Добавить эту строку
+    alignSelf: 'flex-start', 
     marginBottom: 24,
     fontWeight: 600,
     fontSize: 20

@@ -1,13 +1,16 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { getProductList } from '@/features/catalog/catalogSlice';
+import { useAppDispatch } from '@/store/hooks';
 import { useRouter } from 'expo-router';
+
 import React, { useState } from 'react';
 import { ActivityIndicator, Dimensions, Image, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 interface CatalogCardProps {
-  id?: number;
+  id: number;
   img?: any;
-  name?: string;
+  name: string;
 }
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -25,77 +28,93 @@ export const CatalogCard: React.FC<CatalogCardProps> = ({
   const [isImageLoading, setIsImageLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
   const router = useRouter();
-  
+  const dispatch = useAppDispatch()
   const handlePress = () => {
     console.log('Navigating to catalog-detail with:', { id, name });
     if (id && name) {
-      // Навигация через Expo Router
-      router.push(`/catalog-detail?catalogId=${id}&catalogName=${encodeURIComponent(name)}`);
+      // Используйте объектный синтаксис вместо строки
+      dispatch(getProductList(
+        { params:{
+            isFavorite: false,
+            // TODO
+            // categoryId: id,
+            offset: 0,
+            count: 10,
+          }
+        }
+      ))
+      //@ts-ignore
+      router.push(`dashboard/${encodeURIComponent(name)}?catalogId=${id}&catalogName=${encodeURIComponent(name)}`);
     }
   };
+  ///dashboard/${encodeURIComponent(name)}?catalogId=${id}&catalogName=${encodeURIComponent(name)}
   return (
-    <TouchableOpacity onPress={handlePress} activeOpacity={0.7} style={styles.touchableContainer}>
-    <ThemedView lightColor='#FFFFFF' darkColor='#151516' style={styles.container}>
-      <View style={styles.textContainer}>
-        <ThemedText 
-          lightColor='#1B1B1C' 
-          darkColor='#FBFCFF' 
-          style={styles.name}
-          numberOfLines={3}
-          ellipsizeMode="tail"
-        >
-          {name || 'Категория'}
-        </ThemedText>
-      </View>
-      
-      <View style={styles.imageWrapper}>
-        {/* Индикатор загрузки */}
-        {isImageLoading && (
-          <View style={[styles.imageContainer, styles.loadingContainer]}>
-            <ActivityIndicator 
-              size="small" 
-              color="#CCCCCC"
-              style={styles.loader}
-            />
-          </View>
-        )}
+    // <Link
+    //   href={`/dashboard/${encodeURIComponent(name)}?catalogId=${id}&catalogName=${encodeURIComponent(name)}`}
+    // >
+      <TouchableOpacity onPress={handlePress} activeOpacity={0.7} style={styles.touchableContainer}>
+      <ThemedView lightColor='#FFFFFF' darkColor='#151516' style={styles.container}>
+        <View style={styles.textContainer}>
+          <ThemedText 
+            lightColor='#1B1B1C' 
+            darkColor='#FBFCFF' 
+            style={styles.name}
+            numberOfLines={3}
+            ellipsizeMode="tail"
+          >
+            {name || 'Категория'}
+          </ThemedText>
+        </View>
         
-        {/* Сообщение об ошибке */}
-        {imageError && (
-          <View style={[styles.imageContainer, styles.errorContainer]}>
-            <ThemedText style={styles.errorText}>
-              Не удалось загрузить изображение
-            </ThemedText>
-          </View>
-        )}
-        
-        {/* Изображение */}
-        {/*  */}
-        {img && !imageError && (
-          <View style={styles.imageContainer}>
-            <Image
-              // source={{ uri: img }}
-              source={img}
-              style={[
-                styles.image,
-                isImageLoading && styles.imageHidden
-              ]}
-              resizeMode="cover"
-              onLoadStart={() => {
-                setIsImageLoading(true);
-                setImageError(false);
-              }}
-              onLoadEnd={() => setIsImageLoading(false)}
-              onError={() => {
-                setIsImageLoading(false);
-                setImageError(true);
-              }}
-            />
-          </View>
-        )}
-      </View>
-    </ThemedView>
-    </TouchableOpacity>
+        <View style={styles.imageWrapper}>
+          {/* Индикатор загрузки */}
+          {isImageLoading && (
+            <View style={[styles.imageContainer, styles.loadingContainer]}>
+              <ActivityIndicator 
+                size="small" 
+                color="#CCCCCC"
+                style={styles.loader}
+              />
+            </View>
+          )}
+          
+          {/* Сообщение об ошибке */}
+          {imageError && (
+            <View style={[styles.imageContainer, styles.errorContainer]}>
+              <ThemedText style={styles.errorText}>
+                Не удалось загрузить изображение
+              </ThemedText>
+            </View>
+          )}
+          
+          {/* Изображение */}
+          {/*  */}
+          {img && !imageError && (
+            <View style={styles.imageContainer}>
+              <Image
+                // source={{ uri: img }}
+                source={img}
+                style={[
+                  styles.image,
+                  isImageLoading && styles.imageHidden
+                ]}
+                resizeMode="cover"
+                onLoadStart={() => {
+                  setIsImageLoading(true);
+                  setImageError(false);
+                }}
+                onLoadEnd={() => setIsImageLoading(false)}
+                onError={() => {
+                  setIsImageLoading(false);
+                  setImageError(true);
+                }}
+              />
+            </View>
+          )}
+        </View>
+      </ThemedView>
+      </TouchableOpacity>
+    // {/* </Link> */}
   );
 };
 

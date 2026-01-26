@@ -1,10 +1,12 @@
+import { FilterXsIcon, SortIcon } from '@/assets/icons/icons';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { ModalHeader } from '@/features/auth/ui/Header';
 import SearchInput from '@/features/auth/ui/components/SearchInput';
 import { ProductCard } from '@/features/shared/ui/ProductCard';
+import { useAppSelector } from '@/store/hooks';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Dimensions,
   Modal,
@@ -126,31 +128,35 @@ export default function CatalogDetailScreen() {
   ];
 
   // Пример товаров
-  const products: Product[] = [
-    {
-      id: 1,
-      name: 'Говяжья вырезка премиум',
-      price: 4500,
-      pricePerKg: 2500,
-      image: '',
-      isFrozen: false,
-      country: 'Россия',
-      cut: 'Стейк',
-      grade: 'Высший сорт',
-    },
-    {
-      id: 2,
-      name: 'Стейк Рибай',
-      price: 5200,
-      pricePerKg: 3200,
-      image: '',
-      isFrozen: true,
-      country: 'США',
-      cut: 'Стейк',
-      grade: 'Высший сорт',
-    },
-    // Добавьте больше товаров...
-  ];
+  // const products: Product[] = [
+  //   {
+  //     id: 1,
+  //     name: 'Говяжья вырезка премиум',
+  //     price: 4500,
+  //     pricePerKg: 2500,
+  //     image: '',
+  //     isFrozen: false,
+  //     country: 'Россия',
+  //     cut: 'Стейк',
+  //     grade: 'Высший сорт',
+  //   },
+  //   {
+  //     id: 2,
+  //     name: 'Стейк Рибай',
+  //     price: 5200,
+  //     pricePerKg: 3200,
+  //     image: '',
+  //     isFrozen: true,
+  //     country: 'США',
+  //     cut: 'Стейк',
+  //     grade: 'Высший сорт',
+  //   },
+  //   // Добавьте больше товаров...
+  // ];
+  const products = useAppSelector((state) => state.catalog.products);
+  useEffect(() => {
+    
+  })
   const router = useRouter();
   // Обработчики
   const handleBack = () => {
@@ -214,19 +220,6 @@ export default function CatalogDetailScreen() {
     // <SafeAreaView style={styles.safeArea}>
     <SafeAreaProvider>
       <ThemedView lightColor={'#EBEDF0'} darkColor='#040508' >
-      {/* Хедер */}
-      {/* <ThemedView style={styles.header}> */}
-        {/* <TouchableOpacity onPress={handleBack} style={styles.backButton}> */}
-          {/* <BackArrowIcon /> */}
-          {/* <ThemedText>{`<`}</ThemedText> */}
-        {/* </TouchableOpacity> */}
-        
-        {/* <ThemedText style={styles.headerTitle}>
-          {catalogName || 'Каталог'}
-        </ThemedText> */}
-        
-        {/* <View style={styles.headerRight} /> */}
-      {/* </ThemedView> */}
       <ModalHeader
               title={catalogName || 'Каталог'}
               showBackButton={true}
@@ -258,14 +251,15 @@ export default function CatalogDetailScreen() {
               setSortBy(sortBy === 'alphabet' ? 'priceAsc' : 'alphabet');
             }}
           >
-            <ThemedText style={styles.sortButtonText}>Название по алфавиту</ThemedText>
+            <SortIcon/>
+            <ThemedText style={styles.sortButtonText}>По алфавиту</ThemedText>
           </TouchableOpacity>
 
           <TouchableOpacity 
             style={styles.filterButton}
             onPress={() => setShowFilters(true)}
           >
-            {/* <FilterIcon /> */}
+            <FilterXsIcon />
             <ThemedText style={styles.filterButtonText}>Фильтры</ThemedText>
             {appliedFiltersCount > 0 && (
               <View style={styles.filterBadge}>
@@ -307,7 +301,6 @@ export default function CatalogDetailScreen() {
         {/* Сетка товаров */}
         <View style={styles.productsGrid}>
           {products.map((product) => (
-            <View key={product.id} style={styles.productItem}>
               <ProductCard
                 id={product.id}
                 img={product.image}
@@ -316,7 +309,6 @@ export default function CatalogDetailScreen() {
                 fullPrice={product.price.toLocaleString('ru-RU')}
                 isFrozen={product.isFrozen}
               />
-            </View>
           ))}
         </View>
         </ThemedView>
@@ -331,7 +323,6 @@ export default function CatalogDetailScreen() {
       >
         <View style={styles.modalOverlay}>
           <ThemedView style={styles.modalContainer}>
-            {/* Хедер модалки */}
             <View style={styles.modalHeader}>
               <TouchableOpacity onPress={() => setShowFilters(false)}>
                 <ThemedText style={styles.modalCloseText}>Отмена</ThemedText>
@@ -345,7 +336,6 @@ export default function CatalogDetailScreen() {
             </View>
 
             <ScrollView style={styles.modalContent}>
-              {/* Диапазон цены */}
               <View style={styles.filterSection}>
                 <ThemedText style={styles.filterSectionTitle}>Цена за кг, ₽</ThemedText>
                 <View style={styles.priceInputs}>
@@ -411,37 +401,14 @@ const styles = StyleSheet.create({
     // backgroundColor: '#FFFFFF',
   },
   container: {
+    height: '100%'
     // flex: 1,
   },
   themeContainer:{
     borderRadius: 24,
     marginTop: 10
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontFamily: 'Montserrat',
-    fontWeight: '600',
-    fontSize: 18,
-    flex: 1,
-    textAlign: 'center',
-  },
-  headerRight: {
-    width: 40,
-  },
+
   searchContainer: {
     paddingHorizontal: 16,
     paddingTop: 12,
@@ -460,7 +427,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 12,
     paddingVertical: 8,
-    backgroundColor: '#F5F5F5',
+    // backgroundColor: '#F5F5F5',
     borderRadius: 8,
   },
   sortButtonText: {
@@ -473,7 +440,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 12,
     paddingVertical: 8,
-    backgroundColor: '#F5F5F5',
+    // backgroundColor: '#F5F5F5',
     borderRadius: 8,
     position: 'relative',
   },
@@ -500,14 +467,14 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   categoriesContainer: {
-    paddingHorizontal: 16,
-    marginBottom: 16,
+    marginHorizontal: 16,
+    // marginBottom: 56,
   },
   categoryButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
     backgroundColor: '#F5F5F5',
-    borderRadius: 20,
+    borderRadius: 6,
     marginRight: 8,
   },
   categoryButtonActive: {
@@ -523,14 +490,16 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   productsGrid: {
+    marginTop: 16,
     flexDirection: 'row',
     flexWrap: 'wrap',
-    paddingHorizontal: 8,
+    paddingHorizontal: 16,
+    gap: 8,
+    // marginHorizontal: 12,
+    // flexWrap: 'wrap',
+    // paddingHorizontal: 8,
   },
-  productItem: {
-    width: '50%',
-    padding: 8,
-  },
+
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -583,7 +552,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   priceInputContainer: {
-    flex: 1,
+    // flex: 1,
     borderWidth: 1,
     borderColor: '#E0E0E0',
     borderRadius: 8,

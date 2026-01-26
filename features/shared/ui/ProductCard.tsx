@@ -1,4 +1,5 @@
 import { CartIcon, LikeIcon, SnowflakeIcon } from '@/assets/icons/icons.js';
+import noImage from '@/assets/icons/png/noImage.png';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import React, { useEffect, useState } from 'react';
@@ -99,6 +100,20 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             onError={handleImageError}
           />
         )}
+        {!img && (
+                    <Image
+                    source={noImage}
+                    style={[
+                      styles.image,
+                      // (!isImageLoaded || isImageLoading || externalLoading) && styles.imageHidden
+                    ]}
+                    resizeMode="cover"
+                    onLoadStart={handleImageLoadStart}
+                    onLoadEnd={handleImageLoadEnd}
+                    onError={handleImageError}
+                  />
+        )
+        }
         
         {/* Иконки поверх изображения */}
         {isFrozen && !isImageLoading && (
@@ -163,10 +178,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'column',
-    width: '50%',
+    width: '48.8%',
     borderRadius: 8,
     overflow: 'hidden',
-    marginRight: 12,
+    // marginRight: 12,
+    // marginLeft: 12,
     elevation: 3,
   },
   imageContainer: {
