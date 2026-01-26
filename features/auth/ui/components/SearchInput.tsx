@@ -12,6 +12,8 @@ interface SearchInputProps {
   theme?: 'light' | 'dark' | 'auto';
   isActiveButton?: boolean;
   isHeader?: boolean;
+  onSubmitEditing?: () => void; // Добавьте эту строку
+  ref?: React.Ref<TextInput>; // Также добавьте ref если нужно
 }
 
 const SearchInput: React.FC<SearchInputProps> = ({
@@ -23,7 +25,9 @@ const SearchInput: React.FC<SearchInputProps> = ({
   onMenuPress,
   theme = 'auto', 
   isActiveButton = true,
-  isHeader
+  isHeader,
+  onSubmitEditing,
+  ref
 }) => {
   const systemTheme = useColorScheme(); // Получаем системную тему
   const currentTheme = theme === 'auto' ? systemTheme : theme;
@@ -53,6 +57,8 @@ const SearchInput: React.FC<SearchInputProps> = ({
           placeholderTextColor={disabled ? '#A0A0A0' : '#80818B'}
           editable={!disabled}
           selectionColor="#80818B"
+          onSubmitEditing={onSubmitEditing} // Добавьте эту строку
+          ref={ref} // Если используете ref
         />
         
         {/* Иконка сканера справа */}
