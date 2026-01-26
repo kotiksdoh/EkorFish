@@ -397,16 +397,17 @@ export default function CatalogDetailScreen() {
 
 const styles = StyleSheet.create({
   safeArea: {
-    // flex: 1,
+    flex: 1,
     // backgroundColor: '#FFFFFF',
   },
   container: {
-    height: '100%'
+    height: '74%',
     // flex: 1,
   },
   themeContainer:{
     borderRadius: 24,
-    marginTop: 10
+    marginTop: 10,
+    // flex: 1
   },
 
   searchContainer: {
