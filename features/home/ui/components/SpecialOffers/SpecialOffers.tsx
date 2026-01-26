@@ -77,6 +77,7 @@ const styles = StyleSheet.create({
   productsContainer: {
     flexDirection: 'row',
     marginBottom: 24,
+    gap: 8
 
   },
   buttonContainer: {
