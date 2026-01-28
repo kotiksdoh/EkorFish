@@ -3,37 +3,30 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { ModalHeader } from '@/features/auth/ui/Header';
 import SearchInput from '@/features/auth/ui/components/SearchInput';
-import { getProductList } from '@/features/catalog/catalogSlice';
+import {
+  clearSelectedFilters,
+  getCategoryFilters,
+  getProductList,
+  toggleFilterSelection
+} from '@/features/catalog/catalogSlice';
 import { ProductCard } from '@/features/shared/ui/ProductCard';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Dimensions,
+  Image,
   Modal,
-  NativeSyntheticEvent,
   NativeScrollEvent,
+  NativeSyntheticEvent,
   ScrollView,
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  View
+  View,
 } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-
-// Типы для фильтров
-interface FilterItem {
-  id: string;
-  name: string;
-  selected: boolean;
-}
-
-interface FilterSection {
-  title: string;
-  items: FilterItem[];
-  type: 'single' | 'multiple';
-}
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -47,66 +40,13 @@ export default function CatalogDetailScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('Вырезка');
   const [showFilters, setShowFilters] = useState(false);
-  const [appliedFiltersCount, setAppliedFiltersCount] = useState(0);
   const [sortBy, setSortBy] = useState('alphabet');
-
-  // Фильтры
-  const [filterSections, setFilterSections] = useState<FilterSection[]>([
-    {
-      title: 'Склад наличия',
-      type: 'multiple',
-      items: [
-        { id: 'stock1', name: 'Основной склад', selected: false },
-        { id: 'stock2', name: 'Склад А', selected: false },
-        { id: 'stock3', name: 'Склад Б', selected: false },
-      ],
-    },
-    {
-      title: 'Страна происхождения',
-      type: 'multiple',
-      items: [
-        { id: 'country1', name: 'Россия', selected: false },
-        { id: 'country2', name: 'Бразилия', selected: false },
-        { id: 'country3', name: 'Аргентина', selected: false },
-        { id: 'country4', name: 'США', selected: false },
-      ],
-    },
-    {
-      title: 'Состояние',
-      type: 'multiple',
-      items: [
-        { id: 'state1', name: 'Свежее', selected: false },
-        { id: 'state2', name: 'Замороженное', selected: false },
-        { id: 'state3', name: 'Охлажденное', selected: false },
-      ],
-    },
-    {
-      title: 'Сорт мяса',
-      type: 'multiple',
-      items: [
-        { id: 'grade1', name: 'Высший сорт', selected: false },
-        { id: 'grade2', name: 'Первый сорт', selected: false },
-        { id: 'grade3', name: 'Второй сорт', selected: false },
-      ],
-    },
-    {
-      title: 'Нарезка/подготовка',
-      type: 'multiple',
-      items: [
-        { id: 'cut1', name: 'Стейк', selected: false },
-        { id: 'cut2', name: 'Фарш', selected: false },
-        { id: 'cut3', name: 'Цельный кусок', selected: false },
-        { id: 'cut4', name: 'На кости', selected: false },
-      ],
-    },
-  ]);
-
   const [priceRange, setPriceRange] = useState({
     min: '',
     max: '',
   });
 
-  // Категории
+  // Категории (хардкод, можно заменить на данные с бекенда)
   const categories = [
     'Вырезка',
     'Говядина',
@@ -124,8 +64,14 @@ export default function CatalogDetailScreen() {
   const products = useAppSelector((state) => state.catalog.products);
   const isLoading = useAppSelector((state) => state.catalog.isLoading);
   const isLoadingMore = useAppSelector((state) => state.catalog.isLoadingMore);
+  const isLoadingFilters = useAppSelector((state) => state.catalog.isLoadingFilters);
   const hasMore = useAppSelector((state) => state.catalog.hasMore);
   const currentPage = useAppSelector((state) => state.catalog.currentPage);
+  const filters = useAppSelector((state) => state.catalog.filters);
+  const selectedFilterIds = useAppSelector((state) => state.catalog.selectedFilterIds);
+  
+  // Подсчет примененных фильтров
+  const appliedFiltersCount = selectedFilterIds.length + (priceRange.min ? 1 : 0) + (priceRange.max ? 1 : 0);
   
   const dispatch = useAppDispatch();
   const searchInputRef = useRef<TextInput>(null);
@@ -137,8 +83,7 @@ export default function CatalogDetailScreen() {
 
   // Загрузка продуктов
   const loadProducts = useCallback(async (isLoadMore: boolean = false, searchText: string = searchQuery) => {
-    // Защита от двойных запросов
-    if (isFetchingRef.current) return;
+    if (isFetchingRef.current || !catalogId) return;
     
     isFetchingRef.current = true;
     
@@ -161,6 +106,8 @@ export default function CatalogDetailScreen() {
         params.MaxPrice = parseFloat(priceRange.max);
       }
       
+      // Выбранные фильтры уже добавляются в слайсе через getState
+      
       console.log('Loading products:', { isLoadMore, offset: params.offset, search: searchText });
       
       dispatch(getProductList({ 
@@ -171,14 +118,21 @@ export default function CatalogDetailScreen() {
     } catch (error) {
       console.error('Ошибка загрузки:', error);
     } finally {
-      // Сбрасываем флаг после небольшой задержки
       setTimeout(() => {
         isFetchingRef.current = false;
       }, 500);
     }
   }, [catalogId, currentPage, dispatch, priceRange, searchQuery]);
 
-  // Эффект для начальной загрузки
+  // Загрузка фильтров при загрузке компоненты
+  useEffect(() => {
+    if (catalogId) {
+      console.log('Loading filters for catalog:', catalogId);
+      dispatch(getCategoryFilters(catalogId));
+    }
+  }, [catalogId, dispatch]);
+
+  // Эффект для начальной загрузки продуктов
   useEffect(() => {
     if (catalogId) {
       console.log('Initial load for catalog:', catalogId);
@@ -202,7 +156,7 @@ export default function CatalogDetailScreen() {
     }
     
     const { layoutMeasurement, contentOffset, contentSize } = nativeEvent;
-    const paddingToBottom = 50; // Отступ от нижнего края для начала загрузки
+    const paddingToBottom = 50;
     
     const distanceFromBottom = contentSize.height - layoutMeasurement.height - contentOffset.y;
     
@@ -216,7 +170,6 @@ export default function CatalogDetailScreen() {
   const handleSearchSubmit = useCallback(() => {
     if (catalogId) {
       console.log('Search submitted:', searchQuery);
-      // Сбросим позицию скролла наверх
       scrollViewRef.current?.scrollTo({ y: 0, animated: false });
       loadProducts(false, searchQuery);
     }
@@ -227,37 +180,21 @@ export default function CatalogDetailScreen() {
     router.back();
   };
 
-  // Переключение фильтров
-  const handleFilterToggle = (sectionIndex: number, itemId: string) => {
-    const updatedSections = [...filterSections];
-    const section = updatedSections[sectionIndex];
-    const item = section.items.find(item => item.id === itemId);
+  // Переключение выбора фильтра
+  const handleFilterToggle = (filterOptionId: string) => {
+    dispatch(toggleFilterSelection(filterOptionId));
+  };
 
-    if (item) {
-      if (section.type === 'single') {
-        section.items.forEach(i => {
-          i.selected = i.id === itemId;
-        });
-      } else {
-        item.selected = !item.selected;
-      }
-
-      setFilterSections(updatedSections);
-    }
+  // Проверка выбран ли фильтр
+  const isFilterSelected = (filterOptionId: string) => {
+    return selectedFilterIds.includes(filterOptionId);
   };
 
   // Применение фильтров
   const applyFilters = () => {
-    let count = 0;
-    filterSections.forEach(section => {
-      count += section.items.filter(item => item.selected).length;
-    });
-    if (priceRange.min || priceRange.max) count++;
-
-    setAppliedFiltersCount(count);
     setShowFilters(false);
     
-    // Применяем фильтры к товарам
+    // Перезагружаем товары с новыми фильтрами
     if (catalogId) {
       scrollViewRef.current?.scrollTo({ y: 0, animated: false });
       loadProducts(false, searchQuery);
@@ -266,13 +203,8 @@ export default function CatalogDetailScreen() {
 
   // Сброс фильтров
   const resetFilters = () => {
-    const resetSections = filterSections.map(section => ({
-      ...section,
-      items: section.items.map(item => ({ ...item, selected: false })),
-    }));
-    setFilterSections(resetSections);
+    dispatch(clearSelectedFilters());
     setPriceRange({ min: '', max: '' });
-    setAppliedFiltersCount(0);
   };
 
   // Сортировка продуктов
@@ -296,12 +228,21 @@ export default function CatalogDetailScreen() {
   const sortedProducts = getSortedProducts();
 
   // Рендер элемента фильтра
-  const renderFilterItem = ({ item, sectionIndex }: { item: FilterItem; sectionIndex: number }) => (
+  const renderFilterItem = (filterOption: any, filterGroupId: string) => (
     <TouchableOpacity
-      style={[styles.filterItem, item.selected && styles.filterItemSelected]}
-      onPress={() => handleFilterToggle(sectionIndex, item.id)}
+      key={filterOption.id}
+      style={[
+        styles.filterItem, 
+        isFilterSelected(filterOption.id) && styles.filterItemSelected
+      ]}
+      onPress={() => handleFilterToggle(filterOption.id)}
     >
-      <ThemedText style={styles.filterItemText}>{item.name}</ThemedText>
+      <ThemedText style={styles.filterItemText}>{filterOption.value}</ThemedText>
+      {isFilterSelected(filterOption.id) && (
+        <View style={styles.filterCheckmark}>
+          <ThemedText style={styles.filterCheckmarkText}>✓</ThemedText>
+        </View>
+      )}
     </TouchableOpacity>
   );
 
@@ -355,15 +296,17 @@ export default function CatalogDetailScreen() {
                   style={styles.filterButton}
                   onPress={() => setShowFilters(true)}
                 >
-                  <FilterXsIcon />
-                  <ThemedText style={styles.filterButtonText}>Фильтры</ThemedText>
+                  <View>
                   {appliedFiltersCount > 0 && (
                     <View style={styles.filterBadge}>
-                      <ThemedText style={styles.filterBadgeText}>
-                        {appliedFiltersCount}
-                      </ThemedText>
+
                     </View>
                   )}
+                  <FilterXsIcon />
+                  </View>
+            
+                  <ThemedText style={styles.filterButtonText}>Фильтры</ThemedText>
+
                 </TouchableOpacity>
               </View>
 
@@ -425,7 +368,16 @@ export default function CatalogDetailScreen() {
               {/* Сообщение если товаров нет */}
               {!isLoading && sortedProducts.length === 0 && (
                 <View style={styles.emptyContainer}>
-                  <ThemedText style={styles.emptyText}>Товары не найдены</ThemedText>
+                  <Image
+                    source={require('../../../assets/icons/png/noItems.png')} 
+                    style={styles.image}
+                    resizeMode="contain"
+                  />
+                  <ThemedText lightColor='#1B1B1C' 
+                    darkColor='#FBFCFF'  style={styles.emptyText}>Ничего не найдено</ThemedText>
+                  <ThemedText lightColor='#80818B'
+                    darkColor='#80818B' style={styles.emptyTextSecond}>Попробуйте изменить или сбросить фильтры  </ThemedText>
+
                 </View>
               )}
 
@@ -457,11 +409,12 @@ export default function CatalogDetailScreen() {
                 <ThemedText style={styles.modalTitle}>Фильтры</ThemedText>
                 
                 <TouchableOpacity onPress={resetFilters}>
-                  <ThemedText style={styles.modalResetText}>Сбросить</ThemedText>
+                  <ThemedText style={styles.modalResetText}>Сбросить все</ThemedText>
                 </TouchableOpacity>
               </View>
 
               <ScrollView style={styles.modalContent}>
+                {/* Фильтр по цене */}
                 <View style={styles.filterSection}>
                   <ThemedText style={styles.filterSectionTitle}>Цена за кг, ₽</ThemedText>
                   <View style={styles.priceInputs}>
@@ -489,27 +442,42 @@ export default function CatalogDetailScreen() {
                   </View>
                 </View>
 
-                {/* Секции фильтров */}
-                {filterSections.map((section, sectionIndex) => (
-                  <View key={section.title} style={styles.filterSection}>
+                {/* Индикатор загрузки фильтров */}
+                {isLoadingFilters && (
+                  <View style={styles.filtersLoadingContainer}>
+                    <ActivityIndicator size="small" color="#203686" />
+                    <ThemedText style={styles.filtersLoadingText}>Загрузка фильтров...</ThemedText>
+                  </View>
+                )}
+
+                {/* Динамические фильтры с бекенда */}
+                {!isLoadingFilters && filters.length > 0 && filters.map((filterGroup) => (
+                  <View key={filterGroup.id} style={styles.filterSection}>
                     <ThemedText style={styles.filterSectionTitle}>
-                      {section.title}
+                      {filterGroup.name}
                     </ThemedText>
                     
                     <View style={styles.filterItems}>
-                      {section.items.map((item) => (
-                        <React.Fragment key={item.id}>
-                          {renderFilterItem({ item, sectionIndex })}
-                        </React.Fragment>
-                      ))}
+                      {filterGroup.filterOptions.map((option) => 
+                        renderFilterItem(option, filterGroup.id)
+                      )}
                     </View>
                   </View>
                 ))}
+
+                {/* Сообщение если нет фильтров */}
+                {!isLoadingFilters && filters.length === 0 && (
+                  <View style={styles.noFiltersContainer}>
+                    <ThemedText style={styles.noFiltersText}>Нет доступных фильтров</ThemedText>
+                  </View>
+                )}
               </ScrollView>
 
               {/* Кнопка применения */}
               <TouchableOpacity style={styles.applyButton} onPress={applyFilters}>
-                <ThemedText style={styles.applyButtonText}>Применить фильтры</ThemedText>
+                <ThemedText style={styles.applyButtonText}>
+                  Применить фильтры {appliedFiltersCount > 0 ? `(${appliedFiltersCount})` : ''}
+                </ThemedText>
               </TouchableOpacity>
             </ThemedView>
           </View>
@@ -570,21 +538,18 @@ const styles = StyleSheet.create({
   },
   filterBadge: {
     position: 'absolute',
-    top: -4,
-    right: -4,
+    top: 1,
+    right: -1,
     backgroundColor: '#FF3B30',
     borderRadius: 10,
-    minWidth: 20,
-    height: 20,
-    justifyContent: 'center',
+    minWidth: 6,
+    maxWidth: 6,
+    width: 6,
+    height: 6,
+    zIndex: 1,
     alignItems: 'center',
-    paddingHorizontal: 4,
   },
-  filterBadgeText: {
-    color: '#FFFFFF',
-    fontSize: 10,
-    fontWeight: 'bold',
-  },
+
   categoriesWrapper: {
     marginHorizontal: 16,
     marginBottom: 16,
@@ -640,8 +605,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   emptyText: {
+    fontSize: 24,
+    fontWeight: 600
+  },
+  emptyTextSecond: {
     fontSize: 16,
-    color: '#80818B',
   },
   loadingContainer: {
     paddingVertical: 20,
@@ -739,6 +707,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     borderWidth: 1,
     borderColor: 'transparent',
+    minWidth: 100,
   },
   filterItemSelected: {
     backgroundColor: '#E8F0FE',
@@ -748,6 +717,20 @@ const styles = StyleSheet.create({
     fontFamily: 'Montserrat',
     fontSize: 14,
     color: '#1B1B1C',
+  },
+  filterCheckmark: {
+    marginLeft: 8,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#203686',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  filterCheckmarkText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
   applyButton: {
     backgroundColor: '#203686',
@@ -762,5 +745,28 @@ const styles = StyleSheet.create({
     fontFamily: 'Montserrat',
     fontSize: 16,
     fontWeight: '600',
+  },
+  filtersLoadingContainer: {
+    paddingVertical: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  filtersLoadingText: {
+    marginTop: 8,
+    fontSize: 14,
+    color: '#80818B',
+  },
+  noFiltersContainer: {
+    paddingVertical: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  noFiltersText: {
+    fontSize: 14,
+    color: '#80818B',
+  },
+  image: {
+    width: 86,
+    height: 86,
   },
 });

@@ -1178,7 +1178,7 @@ const getCardStyle = (isSelected: boolean) => {
         <ThemedView lightColor={'#FFFFFF'} style={phisUser.innerContainer}>
             <View style={phisUser.attention}>
             <Image
-                source={require('../../../../assets/icons/png/warning.png')} // Замените на путь к вашей картинке
+                source={require('../../../../assets/icons/png/warning.png')} 
                 style={styles.image}
                 resizeMode="contain"
               />
