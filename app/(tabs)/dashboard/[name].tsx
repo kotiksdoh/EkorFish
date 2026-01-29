@@ -13,6 +13,7 @@ import {
   toggleFilterSelection
 } from '@/features/catalog/catalogSlice';
 import { ProductCard } from '@/features/shared/ui/ProductCard';
+import AnimatedTextInput from '@/features/shared/ui/components/CustomInput';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -215,7 +216,8 @@ export default function CatalogDetailScreen() {
 
   // Обработчик возврата
   const handleBack = () => {
-    router.back();
+    // router.back();
+    router.navigate('/dashboard')
   };
 
   // Переключение выбора фильтра
@@ -243,6 +245,7 @@ export default function CatalogDetailScreen() {
   const resetFilters = () => {
     dispatch(clearSelectedFilters());
     setPriceRange({ min: '', max: '' });
+    loadProducts(false, searchQuery);
   };
 
   // Сброс подкатегории
@@ -282,11 +285,11 @@ export default function CatalogDetailScreen() {
       onPress={() => handleFilterToggle(filterOption.id)}
     >
       <ThemedText style={styles.filterItemText}>{filterOption.value}</ThemedText>
-      {isFilterSelected(filterOption.id) && (
+      {/* {isFilterSelected(filterOption.id) && (
         <View style={styles.filterCheckmark}>
           <ThemedText style={styles.filterCheckmarkText}>✓</ThemedText>
         </View>
-      )}
+      )} */}
     </TouchableOpacity>
   );
 
@@ -439,7 +442,7 @@ export default function CatalogDetailScreen() {
                     Ничего не найдено
                   </ThemedText>
                   <ThemedText lightColor='#80818B' darkColor='#80818B' style={styles.emptyTextSecond}>
-                    Попробуйте изменить или сбросить фильтры
+                    {`Попробуйте изменить\nили сбросить фильтры`}
                   </ThemedText>
                 </View>
               )}
@@ -472,19 +475,26 @@ export default function CatalogDetailScreen() {
                 <ThemedText style={styles.modalTitle}>Фильтры</ThemedText>
                 
                 <TouchableOpacity onPress={resetFilters}>
-                  <ThemedText style={styles.modalResetText}>Сбросить все</ThemedText>
+                  <ThemedText style={styles.modalResetText}>Сбросить</ThemedText>
                 </TouchableOpacity>
               </View>
 
               <ScrollView style={styles.modalContent}>
                 {/* Фильтр по цене */}
                 <View style={styles.filterSection}>
-                  <ThemedText style={styles.filterSectionTitle}>Цена за кг, ₽</ThemedText>
+                  <ThemedText style={styles.filterSectionTitle}>Цена за кг</ThemedText>
                   <View style={styles.priceInputs}>
                     <View style={styles.priceInputContainer}>
-                      <TextInput
+                      {/* <TextInput
                         style={styles.priceInput}
                         placeholder="От"
+                        value={priceRange.min}
+                        onChangeText={(text) => setPriceRange({ ...priceRange, min: text })}
+                        keyboardType="numeric"
+                      /> */}
+                      <AnimatedTextInput
+                        placeholder="От"
+                        placeholderTextColor="#80818B"
                         value={priceRange.min}
                         onChangeText={(text) => setPriceRange({ ...priceRange, min: text })}
                         keyboardType="numeric"
@@ -494,12 +504,20 @@ export default function CatalogDetailScreen() {
                     <View style={styles.priceSeparator} />
                     
                     <View style={styles.priceInputContainer}>
-                      <TextInput
+                      {/* <TextInput
                         style={styles.priceInput}
                         placeholder="До"
                         value={priceRange.max}
                         onChangeText={(text) => setPriceRange({ ...priceRange, max: text })}
                         keyboardType="numeric"
+                      /> */}
+                      <AnimatedTextInput
+                        placeholder="До"
+                        placeholderTextColor="#80818B"
+                        value={priceRange.max}
+                        onChangeText={(text) => setPriceRange({ ...priceRange, max: text })}
+                        keyboardType="numeric"
+
                       />
                     </View>
                   </View>
@@ -667,10 +685,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   emptyText: {
+    marginTop: 24,
     fontSize: 24,
     fontWeight: '600',
   },
   emptyTextSecond: {
+    marginTop: 8,
     fontSize: 16,
   },
   loadingContainer: {
@@ -763,16 +783,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 10,
-    backgroundColor: '#F5F5F5',
-    borderRadius: 20,
+    backgroundColor: '#ffffff',
+    borderRadius: 6,
     marginRight: 8,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: 'transparent',
+    borderColor: '#D8DADE',
     minWidth: 100,
   },
   filterItemSelected: {
-    backgroundColor: '#E8F0FE',
+    backgroundColor: '#ffffff',
     borderColor: '#203686',
   },
   filterItemText: {
@@ -780,20 +800,20 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#1B1B1C',
   },
-  filterCheckmark: {
-    marginLeft: 8,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: '#203686',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  filterCheckmarkText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
+  // filterCheckmark: {
+  //   marginLeft: 8,
+  //   width: 20,
+  //   height: 20,
+  //   borderRadius: 10,
+  //   backgroundColor: 'black',
+  //   alignItems: 'center',
+  //   justifyContent: 'center',
+  // },
+  // filterCheckmarkText: {
+  //   color: '#FFFFFF',
+  //   fontSize: 12,
+  //   fontWeight: 'bold',
+  // },
   applyButton: {
     backgroundColor: '#203686',
     marginHorizontal: 20,
