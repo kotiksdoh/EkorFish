@@ -11,6 +11,7 @@ interface CatalogCardProps {
   id: number;
   img?: any;
   name: string;
+  children?: any[];
 }
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -24,27 +25,30 @@ export const CatalogCard: React.FC<CatalogCardProps> = ({
   id,
   img,
   name,
+  children
 }) => {
   const [isImageLoading, setIsImageLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
   const router = useRouter();
   const dispatch = useAppDispatch()
   const handlePress = () => {
-    console.log('Navigating to catalog-detail with:', { id, name });
+    console.log('Navigating to catalog-detail with:', { id, name, children });
     if (id && name) {
-      // Используйте объектный синтаксис вместо строки
-      dispatch(getProductList(
-        { params:{
-            isFavorite: false,
-            // TODO
-            // categoryId: id,
-            offset: 0,
-            count: 10,
-          }
+      // Преобразуем children в строку для передачи через URL
+      const childrenString = children ? JSON.stringify(children) : '[]';
+      
+      dispatch(getProductList({
+        params: {
+          isFavorite: false,
+          categoryId: id, // Раскомментируйте
+          offset: 0,
+          count: 10,
         }
-      ))
+      }));
+      
+      // Передаем children как параметр
       //@ts-ignore
-      router.push(`dashboard/${encodeURIComponent(name)}?catalogId=${id}&catalogName=${encodeURIComponent(name)}`);
+      router.push(`dashboard/${encodeURIComponent(name)}?catalogId=${id}&catalogName=${encodeURIComponent(name)}&children=${encodeURIComponent(childrenString)}`);
     }
   };
   ///dashboard/${encodeURIComponent(name)}?catalogId=${id}&catalogName=${encodeURIComponent(name)}

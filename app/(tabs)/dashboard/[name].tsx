@@ -1,3 +1,4 @@
+// CatalogDetailScreen.tsx
 import { FilterXsIcon, SortIcon } from '@/assets/icons/icons';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -5,8 +6,10 @@ import { ModalHeader } from '@/features/auth/ui/Header';
 import SearchInput from '@/features/auth/ui/components/SearchInput';
 import {
   clearSelectedFilters,
+  clearSelectedSubcategory,
   getCategoryFilters,
   getProductList,
+  setSelectedSubcategory,
   toggleFilterSelection
 } from '@/features/catalog/catalogSlice';
 import { ProductCard } from '@/features/shared/ui/ProductCard';
@@ -31,32 +34,31 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 const { width: screenWidth } = Dimensions.get('window');
 
 export default function CatalogDetailScreen() {
-  const { catalogId, catalogName } = useLocalSearchParams<{
+  const { catalogId, catalogName, children } = useLocalSearchParams<{
     catalogId: string;
     catalogName: string;
+    children?: string; // Добавляем children
   }>();
+
+  // Парсим children из строки
+  const parsedChildren = children ? JSON.parse(decodeURIComponent(children)) : [];
+  
+  // Преобразуем в массив подкатегорий
+  const subcategoriesFromProps = parsedChildren.map((child: any) => ({
+    id: child.id,
+    name: child.name,
+    description: child.description || '',
+    imageUrl: child.imageUrl || '',
+  }));
 
   // Состояния
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeCategory, setActiveCategory] = useState('Вырезка');
   const [showFilters, setShowFilters] = useState(false);
   const [sortBy, setSortBy] = useState('alphabet');
   const [priceRange, setPriceRange] = useState({
     min: '',
     max: '',
   });
-
-  // Категории (хардкод, можно заменить на данные с бекенда)
-  const categories = [
-    'Вырезка',
-    'Говядина',
-    'Глазной мускул',
-    'Корейка',
-    'Окорок',
-    'Лопатка',
-    'Грудинка',
-    'Рулька',
-  ];
 
   const pageSize = 10;
 
@@ -69,6 +71,7 @@ export default function CatalogDetailScreen() {
   const currentPage = useAppSelector((state) => state.catalog.currentPage);
   const filters = useAppSelector((state) => state.catalog.filters);
   const selectedFilterIds = useAppSelector((state) => state.catalog.selectedFilterIds);
+  const selectedSubcategoryId = useAppSelector((state) => state.catalog.selectedSubcategoryId);
   
   // Подсчет примененных фильтров
   const appliedFiltersCount = selectedFilterIds.length + (priceRange.min ? 1 : 0) + (priceRange.max ? 1 : 0);
@@ -99,20 +102,33 @@ export default function CatalogDetailScreen() {
         params.Search = searchText;
       }
       
-      if (priceRange.min) {
-        params.MinPrice = parseFloat(priceRange.min);
+      // Преобразуем в числа
+      const minPrice = priceRange.min ? parseFloat(priceRange.min) : undefined;
+      const maxPrice = priceRange.max ? parseFloat(priceRange.max) : undefined;
+      
+      if (minPrice !== undefined && !isNaN(minPrice)) {
+        params.MinPrice = minPrice;
       }
-      if (priceRange.max) {
-        params.MaxPrice = parseFloat(priceRange.max);
+      if (maxPrice !== undefined && !isNaN(maxPrice)) {
+        params.MaxPrice = maxPrice;
       }
       
-      // Выбранные фильтры уже добавляются в слайсе через getState
+      // Добавляем subCategoryId если выбрана подкатегория
+      if (selectedSubcategoryId && selectedSubcategoryId !== 'all') {
+        params.subCategoryId = selectedSubcategoryId;
+      }
       
-      console.log('Loading products:', { isLoadMore, offset: params.offset, search: searchText });
+      console.log('Loading products:', { 
+        isLoadMore, 
+        offset: params.offset, 
+        search: searchText,
+        subcategoryId: selectedSubcategoryId,
+        params
+      });
       
       dispatch(getProductList({ 
         params,
-        isLoadMore 
+        isLoadMore
       }));
       
     } catch (error) {
@@ -122,7 +138,7 @@ export default function CatalogDetailScreen() {
         isFetchingRef.current = false;
       }, 500);
     }
-  }, [catalogId, currentPage, dispatch, priceRange, searchQuery]);
+  }, [catalogId, currentPage, dispatch, priceRange, searchQuery, selectedSubcategoryId]);
 
   // Загрузка фильтров при загрузке компоненты
   useEffect(() => {
@@ -139,6 +155,28 @@ export default function CatalogDetailScreen() {
       loadProducts(false, '');
     }
   }, [catalogId]);
+
+  // Обработчик смены подкатегории
+  const handleSubcategorySelect = useCallback((subcategoryId: string | null) => {
+    if (subcategoryId === 'all') {
+      dispatch(setSelectedSubcategory(null));
+    } else {
+      dispatch(setSelectedSubcategory(subcategoryId));
+    }
+    
+    scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+    
+    // Загружаем продукты через небольшой таймаут чтобы Redux успел обновиться
+    setTimeout(() => {
+      loadProducts(false, searchQuery);
+    }, 100);
+  }, [dispatch, loadProducts, searchQuery]);
+
+  // Эффект для сброса выбранной подкатегории при монтировании
+  useEffect(() => {
+    // При первом открытии сбрасываем выбранную подкатегорию
+    dispatch(setSelectedSubcategory(null));
+  }, [dispatch]);
 
   // Обработчик прокрутки
   const handleScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -205,6 +243,12 @@ export default function CatalogDetailScreen() {
   const resetFilters = () => {
     dispatch(clearSelectedFilters());
     setPriceRange({ min: '', max: '' });
+  };
+
+  // Сброс подкатегории
+  const resetSubcategory = () => {
+    dispatch(clearSelectedSubcategory());
+    loadProducts(false, searchQuery);
   };
 
   // Сортировка продуктов
@@ -297,48 +341,66 @@ export default function CatalogDetailScreen() {
                   onPress={() => setShowFilters(true)}
                 >
                   <View>
-                  {appliedFiltersCount > 0 && (
-                    <View style={styles.filterBadge}>
-
-                    </View>
-                  )}
-                  <FilterXsIcon />
+                    {appliedFiltersCount > 0 && (
+                      <View style={styles.filterBadge}></View>
+                    )}
+                    <FilterXsIcon />
                   </View>
-            
                   <ThemedText style={styles.filterButtonText}>Фильтры</ThemedText>
-
                 </TouchableOpacity>
               </View>
 
-              {/* Категории */}
-              <View style={styles.categoriesWrapper}>
-                <ScrollView 
-                  horizontal 
-                  showsHorizontalScrollIndicator={false}
-                  style={styles.categoriesContainer}
-                  contentContainerStyle={styles.categoriesContent}
-                >
-                  {categories.map((category) => (
+              {/* Подкатегории (если они есть) */}
+              {subcategoriesFromProps.length > 0 && (
+                <View style={styles.subcategoriesWrapper}>
+                  <ScrollView 
+                    horizontal 
+                    showsHorizontalScrollIndicator={false}
+                    style={styles.subcategoriesContainer}
+                    contentContainerStyle={styles.subcategoriesContent}
+                  >
+                    {/* Кнопка "Все" */}
                     <TouchableOpacity
-                      key={category}
+                      key="all"
                       style={[
-                        styles.categoryButton,
-                        activeCategory === category && styles.categoryButtonActive,
+                        styles.subcategoryButton,
+                        selectedSubcategoryId === null && styles.subcategoryButtonActive,
                       ]}
-                      onPress={() => setActiveCategory(category)}
+                      onPress={() => handleSubcategorySelect('all')}
                     >
                       <ThemedText
                         style={[
-                          styles.categoryText,
-                          activeCategory === category && styles.categoryTextActive,
+                          styles.subcategoryText,
+                          selectedSubcategoryId === null && styles.subcategoryTextActive,
                         ]}
                       >
-                        {category}
+                        Все
                       </ThemedText>
                     </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              </View>
+
+                    {/* Подкатегории из props */}
+                    {subcategoriesFromProps.map((subcategory: any) => (
+                      <TouchableOpacity
+                        key={subcategory.id}
+                        style={[
+                          styles.subcategoryButton,
+                          selectedSubcategoryId === subcategory.id && styles.subcategoryButtonActive,
+                        ]}
+                        onPress={() => handleSubcategorySelect(subcategory.id)}
+                      >
+                        <ThemedText
+                          style={[
+                            styles.subcategoryText,
+                            selectedSubcategoryId === subcategory.id && styles.subcategoryTextActive,
+                          ]}
+                        >
+                          {subcategory.name}
+                        </ThemedText>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+              )}
 
               {/* Индикатор начальной загрузки */}
               {isLoading && !isLoadingMore && sortedProducts.length === 0 && (
@@ -353,7 +415,7 @@ export default function CatalogDetailScreen() {
                 <View style={styles.productsGrid}>
                   {sortedProducts.map((product) => (
                     <ProductCard
-                      key={`${product.id}-${currentPage}`}
+                      key={`${product.id}-${currentPage}-${selectedSubcategoryId}`}
                       id={product.id}
                       img={product.image}
                       name={product.name}
@@ -373,11 +435,12 @@ export default function CatalogDetailScreen() {
                     style={styles.image}
                     resizeMode="contain"
                   />
-                  <ThemedText lightColor='#1B1B1C' 
-                    darkColor='#FBFCFF'  style={styles.emptyText}>Ничего не найдено</ThemedText>
-                  <ThemedText lightColor='#80818B'
-                    darkColor='#80818B' style={styles.emptyTextSecond}>Попробуйте изменить или сбросить фильтры  </ThemedText>
-
+                  <ThemedText lightColor='#1B1B1C' darkColor='#FBFCFF' style={styles.emptyText}>
+                    Ничего не найдено
+                  </ThemedText>
+                  <ThemedText lightColor='#80818B' darkColor='#80818B' style={styles.emptyTextSecond}>
+                    Попробуйте изменить или сбросить фильтры
+                  </ThemedText>
                 </View>
               )}
 
@@ -549,34 +612,33 @@ const styles = StyleSheet.create({
     zIndex: 1,
     alignItems: 'center',
   },
-
-  categoriesWrapper: {
+  subcategoriesWrapper: {
     marginHorizontal: 16,
     marginBottom: 16,
   },
-  categoriesContainer: {
+  subcategoriesContainer: {
     flexGrow: 0,
   },
-  categoriesContent: {
+  subcategoriesContent: {
     flexDirection: 'row',
     paddingRight: 16,
   },
-  categoryButton: {
+  subcategoryButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
     backgroundColor: '#F5F5F5',
     borderRadius: 6,
     marginRight: 8,
   },
-  categoryButtonActive: {
+  subcategoryButtonActive: {
     backgroundColor: '#203686',
   },
-  categoryText: {
+  subcategoryText: {
     fontFamily: 'Montserrat',
     fontSize: 14,
     color: '#1B1B1C',
   },
-  categoryTextActive: {
+  subcategoryTextActive: {
     color: '#FFFFFF',
     fontWeight: '600',
   },
@@ -606,7 +668,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 24,
-    fontWeight: 600
+    fontWeight: '600',
   },
   emptyTextSecond: {
     fontSize: 16,

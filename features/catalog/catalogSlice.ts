@@ -18,13 +18,14 @@ interface CategoryFilter {
 interface CategoryState {
   isLoading: boolean;
   isLoadingMore: boolean;
-  isLoadingFilters: boolean; // Добавляем состояние загрузки фильтров
+  isLoadingFilters: boolean;
   products: any[];
   totalCount: number;
   currentPage: number;
   hasMore: boolean;
-  filters: CategoryFilter[]; // Добавляем фильтры
-  selectedFilterIds: string[]; // Выбранные ID фильтров
+  filters: CategoryFilter[];
+  selectedFilterIds: string[];
+  selectedSubcategoryId: string | null; // Добавляем состояние для выбранной подкатегории
 }
 
 const initialState: CategoryState = {
@@ -37,47 +38,64 @@ const initialState: CategoryState = {
   hasMore: true,
   filters: [],
   selectedFilterIds: [],
+  selectedSubcategoryId: null, // Инициализируем как null
 };
 
 export const getProductList = createAsyncThunk(
   "user/getProductList",
-  async (payload: { params: any, isLoadMore?: boolean }, { rejectWithValue, getState }) => {
+  async (payload: { 
+    params: any, 
+    isLoadMore?: boolean
+  }, { rejectWithValue, getState }) => {
     try {
       const state = getState() as { catalog: CategoryState };
-      const { selectedFilterIds } = state.catalog;
+      const { selectedFilterIds, selectedSubcategoryId } = state.catalog;
       
-      // Создаем параметры вручную
-      const queryParams = new URLSearchParams();
+      // Создаем параметры
+      const params = new URLSearchParams();
       
-      // Базовые параметры
-      const baseParams = {
-        ...payload.params,
-        isFavorite: false
-      };
+      // Добавляем основные параметры
+      params.append('isFavorite', 'false');
+      if (payload.params.categoryId) {
+        params.append('categoryId', payload.params.categoryId);
+      }
       
-      // Добавляем все параметры кроме фильтров
-      Object.keys(baseParams).forEach(key => {
-        const value = baseParams[key];
-        if (value !== null && value !== undefined && key !== 'ProductFilterIds') {
-          if (Array.isArray(value)) {
-            value.forEach(item => queryParams.append(key, item));
-          } else {
-            queryParams.append(key, value.toString());
-          }
-        }
-      });
+      // Добавляем подкатегорию если выбрана (кроме 'all')
+      if (selectedSubcategoryId && selectedSubcategoryId !== 'all') {
+        params.append('subCategoryId', selectedSubcategoryId);
+      }
       
-      // Добавляем фильтры в правильном формате
+      if (payload.params.offset !== undefined) {
+        params.append('offset', payload.params.offset.toString());
+      }
+      if (payload.params.count !== undefined) {
+        params.append('count', payload.params.count.toString());
+      }
+      if (payload.params.Search) {
+        params.append('Search', payload.params.Search);
+      }
+      if (payload.params.MinPrice !== undefined) {
+        params.append('MinPrice', payload.params.MinPrice.toString());
+      }
+      if (payload.params.MaxPrice !== undefined) {
+        params.append('MaxPrice', payload.params.MaxPrice.toString());
+      }
+      
+      // Добавляем фильтры
       if (selectedFilterIds.length > 0) {
         selectedFilterIds.forEach(filterId => {
-          queryParams.append('ProductFilterIds', filterId);
+          params.append('ProductFilterIds', filterId);
         });
       }
       
-      const url = `/api/Catalog/product/list?${queryParams.toString()}`;
-      console.log('Request URL:', url);
+      console.log('API params:', params.toString());
       
-      const data = await axdef.get(url);
+      const data = await axdef.get("/api/Catalog/product/list", {
+        params: params,
+        paramsSerializer: function(params) {
+          return params.toString();
+        }
+      });
       
       return { 
         data: data.data, 
@@ -91,7 +109,6 @@ export const getProductList = createAsyncThunk(
   }
 );
 
-// Новый thunk для получения фильтров
 export const getCategoryFilters = createAsyncThunk(
   "catalog/getCategoryFilters",
   async (categoryId: string, { rejectWithValue }) => {
@@ -119,6 +136,7 @@ const catalogSlice = createSlice({
       state.currentPage = 0;
       state.hasMore = true;
       state.selectedFilterIds = [];
+      state.selectedSubcategoryId = null;
     },
     resetPagination: (state) => {
       state.products = [];
@@ -126,17 +144,15 @@ const catalogSlice = createSlice({
       state.hasMore = true;
       state.totalCount = 0;
       state.selectedFilterIds = [];
+      state.selectedSubcategoryId = null;
     },
-    // Действия для управления фильтрами
     toggleFilterSelection: (state, action) => {
       const filterId = action.payload;
       const index = state.selectedFilterIds.indexOf(filterId);
       
       if (index === -1) {
-        // Добавляем фильтр
         state.selectedFilterIds.push(filterId);
       } else {
-        // Удаляем фильтр
         state.selectedFilterIds.splice(index, 1);
       }
     },
@@ -145,6 +161,21 @@ const catalogSlice = createSlice({
     },
     setSelectedFilters: (state, action) => {
       state.selectedFilterIds = action.payload;
+    },
+    // Действия для подкатегорий
+    setSelectedSubcategory: (state, action) => {
+      state.selectedSubcategoryId = action.payload;
+      // Сбрасываем пагинацию при смене подкатегории
+      state.products = [];
+      state.currentPage = 0;
+      state.hasMore = true;
+    },
+    clearSelectedSubcategory: (state) => {
+      state.selectedSubcategoryId = null;
+      // Сбрасываем пагинацию при сбросе подкатегории
+      state.products = [];
+      state.currentPage = 0;
+      state.hasMore = true;
     },
   },
   extraReducers: (builder) => {
@@ -176,6 +207,8 @@ const catalogSlice = createSlice({
       // Проверяем, есть ли еще данные
       const loadedCount = adaptedProducts.length;
       state.hasMore = loadedCount === 10;
+      
+      console.log('Products loaded:', adaptedProducts.length, 'Total:', state.products.length, 'Has more:', state.hasMore);
     });
     
     builder.addCase(getProductList.rejected, (state, action) => {
@@ -206,6 +239,8 @@ export const {
   resetPagination, 
   toggleFilterSelection, 
   clearSelectedFilters,
-  setSelectedFilters 
+  setSelectedFilters,
+  setSelectedSubcategory,
+  clearSelectedSubcategory
 } = catalogSlice.actions;
 export default catalogSlice.reducer;
