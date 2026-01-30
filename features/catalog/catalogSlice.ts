@@ -3,6 +3,7 @@ import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import { axiosErrorHandler } from '../shared/services/api';
 import { axdef } from '../shared/services/axios';
 import { adaptProductsArray } from '../shared/services/productAdapter';
+import { adaptProductSingleObj } from '../shared/services/productSingleAdapter';
 
 interface FilterOption {
   id: string;
@@ -26,6 +27,8 @@ interface CategoryState {
   filters: CategoryFilter[];
   selectedFilterIds: string[];
   selectedSubcategoryId: string | null; // Добавляем состояние для выбранной подкатегории
+  product: any;
+  isLoadingProduct: boolean;
 }
 
 const initialState: CategoryState = {
@@ -39,6 +42,8 @@ const initialState: CategoryState = {
   filters: [],
   selectedFilterIds: [],
   selectedSubcategoryId: null, // Инициализируем как null
+  product: null,
+  isLoadingProduct: false,
 };
 
 export const getProductList = createAsyncThunk(
@@ -115,6 +120,21 @@ export const getCategoryFilters = createAsyncThunk(
     try {
       const data = await axdef.get("/api/Catalog/filters", {
         params: { categoryId }
+      });
+      return data.data.data;
+    } catch (error) {
+      console.log(error);
+      return rejectWithValue(error);
+    }
+  }
+);
+
+export const getProduct = createAsyncThunk(
+  "catalog/getProduct",
+  async (productId: string, { rejectWithValue }) => {
+    try {
+      const data = await axdef.get("/api/Catalog/product", {
+        params: { productId }
       });
       return data.data.data;
     } catch (error) {
@@ -229,6 +249,21 @@ const catalogSlice = createSlice({
     
     builder.addCase(getCategoryFilters.rejected, (state, action) => {
       state.isLoadingFilters = false;
+      axiosErrorHandler(action?.payload);
+    });
+    
+    builder.addCase(getProduct.pending, (state) => {
+      state.isLoadingProduct = true;
+    });
+    
+    builder.addCase(getProduct.fulfilled, (state, action) => {
+      console.log('action.payload', action.payload)
+      state.product = adaptProductSingleObj(action.payload);
+      state.isLoadingProduct = false;
+    });
+    
+    builder.addCase(getProduct.rejected, (state, action) => {
+      state.isLoadingProduct = false;
       axiosErrorHandler(action?.payload);
     });
   }

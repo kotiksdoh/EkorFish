@@ -2,17 +2,18 @@ import { CartIcon, LikeIcon, SnowflakeIcon } from '@/assets/icons/icons.js';
 import noImage from '@/assets/icons/png/noImage.png';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Image, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 interface ProductCardProps {
   id?: number;
-  img?: any; // ImageSourcePropType или число (require) или объект {uri: string}
+  img?: any;
   isFrozen?: boolean;
   name?: string;
   kgPrice?: any;
   fullPrice?: any;
-  isImageLoading?: boolean; // Можно передавать извне
+  isImageLoading?: boolean;
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({
@@ -29,7 +30,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const [imageError, setImageError] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
 
-  // Если передали внешний статус загрузки
   useEffect(() => {
     if (!externalLoading && img) {
       setIsImageLoading(true);
@@ -38,9 +38,16 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     }
   }, [img, externalLoading]);
 
-  const handleLikePress = () => {
+  const handleLikePress = (e: any) => {
+    e.stopPropagation(); // Останавливаем всплытие
     setIsLiked(!isLiked);
     console.log(`Товар ${id} ${isLiked ? 'удален из' : 'добавлен в'} избранное`);
+  };
+
+  const handleCartPress = (e: any) => {
+    e.stopPropagation(); // Останавливаем всплытие
+    console.log(`Товар ${id} добавлен в корзину`);
+    // Здесь добавьте логику добавления в корзину
   };
 
   const handleImageLoadStart = () => {
@@ -58,138 +65,154 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     setImageError(true);
   };
 
-  // Функция для форматирования цены
   const formatPrice = (price: number) => {
     return price.toLocaleString('ru-RU', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     });
   };
+  
+  const router = useRouter();
+
+  const toProductDetail = () => {
+    //@ts-ignore
+    router.push(`dashboard/product/${encodeURIComponent(id)}?productId=${id}&productName=${encodeURIComponent(name)}`);
+  }
 
   return (
-    <ThemedView lightColor='#FFFFFF' style={styles.container}>
-      {/* Верхняя часть с изображением */}
-      <View style={styles.imageContainer}>
-        {!isImageLoaded && (isImageLoading || externalLoading) && (
-          <View style={[styles.image, styles.imageLoadingContainer]}>
-            <ActivityIndicator 
-              size="small" 
-              color="#666666"
-              style={styles.loader}
-            />
-          </View>
-        )}
-        
-        {imageError && (
-          <View style={[styles.image, styles.imageErrorContainer]}>
-            <ThemedText style={styles.errorText}>Не удалось загрузить</ThemedText>
-          </View>
-        )}
-        
-        {/* Основное изображение */}
-        {img && !imageError && (
-          <Image
-            source={img}
-            style={[
-              styles.image,
-              (!isImageLoaded || isImageLoading || externalLoading) && styles.imageHidden
-            ]}
-            resizeMode="cover"
-            onLoadStart={handleImageLoadStart}
-            onLoadEnd={handleImageLoadEnd}
-            onError={handleImageError}
-          />
-        )}
-        {!img && (
-                    <Image
-                    source={noImage}
-                    style={[
-                      styles.image,
-                      // (!isImageLoaded || isImageLoading || externalLoading) && styles.imageHidden
-                    ]}
-                    resizeMode="cover"
-                    onLoadStart={handleImageLoadStart}
-                    onLoadEnd={handleImageLoadEnd}
-                    onError={handleImageError}
-                  />
-        )
-        }
-        
-        {/* Иконки поверх изображения */}
-        {isFrozen && !isImageLoading && (
-          <View style={styles.frozenIcon}>
-            <SnowflakeIcon />
-          </View>
-        )}
-        
-        <TouchableOpacity 
-          style={[
-            styles.heartIcon,
-            isLiked && styles.heartIconActive
-          ]} 
-          onPress={handleLikePress}
-          activeOpacity={0.7}
-        >
-          {!isImageLoading && (
-            isLiked ? (
-              <LikeIcon isFilled={true} /> 
-            ) : (
-              <LikeIcon isFilled={false} /> 
-            )
-          )}
-        </TouchableOpacity>
-      </View>
-      
-      {/* Нижняя часть с информацией */}
-      <View style={styles.infoContainer}>
-        <ThemedText 
-          lightColor='#1B1B1C' 
-          darkColor='#FBFCFF' 
-          style={styles.name} 
-          numberOfLines={2} 
-          ellipsizeMode="tail"
-        >
-          {name || 'Название товара'}
-        </ThemedText>
-        
-        <View style={styles.priceRow}>
-          <View style={styles.priceContainer}>
-            <View style={styles.kgPriceRow}>
-              <ThemedText lightColor='#203686' darkColor='#4C94FF' style={styles.kgPrice}>
-                {kgPrice ? kgPrice : '0,00'}
-              </ThemedText>
-              <ThemedText lightColor='#203686' darkColor='#4C94FF' style={styles.kgLabel}>₽ / кг</ThemedText>
+    // Обертка для клика по всей карточке
+    <TouchableOpacity 
+      onPress={toProductDetail}
+      activeOpacity={0.9}
+      style={styles.cardTouchable}
+    >
+      <ThemedView lightColor='#FFFFFF' style={styles.container}>
+        {/* Верхняя часть с изображением */}
+        <View style={styles.imageContainer}>
+          {!isImageLoaded && (isImageLoading || externalLoading) && (
+            <View style={[styles.image, styles.imageLoadingContainer]}>
+              <ActivityIndicator 
+                size="small" 
+                color="#666666"
+                style={styles.loader}
+              />
             </View>
-            
-            <ThemedText lightColor='#80818B' darkColor='#FBFCFF80' style={styles.fullPrice}>
-              {fullPrice ? `${fullPrice}₽` : '0,00 ₽'}
-            </ThemedText>
-          </View>
+          )}
           
-          <TouchableOpacity style={styles.cartButton}>
-            <CartIcon />
+          {imageError && (
+            <View style={[styles.image, styles.imageErrorContainer]}>
+              <ThemedText style={styles.errorText}>Не удалось загрузить</ThemedText>
+            </View>
+          )}
+          
+          {/* Основное изображение */}
+          {img && !imageError && (
+            <Image
+              source={img}
+              style={[
+                styles.image,
+                (!isImageLoaded || isImageLoading || externalLoading) && styles.imageHidden
+              ]}
+              resizeMode="cover"
+              onLoadStart={handleImageLoadStart}
+              onLoadEnd={handleImageLoadEnd}
+              onError={handleImageError}
+            />
+          )}
+          {!img && (
+            <Image
+              source={noImage}
+              style={styles.image}
+              resizeMode="cover"
+              onLoadStart={handleImageLoadStart}
+              onLoadEnd={handleImageLoadEnd}
+              onError={handleImageError}
+            />
+          )}
+          
+          {/* Иконки поверх изображения */}
+          {isFrozen && !isImageLoading && (
+            <View style={styles.frozenIcon}>
+              <SnowflakeIcon />
+            </View>
+          )}
+          
+          <TouchableOpacity 
+            style={[
+              styles.heartIcon,
+              isLiked && styles.heartIconActive
+            ]} 
+            onPress={handleLikePress}
+            activeOpacity={0.7}
+          >
+            {!isImageLoading && (
+              isLiked ? (
+                <LikeIcon isFilled={true} /> 
+              ) : (
+                <LikeIcon isFilled={false} /> 
+              )
+            )}
           </TouchableOpacity>
         </View>
-      </View>
-    </ThemedView>
+        
+        {/* Нижняя часть с информацией */}
+        <View style={styles.infoContainer}>
+          <ThemedText 
+            lightColor='#1B1B1C' 
+            darkColor='#FBFCFF' 
+            style={styles.name} 
+            numberOfLines={2} 
+            ellipsizeMode="tail"
+          >
+            {name || 'Название товара'}
+          </ThemedText>
+          
+          <View style={styles.priceRow}>
+            <View style={styles.priceContainer}>
+              <View style={styles.kgPriceRow}>
+                <ThemedText lightColor='#203686' darkColor='#4C94FF' style={styles.kgPrice}>
+                  {kgPrice ? kgPrice : '0,00'}
+                </ThemedText>
+                <ThemedText lightColor='#203686' darkColor='#4C94FF' style={styles.kgLabel}>₽ / кг</ThemedText>
+              </View>
+              
+              <ThemedText lightColor='#80818B' darkColor='#FBFCFF80' style={styles.fullPrice}>
+                {fullPrice ? `${fullPrice}₽` : '0,00 ₽'}
+              </ThemedText>
+            </View>
+            
+            <TouchableOpacity 
+              style={styles.cartButton}
+              onPress={handleCartPress}
+              activeOpacity={0.7}
+            >
+              <CartIcon />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </ThemedView>
+    </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'column',
+  cardTouchable: {
     width: '48.8%',
-    borderRadius: 8,
-    overflow: 'hidden',
     // marginRight: 12,
     // marginLeft: 12,
+    marginBottom: 12,
+  },
+  container: {
+    flexDirection: 'column',
+    width: '100%',
+    borderRadius: 8,
+    overflow: 'hidden',
     elevation: 3,
   },
   imageContainer: {
     position: 'relative',
     width: '100%',
     height: 138,
-    // backgroundColor: '#F5F5F5', // Фон пока грузится
   },
   image: {
     width: '100%',
@@ -207,7 +230,6 @@ const styles = StyleSheet.create({
   imageErrorContainer: {
     justifyContent: 'center',
     alignItems: 'center',
-    // backgroundColor: '#F8D7DA',
   },
   errorText: {
     fontSize: 10,

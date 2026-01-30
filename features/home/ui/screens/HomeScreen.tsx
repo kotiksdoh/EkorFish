@@ -56,6 +56,7 @@ const sliderItems = useAppSelector((state) => state.auth.sliders);
   //     };
   //   }, [])
   // );
+  console.log('sliderItems', sliderItems)
   return (
     // <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
       <ScrollView 

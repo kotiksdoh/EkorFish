@@ -19,6 +19,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Animated,
   Dimensions,
   Image,
   Modal,
@@ -28,11 +29,12 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
 } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-const { width: screenWidth } = Dimensions.get('window');
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
 export default function CatalogDetailScreen() {
   const { catalogId, catalogName, children } = useLocalSearchParams<{
@@ -63,6 +65,10 @@ export default function CatalogDetailScreen() {
 
   const pageSize = 10;
 
+  // Анимация для свайпа модалки
+  const modalTranslateY = useRef(new Animated.Value(screenHeight)).current;
+  const [isClosing, setIsClosing] = useState(false);
+
   // Получаем состояние из Redux
   const products = useAppSelector((state) => state.catalog.products);
   const isLoading = useAppSelector((state) => state.catalog.isLoading);
@@ -81,9 +87,53 @@ export default function CatalogDetailScreen() {
   const searchInputRef = useRef<TextInput>(null);
   const router = useRouter();
   const scrollViewRef = useRef<ScrollView>(null);
+  const modalScrollViewRef = useRef<ScrollView>(null);
 
   // Ref для предотвращения двойных запросов
   const isFetchingRef = useRef(false);
+
+  // Функция для закрытия модалки с анимацией
+  const closeModalWithAnimation = useCallback(() => {
+    if (isClosing) return;
+    
+    setIsClosing(true);
+    Animated.timing(modalTranslateY, {
+      toValue: screenHeight,
+      duration: 250,
+      useNativeDriver: true,
+    }).start(() => {
+      setShowFilters(false);
+      setIsClosing(false);
+    });
+  }, [isClosing]);
+
+  // Обработчик нажатия на overlay
+  const handleOverlayPress = useCallback(() => {
+    if (!isClosing) {
+      closeModalWithAnimation();
+    }
+  }, [isClosing, closeModalWithAnimation]);
+
+  // Эффект для анимации появления модалки
+  useEffect(() => {
+    if (showFilters) {
+      modalTranslateY.setValue(screenHeight);
+      Animated.spring(modalTranslateY, {
+        toValue: 0,
+        useNativeDriver: true,
+        damping: 20,
+        stiffness: 90,
+        mass: 0.8,
+      }).start();
+    } else {
+      modalTranslateY.setValue(screenHeight);
+    }
+  }, [showFilters]);
+
+  // Простой обработчик свайпа для защелки
+  const handleSwipeHandlePress = useCallback(() => {
+    closeModalWithAnimation();
+  }, [closeModalWithAnimation]);
 
   // Загрузка продуктов
   const loadProducts = useCallback(async (isLoadMore: boolean = false, searchText: string = searchQuery) => {
@@ -232,12 +282,14 @@ export default function CatalogDetailScreen() {
 
   // Применение фильтров
   const applyFilters = () => {
-    setShowFilters(false);
+    closeModalWithAnimation();
     
     // Перезагружаем товары с новыми фильтрами
     if (catalogId) {
-      scrollViewRef.current?.scrollTo({ y: 0, animated: false });
-      loadProducts(false, searchQuery);
+      setTimeout(() => {
+        scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+        loadProducts(false, searchQuery);
+      }, 300);
     }
   };
 
@@ -285,11 +337,6 @@ export default function CatalogDetailScreen() {
       onPress={() => handleFilterToggle(filterOption.id)}
     >
       <ThemedText style={styles.filterItemText}>{filterOption.value}</ThemedText>
-      {/* {isFilterSelected(filterOption.id) && (
-        <View style={styles.filterCheckmark}>
-          <ThemedText style={styles.filterCheckmarkText}>✓</ThemedText>
-        </View>
-      )} */}
     </TouchableOpacity>
   );
 
@@ -461,107 +508,121 @@ export default function CatalogDetailScreen() {
         {/* Модальное окно фильтров */}
         <Modal
           visible={showFilters}
-          animationType="slide"
+          animationType="none" 
           transparent={true}
-          onRequestClose={() => setShowFilters(false)}
+          onRequestClose={closeModalWithAnimation}
         >
-          <View style={styles.modalOverlay}>
-            <ThemedView style={styles.modalContainer}>
-              <View style={styles.modalHeader}>
-                <TouchableOpacity onPress={() => setShowFilters(false)}>
-                  <ThemedText style={styles.modalCloseText}>Отмена</ThemedText>
-                </TouchableOpacity>
-                
-                <ThemedText style={styles.modalTitle}>Фильтры</ThemedText>
-                
-                <TouchableOpacity onPress={resetFilters}>
-                  <ThemedText style={styles.modalResetText}>Сбросить</ThemedText>
-                </TouchableOpacity>
-              </View>
+          <TouchableWithoutFeedback onPress={handleOverlayPress}>
+            <View style={styles.modalOverlay}>
+              <TouchableWithoutFeedback>
+                <Animated.View 
+                  style={[
+                    styles.modalContainer,
+                    {
+                      transform: [{ translateY: modalTranslateY }],
+                    },
+                  ]}
+                >
+                  {/* Защелка для свайпа */}
+                  <TouchableOpacity
+                    style={styles.swipeHandleContainer}
+                    activeOpacity={0.7}
+                    onPress={handleSwipeHandlePress}
+                  >
+                    <View style={styles.swipeHandle} />
+                  </TouchableOpacity>
 
-              <ScrollView style={styles.modalContent}>
-                {/* Фильтр по цене */}
-                <View style={styles.filterSection}>
-                  <ThemedText style={styles.filterSectionTitle}>Цена за кг</ThemedText>
-                  <View style={styles.priceInputs}>
-                    <View style={styles.priceInputContainer}>
-                      {/* <TextInput
-                        style={styles.priceInput}
-                        placeholder="От"
-                        value={priceRange.min}
-                        onChangeText={(text) => setPriceRange({ ...priceRange, min: text })}
-                        keyboardType="numeric"
-                      /> */}
-                      <AnimatedTextInput
-                        placeholder="От"
-                        placeholderTextColor="#80818B"
-                        value={priceRange.min}
-                        onChangeText={(text) => setPriceRange({ ...priceRange, min: text })}
-                        keyboardType="numeric"
-                      />
-                    </View>
+                  <View style={styles.modalHeader}>
+                    <TouchableOpacity onPress={closeModalWithAnimation}>
+                      <ThemedText style={styles.modalCloseText}>Отмена</ThemedText>
+                    </TouchableOpacity>
                     
-                    <View style={styles.priceSeparator} />
+                    <ThemedText style={styles.modalTitle}>Фильтры</ThemedText>
                     
-                    <View style={styles.priceInputContainer}>
-                      {/* <TextInput
-                        style={styles.priceInput}
-                        placeholder="До"
-                        value={priceRange.max}
-                        onChangeText={(text) => setPriceRange({ ...priceRange, max: text })}
-                        keyboardType="numeric"
-                      /> */}
-                      <AnimatedTextInput
-                        placeholder="До"
-                        placeholderTextColor="#80818B"
-                        value={priceRange.max}
-                        onChangeText={(text) => setPriceRange({ ...priceRange, max: text })}
-                        keyboardType="numeric"
+                    <TouchableOpacity onPress={resetFilters}>
+                      <ThemedText style={styles.modalResetText}>Сбросить</ThemedText>
+                    </TouchableOpacity>
+                  </View>
 
-                      />
+                  <ScrollView 
+                    ref={modalScrollViewRef}
+                    style={styles.modalContent}
+                    showsVerticalScrollIndicator={true}
+                    bounces={true}
+                    scrollEventThrottle={16}
+                  >
+                    {/* Фильтр по цене */}
+                    <View style={styles.filterSection}>
+                      <ThemedText style={styles.filterSectionTitle}>Цена за кг</ThemedText>
+                      <View style={styles.priceInputs}>
+                        <View style={styles.priceInputContainer}>
+                          <AnimatedTextInput
+                            placeholder="От"
+                            placeholderTextColor="#80818B"
+                            value={priceRange.min}
+                            onChangeText={(text) => setPriceRange({ ...priceRange, min: text })}
+                            keyboardType="numeric"
+                          />
+                        </View>
+                        
+                        <View style={styles.priceSeparator} />
+                        
+                        <View style={styles.priceInputContainer}>
+                          <AnimatedTextInput
+                            placeholder="До"
+                            placeholderTextColor="#80818B"
+                            value={priceRange.max}
+                            onChangeText={(text) => setPriceRange({ ...priceRange, max: text })}
+                            keyboardType="numeric"
+                          />
+                        </View>
+                      </View>
                     </View>
-                  </View>
-                </View>
 
-                {/* Индикатор загрузки фильтров */}
-                {isLoadingFilters && (
-                  <View style={styles.filtersLoadingContainer}>
-                    <ActivityIndicator size="small" color="#203686" />
-                    <ThemedText style={styles.filtersLoadingText}>Загрузка фильтров...</ThemedText>
-                  </View>
-                )}
+                    {/* Индикатор загрузки фильтров */}
+                    {isLoadingFilters && (
+                      <View style={styles.filtersLoadingContainer}>
+                        <ActivityIndicator size="small" color="#203686" />
+                        <ThemedText style={styles.filtersLoadingText}>Загрузка фильтров...</ThemedText>
+                      </View>
+                    )}
 
-                {/* Динамические фильтры с бекенда */}
-                {!isLoadingFilters && filters.length > 0 && filters.map((filterGroup) => (
-                  <View key={filterGroup.id} style={styles.filterSection}>
-                    <ThemedText style={styles.filterSectionTitle}>
-                      {filterGroup.name}
+                    {/* Динамические фильтры с бекенда */}
+                    {!isLoadingFilters && filters.length > 0 && filters.map((filterGroup) => (
+                      <View key={filterGroup.id} style={styles.filterSection}>
+                        <ThemedText style={styles.filterSectionTitle}>
+                          {filterGroup.name}
+                        </ThemedText>
+                        
+                        <View style={styles.filterItems}>
+                          {filterGroup.filterOptions.map((option) => 
+                            renderFilterItem(option, filterGroup.id)
+                          )}
+                        </View>
+                      </View>
+                    ))}
+
+                    {/* Сообщение если нет фильтров */}
+                    {!isLoadingFilters && filters.length === 0 && (
+                      <View style={styles.noFiltersContainer}>
+                        <ThemedText style={styles.noFiltersText}>Нет доступных фильтров</ThemedText>
+                      </View>
+                    )}
+
+                    {/* Добавляем отступ внизу чтобы контент не прилипал к кнопке */}
+                    <View style={styles.modalBottomSpacer} />
+                  </ScrollView>
+
+                  {/* Кнопка применения */}
+                  <TouchableOpacity style={styles.applyButton} onPress={applyFilters}>
+                    <ThemedText style={styles.applyButtonText}>
+                      Применить фильтры {appliedFiltersCount > 0 ? `(${appliedFiltersCount})` : ''}
                     </ThemedText>
-                    
-                    <View style={styles.filterItems}>
-                      {filterGroup.filterOptions.map((option) => 
-                        renderFilterItem(option, filterGroup.id)
-                      )}
-                    </View>
-                  </View>
-                ))}
-
-                {/* Сообщение если нет фильтров */}
-                {!isLoadingFilters && filters.length === 0 && (
-                  <View style={styles.noFiltersContainer}>
-                    <ThemedText style={styles.noFiltersText}>Нет доступных фильтров</ThemedText>
-                  </View>
-                )}
-              </ScrollView>
-
-              {/* Кнопка применения */}
-              <TouchableOpacity style={styles.applyButton} onPress={applyFilters}>
-                <ThemedText style={styles.applyButtonText}>
-                  Применить фильтры {appliedFiltersCount > 0 ? `(${appliedFiltersCount})` : ''}
-                </ThemedText>
-              </TouchableOpacity>
-            </ThemedView>
-          </View>
+                  </TouchableOpacity>
+                </Animated.View>
+              </TouchableWithoutFeedback>
+            </View>
+          </TouchableWithoutFeedback>
         </Modal>
       </ThemedView>
     </SafeAreaProvider>
@@ -710,9 +771,29 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: '80%',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '85%',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: -2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  swipeHandleContainer: {
+    alignItems: 'center',
+    paddingTop: 12,
+    paddingBottom: 8,
+    width: '100%',
+  },
+  swipeHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: '#E0E0E0',
+    borderRadius: 2,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -740,7 +821,10 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     paddingHorizontal: 20,
-    paddingBottom: 20,
+    maxHeight: '70%',
+  },
+  modalBottomSpacer: {
+    height: 100,
   },
   filterSection: {
     marginTop: 24,
@@ -800,20 +884,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#1B1B1C',
   },
-  // filterCheckmark: {
-  //   marginLeft: 8,
-  //   width: 20,
-  //   height: 20,
-  //   borderRadius: 10,
-  //   backgroundColor: 'black',
-  //   alignItems: 'center',
-  //   justifyContent: 'center',
-  // },
-  // filterCheckmarkText: {
-  //   color: '#FFFFFF',
-  //   fontSize: 12,
-  //   fontWeight: 'bold',
-  // },
   applyButton: {
     backgroundColor: '#203686',
     marginHorizontal: 20,
@@ -821,6 +891,10 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
   },
   applyButtonText: {
     color: '#FFFFFF',
