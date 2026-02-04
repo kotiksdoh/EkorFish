@@ -12,6 +12,7 @@ import {
   setSelectedSubcategory,
   toggleFilterSelection
 } from '@/features/catalog/catalogSlice';
+import { AddToCartModal } from '@/features/shared/ui/AddToCartModal';
 import { ProductCard } from '@/features/shared/ui/ProductCard';
 import AnimatedTextInput from '@/features/shared/ui/components/CustomInput';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
@@ -62,6 +63,9 @@ export default function CatalogDetailScreen() {
     min: '',
     max: '',
   });
+
+  const [selectedProduct, setSelectedProduct] = useState<any>(null);
+  const [showAddToCartModal, setShowAddToCartModal] = useState(false);
 
   const pageSize = 10;
 
@@ -228,6 +232,19 @@ export default function CatalogDetailScreen() {
     // При первом открытии сбрасываем выбранную подкатегорию
     dispatch(setSelectedSubcategory(null));
   }, [dispatch]);
+
+  const handleAddToCartPress = (product: any) => {
+    setSelectedProduct(product);
+    setShowAddToCartModal(true);
+  };
+
+  const handleAddToCart = (productId: string, optionId: string, quantity: number) => {
+    console.log('Добавлено в корзину:', {
+      productId,
+      optionId,
+      quantity,
+    });
+  };
 
   // Обработчик прокрутки
   const handleScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -472,6 +489,9 @@ export default function CatalogDetailScreen() {
                       kgPrice={product.pricePerKg.toLocaleString('ru-RU')}
                       fullPrice={product.price.toLocaleString('ru-RU')}
                       isFrozen={product.isFrozen}
+                      isFavorite={product.isFavorite}
+                      productData={product} 
+                      onAddToCartPress={handleAddToCartPress}
                     />
                   ))}
                 </View>
@@ -625,6 +645,12 @@ export default function CatalogDetailScreen() {
           </TouchableWithoutFeedback>
         </Modal>
       </ThemedView>
+      <AddToCartModal
+        visible={showAddToCartModal}
+        onClose={() => setShowAddToCartModal(false)}
+        product={selectedProduct}
+        onAddToCart={handleAddToCart}
+      />
     </SafeAreaProvider>
   );
 };

@@ -40,6 +40,7 @@ export default function SpecialOffers() {
             name={item?.name}
             kgPrice={item?.kgPrice}
             fullPrice={item?.fullPrice}
+            
         />
         )
         }

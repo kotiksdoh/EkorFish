@@ -2,6 +2,8 @@ import { CartIcon, LikeIcon, SnowflakeIcon } from '@/assets/icons/icons.js';
 import noImage from '@/assets/icons/png/noImage.png';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { putFavorite } from '@/features/catalog/catalogSlice';
+import { useAppDispatch } from '@/store/hooks';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Image, StyleSheet, TouchableOpacity, View } from 'react-native';
@@ -14,6 +16,9 @@ interface ProductCardProps {
   kgPrice?: any;
   fullPrice?: any;
   isImageLoading?: boolean;
+  isFavorite?: boolean
+  productData?: any; // Полные данные продукта
+  onAddToCartPress?: (product: any) => void; // Callback для открытия модалки
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({
@@ -24,12 +29,15 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   kgPrice,
   fullPrice,
   isImageLoading: externalLoading = false,
+  isFavorite,
+  productData,
+  onAddToCartPress,
 }) => {
   const [isImageLoaded, setIsImageLoaded] = useState(false);
   const [isImageLoading, setIsImageLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
-  const [isLiked, setIsLiked] = useState(false);
-
+  const [isLiked, setIsLiked] = useState(isFavorite);
+  const dispatch = useAppDispatch()
   useEffect(() => {
     if (!externalLoading && img) {
       setIsImageLoading(true);
@@ -37,17 +45,22 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       setImageError(false);
     }
   }, [img, externalLoading]);
-
+  // useEffect()
   const handleLikePress = (e: any) => {
     e.stopPropagation(); // Останавливаем всплытие
-    setIsLiked(!isLiked);
+    dispatch(putFavorite(id)).then((res: any) => 
+      setIsLiked(!isLiked)
+    )
     console.log(`Товар ${id} ${isLiked ? 'удален из' : 'добавлен в'} избранное`);
   };
 
   const handleCartPress = (e: any) => {
-    e.stopPropagation(); // Останавливаем всплытие
-    console.log(`Товар ${id} добавлен в корзину`);
-    // Здесь добавьте логику добавления в корзину
+    e.stopPropagation();
+    if (onAddToCartPress && productData) {
+      onAddToCartPress(productData);
+    } else {
+      console.log(`Товар ${id} добавлен в корзину`);
+    }
   };
 
   const handleImageLoadStart = () => {

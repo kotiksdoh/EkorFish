@@ -1,7 +1,7 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import React from 'react';
-import { StyleSheet, TouchableOpacity } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
 interface ModalHeaderProps {
     title?: string;
@@ -25,6 +25,7 @@ export const ModalHeader: React.FC<ModalHeaderProps> = ({
 
     return (
         <ThemedView lightColor={'#FFFFFF'} darkColor='#151516' style={headerStyles.allCont}>
+            {title || showBackButton ?
             <ThemedView lightColor={'#FFFFFF'} darkColor='#151516' style={headerStyles.container}>
                 {showBackButton && (
                     <TouchableOpacity style={headerStyles.backButton} onPress={onBackPress}>
@@ -39,7 +40,10 @@ export const ModalHeader: React.FC<ModalHeaderProps> = ({
                     {truncateTitle(title)}
                 </ThemedText>
             </ThemedView>
+            : null}
+            <View style={(!title || !showBackButton) && headerStyles.containerSub}>
             {content ? content : null}
+            </View>
         </ThemedView>
     );
 };
@@ -60,6 +64,10 @@ const headerStyles = StyleSheet.create({
         paddingHorizontal: 20,
         position: 'relative',
         alignItems: 'center'
+    },
+    containerSub: {
+        paddingTop: 62,
+
     },
     backButton: {
         position: 'absolute',

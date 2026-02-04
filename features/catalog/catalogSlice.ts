@@ -60,7 +60,12 @@ export const getProductList = createAsyncThunk(
       const params = new URLSearchParams();
       
       // Добавляем основные параметры
-      params.append('isFavorite', 'false');
+      console.log('payload.params.isFavorite', payload.params.isFavorite)
+      // if(payload.params.isFavorite)
+      // params.append('isFavorite', 'false');
+      if (payload.params.isFavorite !== undefined) {
+        params.append('isFavorite', payload.params.isFavorite);
+      }
       if (payload.params.categoryId) {
         params.append('categoryId', payload.params.categoryId);
       }
@@ -116,7 +121,7 @@ export const getProductList = createAsyncThunk(
 
 export const getCategoryFilters = createAsyncThunk(
   "catalog/getCategoryFilters",
-  async (categoryId: string, { rejectWithValue }) => {
+  async (categoryId: any, { rejectWithValue }) => {
     try {
       const data = await axdef.get("/api/Catalog/filters", {
         params: { categoryId }
@@ -136,6 +141,19 @@ export const getProduct = createAsyncThunk(
       const data = await axdef.get("/api/Catalog/product", {
         params: { productId }
       });
+      return data.data.data;
+    } catch (error) {
+      console.log(error);
+      return rejectWithValue(error);
+    }
+  }
+);
+
+export const putFavorite = createAsyncThunk(
+  "catalog/putFavorite",
+  async (productId: any, { rejectWithValue }) => {
+    try {
+      const data = await axdef.put(`/api/Catalog/product/favorite?productId=${productId}`);
       return data.data.data;
     } catch (error) {
       console.log(error);
@@ -266,6 +284,18 @@ const catalogSlice = createSlice({
       state.isLoadingProduct = false;
       axiosErrorHandler(action?.payload);
     });
+
+    builder.addCase(putFavorite.pending, (state) => {
+    });
+    
+    builder.addCase(putFavorite.fulfilled, (state, action) => {
+      console.log('action.payload', action.payload)
+    });
+    
+    builder.addCase(putFavorite.rejected, (state, action) => {
+      axiosErrorHandler(action?.payload);
+    });
+    
   }
 });
 
