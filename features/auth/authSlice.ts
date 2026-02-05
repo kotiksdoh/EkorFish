@@ -215,6 +215,14 @@ const authSlice = createSlice({
       state.isLoading = false;
       console.log('payloadMe', action.payload.data)
       state.me = action.payload.data.data;
+      // (async () => {
+      //   try {
+      //     await AsyncStorage.setItem("me", action.payload.data.data);
+      //     console.log('me saved to AsyncStorage');
+      //   } catch (error) {
+      //     console.error('Error saving me:', error);
+      //   }
+      // })();
     });
     builder.addCase(getMyInfo.rejected, (state, action) => {
       state.isLoading = false;

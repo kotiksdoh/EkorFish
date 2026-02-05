@@ -3,21 +3,20 @@ import { PackageIcon, RetailIcon, WholesaleIcon } from '@/assets/icons/icons';
 import { ThemedText } from '@/components/themed-text';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-    Animated,
-    Dimensions,
-    Image,
-    Modal,
-    PanResponder,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Animated,
+  Dimensions,
+  Image,
+  Modal,
+  PanResponder,
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
-const { height: SCREEN_HEIGHT } = Dimensions.get('window');
-const MODAL_HEIGHT = SCREEN_HEIGHT * 0.5; // Одна треть - четверть экрана
+const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
+const MODAL_HEIGHT = SCREEN_HEIGHT * 0.44;
 
 interface PurchaseOption {
   id: string;
@@ -34,7 +33,7 @@ interface Product {
   name: string;
   purchaseOptions: PurchaseOption[];
   measureType: string;
-  image: string[];
+  image: string;
 }
 
 interface AddToCartModalProps {
@@ -52,13 +51,13 @@ const getIconForCode = (code: string, isActive: boolean) => {
   
   switch (code) {
     case 'retail':
-      return <RetailIcon fill={fillColor} />;
+      return <RetailIcon fill={fillColor} width={16} height={16} />;
     case 'wholesale':
     case 'wholesale_small':
     case 'wholesale_large':
-      return <WholesaleIcon fill={fillColor} />;
+      return <WholesaleIcon fill={fillColor} width={16} height={16} />;
     case 'package':
-      return <PackageIcon fill={fillColor} />;
+      return <PackageIcon fill={fillColor} width={16} height={16} />;
     default:
       return null;
   }
@@ -103,7 +102,6 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
 
   useEffect(() => {
     if (visible && product) {
-      // Устанавливаем первый таб по умолчанию
       if (product.purchaseOptions.length > 0) {
         const firstOption = product.purchaseOptions[0];
         setSelectedTab(firstOption.id);
@@ -111,7 +109,6 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
         setQuantity(firstOption.minQuantity);
       }
       
-      // Анимация появления
       Animated.spring(translateY, {
         toValue: 0,
         useNativeDriver: true,
@@ -173,6 +170,12 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
   if (!product) return null;
 
   const totalPrice = selectedOption ? selectedOption.price * quantity : 0;
+  const optionsCount = product.purchaseOptions.length;
+  
+  // Рассчитываем ширину таба в зависимости от количества
+  const tabWidth = optionsCount > 0 
+    ? (SCREEN_WIDTH - 32 - 6 - (optionsCount * 4)) / optionsCount // 32 padding, 6 padding табов, 4 margin между табами
+    : 0;
 
   return (
     <Modal
@@ -206,7 +209,7 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
             <View style={styles.header}>
               {product.image && product.image.length > 0 ? (
                 <Image
-                  source={{ uri: product.image[0] }}
+                  source={{ uri: product.image }}
                   style={styles.productImage}
                   resizeMode="cover"
                 />
@@ -226,13 +229,9 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
               </View>
             </View>
 
-            {/* Табы с опциями покупки */}
-            <ScrollView 
-              horizontal 
-              showsHorizontalScrollIndicator={false}
-              style={styles.tabsScrollContainer}
-              contentContainerStyle={styles.tabsScrollContent}
-            >
+            {/* Основной контейнер с табами, ценами и кнопками */}
+            <View style={styles.mainContentContainer}>
+              {/* Табы с опциями покупки - теперь без скролла */}
               <View style={styles.tabsContainer}>
                 {product.purchaseOptions.map((option) => {
                   const isActive = selectedTab === option.id;
@@ -241,6 +240,7 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
                       key={option.id}
                       style={[
                         styles.tabButton,
+                        { width: tabWidth },
                         isActive && styles.activeTabButton,
                       ]}
                       onPress={() => handleTabChange(option.id)}
@@ -255,6 +255,7 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
                           ]}
                           lightColor={isActive ? '#1B1B1C' : '#80818B'}
                           darkColor={isActive ? '#FBFCFF' : '#FBFCFF80'}
+                          numberOfLines={1}
                         >
                           {option.name}
                         </ThemedText>
@@ -263,34 +264,34 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
                   );
                 })}
               </View>
-            </ScrollView>
 
-            {/* Цена и количество */}
-            {selectedOption && (
-              <View style={styles.priceQuantityContainer}>
-                <View style={styles.priceContainer}>
-                  <ThemedText style={styles.priceLabel}>
-                    Цена за {product.measureType === 'килограмм' ? 'кг' : 'шт'}:
-                  </ThemedText>
-                  <ThemedText style={styles.priceValue}>
-                    {selectedOption.price.toLocaleString('ru-RU')} ₽
-                  </ThemedText>
-                </View>
-                
-                <View style={styles.totalPriceContainer}>
-                  <ThemedText style={styles.totalPriceLabel}>
-                    Общая цена:
-                  </ThemedText>
-                  <ThemedText style={styles.totalPriceValue}>
-                    {totalPrice.toLocaleString('ru-RU', {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
+              {/* Контейнер с ценами */}
+              {selectedOption && (
+                <View style={styles.pricesContainer}>
+                  <View style={styles.priceRow}>
+                    <ThemedText style={styles.priceValue}>
+                      {selectedOption.price.toLocaleString('ru-RU')} ₽/{product.measureType === 'килограмм' ? 'кг' : 'шт'}
+                    </ThemedText>
+                    <ThemedText style={styles.totalPriceValue}>
+                      {totalPrice.toLocaleString('ru-RU', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
                     })} ₽
-                  </ThemedText>
+                    </ThemedText>
+                  </View>
+                  
+                  <View style={styles.priceLabelsRow}>
+                    <ThemedText style={styles.priceLabel}>
+                    </ThemedText>
+                  </View>
                 </View>
+              )}
 
-                {/* Количество */}
-                <View style={styles.quantityContainer}>
+              {/* Кнопки добавления в корзину и управления количеством */}
+              
+            </View>
+            {selectedOption && (
+                <View style={styles.actionsContainer}>
                   <TouchableOpacity
                     style={styles.addToCartButton}
                     onPress={handleAddToCart}
@@ -330,8 +331,7 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
                     </TouchableOpacity>
                   </View>
                 </View>
-              </View>
-            )}
+              )}
           </Animated.View>
         </TouchableOpacity>
       </View>
@@ -341,9 +341,11 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
 
 const styles = StyleSheet.create({
   overlay: {
+    zIndex: 9999,
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    // backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'flex-end',
+    // marginBottom: 30
   },
   overlayTouchable: {
     flex: 1,
@@ -356,6 +358,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 8,
     paddingBottom: 20,
+    borderColor: '#F0F3F7',
+    borderWidth: 1,
   },
   swipeIndicatorContainer: {
     alignItems: 'center',
@@ -370,11 +374,11 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 20,
   },
   productImage: {
-    width: 60,
-    height: 60,
+    width: 71,
+    height: 55,
     borderRadius: 8,
     marginRight: 12,
   },
@@ -391,22 +395,25 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   productName: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
     fontFamily: 'Montserrat',
   },
-  tabsScrollContainer: {
-    marginBottom: 16,
+  // Основной контейнер с бордером
+  mainContentContainer: {
+    borderWidth: 1,
+    borderColor: '#F0F3F7',
+    borderRadius: 16,
+    // padding: 16,
+    backgroundColor: '#FFFFFF',
   },
-  tabsScrollContent: {
-    paddingHorizontal: 0,
-  },
+  // Табы без скролла
   tabsContainer: {
     flexDirection: 'row',
     backgroundColor: '#F2F4F7',
     borderRadius: 16,
     padding: 3,
-    height: 54, // Высота как в дизайне
+    height: 54,
     ...Platform.select({
       ios: {
         shadowColor: '#000',
@@ -415,15 +422,14 @@ const styles = StyleSheet.create({
         shadowRadius: 2,
       },
       android: {
-        elevation: 2,
+        elevation: 1,
       },
     }),
   },
   tabButton: {
-    // flex: 1,
-    minWidth: 100, // Минимальная ширина таба
+    minWidth: 100,
     paddingVertical: 8,
-    paddingHorizontal: 12,
+    paddingHorizontal: 4,
     borderRadius: 13,
     alignItems: 'center',
     justifyContent: 'center',
@@ -431,18 +437,25 @@ const styles = StyleSheet.create({
   },
   activeTabButton: {
     backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: {
+          width: 0,
+          height: 1,
+        },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   tabContent: {
     alignItems: 'center',
     justifyContent: 'center',
+    height: 40,
   },
   tabText: {
     fontSize: 12,
@@ -450,63 +463,66 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontFamily: 'Montserrat',
     fontVariant: ['lining-nums', 'proportional-nums'],
-    lineHeight: 14.4,
-    marginTop: 4, // Отступ между иконкой и текстом
+    lineHeight: 14,
+    marginTop: 4,
   },
   activeTabText: {
     fontWeight: '500',
     color: '#1B1B1C',
   },
-  priceQuantityContainer: {
-    flex: 1,
+  // Контейнер с ценами
+  pricesContainer: {
+    marginTop: 20,
+    marginBottom: 11.5,
+    paddingHorizontal: 12,
   },
-  priceContainer: {
+  priceRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
+    alignItems: 'flex-end',
+    marginBottom: 4,
   },
-  priceLabel: {
-    fontSize: 14,
-    color: '#80818B',
-    fontFamily: 'Montserrat',
+  priceLabelsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
   },
   priceValue: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 20,
+    fontWeight: '700',
     color: '#203686',
     fontFamily: 'Montserrat',
   },
-  totalPriceContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  totalPriceLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    fontFamily: 'Montserrat',
-    color: '#1B1B1C',
-  },
   totalPriceValue: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700',
     color: '#1B1B1C',
     fontFamily: 'Montserrat',
   },
-  quantityContainer: {
+  priceLabel: {
+    fontSize: 12,
+    color: '#80818B',
+    fontFamily: 'Montserrat',
+  },
+  totalPriceLabel: {
+    fontSize: 12,
+    color: '#80818B',
+    fontFamily: 'Montserrat',
+  },
+  // Контейнер с действиями
+  actionsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginTop: 16,
   },
   addToCartButton: {
     backgroundColor: '#F2F4F7',
     borderRadius: 12,
-    paddingHorizontal: 24,
+    paddingHorizontal: 16,
     paddingVertical: 10,
-    width: 181,
-    height: 48,
+    // width: 181,
+    // height: 48,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -531,14 +547,20 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: {
+          width: 0,
+          height: 1,
+        },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   quantityButtonDisabled: {
     backgroundColor: '#F0F0F0',

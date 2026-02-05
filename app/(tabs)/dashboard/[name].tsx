@@ -5,6 +5,7 @@ import { ThemedView } from '@/components/themed-view';
 import { ModalHeader } from '@/features/auth/ui/Header';
 import SearchInput from '@/features/auth/ui/components/SearchInput';
 import {
+  AddToCart,
   clearSelectedFilters,
   clearSelectedSubcategory,
   getCategoryFilters,
@@ -244,6 +245,7 @@ export default function CatalogDetailScreen() {
       optionId,
       quantity,
     });
+    dispatch(AddToCart({productId: productId, productPurchaseOptionId: optionId, quantity: quantity}))
   };
 
   // Обработчик прокрутки
@@ -553,8 +555,8 @@ export default function CatalogDetailScreen() {
                   </TouchableOpacity>
 
                   <View style={styles.modalHeader}>
-                    <TouchableOpacity onPress={closeModalWithAnimation}>
-                      <ThemedText style={styles.modalCloseText}>Отмена</ThemedText>
+                    <TouchableOpacity >
+                      {/* <ThemedText style={styles.modalCloseText}>Отмена</ThemedText> */}
                     </TouchableOpacity>
                     
                     <ThemedText style={styles.modalTitle}>Фильтры</ThemedText>
@@ -644,13 +646,14 @@ export default function CatalogDetailScreen() {
             </View>
           </TouchableWithoutFeedback>
         </Modal>
-      </ThemedView>
-      <AddToCartModal
+        <AddToCartModal
         visible={showAddToCartModal}
         onClose={() => setShowAddToCartModal(false)}
         product={selectedProduct}
         onAddToCart={handleAddToCart}
       />
+      </ThemedView>
+
     </SafeAreaProvider>
   );
 };

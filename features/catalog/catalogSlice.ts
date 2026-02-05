@@ -29,6 +29,9 @@ interface CategoryState {
   selectedSubcategoryId: string | null; // Добавляем состояние для выбранной подкатегории
   product: any;
   isLoadingProduct: boolean;
+
+  cart: any
+  isLoadingCart: boolean;
 }
 
 const initialState: CategoryState = {
@@ -44,6 +47,9 @@ const initialState: CategoryState = {
   selectedSubcategoryId: null, // Инициализируем как null
   product: null,
   isLoadingProduct: false,
+
+  cart: null,
+  isLoadingCart: false,
 };
 
 export const getProductList = createAsyncThunk(
@@ -151,16 +157,44 @@ export const getProduct = createAsyncThunk(
 
 export const putFavorite = createAsyncThunk(
   "catalog/putFavorite",
-  async (productId: any, { rejectWithValue }) => {
+  async (productId: string, { rejectWithValue }) => {
     try {
       const data = await axdef.put(`/api/Catalog/product/favorite?productId=${productId}`);
       return data.data.data;
-    } catch (error) {
-      console.log(error);
-      return rejectWithValue(error);
+    } catch (error: any) {
+      console.log('Error in thunk:', error);
+      
+      // ВАЖНО: Не обрабатываем 401 здесь, просто пробрасываем ошибку
+      // Интерсептор сам её перехватит и обработает
+      
+      // Но если это не 401, то возвращаем rejectWithValue
+      if (error.response?.status !== 401) {
+        return rejectWithValue(error);
+      }
+      
+      // Для 401 - просто пробрасываем ошибку дальше
+      throw error; // Это заставит интерсептор сработать
     }
   }
 );
+
+export const AddToCart = createAsyncThunk(
+  "catalog/AddToCart",
+  async (payload: any, { rejectWithValue }) => {
+    try {
+      const data = await axdef.post(`/api/Account/cart`, payload);
+      return data.data.data;
+    } catch (error: any) {
+      console.log('Error in thunk:', error);
+    
+      if (error.response?.status !== 401) {
+        return rejectWithValue(error);
+      }
+      throw error;
+    }
+  }
+);
+
 
 const catalogSlice = createSlice({
   name: 'catalog',
@@ -267,6 +301,20 @@ const catalogSlice = createSlice({
     
     builder.addCase(getCategoryFilters.rejected, (state, action) => {
       state.isLoadingFilters = false;
+      axiosErrorHandler(action?.payload);
+    });
+
+    builder.addCase(AddToCart.pending, (state) => {
+      state.isLoadingCart = true;
+    });
+    
+    builder.addCase(AddToCart.fulfilled, (state, action) => {
+      state.cart = action.payload.data;
+      state.isLoadingCart = false;
+    });
+    
+    builder.addCase(AddToCart.rejected, (state, action) => {
+      state.isLoadingCart = false;
       axiosErrorHandler(action?.payload);
     });
     
