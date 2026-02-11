@@ -1,14 +1,21 @@
 import { Tabs } from 'expo-router';
-import React from 'react';
+import React, { useEffect } from 'react';
 import '../../global.css';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { SvgIcon } from '@/components/ui/custom-icon';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAppSelector } from '@/store/hooks';
+import { View } from 'react-native';
+import { StyleSheet } from 'react-native';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
+  const cart = useAppSelector((state) => state.catalog.cart);
+  useEffect(() => {
+    console.log('cart', cart)
+  }, [cart])
 
   return (
     <Tabs
@@ -69,13 +76,19 @@ export default function TabLayout() {
       <Tabs.Screen
         name="shop"
         options={{
-          tabBarIcon: ({ color, focused }) =>       
+          tabBarIcon: ({ color, focused }) =>     
+            <> 
+          {cart?.length > 0 && (
+            <View style={styles.filterBadge}></View>
+          )}
           <SvgIcon 
             name="shop" 
             size={24} 
             color={color} 
             focused={focused}
-          />,
+          />
+          </> 
+          ,
         }}
       />
       <Tabs.Screen
@@ -93,3 +106,19 @@ export default function TabLayout() {
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+filterBadge: {
+  position: 'absolute',
+  top: 1,
+  right: -1,
+  backgroundColor: '#FF3B30',
+  borderRadius: 10,
+  minWidth: 6,
+  maxWidth: 6,
+  width: 6,
+  height: 6,
+  zIndex: 1,
+  alignItems: 'center',
+},
+})

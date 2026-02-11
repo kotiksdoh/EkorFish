@@ -1,12 +1,12 @@
 // features/shared/ui/AddToCartModal.tsx
 import { PackageIcon, RetailIcon, WholesaleIcon } from '@/assets/icons/icons';
 import { ThemedText } from '@/components/themed-text';
+import { useThemeColor } from '@/hooks/use-theme-color';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Animated,
   Dimensions,
   Image,
-  Modal,
   PanResponder,
   Platform,
   StyleSheet,
@@ -74,6 +74,10 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
   const [selectedOption, setSelectedOption] = useState<PurchaseOption | null>(null);
   
   const translateY = useRef(new Animated.Value(MODAL_HEIGHT)).current;
+  
+  const backgroundColor = useThemeColor({}, 'background');
+  
+
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
@@ -167,199 +171,166 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
     }
   }, [product, selectedOption, quantity, onAddToCart, closeModal]);
 
-  if (!product) return null;
+  if (!product || !visible) return null;
 
   const totalPrice = selectedOption ? selectedOption.price * quantity : 0;
   const optionsCount = product.purchaseOptions.length;
   
-  // Рассчитываем ширину таба в зависимости от количества
   const tabWidth = optionsCount > 0 
-    ? (SCREEN_WIDTH - 32 - 6 - (optionsCount * 4)) / optionsCount // 32 padding, 6 padding табов, 4 margin между табами
+    ? (SCREEN_WIDTH - 32 - 6 - (optionsCount * 4)) / optionsCount
     : 0;
 
   return (
-    <Modal
-      visible={visible}
-      transparent={true}
-      animationType="none"
-      onRequestClose={closeModal}
+    <Animated.View
+      style={[
+        styles.modalContainer,
+        {
+          transform: [{ translateY }],
+          backgroundColor,
+        },
+      ]}
+      {...panResponder.panHandlers}
     >
-      <View style={styles.overlay}>
-        <TouchableOpacity
-          style={styles.overlayTouchable}
-          activeOpacity={1}
-          onPress={closeModal}
-        >
-          <Animated.View
-            style={[
-              styles.modalContainer,
-              {
-                transform: [{ translateY }],
-                height: MODAL_HEIGHT,
-              },
-            ]}
-            {...panResponder.panHandlers}
-          >
-            {/* Свайп-индикатор */}
-            <View style={styles.swipeIndicatorContainer}>
-              <View style={styles.swipeIndicator} />
-            </View>
-
-            {/* Заголовок с фото и названием */}
-            <View style={styles.header}>
-              {product.image && product.image.length > 0 ? (
-                <Image
-                  source={{ uri: product.image }}
-                  style={styles.productImage}
-                  resizeMode="cover"
-                />
-              ) : (
-                <View style={[styles.productImage, styles.noImage]}>
-                  <Text style={styles.noImageText}>Нет фото</Text>
-                </View>
-              )}
-              <View style={styles.productInfo}>
-                <ThemedText 
-                  style={styles.productName}
-                  numberOfLines={2}
-                  ellipsizeMode="tail"
-                >
-                  {product.name}
-                </ThemedText>
-              </View>
-            </View>
-
-            {/* Основной контейнер с табами, ценами и кнопками */}
-            <View style={styles.mainContentContainer}>
-              {/* Табы с опциями покупки - теперь без скролла */}
-              <View style={styles.tabsContainer}>
-                {product.purchaseOptions.map((option) => {
-                  const isActive = selectedTab === option.id;
-                  return (
-                    <TouchableOpacity
-                      key={option.id}
-                      style={[
-                        styles.tabButton,
-                        { width: tabWidth },
-                        isActive && styles.activeTabButton,
-                      ]}
-                      onPress={() => handleTabChange(option.id)}
-                      activeOpacity={0.7}
-                    >
-                      <View style={styles.tabContent}>
-                        {getIconForCode(option.code, isActive)}
-                        <ThemedText
-                          style={[
-                            styles.tabText,
-                            isActive && styles.activeTabText,
-                          ]}
-                          lightColor={isActive ? '#1B1B1C' : '#80818B'}
-                          darkColor={isActive ? '#FBFCFF' : '#FBFCFF80'}
-                          numberOfLines={1}
-                        >
-                          {option.name}
-                        </ThemedText>
-                      </View>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-
-              {/* Контейнер с ценами */}
-              {selectedOption && (
-                <View style={styles.pricesContainer}>
-                  <View style={styles.priceRow}>
-                    <ThemedText style={styles.priceValue}>
-                      {selectedOption.price.toLocaleString('ru-RU')} ₽/{product.measureType === 'килограмм' ? 'кг' : 'шт'}
-                    </ThemedText>
-                    <ThemedText style={styles.totalPriceValue}>
-                      {totalPrice.toLocaleString('ru-RU', {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                    })} ₽
-                    </ThemedText>
-                  </View>
-                  
-                  <View style={styles.priceLabelsRow}>
-                    <ThemedText style={styles.priceLabel}>
-                    </ThemedText>
-                  </View>
-                </View>
-              )}
-
-              {/* Кнопки добавления в корзину и управления количеством */}
-              
-            </View>
-            {selectedOption && (
-                <View style={styles.actionsContainer}>
-                  <TouchableOpacity
-                    style={styles.addToCartButton}
-                    onPress={handleAddToCart}
-                  >
-                    <ThemedText style={styles.addToCartButtonText}>
-                      Добавить в корзину
-                    </ThemedText>
-                  </TouchableOpacity>
-
-                  <View style={styles.quantityControls}>
-                    <TouchableOpacity
-                      style={[
-                        styles.quantityButton,
-                        quantity <= selectedOption.minQuantity && styles.quantityButtonDisabled,
-                      ]}
-                      onPress={handleDecreaseQuantity}
-                      disabled={quantity <= selectedOption.minQuantity}
-                    >
-                      <Text style={styles.quantityButtonText}>-</Text>
-                    </TouchableOpacity>
-                    
-                    <View style={styles.quantityDisplay}>
-                      <ThemedText style={styles.quantityText}>
-                        {quantity} {product.measureType === 'килограмм' ? 'кг' : 'шт'}
-                      </ThemedText>
-                    </View>
-                    
-                    <TouchableOpacity
-                      style={[
-                        styles.quantityButton,
-                        quantity >= selectedOption.maxQuantity && styles.quantityButtonDisabled,
-                      ]}
-                      onPress={handleIncreaseQuantity}
-                      disabled={quantity >= selectedOption.maxQuantity}
-                    >
-                      <Text style={styles.quantityButtonText}>+</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              )}
-          </Animated.View>
-        </TouchableOpacity>
+      <View style={styles.swipeIndicatorContainer}>
+        <View style={[styles.swipeIndicator, { backgroundColor: '#C0C0C5' }]} />
       </View>
-    </Modal>
+
+      <View style={styles.header}>
+        {product.image && product.image.length > 0 ? (
+          <Image
+            source={{ uri: product.image }}
+            style={styles.productImage}
+            resizeMode="cover"
+          />
+        ) : (
+          <View style={[styles.productImage, styles.noImage]}>
+            <Text style={styles.noImageText}>Нет фото</Text>
+          </View>
+        )}
+        <View style={styles.productInfo}>
+          <ThemedText 
+            style={styles.productName}
+            numberOfLines={2}
+            ellipsizeMode="tail"
+          >
+            {product.name}
+          </ThemedText>
+        </View>
+      </View>
+
+      <View style={[styles.mainContentContainer]}>
+        <View style={styles.tabsContainer}>
+          {product.purchaseOptions.map((option) => {
+            const isActive = selectedTab === option.id;
+            return (
+              <TouchableOpacity
+                key={option.id}
+                style={[
+                  styles.tabButton,
+                  { width: tabWidth },
+                  isActive && [styles.activeTabButton, { backgroundColor }],
+                ]}
+                onPress={() => handleTabChange(option.id)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.tabContent}>
+                  {getIconForCode(option.code, isActive)}
+                  <ThemedText
+                    style={[
+                      styles.tabText,
+                      isActive && styles.activeTabText,
+                    ]}
+                    lightColor={isActive ? '#1B1B1C' : '#80818B'}
+                    darkColor={isActive ? '#FBFCFF' : '#FBFCFF80'}
+                    numberOfLines={1}
+                  >
+                    {option.name}
+                  </ThemedText>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        {selectedOption && (
+          <View style={styles.pricesContainer}>
+            <View style={styles.priceRow}>
+              <ThemedText style={styles.priceValue}>
+                {selectedOption.price.toLocaleString('ru-RU')} ₽/{product.measureType === 'килограмм' ? 'кг' : 'шт'}
+              </ThemedText>
+              <ThemedText style={styles.totalPriceValue}>
+                {totalPrice.toLocaleString('ru-RU', {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })} ₽
+              </ThemedText>
+            </View>
+          </View>
+        )}
+      </View>
+
+      {selectedOption && (
+        <View style={styles.actionsContainer}>
+          <TouchableOpacity
+            style={styles.addToCartButton}
+            onPress={handleAddToCart}
+          >
+            <ThemedText style={styles.addToCartButtonText}>
+              Добавить в корзину
+            </ThemedText>
+          </TouchableOpacity>
+
+          <View style={styles.quantityControls}>
+            <TouchableOpacity
+              style={[
+                styles.quantityButton,
+                { backgroundColor },
+                quantity <= selectedOption.minQuantity && styles.quantityButtonDisabled,
+              ]}
+              onPress={handleDecreaseQuantity}
+              disabled={quantity <= selectedOption.minQuantity}
+            >
+              <Text style={styles.quantityButtonText}>-</Text>
+            </TouchableOpacity>
+            
+            <View style={styles.quantityDisplay}>
+              <ThemedText style={styles.quantityText}>
+                {quantity} {product.measureType === 'килограмм' ? 'кг' : 'шт'}
+              </ThemedText>
+            </View>
+            
+            <TouchableOpacity
+              style={[
+                styles.quantityButton,
+                { backgroundColor },
+                quantity >= selectedOption.maxQuantity && styles.quantityButtonDisabled,
+              ]}
+              onPress={handleIncreaseQuantity}
+              disabled={quantity >= selectedOption.maxQuantity}
+            >
+              <Text style={styles.quantityButtonText}>+</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+    </Animated.View>
   );
 };
 
 const styles = StyleSheet.create({
-  overlay: {
-    zIndex: 9999,
-    flex: 1,
-    // backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-    // marginBottom: 30
-  },
-  overlayTouchable: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
   modalContainer: {
-    backgroundColor: '#FFFFFF',
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
+    borderColor: '#F0F3F7',
     paddingHorizontal: 16,
     paddingTop: 8,
     paddingBottom: 20,
-    borderColor: '#F0F3F7',
     borderWidth: 1,
+    zIndex: 9999,
   },
   swipeIndicatorContainer: {
     alignItems: 'center',
@@ -368,7 +339,6 @@ const styles = StyleSheet.create({
   swipeIndicator: {
     width: 40,
     height: 4,
-    backgroundColor: '#E0E0E0',
     borderRadius: 2,
   },
   header: {
@@ -399,15 +369,13 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontFamily: 'Montserrat',
   },
-  // Основной контейнер с бордером
   mainContentContainer: {
     borderWidth: 1,
-    borderColor: '#F0F3F7',
     borderRadius: 16,
-    // padding: 16,
     backgroundColor: '#FFFFFF',
+    borderColor: '#F0F3F7',
+
   },
-  // Табы без скролла
   tabsContainer: {
     flexDirection: 'row',
     backgroundColor: '#F2F4F7',
@@ -436,7 +404,6 @@ const styles = StyleSheet.create({
     marginHorizontal: 2,
   },
   activeTabButton: {
-    backgroundColor: '#FFFFFF',
     ...Platform.select({
       ios: {
         shadowColor: '#000',
@@ -470,7 +437,6 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#1B1B1C',
   },
-  // Контейнер с ценами
   pricesContainer: {
     marginTop: 20,
     marginBottom: 11.5,
@@ -481,11 +447,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-end',
     marginBottom: 4,
-  },
-  priceLabelsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
   },
   priceValue: {
     fontSize: 20,
@@ -499,17 +460,6 @@ const styles = StyleSheet.create({
     color: '#1B1B1C',
     fontFamily: 'Montserrat',
   },
-  priceLabel: {
-    fontSize: 12,
-    color: '#80818B',
-    fontFamily: 'Montserrat',
-  },
-  totalPriceLabel: {
-    fontSize: 12,
-    color: '#80818B',
-    fontFamily: 'Montserrat',
-  },
-  // Контейнер с действиями
   actionsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -521,8 +471,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 10,
-    // width: 181,
-    // height: 48,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -544,7 +492,6 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 8,
-    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
     ...Platform.select({
@@ -563,7 +510,6 @@ const styles = StyleSheet.create({
     }),
   },
   quantityButtonDisabled: {
-    backgroundColor: '#F0F0F0',
     opacity: 0.5,
   },
   quantityButtonText: {

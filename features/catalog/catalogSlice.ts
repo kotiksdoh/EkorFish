@@ -30,7 +30,7 @@ interface CategoryState {
   product: any;
   isLoadingProduct: boolean;
 
-  cart: any
+  cart: any[];
   isLoadingCart: boolean;
 }
 
@@ -48,7 +48,7 @@ const initialState: CategoryState = {
   product: null,
   isLoadingProduct: false,
 
-  cart: null,
+  cart: [],
   isLoadingCart: false,
 };
 
@@ -309,7 +309,15 @@ const catalogSlice = createSlice({
     });
     
     builder.addCase(AddToCart.fulfilled, (state, action) => {
-      state.cart = action.payload.data;
+      console.log('AddToCart response:', action.payload);
+      const cartItem = action.payload || action.payload?.data;
+      if (cartItem) {
+        if (Array.isArray(state.cart)) {
+          state.cart = [...state.cart, cartItem];
+        } else {
+          state.cart = [cartItem];
+        }
+      }
       state.isLoadingCart = false;
     });
     

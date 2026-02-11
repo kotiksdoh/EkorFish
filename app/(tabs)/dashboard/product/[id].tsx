@@ -3,6 +3,7 @@ import { CheckCircleIcon, CloseCircleIcon } from '@/assets/icons/icons';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { ModalHeader } from '@/features/auth/ui/Header';
+import { AddToCartModal } from '@/features/shared/ui/AddToCartModal';
 import { getProduct } from '@/features/catalog/catalogSlice';
 import { AutoSlider } from '@/features/home';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
@@ -10,7 +11,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  Animated,
   Dimensions,
   LayoutAnimation,
   LayoutChangeEvent,
@@ -22,6 +22,7 @@ import {
   View
 } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { Animated } from 'react-native';
 
 // Включаем LayoutAnimation для Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -42,6 +43,8 @@ export default function ProductDetailScreen() {
   const [selectedTab, setSelectedTab] = useState<'description' | 'characteristics'>('description');
   const [tabContainerWidth, setTabContainerWidth] = useState(0);
   const [tabAnim] = useState(new Animated.Value(0));
+  const [isCartModalVisible, setIsCartModalVisible] = useState(false);
+  
   const tabContainerRef = useRef<View>(null);
 
   const router = useRouter();
@@ -76,6 +79,12 @@ export default function ProductDetailScreen() {
     console.log('Buy now:', { productId, quantity, totalPrice });
   };
 
+  const handleAddToCart = (productId: string, optionId: string, quantity: number) => {
+    console.log('Add to cart:', { productId, optionId, quantity });
+    // Здесь ваша логика добавления в корзину
+    setIsCartModalVisible(false);
+  };
+
   const loadProduct = () => {
     dispatch(getProduct(productId));
   };
@@ -92,7 +101,6 @@ export default function ProductDetailScreen() {
   };
 
   const toggleExpanded = () => {
-    // Анимация раскрытия/скрытия
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setIsExpanded(!isExpanded);
   };
@@ -109,23 +117,17 @@ export default function ProductDetailScreen() {
 
   const handleTabContainerLayout = (event: LayoutChangeEvent) => {
     const { width } = event.nativeEvent.layout;
-    // Вычитаем padding (3px с каждой стороны) чтобы получить чистую ширину
     const cleanWidth = width - 6;
-    // Ширина одного таба (делим на 2)
     const tabWidth = cleanWidth / 2;
     setTabContainerWidth(tabWidth);
   };
 
-  // Вычисляем позицию для анимированного индикатора
   const indicatorPosition = tabAnim.interpolate({
     inputRange: [0, 1],
     outputRange: [0, tabContainerWidth] as number[],
   });
 
-  // Проверяем, нужна ли кнопка раскрытия (если текст больше 2 строк)
   const needsExpandButton = product?.name && product.name.length > 40;
-  
-  console.log('product?.filterOptions', product?.filterOptions);
 
   return (
     <SafeAreaProvider>
@@ -141,7 +143,6 @@ export default function ProductDetailScreen() {
           <ScrollView 
             style={styles.container}
             showsVerticalScrollIndicator={false}
-            scrollEventThrottle={100}
             contentContainerStyle={styles.scrollContent}
           >
             <ThemedView style={styles.themeContainer} lightColor={'#FFFFFF'} darkColor='#040508'>
@@ -151,7 +152,6 @@ export default function ProductDetailScreen() {
                 showIndicators={true}
               />
               
-              {/* Контейнер для названия продукта */}
               <View style={styles.productNameWrapper}>
                 <ThemedText 
                   style={styles.themeName} 
@@ -163,7 +163,6 @@ export default function ProductDetailScreen() {
                   {product?.name || ''}
                 </ThemedText>
                 
-                {/* Кнопка "раскрыть" если текст длинный */}
                 {needsExpandButton && (
                   <TouchableOpacity 
                     style={styles.expandButton}
@@ -226,7 +225,6 @@ export default function ProductDetailScreen() {
                 onLayout={handleTabContainerLayout}
                 ref={tabContainerRef}
               >
-                {/* Анимированный индикатор активного таба */}
                 <Animated.View style={[
                   styles.activeTabIndicator,
                   {
@@ -235,7 +233,6 @@ export default function ProductDetailScreen() {
                   }
                 ]} />
                 
-                {/* Кнопка "Описание" */}
                 <TouchableOpacity
                   style={[
                     styles.tabButton,
@@ -256,7 +253,6 @@ export default function ProductDetailScreen() {
                   </ThemedText>
                 </TouchableOpacity>
                 
-                {/* Кнопка "Характеристика" */}
                 <TouchableOpacity
                   style={[
                     styles.tabButton,
@@ -278,7 +274,6 @@ export default function ProductDetailScreen() {
                 </TouchableOpacity>
               </ThemedView>
               
-              {/* Контент табов */}
               <View style={styles.tabContent}>
                 {selectedTab === 'description' ? (
                   product?.description ? (
@@ -311,7 +306,7 @@ export default function ProductDetailScreen() {
                               lightColor='#1B1B1C'
                               darkColor='#FBFCFF'
                             >
-                              {product.dateFrom} г.
+                              {product?.dateFrom} г.
                             </ThemedText>
                       </View>
                       <View style={styles.onceDate}>
@@ -324,12 +319,11 @@ export default function ProductDetailScreen() {
                               lightColor='#1B1B1C'
                               darkColor='#FBFCFF'
                             >
-                              {product.dateTo} г.
+                              {product?.dateTo} г.
                             </ThemedText>
                       </View>
-                    </View >
+                    </View>
 
-                    {/* Динамические характеристики из продукта, если есть */}
                     {product?.filterOptions && product.filterOptions.length > 0 ? (
                       <View style={styles.characteristicsList}>
                         {product.filterOptions.map((char: any, index: number) => (
@@ -346,27 +340,49 @@ export default function ProductDetailScreen() {
                               lightColor='#1B1B1C'
                               darkColor='#FBFCFF'
                             >
-                              {char.filterOptions[0].value}
+                              {char.filterOptions[0]?.value || ''}
                             </ThemedText>
                           </View>
                         ))}
                       </View>
                     ) : (
-                      <>
-                        <ThemedText 
-                          style={styles.characteristicsText}
-                          lightColor='#1B1B1C'
-                          darkColor='#FBFCFF'
-                        >
-                          Характеристики товара отсутсвует
-                        </ThemedText>
-                      </>
+                      <ThemedText 
+                        style={styles.characteristicsText}
+                        lightColor='#1B1B1C'
+                        darkColor='#FBFCFF'
+                      >
+                        Характеристики товара отсутствуют
+                      </ThemedText>
                     )}
                   </View>
                 )}
               </View>
             </ThemedView>
           </ScrollView>
+
+          {/* Нижняя панель с кнопкой добавления в корзину - всегда видима */}
+          <View style={styles.bottomPanel}>
+            <TouchableOpacity
+              style={styles.addToCartButton}
+              onPress={() => setIsCartModalVisible(true)}
+              activeOpacity={0.9}
+            >
+              <View style={styles.addToCartContent}>
+                <Ionicons name="cart-outline" size={24} color="#FFFFFF" />
+                <ThemedText style={styles.addToCartText}>
+                  Добавить в корзину
+                </ThemedText>
+              </View>
+            </TouchableOpacity>
+          </View>
+
+          {/* Модалка добавления в корзину */}
+          <AddToCartModal
+            visible={isCartModalVisible}
+            onClose={() => setIsCartModalVisible(false)}
+            product={product}
+            onAddToCart={handleAddToCart}
+          />
         </View>
       </ThemedView>
     </SafeAreaProvider>
@@ -379,13 +395,14 @@ const styles = StyleSheet.create({
   },
   mainContainer: {
     flex: 1,
+    position: 'relative',
   },
   container: {
     flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: 20,
+    paddingBottom: 100, // Отступ для нижней панели
   },
   themeContainer: {
     borderRadius: 24,
@@ -464,7 +481,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     position: 'relative',
     marginBottom: 16,
-    // Эффект блюра для iOS
     ...Platform.select({
       ios: {
         backdropFilter: 'blur(40px)',
@@ -491,7 +507,6 @@ const styles = StyleSheet.create({
     height: '100%',
     top: 3,
     left: 3,
-    // Тень для выделения активного таба
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -538,7 +553,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: 8,
-
   },
   characteristicLabel: {
     fontSize: 14,
@@ -557,10 +571,40 @@ const styles = StyleSheet.create({
   },
   onceDateTitle: {
     fontSize: 16,
-    fontWeight: 500,
+    fontWeight: '500',
   },
   onceDateValue: {
     fontSize: 16,
-    fontWeight: 600,
+    fontWeight: '600',
+  },
+  // Стили для нижней панели
+  bottomPanel: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: Platform.OS === 'ios' ? 34 : 20,
+
+  },
+  addToCartButton: {
+    backgroundColor: '#203686',
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    width: '100%',
+  },
+  addToCartContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  addToCartText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+    fontFamily: 'Montserrat',
   },
 });
