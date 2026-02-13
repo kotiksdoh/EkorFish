@@ -41,6 +41,7 @@ interface AddToCartModalProps {
   onClose: () => void;
   product: Product | null;
   onAddToCart: (productId: string, optionId: string, quantity: number) => void;
+  existingCartItem?: any[]; // Изменяем на массив
 }
 
 // Маппинг иконок по кодам
@@ -68,6 +69,7 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
   onClose,
   product,
   onAddToCart,
+  existingCartItem
 }) => {
   const [selectedTab, setSelectedTab] = useState<string>('');
   const [quantity, setQuantity] = useState<number>(0);
@@ -76,7 +78,55 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
   const translateY = useRef(new Animated.Value(MODAL_HEIGHT)).current;
   
   const backgroundColor = useThemeColor({}, 'background');
-  
+
+  const getQuantityForOption = useCallback((optionId: string) => {
+    if (!existingCartItem?.length) return 0;
+    const item = existingCartItem.find(item => item.productPurchaseOptionId === optionId);
+    return item?.quantity || 0;
+  }, [existingCartItem]);
+
+
+  useEffect(() => {
+    if (visible && product) {
+      if (existingCartItem && existingCartItem?.length > 0) {
+        const firstCartItem = existingCartItem[0];
+        const option = product.purchaseOptions.find(
+          opt => opt.id === firstCartItem.productPurchaseOptionId
+        );
+        if (option) {
+          setSelectedTab(option.id);
+          setSelectedOption(option);
+          setQuantity(firstCartItem.quantity);
+        } else {
+          // Если опция не найдена, берем первую
+          const firstOption = product.purchaseOptions[0];
+          setSelectedTab(firstOption.id);
+          setSelectedOption(firstOption);
+          setQuantity(firstOption.minQuantity);
+        }
+      } else {
+        // Если товара нет в корзине, берем первую опцию
+        if (product.purchaseOptions.length > 0) {
+          const firstOption = product.purchaseOptions[0];
+          setSelectedTab(firstOption.id);
+          setSelectedOption(firstOption);
+          setQuantity(firstOption.minQuantity);
+        }
+      }
+      
+      Animated.spring(translateY, {
+        toValue: 0,
+        useNativeDriver: true,
+        damping: 20,
+        stiffness: 90,
+      }).start();
+    } else {
+      translateY.setValue(MODAL_HEIGHT);
+      setSelectedTab('');
+      setQuantity(0);
+      setSelectedOption(null);
+    }
+  }, [visible, product, existingCartItem]);
 
   const panResponder = useRef(
     PanResponder.create({
@@ -104,26 +154,6 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
     })
   ).current;
 
-  useEffect(() => {
-    if (visible && product) {
-      if (product.purchaseOptions.length > 0) {
-        const firstOption = product.purchaseOptions[0];
-        setSelectedTab(firstOption.id);
-        setSelectedOption(firstOption);
-        setQuantity(firstOption.minQuantity);
-      }
-      
-      Animated.spring(translateY, {
-        toValue: 0,
-        useNativeDriver: true,
-        damping: 20,
-        stiffness: 90,
-      }).start();
-    } else {
-      translateY.setValue(MODAL_HEIGHT);
-    }
-  }, [visible, product]);
-
   const closeModal = useCallback(() => {
     Animated.timing(translateY, {
       toValue: MODAL_HEIGHT,
@@ -131,6 +161,7 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
       useNativeDriver: true,
     }).start(() => {
       onClose();
+      // Сбрасываем состояния
       setSelectedTab('');
       setQuantity(0);
       setSelectedOption(null);
@@ -220,36 +251,45 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
 
       <View style={[styles.mainContentContainer]}>
         <View style={styles.tabsContainer}>
-          {product.purchaseOptions.map((option) => {
-            const isActive = selectedTab === option.id;
-            return (
-              <TouchableOpacity
-                key={option.id}
-                style={[
-                  styles.tabButton,
-                  { width: tabWidth },
-                  isActive && [styles.activeTabButton, { backgroundColor }],
-                ]}
-                onPress={() => handleTabChange(option.id)}
-                activeOpacity={0.7}
-              >
-                <View style={styles.tabContent}>
-                  {getIconForCode(option.code, isActive)}
-                  <ThemedText
-                    style={[
-                      styles.tabText,
-                      isActive && styles.activeTabText,
-                    ]}
-                    lightColor={isActive ? '#1B1B1C' : '#80818B'}
-                    darkColor={isActive ? '#FBFCFF' : '#FBFCFF80'}
-                    numberOfLines={1}
-                  >
-                    {option.name}
-                  </ThemedText>
-                </View>
-              </TouchableOpacity>
-            );
-          })}
+{product.purchaseOptions.map((option) => {
+  const isActive = selectedTab === option.id;
+  const quantityInCart = getQuantityForOption(option.id);
+  
+  return (
+    <TouchableOpacity
+      key={option.id}
+      style={[
+        styles.tabButton,
+        { width: tabWidth },
+        isActive && [styles.activeTabButton, { backgroundColor }],
+      ]}
+      onPress={() => handleTabChange(option.id)}
+      activeOpacity={0.7}
+    >
+      <View style={styles.tabContent}>
+        {getIconForCode(option.code, isActive)}
+        <ThemedText
+          style={[
+            styles.tabText,
+            isActive && styles.activeTabText,
+          ]}
+          lightColor={isActive ? '#1B1B1C' : '#80818B'}
+          darkColor={isActive ? '#FBFCFF' : '#FBFCFF80'}
+          numberOfLines={1}
+        >
+          {option.name}
+        </ThemedText>
+        {quantityInCart > 0 && (
+          <View style={styles.tabBadge}>
+            <Text style={styles.tabBadgeText}>
+              {quantityInCart > 10 ? '10+' : quantityInCart}
+            </Text>
+          </View>
+        )}
+      </View>
+    </TouchableOpacity>
+  );
+})}
         </View>
 
         {selectedOption && (
@@ -276,7 +316,7 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
             onPress={handleAddToCart}
           >
             <ThemedText style={styles.addToCartButtonText}>
-              Добавить в корзину
+              {existingCartItem ? 'Обновить корзину' : 'Добавить в корзину'}
             </ThemedText>
           </TouchableOpacity>
 
@@ -374,7 +414,6 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: '#FFFFFF',
     borderColor: '#F0F3F7',
-
   },
   tabsContainer: {
     flexDirection: 'row',
@@ -527,5 +566,23 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontFamily: 'Montserrat',
     color: '#1B1B1C',
+  },
+  tabBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: '#FF3B30',
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 3,
+  },
+  tabBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '700',
+    fontFamily: 'Montserrat',
   },
 });

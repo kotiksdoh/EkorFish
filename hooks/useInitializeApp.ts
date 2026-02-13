@@ -1,8 +1,9 @@
 import * as SplashScreenExpo from 'expo-splash-screen';
 import { useEffect, useState } from 'react';
 // import { loadAppData } from '@/store/slices/appSlice';
-import { getCategoryItems, getSliderItems } from '@/features/auth/authSlice';
+import { getCategoryItems, getMyInfo, getSliderItems } from '@/features/auth/authSlice';
 import { store } from '@/store/store';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Предотвращаем автоматическое скрытие сплеш-скрина
 SplashScreenExpo.preventAutoHideAsync().catch(() => {
@@ -15,11 +16,15 @@ SplashScreenExpo.preventAutoHideAsync().catch(() => {
 // Имитация загрузки данных
 const loadAppResources = async () => {
   try {
+    const token = await AsyncStorage.getItem("token");
     // 1. Загружаем шрифты
 
     // 2. Инициализируем данные приложения
     await store.dispatch(getSliderItems('')).unwrap();
     await store.dispatch(getCategoryItems('')).unwrap();
+    if(token){
+      await store.dispatch(getMyInfo('')).unwrap();
+    }
     // 3. Другие инициализации (если нужны)
     // - Кэширование изображений
     // - Загрузка конфигурации

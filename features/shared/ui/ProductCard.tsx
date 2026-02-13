@@ -3,10 +3,10 @@ import noImage from '@/assets/icons/png/noImage.png';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { putFavorite } from '@/features/catalog/catalogSlice';
-import { useAppDispatch } from '@/store/hooks';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Image, StyleSheet, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useState, useMemo } from 'react';
+import { ActivityIndicator, Image, StyleSheet, TouchableOpacity, View, Text } from 'react-native';
 
 interface ProductCardProps {
   id?: number;
@@ -17,8 +17,8 @@ interface ProductCardProps {
   fullPrice?: any;
   isImageLoading?: boolean;
   isFavorite?: boolean
-  productData?: any; // Полные данные продукта
-  onAddToCartPress?: (product: any) => void; // Callback для открытия модалки
+  productData?: any;
+  onAddToCartPress?: (product: any) => void;
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({
@@ -37,29 +37,46 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const [isImageLoading, setIsImageLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
   const [isLiked, setIsLiked] = useState(isFavorite);
-  const dispatch = useAppDispatch()
+  
+  const dispatch = useAppDispatch();
+  const router = useRouter();
+  
+  // Получаем корзину из Redux
+  const cartItems = useAppSelector((state) => state.catalog.cart);
+  
+  // Находим товар в корзине
+  const cartItem = useMemo(() => {
+    if (!productData?.purchaseOptions?.[0]?.id) return null;
+    return cartItems?.find(
+      (item: any) => 
+        item.productId === productData.id && 
+        item.productPurchaseOptionId === productData.purchaseOptions[0].id
+    );
+  }, [cartItems, productData]);
+
+  // Форматируем количество для отображения
+  const cartQuantityDisplay = useMemo(() => {
+    if (!cartItem) return null;
+    const qty = cartItem.quantity;
+    if (qty > 10) return '10+';
+    return qty.toString();
+  }, [cartItem]);
+
   useEffect(() => {
-    if (!externalLoading && img) {
-      setIsImageLoading(true);
-      setIsImageLoaded(false);
-      setImageError(false);
-    }
-  }, [img, externalLoading]);
-  // useEffect()
+    setIsLiked(isFavorite);
+  }, [isFavorite]);
+
   const handleLikePress = (e: any) => {
-    e.stopPropagation(); // Останавливаем всплытие
+    e.stopPropagation();
     dispatch(putFavorite(id)).then((res: any) => 
       setIsLiked(!isLiked)
-    )
-    console.log(`Товар ${id} ${isLiked ? 'удален из' : 'добавлен в'} избранное`);
+    );
   };
 
   const handleCartPress = (e: any) => {
     e.stopPropagation();
     if (onAddToCartPress && productData) {
       onAddToCartPress(productData);
-    } else {
-      console.log(`Товар ${id} добавлен в корзину`);
     }
   };
 
@@ -77,48 +94,48 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     setIsImageLoading(false);
     setImageError(true);
   };
-
-  const formatPrice = (price: number) => {
-    return price.toLocaleString('ru-RU', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
-  };
+  const cartItemsForProduct = useMemo(() => {
+    if (!productData?.purchaseOptions) return [];
+    
+    return cartItems?.filter(
+      (item: any) => item.productId === productData.id
+    ) || [];
+  }, [cartItems, productData]);
   
-  const router = useRouter();
+  const totalCartQuantity = useMemo(() => {
+    if (!cartItemsForProduct.length) return null;
+    const total = cartItemsForProduct.reduce((sum, item) => sum + item.quantity, 0);
+    if (total > 10) return '10+';
+    return total.toString();
+  }, [cartItemsForProduct]);
 
   const toProductDetail = () => {
     //@ts-ignore
     router.push(`dashboard/product/${encodeURIComponent(id)}?productId=${id}&productName=${encodeURIComponent(name)}`);
-  }
+  };
 
   return (
-    // Обертка для клика по всей карточке
     <TouchableOpacity 
       onPress={toProductDetail}
       activeOpacity={0.9}
       style={styles.cardTouchable}
     >
       <ThemedView lightColor='#FFFFFF' style={styles.container}>
-        {/* Верхняя часть с изображением */}
         <View style={styles.imageContainer}>
           {!isImageLoaded && (isImageLoading || externalLoading) && (
             <View style={[styles.image, styles.imageLoadingContainer]}>
-              <ActivityIndicator 
-                size="small" 
-                color="#666666"
-                style={styles.loader}
-              />
+              <ActivityIndicator size="small" color="#666666" style={styles.loader} />
             </View>
           )}
           
           {imageError && (
-            <View style={[styles.image, styles.imageErrorContainer]}>
-              <ThemedText style={styles.errorText}>Не удалось загрузить</ThemedText>
-            </View>
+            <Image
+              source={require('@/assets/icons/png/noImage.png')} 
+              style={styles.image}
+              resizeMode="cover"
+            />
           )}
           
-          {/* Основное изображение */}
           {img && !imageError && (
             <Image
               source={img}
@@ -134,16 +151,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           )}
           {!img && (
             <Image
-              source={noImage}
+              source={require('@/assets/icons/png/noImage.png')} 
               style={styles.image}
               resizeMode="cover"
-              onLoadStart={handleImageLoadStart}
-              onLoadEnd={handleImageLoadEnd}
-              onError={handleImageError}
             />
           )}
           
-          {/* Иконки поверх изображения */}
           {isFrozen && !isImageLoading && (
             <View style={styles.frozenIcon}>
               <SnowflakeIcon />
@@ -166,9 +179,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               )
             )}
           </TouchableOpacity>
+
+          {/* Бейдж корзины с количеством */}
+
         </View>
         
-        {/* Нижняя часть с информацией */}
         <View style={styles.infoContainer}>
           <ThemedText 
             lightColor='#1B1B1C' 
@@ -193,13 +208,22 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 {fullPrice ? `${fullPrice}₽` : '0,00 ₽'}
               </ThemedText>
             </View>
-            
+            {totalCartQuantity && (
+            <View style={styles.cartBadge}>
+              <ThemedText style={styles.cartBadgeText}>
+                {totalCartQuantity}
+              </ThemedText>
+            </View>
+          )}
             <TouchableOpacity 
-              style={styles.cartButton}
+              style={[
+                styles.cartButton,
+                cartItem && styles.cartButtonActive
+              ]}
               onPress={handleCartPress}
               activeOpacity={0.7}
             >
-              <CartIcon />
+              <CartIcon/>
             </TouchableOpacity>
           </View>
         </View>
@@ -211,8 +235,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 const styles = StyleSheet.create({
   cardTouchable: {
     width: '48.8%',
-    // marginRight: 12,
-    // marginLeft: 12,
     marginBottom: 12,
   },
   container: {
@@ -243,6 +265,7 @@ const styles = StyleSheet.create({
   imageErrorContainer: {
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#FEE',
   },
   errorText: {
     fontSize: 10,
@@ -272,6 +295,26 @@ const styles = StyleSheet.create({
     padding: 2,
     borderRadius: 4,
     zIndex: 2,
+  },
+  heartIconActive: {},
+  cartBadge: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+    backgroundColor: '#FF3B30',
+    borderRadius: 12,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+    zIndex: 3,
+  },
+  cartBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '700',
+    fontFamily: 'Montserrat',
   },
   infoContainer: {
     padding: 12,
@@ -329,5 +372,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     marginLeft: 8,
   },
-  heartIconActive: {},
+  cartButtonActive: {
+    backgroundColor: '#FFED32', // Можно сделать другой цвет
+  },
 });

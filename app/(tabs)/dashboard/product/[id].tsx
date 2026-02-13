@@ -1,15 +1,14 @@
-// CatalogDetailScreen.tsx
 import { CheckCircleIcon, CloseCircleIcon } from '@/assets/icons/icons';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { ModalHeader } from '@/features/auth/ui/Header';
 import { AddToCartModal } from '@/features/shared/ui/AddToCartModal';
-import { getProduct } from '@/features/catalog/catalogSlice';
+import { getProduct, AddToCart } from '@/features/catalog/catalogSlice'; // Импортируем AddToCart
 import { AutoSlider } from '@/features/home';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Dimensions,
   LayoutAnimation,
@@ -44,12 +43,14 @@ export default function ProductDetailScreen() {
   const [tabContainerWidth, setTabContainerWidth] = useState(0);
   const [tabAnim] = useState(new Animated.Value(0));
   const [isCartModalVisible, setIsCartModalVisible] = useState(false);
+  const [existingCartItem, setExistingCartItem] = useState<any>(null);
   
   const tabContainerRef = useRef<View>(null);
 
   const router = useRouter();
   const dispatch = useAppDispatch();
   const product = useAppSelector((state) => state.catalog.product);
+  const cartItems = useAppSelector((state) => state.catalog.cart);
   const selectedPurchaseOption = product?.purchaseOptions?.[selectedPurchaseOptionIndex];
   const totalPrice = selectedPurchaseOption ? (quantity * selectedPurchaseOption.price) : 0;
 
@@ -79,9 +80,41 @@ export default function ProductDetailScreen() {
     console.log('Buy now:', { productId, quantity, totalPrice });
   };
 
+  const handleOpenCartModal = () => {
+    // Ищем товар в корзине по ВСЕМ опциям, а не только первой
+    let existingItem = null;
+    
+    if (product?.purchaseOptions) {
+      for (const option of product.purchaseOptions) {
+        const item = cartItems?.find(
+          (item: any) => 
+            item.productId === productId && 
+            item.productPurchaseOptionId === option.id
+        );
+        if (item) {
+          existingItem = item;
+          // Устанавливаем выбранную опцию равной той, что в корзине
+          const optionIndex = product.purchaseOptions.findIndex((opt: any) => opt.id === option.id);
+          if (optionIndex !== -1) {
+            setSelectedPurchaseOptionIndex(optionIndex);
+          }
+          break;
+        }
+      }
+    }
+    
+    setExistingCartItem(existingItem);
+    setIsCartModalVisible(true);
+  };
+
   const handleAddToCart = (productId: string, optionId: string, quantity: number) => {
     console.log('Add to cart:', { productId, optionId, quantity });
-    // Здесь ваша логика добавления в корзину
+    // ИСПРАВЛЕНО: Добавляем dispatch
+    dispatch(AddToCart({
+      productId: productId,
+      productPurchaseOptionId: optionId,
+      quantity: quantity
+    }));
     setIsCartModalVisible(false);
   };
 
@@ -91,7 +124,7 @@ export default function ProductDetailScreen() {
 
   useEffect(() => {
     if (productId) {
-      console.log('Initial load for catalog:', productId);
+      console.log('Initial load for product:', productId);
       loadProduct();
     }
   }, [productId]);
@@ -128,6 +161,18 @@ export default function ProductDetailScreen() {
   });
 
   const needsExpandButton = product?.name && product.name.length > 40;
+
+  const cartItemsForProduct = useMemo(() => {
+    if (!product?.id) return [];
+    return cartItems?.filter(
+      (item: any) => item.productId === product.id
+    ) || [];
+  }, [cartItems, product]);
+  
+  const totalCartQuantity = useMemo(() => {
+    if (!cartItemsForProduct.length) return null;
+    return cartItemsForProduct.reduce((sum, item) => sum + item.quantity, 0);
+  }, [cartItemsForProduct]);
 
   return (
     <SafeAreaProvider>
@@ -185,7 +230,7 @@ export default function ProductDetailScreen() {
                   Вид цены – упаковками
                 </ThemedText>
                 <ThemedText style={styles.subContainerPrice} lightColor={'#1B1B1C'} darkColor='#FBFCFF'>
-                  12321424
+                  {selectedPurchaseOption?.price?.toLocaleString('ru-RU')} ₽
                 </ThemedText>
               </ThemedView>
 
@@ -306,7 +351,7 @@ export default function ProductDetailScreen() {
                               lightColor='#1B1B1C'
                               darkColor='#FBFCFF'
                             >
-                              {product?.dateFrom} г.
+                              {product?.dateFrom ? new Date(product.dateFrom).toLocaleDateString('ru-RU') : '—'}
                             </ThemedText>
                       </View>
                       <View style={styles.onceDate}>
@@ -319,7 +364,7 @@ export default function ProductDetailScreen() {
                               lightColor='#1B1B1C'
                               darkColor='#FBFCFF'
                             >
-                              {product?.dateTo} г.
+                              {product?.dateTo ? new Date(product.dateTo).toLocaleDateString('ru-RU') : '—'}
                             </ThemedText>
                       </View>
                     </View>
@@ -360,17 +405,28 @@ export default function ProductDetailScreen() {
             </ThemedView>
           </ScrollView>
 
-          {/* Нижняя панель с кнопкой добавления в корзину - всегда видима */}
+          {/* Нижняя панель с кнопкой добавления в корзину */}
           <View style={styles.bottomPanel}>
             <TouchableOpacity
               style={styles.addToCartButton}
-              onPress={() => setIsCartModalVisible(true)}
+              onPress={handleOpenCartModal}
               activeOpacity={0.9}
             >
               <View style={styles.addToCartContent}>
-                <Ionicons name="cart-outline" size={24} color="#FFFFFF" />
+                <View style={styles.cartIconContainer}>
+                  <Ionicons name="cart-outline" size={24} color="#FFFFFF" />
+                  {totalCartQuantity > 0 && (
+                    <View style={styles.cartBadge}>
+                      <ThemedText style={styles.cartBadgeText}>
+                        {totalCartQuantity > 10 ? '10+' : totalCartQuantity}
+                      </ThemedText>
+                    </View>
+                  )}
+                </View>
                 <ThemedText style={styles.addToCartText}>
-                  Добавить в корзину
+                  {cartItemsForProduct.length > 0 
+                    ? `${cartItemsForProduct.length} товар(а) в корзине` 
+                    : 'Добавить в корзину'}
                 </ThemedText>
               </View>
             </TouchableOpacity>
@@ -379,9 +435,13 @@ export default function ProductDetailScreen() {
           {/* Модалка добавления в корзину */}
           <AddToCartModal
             visible={isCartModalVisible}
-            onClose={() => setIsCartModalVisible(false)}
+            onClose={() => {
+              setIsCartModalVisible(false);
+              setExistingCartItem(null);
+            }}
             product={product}
             onAddToCart={handleAddToCart}
+            existingCartItem={existingCartItem}
           />
         </View>
       </ThemedView>
@@ -605,6 +665,28 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
+    fontFamily: 'Montserrat',
+  },
+  cartIconContainer: {
+    position: 'relative',
+    marginRight: 8,
+  },
+  cartBadge: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+    backgroundColor: '#FF3B30',
+    borderRadius: 12,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+  },
+  cartBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '700',
     fontFamily: 'Montserrat',
   },
 });

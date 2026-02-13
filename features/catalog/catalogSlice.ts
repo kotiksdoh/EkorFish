@@ -195,6 +195,67 @@ export const AddToCart = createAsyncThunk(
   }
 );
 
+export const getCart = createAsyncThunk(
+  "catalog/getCart",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await axdef.get("/api/Account/cart");
+      return response.data.data;
+    } catch (error: any) {
+      if (error.response?.status !== 401) {
+        return rejectWithValue(error);
+      }
+      throw error;
+    }
+  }
+);
+
+export const removeFromCart = createAsyncThunk(
+  "catalog/removeFromCart",
+  async (cartItemId: string, { rejectWithValue }) => {
+    try {
+      const response = await axdef.delete(`/api/Account/cart/${cartItemId}`);
+      return { cartItemId, data: response.data };
+    } catch (error: any) {
+      if (error.response?.status !== 401) {
+        return rejectWithValue(error);
+      }
+      throw error;
+    }
+  }
+);
+
+export const updateCartItemQuantitys = createAsyncThunk(
+  "catalog/updateCartItemQuantity",
+  async ({ cartItemId, quantity }: { cartItemId: string; quantity: number }, { rejectWithValue }) => {
+    try {
+      const response = await axdef.put(`/api/Account/cart/${cartItemId}`, { quantity });
+      return response.data.data;
+    } catch (error: any) {
+      if (error.response?.status !== 401) {
+        return rejectWithValue(error);
+      }
+      throw error;
+    }
+  }
+);
+
+export const toggleCartItemFavorite = createAsyncThunk(
+  "catalog/toggleCartItemFavorite",
+  async ({ cartItemId, productId, isFavorite }: { cartItemId: string; productId: string; isFavorite: boolean }, { rejectWithValue }) => {
+    try {
+      // Здесь должен быть эндпоинт для избранного в корзине
+      // Если такого нет, используй существующий putFavorite
+      const response = await axdef.put(`/api/Catalog/product/favorite?productId=${productId}`);
+      return { cartItemId, isFavorite: !isFavorite };
+    } catch (error: any) {
+      if (error.response?.status !== 401) {
+        return rejectWithValue(error);
+      }
+      throw error;
+    }
+  }
+);
 
 const catalogSlice = createSlice({
   name: 'catalog',
@@ -248,6 +309,21 @@ const catalogSlice = createSlice({
       state.products = [];
       state.currentPage = 0;
       state.hasMore = true;
+    },
+    updateCartItemQuantity: (state, action) => {
+      const { cartItemId, quantity } = action.payload;
+      const itemIndex = state.cart.findIndex(item => item.id === cartItemId);
+      if (itemIndex !== -1) {
+        state.cart[itemIndex].quantity = quantity;
+        state.cart[itemIndex].totalPrice = state.cart[itemIndex].price * quantity;
+      }
+    },
+    removeCartItem: (state, action) => {
+      const cartItemId = action.payload;
+      state.cart = state.cart.filter(item => item.id !== cartItemId);
+    },
+    clearCart: (state) => {
+      state.cart = [];
     },
   },
   extraReducers: (builder) => {
@@ -309,13 +385,28 @@ const catalogSlice = createSlice({
     });
     
     builder.addCase(AddToCart.fulfilled, (state, action) => {
-      console.log('AddToCart response:', action.payload);
       const cartItem = action.payload || action.payload?.data;
+      
       if (cartItem) {
-        if (Array.isArray(state.cart)) {
-          state.cart = [...state.cart, cartItem];
+        // Ищем существующий товар по productId И productPurchaseOptionId
+        const existingItemIndex = state.cart.findIndex(
+          item => item.productId === cartItem.productId && 
+                  item.productPurchaseOptionId === cartItem.productPurchaseOptionId // Важно!
+        );
+        
+        if (existingItemIndex !== -1) {
+          // Обновляем существующий товар (заменяем, а не суммируем)
+          state.cart[existingItemIndex] = {
+            ...state.cart[existingItemIndex],
+            ...cartItem,
+          };
         } else {
-          state.cart = [cartItem];
+          // Добавляем новый товар
+          if (Array.isArray(state.cart)) {
+            state.cart = [...state.cart, cartItem];
+          } else {
+            state.cart = [cartItem];
+          }
         }
       }
       state.isLoadingCart = false;
@@ -351,6 +442,40 @@ const catalogSlice = createSlice({
     builder.addCase(putFavorite.rejected, (state, action) => {
       axiosErrorHandler(action?.payload);
     });
+    builder.addCase(getCart.pending, (state) => {
+      state.isLoadingCart = true;
+    });
+    
+    builder.addCase(getCart.fulfilled, (state, action) => {
+      state.cart = action.payload || [];
+      state.isLoadingCart = false;
+    });
+    
+    builder.addCase(getCart.rejected, (state, action) => {
+      state.isLoadingCart = false;
+      axiosErrorHandler(action?.payload);
+    });
+    
+    builder.addCase(removeFromCart.fulfilled, (state, action) => {
+      const { cartItemId } = action.payload;
+      state.cart = state.cart.filter(item => item.id !== cartItemId);
+    });
+    
+    builder.addCase(updateCartItemQuantitys.fulfilled, (state, action) => {
+      const updatedItem = action.payload;
+      const index = state.cart.findIndex(item => item.id === updatedItem.id);
+      if (index !== -1) {
+        state.cart[index] = updatedItem;
+      }
+    });
+    
+    builder.addCase(toggleCartItemFavorite.fulfilled, (state, action) => {
+      const { cartItemId, isFavorite } = action.payload;
+      const index = state.cart.findIndex(item => item.id === cartItemId);
+      if (index !== -1) {
+        state.cart[index].isFavorite = isFavorite;
+      }
+    });
     
   }
 });
@@ -362,6 +487,9 @@ export const {
   clearSelectedFilters,
   setSelectedFilters,
   setSelectedSubcategory,
-  clearSelectedSubcategory
+  clearSelectedSubcategory,
+  updateCartItemQuantity,
+  removeCartItem,
+  clearCart
 } = catalogSlice.actions;
 export default catalogSlice.reducer;

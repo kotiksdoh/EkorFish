@@ -50,9 +50,12 @@ export const ModalHeader: React.FC<ModalHeaderProps> = ({
 
 const headerStyles = StyleSheet.create({
     allCont: {
+        overflow: 'hidden',
         width: '100%',
         borderBottomRightRadius: 24,
         borderBottomLeftRadius: 24,
+        zIndex: 1, 
+        elevation: 1,
     },
     container: {
         width: '100%',
@@ -63,7 +66,8 @@ const headerStyles = StyleSheet.create({
         paddingBottom: 24,
         paddingHorizontal: 20,
         position: 'relative',
-        alignItems: 'center'
+        alignItems: 'center',
+        overflow: 'hidden',
     },
     containerSub: {
         paddingTop: 62,

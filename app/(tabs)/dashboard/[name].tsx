@@ -1,5 +1,5 @@
 // CatalogDetailScreen.tsx
-import { FilterXsIcon, SortIcon } from '@/assets/icons/icons';
+import { FilterXsIcon, SortIcon, WarningIcon } from '@/assets/icons/icons';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { ModalHeader } from '@/features/auth/ui/Header';
@@ -47,7 +47,9 @@ export default function CatalogDetailScreen() {
 
   // Парсим children из строки
   const parsedChildren = children ? JSON.parse(decodeURIComponent(children)) : [];
-  
+  const cartItems = useAppSelector((state) => state.catalog.cart);
+  const me = useAppSelector((state) => state.auth.me);
+
   // Преобразуем в массив подкатегорий
   const subcategoriesFromProps = parsedChildren.map((child: any) => ({
     id: child.id,
@@ -234,8 +236,15 @@ export default function CatalogDetailScreen() {
     dispatch(setSelectedSubcategory(null));
   }, [dispatch]);
 
+  const [existingCartItem, setExistingCartItem] = useState<any>(null);
+
   const handleAddToCartPress = (product: any) => {
+    const cartItemsForProduct = cartItems?.filter(
+      (item: any) => item.productId === product.id
+    ) || [];
+    
     setSelectedProduct(product);
+    setExistingCartItem(cartItemsForProduct); 
     setShowAddToCartModal(true);
   };
 
@@ -344,7 +353,7 @@ export default function CatalogDetailScreen() {
   }, [products, sortBy]);
 
   const sortedProducts = getSortedProducts();
-
+  console.log('me.storageId', me?.storageId)
   // Рендер элемента фильтра
   const renderFilterItem = (filterOption: any, filterGroupId: string) => (
     <TouchableOpacity
@@ -470,7 +479,21 @@ export default function CatalogDetailScreen() {
                   </ScrollView>
                 </View>
               )}
+              { !me?.storageId ?
+                <ThemedView lightColor='#F2F4F7' style={styles.cityContainer}>
+                  <ThemedView lightColor='#FFFFFF' style={styles.cityIcon}>
+                    <WarningIcon/>
+                  </ThemedView>
+                  <ThemedText style={styles.cityText}>
+                    Укажите ваш город, чтобы увидеть наличие товаров
+                  </ThemedText>
+                  <ThemedText>
+                      ˃
+                  </ThemedText>
 
+                </ThemedView>
+                : null
+              }
               {/* Индикатор начальной загрузки */}
               {isLoading && !isLoadingMore && sortedProducts.length === 0 && (
                 <View style={styles.initialLoadingContainer}>
@@ -638,7 +661,7 @@ export default function CatalogDetailScreen() {
                   {/* Кнопка применения */}
                   <TouchableOpacity style={styles.applyButton} onPress={applyFilters}>
                     <ThemedText style={styles.applyButtonText}>
-                      Применить фильтры {appliedFiltersCount > 0 ? `(${appliedFiltersCount})` : ''}
+                      Применить {appliedFiltersCount > 0 ? `(${appliedFiltersCount})` : ''}
                     </ThemedText>
                   </TouchableOpacity>
                 </Animated.View>
@@ -647,10 +670,14 @@ export default function CatalogDetailScreen() {
           </TouchableWithoutFeedback>
         </Modal>
         <AddToCartModal
-        visible={showAddToCartModal}
-        onClose={() => setShowAddToCartModal(false)}
-        product={selectedProduct}
-        onAddToCart={handleAddToCart}
+          visible={showAddToCartModal}
+          onClose={() => {
+            setShowAddToCartModal(false);
+            setExistingCartItem(null);
+          }}
+          product={selectedProduct}
+          onAddToCart={handleAddToCart}
+          existingCartItem={existingCartItem}
       />
       </ThemedView>
 
@@ -954,4 +981,23 @@ const styles = StyleSheet.create({
     width: 86,
     height: 86,
   },
+
+  cityContainer:{
+      display: 'flex',
+      flexDirection:'row',
+      alignItems: 'center',
+      gap: 12,
+      marginHorizontal: 16,
+      padding: 8,
+      borderRadius: 16,
+  },
+  cityIcon: {
+    padding: 10,
+    borderRadius: 8,
+
+  },
+  cityText:{
+    fontWeight: 500,
+    fontSize: 14,
+  }
 });
