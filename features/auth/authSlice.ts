@@ -15,6 +15,16 @@ interface AuthState {
   sliders: any[]
   categories: any[]
   predUserData: any
+  towns: Town[];
+  isLoadingTowns: boolean; 
+}
+interface Town {
+  id: string;
+  value: string;
+}
+
+interface UpdateTownPayload {
+  storageId: string;
 }
 
 const initialState: AuthState = {
@@ -26,7 +36,9 @@ const initialState: AuthState = {
   me:null,
   sliders: [],
   categories: [],
-  predUserData: null
+  predUserData: null,
+  towns: [], 
+  isLoadingTowns: false, 
 };
 
 export const getCode = createAsyncThunk(
@@ -126,6 +138,32 @@ export const getCategoryItems = createAsyncThunk(
   async (payload: any, { rejectWithValue }) => {
     try {
       const data = await axdef.get("/api/Catalog/categories");
+      return data;
+    } catch (error) {
+      console.log(error);
+      return rejectWithValue(error);
+    }
+  }
+);
+
+export const getTowns = createAsyncThunk(
+  "user/getTowns",
+  async (_, { rejectWithValue }) => {
+    try {
+      const data = await axdef.get("/api/Catalog/towns");
+      return data;
+    } catch (error) {
+      console.log(error);
+      return rejectWithValue(error);
+    }
+  }
+);
+
+export const updateUserTown = createAsyncThunk(
+  "user/updateTown",
+  async (payload: UpdateTownPayload, { rejectWithValue }) => {
+    try {
+      const data = await axdef.put(`/api/Account/town/${payload.storageId}`);
       return data;
     } catch (error) {
       console.log(error);
@@ -300,6 +338,40 @@ const authSlice = createSlice({
       console.log('action')
       axiosErrorHandler(action?.payload);
 
+    });
+    builder.addCase(getTowns.pending, (state) => {
+      state.isLoadingTowns = true;
+      state.error = null;
+    });
+    
+    builder.addCase(getTowns.fulfilled, (state, action) => {
+      state.isLoadingTowns = false;
+      state.towns = action.payload.data.data || [];
+      console.log('Towns loaded:', state.towns);
+    });
+    
+    builder.addCase(getTowns.rejected, (state, action) => {
+      state.isLoadingTowns = false;
+      state.error = 'Ошибка загрузки городов';
+      axiosErrorHandler(action?.payload);
+    });
+    
+    builder.addCase(updateUserTown.pending, (state) => {
+      state.isLoading = true;
+    });
+    
+    builder.addCase(updateUserTown.fulfilled, (state, action) => {
+      state.isLoading = false;
+      if (state.me) {
+        state.me.storageId = action.meta.arg.storageId;
+        // state.me.townId = action.meta.arg.townId;
+      }
+      console.log('Town updated successfully');
+    });
+    
+    builder.addCase(updateUserTown.rejected, (state, action) => {
+      state.isLoading = false;
+      axiosErrorHandler(action?.payload);
     });
   }
 });

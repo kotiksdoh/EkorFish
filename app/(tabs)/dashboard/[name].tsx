@@ -15,6 +15,7 @@ import {
 } from '@/features/catalog/catalogSlice';
 import { AddToCartModal } from '@/features/shared/ui/AddToCartModal';
 import { ProductCard } from '@/features/shared/ui/ProductCard';
+import { TownSelectionModal } from '@/features/shared/ui/TownSelectionModal';
 import AnimatedTextInput from '@/features/shared/ui/components/CustomInput';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -69,7 +70,7 @@ export default function CatalogDetailScreen() {
 
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [showAddToCartModal, setShowAddToCartModal] = useState(false);
-
+  const [showTownModal, setShowTownModal] = useState(false);
   const pageSize = 10;
 
   // Анимация для свайпа модалки
@@ -480,6 +481,7 @@ export default function CatalogDetailScreen() {
                 </View>
               )}
               { !me?.storageId ?
+                <TouchableOpacity onPress={() => setShowTownModal(true)}>
                 <ThemedView lightColor='#F2F4F7' style={styles.cityContainer}>
                   <ThemedView lightColor='#FFFFFF' style={styles.cityIcon}>
                     <WarningIcon/>
@@ -487,13 +489,23 @@ export default function CatalogDetailScreen() {
                   <ThemedText style={styles.cityText}>
                     Укажите ваш город, чтобы увидеть наличие товаров
                   </ThemedText>
-                  <ThemedText>
-                      ˃
-                  </ThemedText>
-
+                    <ThemedText style={styles.arrowIcon}>
+                      ›
+                    </ThemedText>
                 </ThemedView>
+                </TouchableOpacity>
+
                 : null
               }
+              <TownSelectionModal
+                visible={showTownModal}
+                onClose={() => setShowTownModal(false)}
+                storageId={me?.storageId}
+                onTownSelected={() => {
+                  // Перезагрузите товары после выбора города
+                  loadProducts(false, searchQuery);
+                }}
+                  />
               {/* Индикатор начальной загрузки */}
               {isLoading && !isLoadingMore && sortedProducts.length === 0 && (
                 <View style={styles.initialLoadingContainer}>
@@ -999,5 +1011,11 @@ const styles = StyleSheet.create({
   cityText:{
     fontWeight: 500,
     fontSize: 14,
-  }
+  },
+  arrowIcon: {
+    fontSize: 24,
+    fontWeight: '400',
+    paddingHorizontal: 8,
+  },
+
 });
