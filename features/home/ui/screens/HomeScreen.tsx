@@ -81,6 +81,7 @@ const sliderItems = useAppSelector((state) => state.auth.sliders);
         </ThemedView>
         <SpecialOffers/>
         <Catalog/>
+        
       </ScrollView>
     // </SafeAreaView>
   );

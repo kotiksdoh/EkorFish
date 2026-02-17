@@ -1,67 +1,110 @@
+// features/home/components/HomeHeader.tsx
 import { LemonIcon, PersonCircleIcon } from '@/assets/icons/icons.js';
 import { ThemedText } from '@/components/themed-text';
+import { CompanySelectModal } from '@/features/shared/ui/CompanySelectModal';
 import { useAppSelector } from '@/store/hooks';
-import React from 'react';
+import React, { useState } from 'react';
 import { StyleSheet, TouchableOpacity, View, useColorScheme } from 'react-native';
+
 interface HomeHeaderProps {
   title?: string;
   transparent?: boolean;
   onLoginPress?: () => void;
+  onAddCompanyPress?: () => void;
 }
 
 export const HomeHeader: React.FC<HomeHeaderProps> = ({
   title = 'EkorFish',
   transparent = true,
   onLoginPress,
+  onAddCompanyPress,
 }) => {
   const me = useAppSelector((state) => state.auth.me);
-  console.log('mee',me)
+  const [modalVisible, setModalVisible] = useState(false);
   const systemTheme = useColorScheme(); 
-  const currentTheme = systemTheme || 'light' 
+  const currentTheme = systemTheme || 'light';
   const codeBackgroundColor = currentTheme === 'dark' ? '#202022' : '#F2F4F7';
+
+  const handleSelectCompany = (company: any) => {
+    // Здесь можно добавить логику смены компании
+    console.log('Selected company:', company);
+    
+    // Если нужно обновлять выбранную компанию в сторе - добавить dispatch
+  };
+
+  const getDisplayName = () => {
+    if (!me) return '';
+    
+    if (me.companies?.length > 0) {
+      return me.companies[0]?.name;
+    }
+    
+    const profile = me.individualProfile;
+    if (profile) {
+      return `${profile.firstName || ''} ${profile.lastName || ''} ${profile.patronymic || ''}`.trim();
+    }
+    
+    return '';
+  };
+
   return (
-    <View style={[
-      styles.header,
-      transparent && styles.headerTransparent
-    ]}>
-      { me === null ?
-      <View style={styles.headerContent}>
-        <View></View>
-        <TouchableOpacity
-          style={[{  backgroundColor: codeBackgroundColor }, styles.loginButton]}
-          onPress={onLoginPress}
-          activeOpacity={0.7}
-        >
-          <ThemedText darkColor='#FBFCFF' lightColor='#1B1B1C' style={styles.loginButtonText}>Войти</ThemedText>
-        </TouchableOpacity>
+    <>
+      <View style={[
+        styles.header,
+        transparent && styles.headerTransparent
+      ]}>
+        {me === null ? (
+          <View style={styles.headerContent}>
+            <View></View>
+            <TouchableOpacity
+              style={[{ backgroundColor: codeBackgroundColor }, styles.loginButton]}
+              onPress={onLoginPress}
+              activeOpacity={0.7}
+            >
+              <ThemedText darkColor='#FBFCFF' lightColor='#1B1B1C' style={styles.loginButtonText}>
+                Войти
+              </ThemedText>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={styles.headerContent}>
+            <TouchableOpacity
+              style={styles.headInfo}
+              onPress={() => setModalVisible(true)}
+              activeOpacity={0.7}
+            >
+              <PersonCircleIcon/>
+              <ThemedText 
+                lightColor='#FBFCFF' 
+                darkColor='#FBFCFF'
+                numberOfLines={1}
+                ellipsizeMode="tail"
+                style={{ maxWidth: 150 }}
+              >
+                {getDisplayName()}
+              </ThemedText>
+            </TouchableOpacity>
+            
+            <View style={styles.headInfoBonus}>
+              <LemonIcon/>
+              <ThemedText lightColor='#FBFCFF' darkColor='#FBFCFF'>222</ThemedText>
+            </View>
+          </View>
+        )}
       </View>
-      :
-      <View style={styles.headerContent}>
-      <TouchableOpacity
-        style={styles.headInfo}
-        // onPress={onLoginPress}
-        activeOpacity={0.7}
-      >
-        <PersonCircleIcon/>
-        <ThemedText 
-          lightColor='#FBFCFF' 
-          darkColor='#FBFCFF'
-          numberOfLines={1}
-          ellipsizeMode="tail"
-          style={{ maxWidth: 150 }} // Примерная ширина для 24 символов
-        >
-          {me?.companies.length === 0 ? 
-          `${me?.individualProfile?.firstName} ${me?.individualProfile?.lastName} ${me?.individualProfile?.patronymic}`
-           : me?.companies[0]?.name}
-        </ThemedText>
-      </TouchableOpacity>
-      <View style={styles.headInfoBonus}>
-        <LemonIcon/>
-        <ThemedText lightColor='#FBFCFF' darkColor='#FBFCFF'>222</ThemedText>
-      </View>
-      </View>
-      } 
-    </View>
+
+      <CompanySelectModal
+        visible={modalVisible}
+        onClose={() => setModalVisible(false)}
+        companies={me?.companies || []}
+        selectedCompanyId={me?.companies[0]?.id}
+        onSelectCompany={handleSelectCompany}
+        onAddCompany={onAddCompanyPress || (() => {
+          // Здесь можно открыть модалку регистрации компании
+          console.log('Add company pressed');
+        })}
+      />
+    </>
   );
 };
 
@@ -72,7 +115,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 100,
-    // paddingTop: 60, // Отступ для статус бара
     paddingHorizontal: 16,
   },
   headerTransparent: {
@@ -82,18 +124,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    // height: 56,
     paddingVertical: 6
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#203686',
   },
   loginButton: {
     paddingHorizontal: 16,
     paddingVertical: 3,
-    // backgroundColor: '#FFFFFF',
     borderRadius: 8,
     borderWidth: 1,
     borderColor: 'rgba(32, 54, 134, 0.2)',
@@ -106,16 +141,15 @@ const styles = StyleSheet.create({
   loginButtonText: {
     fontSize: 14,
     fontWeight: '500',
-    // color: '#1B1B1C',
   },
-  headInfo:{
-    gap:8,
-    display:'flex',
-    flexDirection:'row',
+  headInfo: {
+    gap: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  headInfoBonus:{
-    gap:4,
-    display:'flex',
-    flexDirection:'row',
+  headInfoBonus: {
+    gap: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
   }
 });
