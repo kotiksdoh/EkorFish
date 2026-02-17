@@ -257,6 +257,19 @@ export const toggleCartItemFavorite = createAsyncThunk(
   }
 );
 
+export const getOrderPageData = createAsyncThunk(
+  "catalog/getOrderPageData",
+  async (_, { rejectWithValue }) => {
+    try {
+      const data = await axdef.get("/api/Order/page-data");
+      return data;
+    } catch (error) {
+      console.log(error);
+      return rejectWithValue(error);
+    }
+  }
+);
+
 const catalogSlice = createSlice({
   name: 'catalog',
   initialState,
@@ -475,6 +488,21 @@ const catalogSlice = createSlice({
       if (index !== -1) {
         state.cart[index].isFavorite = isFavorite;
       }
+    });
+
+    builder.addCase(getOrderPageData.pending, (state) => {
+      state.isLoading = true;
+    });
+    
+    builder.addCase(getOrderPageData.fulfilled, (state, action) => {
+      state.isLoading = false;
+      console.log('Order page data:', action.payload.data);
+      // Здесь можно сохранить данные в state
+    });
+    
+    builder.addCase(getOrderPageData.rejected, (state, action) => {
+      state.isLoading = false;
+      axiosErrorHandler(action?.payload);
     });
     
   }

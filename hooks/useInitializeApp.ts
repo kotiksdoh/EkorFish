@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { getCategoryItems, getMyInfo, getSliderItems } from '@/features/auth/authSlice';
 import { store } from '@/store/store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getCart } from '@/features/catalog/catalogSlice';
 
 // Предотвращаем автоматическое скрытие сплеш-скрина
 SplashScreenExpo.preventAutoHideAsync().catch(() => {
@@ -24,6 +25,7 @@ const loadAppResources = async () => {
     await store.dispatch(getCategoryItems('')).unwrap();
     if(token){
       await store.dispatch(getMyInfo('')).unwrap();
+      await store.dispatch(getCart()).unwrap();
     }
     // 3. Другие инициализации (если нужны)
     // - Кэширование изображений

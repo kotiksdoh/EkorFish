@@ -10,6 +10,7 @@ import {
   updateCartItemQuantitys
 } from '@/features/catalog/catalogSlice';
 import { PrimaryButton } from '@/features/home';
+import CheckoutModal from '@/features/order/ui/Order';
 import { baseUrl } from '@/features/shared/services/axios';
 import { CustomCheckbox } from '@/features/shared/ui/components/CustomCheckBox';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
@@ -43,7 +44,8 @@ interface CartItem {
 export default function ShopScreen() {
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
-  
+  const [checkoutModalVisible, setCheckoutModalVisible] = useState(false);
+
   const router = useRouter();
   const dispatch = useAppDispatch();
   const cartItems = useAppSelector((state) => state.catalog.cart) as CartItem[];
@@ -383,8 +385,7 @@ console.log('totals', totals)
           <PrimaryButton
                 title="Перейти к оформлению"
                 onPress={() => {
-                  // currentScreen === ScreensScenario.USER_REG
-                  console.log('ffffff')
+                  setCheckoutModalVisible(true);
              
                 }}
                 variant="primary"
@@ -450,7 +451,7 @@ console.log('totals', totals)
                 totals.totalItems === 0 && styles.checkoutButtonDisabled
               ]}
               disabled={totals.totalItems === 0}
-              onPress={() => console.log('Переход к оформлению')}
+              onPress={() => setCheckoutModalVisible(true)}
             >
               <ThemedText style={styles.bottomCheckoutButtonText}>
                 Перейти к оформлению
@@ -464,6 +465,14 @@ console.log('totals', totals)
             </ThemedText>
           )} */}
         </ThemedView>
+
+        <CheckoutModal
+          visible={checkoutModalVisible}
+          onClose={() => setCheckoutModalVisible(false)}
+          selectedItems={selectedItems}
+          cartItems={cartItems}
+          totals={totals}
+        />
       </ThemedView>
     </SafeAreaProvider>
   );
