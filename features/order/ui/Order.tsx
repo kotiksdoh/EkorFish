@@ -1,26 +1,26 @@
 // app/modals/checkout.tsx
-import React, { useEffect, useState, useRef } from 'react';
-import {
-  View,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Platform,
-  Animated,
-  Modal as RNModal,
-  FlatList
-} from 'react-native';
-import { ModalHeader } from '@/features/auth/ui/Header';
-import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { PrimaryButton } from '@/features/home';
-import { CustomCheckbox } from '@/features/shared/ui/components/CustomCheckBox';
-import { TrashIcon, InfoIcon } from '@/assets/icons/icons';
-import { Image } from 'expo-image';
-import { baseUrl } from '@/features/shared/services/axios';
-import { getOrderPageData } from '@/features/catalog/catalogSlice';
-import { ThemedView } from '@/components/themed-view';
+import { TrashIcon } from '@/assets/icons/icons';
 import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
+import { ModalHeader } from '@/features/auth/ui/Header';
+import { getOrderPageData } from '@/features/catalog/catalogSlice';
+import { PrimaryButton } from '@/features/home';
+import { baseUrl } from '@/features/shared/services/axios';
+import { CustomCheckbox } from '@/features/shared/ui/components/CustomCheckBox';
 import AnimatedTextInput from '@/features/shared/ui/components/CustomInput';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { Image } from 'expo-image';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  Animated,
+  FlatList,
+  Platform,
+  Modal as RNModal,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View
+} from 'react-native';
 
 interface CheckoutModalProps {
   visible: boolean;
@@ -71,7 +71,7 @@ export default function CheckoutModal({
   const tabContainerRef = useRef<View>(null);
   const [tabContainerWidth, setTabContainerWidth] = useState(0);
   const indicatorPosition = useRef(new Animated.Value(0)).current;
-  
+  const orderData = useAppSelector((state) => state.catalog.order);
   // Моковые адреса для самовывоза
   const pickupAddresses = [
     { id: '1', address: 'ул. Ленина, 1, Москва', workingHours: 'пн-пт 9:00-18:00' },
@@ -471,19 +471,123 @@ export default function CheckoutModal({
 }
 
 // Компонент модалки выбора даты и времени
+// Компонент модалки выбора даты и времени
 function DateTimeModal({ visible, onClose, onConfirm, initialDateTime }: any) {
   const [selectedDate, setSelectedDate] = useState<string>(initialDateTime.date || '');
   const [selectedTime, setSelectedTime] = useState<string>(initialDateTime.time || '');
-  const [availableTimeSlots, setAvailableTimeSlots] = useState<string[]>([]);
+  const [availableTimeSlots, setAvailableTimeSlots] = useState<any[]>([]);
   const [months, setMonths] = useState<Date[]>([]);
+  const [showTimeModal, setShowTimeModal] = useState(false);
+  const orderData = useAppSelector((state) => state.catalog.order);
+  console.log('orderData', orderData)
+  // Данные с бека (нужно получать через пропсы или из стора)
+  const deliverySchedule = orderData?.deliverySchedule
+  // {
+  //   weekSchedule: {
+  //     Monday: {
+  //       dayOfWeek: 1,
+  //       startTime: "07:00:00",
+  //       endTime: "21:00:00",
+  //       isWorkingDay: true,
+  //       timeSlots: [
+  //         { startTime: "07:00:00", endTime: "09:00:00" },
+  //         { startTime: "09:00:00", endTime: "11:00:00" },
+  //         { startTime: "11:00:00", endTime: "13:00:00" },
+  //         { startTime: "13:00:00", endTime: "15:00:00" },
+  //         { startTime: "15:00:00", endTime: "17:00:00" },
+  //         { startTime: "17:00:00", endTime: "19:00:00" },
+  //         { startTime: "19:00:00", endTime: "21:00:00" }
+  //       ]
+  //     },
+  //     Tuesday: {
+  //       dayOfWeek: 2,
+  //       startTime: "07:00:00",
+  //       endTime: "21:00:00",
+  //       isWorkingDay: true,
+  //       timeSlots: [
+  //         { startTime: "07:00:00", endTime: "09:00:00" },
+  //         { startTime: "09:00:00", endTime: "11:00:00" },
+  //         { startTime: "11:00:00", endTime: "13:00:00" },
+  //         { startTime: "13:00:00", endTime: "15:00:00" },
+  //         { startTime: "15:00:00", endTime: "17:00:00" },
+  //         { startTime: "17:00:00", endTime: "19:00:00" },
+  //         { startTime: "19:00:00", endTime: "21:00:00" }
+  //       ]
+  //     },
+  //     Wednesday: {
+  //       dayOfWeek: 3,
+  //       startTime: "07:00:00",
+  //       endTime: "21:00:00",
+  //       isWorkingDay: true,
+  //       timeSlots: [
+  //         { startTime: "07:00:00", endTime: "09:00:00" },
+  //         { startTime: "09:00:00", endTime: "11:00:00" },
+  //         { startTime: "11:00:00", endTime: "13:00:00" },
+  //         { startTime: "13:00:00", endTime: "15:00:00" },
+  //         { startTime: "15:00:00", endTime: "17:00:00" },
+  //         { startTime: "17:00:00", endTime: "19:00:00" },
+  //         { startTime: "19:00:00", endTime: "21:00:00" }
+  //       ]
+  //     },
+  //     Thursday: {
+  //       dayOfWeek: 4,
+  //       startTime: "07:00:00",
+  //       endTime: "21:00:00",
+  //       isWorkingDay: true,
+  //       timeSlots: [
+  //         { startTime: "07:00:00", endTime: "09:00:00" },
+  //         { startTime: "09:00:00", endTime: "11:00:00" },
+  //         { startTime: "11:00:00", endTime: "13:00:00" },
+  //         { startTime: "13:00:00", endTime: "15:00:00" },
+  //         { startTime: "15:00:00", endTime: "17:00:00" },
+  //         { startTime: "17:00:00", endTime: "19:00:00" },
+  //         { startTime: "19:00:00", endTime: "21:00:00" }
+  //       ]
+  //     },
+  //     Friday: {
+  //       dayOfWeek: 5,
+  //       startTime: "07:00:00",
+  //       endTime: "21:00:00",
+  //       isWorkingDay: true,
+  //       timeSlots: [
+  //         { startTime: "07:00:00", endTime: "09:00:00" },
+  //         { startTime: "09:00:00", endTime: "11:00:00" },
+  //         { startTime: "11:00:00", endTime: "13:00:00" },
+  //         { startTime: "13:00:00", endTime: "15:00:00" },
+  //         { startTime: "15:00:00", endTime: "17:00:00" },
+  //         { startTime: "17:00:00", endTime: "19:00:00" },
+  //         { startTime: "19:00:00", endTime: "21:00:00" }
+  //       ]
+  //     },
+  //     Saturday: {
+  //       dayOfWeek: 6,
+  //       startTime: "07:00:00",
+  //       endTime: "15:00:00",
+  //       isWorkingDay: true,
+  //       timeSlots: [
+  //         { startTime: "07:00:00", endTime: "09:00:00" },
+  //         { startTime: "09:00:00", endTime: "11:00:00" },
+  //         { startTime: "11:00:00", endTime: "13:00:00" },
+  //         { startTime: "13:00:00", endTime: "15:00:00" }
+  //       ]
+  //     },
+  //     Sunday: {
+  //       dayOfWeek: 0,
+  //       startTime: "00:00:00",
+  //       endTime: "00:00:00",
+  //       isWorkingDay: false,
+  //       timeSlots: []
+  //     }
+  //   }
+  // };
 
   const daysOfWeek = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
 
   useEffect(() => {
-    // Генерируем 12 месяцев для прокрутки
+    // Генерируем 3 месяца для прокрутки (достаточно)
     const today = new Date();
     const monthsArray = [];
-    for (let i = 0; i < 12; i++) {
+    for (let i = 0; i < 3; i++) {
       const date = new Date(today.getFullYear(), today.getMonth() + i, 1);
       monthsArray.push(date);
     }
@@ -492,43 +596,51 @@ function DateTimeModal({ visible, onClose, onConfirm, initialDateTime }: any) {
 
   useEffect(() => {
     if (selectedDate) {
-      generateTimeSlots(selectedDate);
+      loadTimeSlotsForDate(selectedDate);
     }
   }, [selectedDate]);
 
-  const generateTimeSlots = (dateString: string) => {
+  const loadTimeSlotsForDate = (dateString: string) => {
     const date = new Date(dateString);
-    const now = new Date();
-    const dayOfWeek = date.getDay();
-    const hours = now.getHours();
-    const isToday = date.toDateString() === now.toDateString();
-    const isFriday = dayOfWeek === 5;
-    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-
-    let startHour = 7;
-    let endHour = 21;
-
-    if (isWeekend) {
-      if (dayOfWeek === 6) { // Суббота
-        startHour = 7;
-        endHour = 15;
-      } else { // Воскресенье
-        setAvailableTimeSlots([]);
-        return;
+    const dayOfWeek = date.getDay(); // 0 - воскресенье, 1 - понедельник, ...
+    
+    // Маппинг дней недели на английские названия
+    const daysMap = {
+      0: 'Sunday',
+      1: 'Monday',
+      2: 'Tuesday',
+      3: 'Wednesday',
+      4: 'Thursday',
+      5: 'Friday',
+      6: 'Saturday'
+    };
+    
+    const dayName = daysMap[dayOfWeek as keyof typeof daysMap];
+    const daySchedule = deliverySchedule.weekSchedule[dayName as keyof typeof deliverySchedule.weekSchedule];
+    
+    if (daySchedule && daySchedule.isWorkingDay) {
+      // Фильтруем слоты, которые уже прошли, если это сегодня
+      const now = new Date();
+      const isToday = date.toDateString() === now.toDateString();
+      
+      let slots = [...daySchedule.timeSlots];
+      if (isToday) {
+        const currentHour = now.getHours();
+        const currentMinutes = now.getMinutes();
+        const currentTimeInMinutes = currentHour * 60 + currentMinutes;
+        
+        slots = slots.filter(slot => {
+          const [slotHour, slotMinute] = slot.startTime.split(':').map(Number);
+          const slotStartInMinutes = slotHour * 60 + slotMinute;
+          // Добавляем 2 часа на подготовку заказа
+          return slotStartInMinutes > currentTimeInMinutes + 120;
+        });
       }
-    }
-
-    const slots: string[] = [];
-    for (let hour = startHour; hour < endHour; hour += 2) {
-      const slotStart = hour;
-      const slotEnd = hour + 2;
       
-      if (isToday && slotEnd <= hours) continue;
-      
-      slots.push(`${slotStart.toString().padStart(2, '0')}:00 - ${slotEnd.toString().padStart(2, '0')}:00`);
+      setAvailableTimeSlots(slots);
+    } else {
+      setAvailableTimeSlots([]);
     }
-
-    setAvailableTimeSlots(slots);
   };
 
   const generateDaysForMonth = (month: Date) => {
@@ -538,6 +650,7 @@ function DateTimeModal({ visible, onClose, onConfirm, initialDateTime }: any) {
     const lastDay = new Date(year, month_index + 1, 0);
     
     const days = [];
+    // Корректировка: если воскресенье (0), то смещение 6, иначе day - 1
     const startOffset = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1;
     
     for (let i = 0; i < startOffset; i++) {
@@ -551,10 +664,51 @@ function DateTimeModal({ visible, onClose, onConfirm, initialDateTime }: any) {
     return days;
   };
 
+  const isDateAvailable = (date: Date): boolean => {
+    const dayOfWeek = date.getDay();
+    const daysMap = {
+      0: 'Sunday',
+      1: 'Monday',
+      2: 'Tuesday',
+      3: 'Wednesday',
+      4: 'Thursday',
+      5: 'Friday',
+      6: 'Saturday'
+    };
+    
+    const dayName = daysMap[dayOfWeek as keyof typeof daysMap];
+    const daySchedule = deliverySchedule.weekSchedule[dayName as keyof typeof deliverySchedule.weekSchedule];
+    
+    return daySchedule?.isWorkingDay || false;
+  };
+
   const isDateDisabled = (date: Date) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    return date < today;
+    
+    // Дата в прошлом или недоступна по расписанию
+    return date < today || !isDateAvailable(date);
+  };
+
+  const formatDateForDisplay = (dateString: string) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    const months = [
+      'января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
+      'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'
+    ];
+    const days = [
+      'вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'
+    ];
+    
+    return `${date.getDate()} ${months[date.getMonth()]}, ${days[date.getDay()]}`;
+  };
+
+  const formatTimeForDisplay = (timeSlot: any) => {
+    if (!timeSlot) return '';
+    const start = timeSlot.startTime.slice(0, 5);
+    const end = timeSlot.endTime.slice(0, 5);
+    return `${start} – ${end}`;
   };
 
   const formatMonthYear = (date: Date) => {
@@ -563,6 +717,21 @@ function DateTimeModal({ visible, onClose, onConfirm, initialDateTime }: any) {
       'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
     ];
     return `${months[date.getMonth()]} ${date.getFullYear()}`;
+  };
+
+  const handleDateSelect = (date: Date) => {
+    if (!isDateDisabled(date)) {
+      setSelectedDate(date.toDateString());
+      setSelectedTime(''); // Сбрасываем время при выборе новой даты
+      // Автоматически открываем модалку выбора времени
+      setShowTimeModal(true);
+    }
+  };
+
+  const handleTimeSelect = (timeSlot: any) => {
+    const timeString = formatTimeForDisplay(timeSlot);
+    setSelectedTime(timeString);
+    setShowTimeModal(false);
   };
 
   const handleConfirm = () => {
@@ -579,6 +748,7 @@ function DateTimeModal({ visible, onClose, onConfirm, initialDateTime }: any) {
       <View style={styles.monthContainer}>
         <ThemedText style={styles.monthTitle}>{formatMonthYear(month)}</ThemedText>
         
+        {/* Дни недели для каждого месяца */}
         <View style={styles.weekDays}>
           {daysOfWeek.map(day => (
             <ThemedText key={day} style={styles.weekDay}>{day}</ThemedText>
@@ -586,29 +756,31 @@ function DateTimeModal({ visible, onClose, onConfirm, initialDateTime }: any) {
         </View>
 
         <View style={styles.daysGrid}>
-          {days.map((date, index) => (
-            <TouchableOpacity
-              key={index}
-              style={[
-                styles.dayCell,
-                date && isDateDisabled(date) && styles.dayDisabled,
-                date && selectedDate === date.toDateString() && styles.daySelected
-              ]}
-              onPress={() => {
-                if (date && !isDateDisabled(date)) {
-                  setSelectedDate(date.toDateString());
-                }
-              }}
-              disabled={!date || isDateDisabled(date)}
-            >
-              <ThemedText style={[
-                styles.dayText,
-                date && isDateDisabled(date) && styles.dayTextDisabled
-              ]}>
-                {date?.getDate()}
-              </ThemedText>
-            </TouchableOpacity>
-          ))}
+          {days.map((date, index) => {
+            const isSelected = date && selectedDate === date.toDateString();
+            const disabled = !date || isDateDisabled(date);
+            
+            return (
+              <TouchableOpacity
+                key={index}
+                style={[
+                  styles.dayCell,
+                  disabled && styles.dayDisabled,
+                  isSelected && styles.daySelected
+                ]}
+                onPress={() => date && handleDateSelect(date)}
+                disabled={disabled}
+              >
+                <ThemedText style={[
+                  styles.dayText,
+                  disabled && styles.dayTextDisabled,
+                  isSelected && styles.dayTextSelected
+                ]}>
+                  {date?.getDate()}
+                </ThemedText>
+              </TouchableOpacity>
+            );
+          })}
         </View>
       </View>
     );
@@ -640,32 +812,43 @@ function DateTimeModal({ visible, onClose, onConfirm, initialDateTime }: any) {
           {/* Нижняя панель с выбранными датой/временем и кнопкой */}
           <ThemedView lightColor="#FFFFFF" style={styles.dateTimeBottomPanel}>
             <View style={styles.selectedDateTime}>
+              {/* Блок с выбранной датой */}
               <TouchableOpacity 
-                style={styles.dateTimeInput}
-                onPress={() => {}}
-              >
-                <AnimatedTextInput
-                  placeholder="Дата"
-                  value={selectedDate ? new Date(selectedDate).toLocaleDateString('ru-RU') : ''}
-                  editable={false}
-                  pointerEvents="none"
-                />
-              </TouchableOpacity>
-
-              <TouchableOpacity 
-                style={styles.dateTimeInput}
+                style={styles.dateTimeBlock}
                 onPress={() => {
-                  if (selectedDate) {
-                    // Показать модалку выбора времени
-                  }
+                  // Скролл к календарю или просто закрыть/открыть
                 }}
               >
-                <AnimatedTextInput
-                  placeholder="Время"
-                  value={selectedTime}
-                  editable={false}
-                  pointerEvents="none"
-                />
+                <ThemedView lightColor="#F2F4F7" style={styles.dateTimeBlockInner}>
+                  <ThemedText style={styles.dateTimeBlockLabel}>Дата</ThemedText>
+                  <ThemedText style={styles.dateTimeBlockValue}>
+                    {selectedDate ? formatDateForDisplay(selectedDate) : 'Не выбрана'}
+                  </ThemedText>
+                </ThemedView>
+              </TouchableOpacity>
+
+              {/* Блок с выбранным временем */}
+              <TouchableOpacity 
+                style={styles.dateTimeBlock}
+                onPress={() => {
+                  if (selectedDate && availableTimeSlots.length > 0) {
+                    setShowTimeModal(true);
+                  }
+                }}
+                disabled={!selectedDate || availableTimeSlots.length === 0}
+              >
+                <ThemedView 
+                  lightColor={!selectedDate || availableTimeSlots.length === 0 ? "#F5F5F5" : "#F2F4F7"} 
+                  style={[
+                    styles.dateTimeBlockInner,
+                    (!selectedDate || availableTimeSlots.length === 0) && styles.dateTimeBlockDisabled
+                  ]}
+                >
+                  <ThemedText style={styles.dateTimeBlockLabel}>Время</ThemedText>
+                  <ThemedText style={styles.dateTimeBlockValue}>
+                    {selectedTime || 'Не выбрано'}
+                  </ThemedText>
+                </ThemedView>
               </TouchableOpacity>
             </View>
 
@@ -682,11 +865,12 @@ function DateTimeModal({ visible, onClose, onConfirm, initialDateTime }: any) {
 
         {/* Модалка выбора времени */}
         <TimeModal
-          visible={false} // Управляйте этим состоянием
-          onClose={() => {}}
-          onSelectTime={setSelectedTime}
+          visible={showTimeModal}
+          onClose={() => setShowTimeModal(false)}
+          onSelectTime={handleTimeSelect}
           selectedTime={selectedTime}
           timeSlots={availableTimeSlots}
+          selectedDate={selectedDate}
         />
       </View>
     </RNModal>
@@ -694,7 +878,28 @@ function DateTimeModal({ visible, onClose, onConfirm, initialDateTime }: any) {
 }
 
 // Компонент модалки выбора времени
-function TimeModal({ visible, onClose, onSelectTime, selectedTime, timeSlots }: any) {
+function TimeModal({ visible, onClose, onSelectTime, selectedTime, timeSlots, selectedDate }: any) {
+  const formatDateForHeader = (dateString: string) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    const months = [
+      'января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
+      'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'
+    ];
+    const days = [
+      'воскресенье', 'понедельник', 'вторник', 'среда', 
+      'четверг', 'пятница', 'суббота'
+    ];
+    
+    return `${date.getDate()} ${months[date.getMonth()]}, ${days[date.getDay()]}`;
+  };
+
+  const formatTimeSlot = (slot: any) => {
+    const start = slot.startTime.slice(0, 5);
+    const end = slot.endTime.slice(0, 5);
+    return `${start} – ${end}`;
+  };
+
   return (
     <RNModal
       visible={visible}
@@ -703,40 +908,91 @@ function TimeModal({ visible, onClose, onSelectTime, selectedTime, timeSlots }: 
       onRequestClose={onClose}
     >
       <View style={styles.modalOverlay}>
-        <ThemedView style={styles.modalContent} lightColor="#FFFFFF">
+        <ThemedView style={styles.timeModalContent} lightColor="#FFFFFF">
           <ModalHeader 
             title="Выберите время" 
             showBackButton={true} 
             onBackPress={onClose}
           />
-          
-          <ScrollView style={styles.timeList}>
-            {timeSlots.map((slot: string) => (
-              <TouchableOpacity
-                key={slot}
-                style={styles.timeSlot}
-                onPress={() => {
-                  onSelectTime(slot);
-                  onClose();
-                }}
-              >
-                <View style={[
-                  styles.radioOuter,
-                  selectedTime === slot && styles.radioOuterSelected
-                ]}>
-                  {selectedTime === slot && (
-                    <View style={styles.radioInner} />
-                  )}
-                </View>
-                <ThemedText style={styles.timeSlotText}>{slot}</ThemedText>
-              </TouchableOpacity>
-            ))}
+          <ScrollView style={styles.timeList} showsVerticalScrollIndicator={false}>
+            {timeSlots.map((slot: any, index: number) => {
+              const timeString = formatTimeSlot(slot);
+              const isSelected = selectedTime === timeString;
+              
+              return (
+                <TouchableOpacity
+                  key={index}
+                  style={styles.timeSlot}
+                  onPress={() => onSelectTime(slot)}
+                >
+                  <View style={[
+                    styles.radioOuter,
+                    isSelected && styles.radioOuterSelected
+                  ]}>
+                    {isSelected && (
+                      <View style={styles.radioInner} />
+                    )}
+                  </View>
+                  <ThemedText style={[
+                    styles.timeSlotText,
+                    isSelected && styles.timeSlotTextSelected
+                  ]}>
+                    {timeString}
+                  </ThemedText>
+                </TouchableOpacity>
+              );
+            })}
           </ScrollView>
         </ThemedView>
       </View>
     </RNModal>
   );
 }
+
+// Компонент модалки выбора времени
+// function TimeModal({ visible, onClose, onSelectTime, selectedTime, timeSlots }: any) {
+//   return (
+//     <RNModal
+//       visible={visible}
+//       animationType="slide"
+//       transparent={true}
+//       onRequestClose={onClose}
+//     >
+//       <View style={styles.modalOverlay}>
+//         <ThemedView style={styles.modalContent} lightColor="#FFFFFF">
+//           <ModalHeader 
+//             title="Выберите время" 
+//             showBackButton={true} 
+//             onBackPress={onClose}
+//           />
+          
+//           <ScrollView style={styles.timeList}>
+//             {timeSlots.map((slot: string) => (
+//               <TouchableOpacity
+//                 key={slot}
+//                 style={styles.timeSlot}
+//                 onPress={() => {
+//                   onSelectTime(slot);
+//                   onClose();
+//                 }}
+//               >
+//                 <View style={[
+//                   styles.radioOuter,
+//                   selectedTime === slot && styles.radioOuterSelected
+//                 ]}>
+//                   {selectedTime === slot && (
+//                     <View style={styles.radioInner} />
+//                   )}
+//                 </View>
+//                 <ThemedText style={styles.timeSlotText}>{slot}</ThemedText>
+//               </TouchableOpacity>
+//             ))}
+//           </ScrollView>
+//         </ThemedView>
+//       </View>
+//     </RNModal>
+//   );
+// }
 
 const getDeclension = (count: number, words: [string, string, string]) => {
   const cases = [2, 0, 1, 1, 1, 2];
@@ -1142,6 +1398,42 @@ const styles = StyleSheet.create({
   dateTimeInput: {
     flex: 1,
   },
+  dateTimeBlock: {
+    flex: 1,
+  },
+  dateTimeBlockInner: {
+    padding: 12,
+    borderRadius: 12,
+    gap: 4,
+  },
+  dateTimeBlockDisabled: {
+    opacity: 0.5,
+  },
+  dateTimeBlockLabel: {
+    fontSize: 12,
+    color: '#80818B',
+  },
+  dateTimeBlockValue: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  timeModalContent: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '80%',
+  },
+  selectedDateHeader: {
+    marginHorizontal: 16,
+    marginBottom: 8,
+    padding: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  selectedDateHeaderText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#203686',
+  },
   timeList: {
     padding: 16,
   },
@@ -1155,5 +1447,9 @@ const styles = StyleSheet.create({
   timeSlotText: {
     fontSize: 14,
     marginLeft: 12,
+  },
+  timeSlotTextSelected: {
+    color: '#203686',
+    fontWeight: '500',
   },
 });

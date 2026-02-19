@@ -32,6 +32,8 @@ interface CategoryState {
 
   cart: any[];
   isLoadingCart: boolean;
+
+  order: any;
 }
 
 const initialState: CategoryState = {
@@ -50,6 +52,7 @@ const initialState: CategoryState = {
 
   cart: [],
   isLoadingCart: false,
+  order: null,
 };
 
 export const getProductList = createAsyncThunk(
@@ -496,6 +499,7 @@ const catalogSlice = createSlice({
     
     builder.addCase(getOrderPageData.fulfilled, (state, action) => {
       state.isLoading = false;
+      state.order = action.payload.data.data
       console.log('Order page data:', action.payload.data);
       // Здесь можно сохранить данные в state
     });

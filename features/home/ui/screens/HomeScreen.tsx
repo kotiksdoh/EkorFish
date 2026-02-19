@@ -1,89 +1,106 @@
+// screens/HomeScreen.tsx
 import { ThemedView } from '@/components/themed-view';
 import SearchInput from '@/features/auth/ui/components/SearchInput';
 import { useAppSelector } from '@/store/hooks';
-import React from 'react';
-import { ScrollView, StyleSheet } from 'react-native';
-import { AutoSlider, SlideItem } from '../components/AutoSlider';
+import React, { useState, useRef, useEffect } from 'react';
+import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { AutoSlider } from '../components/AutoSlider';
 import Catalog from '../components/Catalog/Catalog';
 import DeliveryInfoCard from '../components/DeliveryInfoCard';
 import { HomeHeader } from '../components/HomeHeader';
 import SpecialOffers from '../components/SpecialOffers/SpecialOffers';
+// import { SearchScreenWithHistory } from '@/features/search/ui/SearchScreenWithHistory';
+import { useRouter } from 'expo-router';
+import { SearchScreenWithHistory } from './SearchScreenWithHistory';
 
 // Временные данные для слайдера (замените на реальные URL)
-const SLIDER_ITEMS: SlideItem[] = [
+const SLIDER_ITEMS = [
   {
     id: '1',
     imageUrl: 'https://cs10.pikabu.ru/post_img/big/2018/02/20/10/1519147784145166438.jpg',
-
   },
   {
     id: '2',
     imageUrl: 'https://prophotos.ru/data/articles/0002/4092/image-rectangle_600_x.jpg',
-
   },
   {
     id: '3',
     imageUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS5y_CQNi9oiqn96_0204tGgLQuUxigGKLe1w&s',
-
   },
   {
     id: '4',
     imageUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS5y_CQNi9oiqn96_0204tGgLQuUxigGKLe1w&s',
-
   },
   {
     id: '5',
     imageUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS5y_CQNi9oiqn96_0204tGgLQuUxigGKLe1w&s',
-
   },
 ];
 
 export const HomeScreen = ({ handleLoginPress }: { handleLoginPress: () => void }) => {
-const sliderItems = useAppSelector((state) => state.auth.sliders);
-  const handleButtonPress = () => {
-    console.log('Button pressed!');
+  const [showSearch, setShowSearch] = useState(false);
+  const sliderItems = useAppSelector((state) => state.auth.sliders);
+  const router = useRouter();
+
+  const handleSearchPress = () => {
+    setShowSearch(true);
   };
-  // useFocusEffect(
-  //   React.useCallback(() => {
-  //     // Устанавливаем для этого экрана
-  //     setStatusBarStyle('dark');
-  //     setStatusBarBackgroundColor('#FFFFFF', false);
-      
-  //     return () => {
-  //       // Сбрасываем при уходе (опционально)
-  //       setStatusBarStyle('auto');
-  //       setStatusBarBackgroundColor('transparent', false);
-  //     };
-  //   }, [])
-  // );
-  console.log('sliderItems', sliderItems)
+
+  const handleSearchClose = () => {
+    setShowSearch(false);
+  };
+
+  const handleSearchSubmit = (query: string) => {
+    // Переходим на экран каталога с поиском
+    router.push(`dashboard/${encodeURIComponent('fsfs')}?catalogId=${' '}&catalogName=${encodeURIComponent(' ')}&children=${encodeURIComponent('')}`);
+  };
+
   return (
-    // <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
+    <>
       <ScrollView 
         className="flex-1"
         showsVerticalScrollIndicator={false}
       >
-              <HomeHeader 
-                title="EkorFish" 
-                transparent={true} 
-                onLoginPress={handleLoginPress}
-              />
+        <HomeHeader 
+          title="EkorFish" 
+          transparent={true} 
+          onLoginPress={handleLoginPress}
+        />
+        
         {/* Слайдер */}
         <ThemedView lightColor={'#FFFFFF'} style={styles.container}>
           <AutoSlider
-            items={sliderItems}
+            items={sliderItems.length > 0 ? sliderItems : SLIDER_ITEMS}
             autoPlayInterval={4000}
             showIndicators={true}
           />
-          <SearchInput/>
-          <DeliveryInfoCard/>
           
+          {/* Оборачиваем SearchInput в TouchableOpacity для открытия поиска */}
+          <TouchableOpacity onPress={handleSearchPress} activeOpacity={1}>
+            <View pointerEvents="none">
+              <SearchInput
+                isActiveButton={true}
+                placeholder="Найти товары"
+                // Делаем инпут неактивным, чтобы нельзя было ввести текст прямо здесь
+                disabled={false}
+              />
+            </View>
+          </TouchableOpacity>
+          
+          <DeliveryInfoCard/>
         </ThemedView>
+        
         <SpecialOffers/>
         <Catalog/>
-        
       </ScrollView>
-    // </SafeAreaView>
+
+      {/* Экран поиска с историей */}
+      <SearchScreenWithHistory
+        visible={showSearch}
+        onClose={handleSearchClose}
+        onSearch={handleSearchSubmit}
+      />
+    </>
   );
 };
 
@@ -91,7 +108,5 @@ const styles = StyleSheet.create({
   container: {
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
-    // paddingBottom: 16
   },
- 
 });

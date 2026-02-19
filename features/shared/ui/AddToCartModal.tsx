@@ -316,7 +316,9 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
             onPress={handleAddToCart}
           >
             <ThemedText style={styles.addToCartButtonText}>
-              {existingCartItem ? 'Обновить корзину' : 'Добавить в корзину'}
+              {/* {existingCartItem ? 'Обновить корзину' : 'Добавить в корзину'}
+               */}
+               Добавить в корзину
             </ThemedText>
           </TouchableOpacity>
 
