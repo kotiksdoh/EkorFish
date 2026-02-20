@@ -1,5 +1,5 @@
 // app/modals/checkout.tsx
-import { TrashIcon } from '@/assets/icons/icons';
+import { ArrowIconRight, IconCompany, TrashIcon } from '@/assets/icons/icons';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { ModalHeader } from '@/features/auth/ui/Header';
@@ -157,6 +157,9 @@ export default function CheckoutModal({
   const selectedCartItems = cartItems.filter(item => selectedItems.has(item.id));
   const totalWeight = selectedCartItems.reduce((sum, item) => sum + item.quantity, 0);
 
+  const me = useAppSelector((state) => state.auth.me);
+
+  console.log('me', me)
   return (
     <RNModal
       visible={visible}
@@ -247,7 +250,41 @@ export default function CheckoutModal({
                 ))}
               </View>
             )}
+            {selectedTab !== 'Pickup' && (
+            <View>
+            <ThemedText  style={styles.blockTitle}>Компания и адрес</ThemedText>
+              <ThemedView lightColor='#F2F4F7' style={styles.compAndAdressCont}>
+                <View style={styles.compAndAdressContRow}>
+                  <View style={styles.compAndAdressContRowDoble}>
+                    <IconCompany/>
+                    <View style={styles.compAndAdressColumn}>
+                      <ThemedText lightColor='#1B1B1C' style={styles.compText}>
+                        {/* Компания */}
+                        {/* ${profile.firstName || ''} ${profile.lastName || ''} ${profile.patronymic || ''} */}
+                        {me?.companies?.length === 0 ? `${me?.individualProfile?.firstName || ''} ${me?.individualProfile?.lastName || ''} ${me?.individualProfile?.patronymic || ''}` 
+                        : 
+                        'f'
+                        }
+                      </ThemedText>
+                      <ThemedText lightColor='#80818B' style={styles.addressTextText}>
+                        Адрес
+                      </ThemedText>
+                    </View>
+                  </View>
+                  <ArrowIconRight/>
+                </View>
+                <PrimaryButton
+                  title="Изменить адрес"
+                  onPress={() => {}}
+                  variant="black"
+                  size="md"
+                  fullWidth
+                />
+              </ThemedView>
+              </View>
+              )}
           </ThemedView>
+
 
           {/* Блок даты и времени */}
           <ThemedView style={styles.block} lightColor="#FFFFFF">
@@ -1452,4 +1489,34 @@ const styles = StyleSheet.create({
     color: '#203686',
     fontWeight: '500',
   },
+
+  compAndAdressCont:{
+    // marginVertical: 16,
+    padding: 8,
+    display: 'flex',
+    flexDirection: 'column',
+    borderRadius: 16
+  },
+  compAndAdressContRow:{
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12
+  },
+  compAndAdressContRowDoble:{
+    flexDirection: 'row',
+    gap: 12
+  },
+  compAndAdressColumn: {
+    flexDirection: 'column',
+  },
+  compText: {
+    fontWeight: '600',
+    fontSize: 16,
+  },
+  addressTextText:{
+    fontWeight: '500',
+    fontSize: 14,
+  }
+
 });

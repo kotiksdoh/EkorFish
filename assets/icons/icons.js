@@ -864,3 +864,31 @@ export const WarningIcon = ({ width = 20, height = 20, stroke = '#1B1B1C', fill 
     />
   </Svg>
 );
+
+export const IconCompany = ({ width = 40, height = 40, ...props }) => (
+  <Svg width={width} height={height} viewBox="0 0 40 40" fill="none" {...props}>
+    <Rect width="40" height="40" rx="8" fill="white" />
+    <Path d="M21 11.5H12C11.4477 11.5 11 11.9477 11 12.5V28.5C11 29.0523 11.4477 29.5 12 29.5H21C21.5523 29.5 22 29.0523 22 28.5V12.5C22 11.9477 21.5523 11.5 21 11.5Z" stroke="#1B1B1C" strokeWidth="1.5" strokeMiterlimit="10" />
+    <Path d="M21.9756 18.5L28.2213 19.9175C28.6768 20.0208 29 20.4257 29 20.8927V28.5C29 29.0523 28.5523 29.5 28 29.5H21" stroke="#1B1B1C" strokeWidth="1.5" strokeMiterlimit="10" />
+    <Path d="M15 14.8428V15.3428" stroke="#1B1B1C" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" />
+    <Path d="M18 14.8428V15.3428" stroke="#1B1B1C" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" />
+    <Path d="M15 17.8428V18.3428" stroke="#1B1B1C" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" />
+    <Path d="M15 20.8428V21.3428" stroke="#1B1B1C" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" />
+    <Path d="M18 17.8428V18.3428" stroke="#1B1B1C" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" />
+    <Path d="M18 20.8428V21.3428" stroke="#1B1B1C" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" />
+    <Path d="M24.5 23.8945H29" stroke="#1B1B1C" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" />
+    <Path d="M24.5 26.792H29" stroke="#1B1B1C" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" />
+    <Path d="M17.1504 25.3682C17.1504 24.954 16.8146 24.6182 16.4004 24.6182C15.9862 24.6182 15.6504 24.954 15.6504 25.3682H16.4004H17.1504ZM16.4004 25.3682H15.6504V29.1817H16.4004H17.1504V25.3682H16.4004Z" fill="#1B1B1C" />
+  </Svg>
+);
+
+export const ArrowIconRight = ({ width = 24, height = 24, stroke = '#80818B', ...props }) => (
+  <Svg width={width} height={height} viewBox="0 0 24 24" fill="none" {...props}>
+    <Path 
+      d="M9.5 7L13.7929 11.2929C14.1834 11.6834 14.1834 12.3166 13.7929 12.7071L9.5 17" 
+      stroke={stroke} 
+      strokeWidth="1.5" 
+      strokeLinecap="round" 
+    />
+  </Svg>
+);

@@ -3,7 +3,8 @@ import { LemonIcon, PersonCircleIcon } from '@/assets/icons/icons.js';
 import { ThemedText } from '@/components/themed-text';
 import { CompanySelectModal } from '@/features/shared/ui/CompanySelectModal';
 import { useAppSelector } from '@/store/hooks';
-import React, { useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, TouchableOpacity, View, useColorScheme } from 'react-native';
 
 interface HomeHeaderProps {
@@ -24,28 +25,45 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
   const systemTheme = useColorScheme(); 
   const currentTheme = systemTheme || 'light';
   const codeBackgroundColor = currentTheme === 'dark' ? '#202022' : '#F2F4F7';
+  const [displayName, setDisplayName] = useState('');
 
-  const handleSelectCompany = (company: any) => {
-    // Здесь можно добавить логику смены компании
+  const handleSelectCompany = async (company: any) => {
     console.log('Selected company:', company);
-    
-    // Если нужно обновлять выбранную компанию в сторе - добавить dispatch
+    try {
+      await AsyncStorage.setItem("company", JSON.stringify(company));
+      console.log('Company saved to AsyncStorage');
+      // Обновляем отображаемое имя после выбора компании
+      await updateDisplayName();
+    } catch (error) {
+      console.error('Error saving company:', error);
+    }
   };
 
-  const getDisplayName = () => {
-    if (!me) return '';
+  const updateDisplayName = useCallback(async () => {
+    if (!me) {
+      setDisplayName('');
+      return;
+    }
     
     if (me.companies?.length > 0) {
-      return me.companies[0]?.name;
+      const selectedComp = await AsyncStorage.getItem('company');
+      if (selectedComp) {
+        setDisplayName(JSON.parse(selectedComp)?.name || '');
+      } else if (me.companies[0]) {
+        setDisplayName(me.companies[0].name);
+      }
+    } else {
+      const profile = me.individualProfile;
+      if (profile) {
+        const name = `${profile.firstName || ''} ${profile.lastName || ''} ${profile.patronymic || ''}`.trim();
+        setDisplayName(name);
+      }
     }
-    
-    const profile = me.individualProfile;
-    if (profile) {
-      return `${profile.firstName || ''} ${profile.lastName || ''} ${profile.patronymic || ''}`.trim();
-    }
-    
-    return '';
-  };
+  }, [me]);
+
+  useEffect(() => {
+    updateDisplayName();
+  }, [me, updateDisplayName]);
 
   return (
     <>
@@ -81,7 +99,7 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
                 ellipsizeMode="tail"
                 style={{ maxWidth: 150 }}
               >
-                {getDisplayName()}
+                {displayName}
               </ThemedText>
             </TouchableOpacity>
             

@@ -1,10 +1,10 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 
-// export const baseUrl = `http://192.168.222.205:9191`; // Локалка
+export const baseUrl = `http://192.168.222.205:9191`; // Локалка
 // export const baseUrl = `http://192.168.222.239:13333`;
 // export const baseUrl = `http://46.29.13.61:13333`;
-export const baseUrl = `http://192.168.222.238:13333`; // Сервер
+// export const baseUrl = `http://192.168.222.238:13333`; // Сервер
 // 192.168.222.239:13333/swagger/index.html
 
   export const ax = axios.create();
@@ -26,28 +26,23 @@ export const baseUrl = `http://192.168.222.238:13333`; // Сервер
         const href = window.location.href.split('/')[window.location.href.split('/').length - 1]
         console.log('error.response', error.response)
         if (error.response && error.response.status === 401 && !originalRequest._retry && href !== 'auth') {
-            debugger
             originalRequest._retry = true;
             try {
-                debugger
                 const { data } = await axios.post(`${baseUrl}/api/Account/refresh-token`, null, {
                     headers: {
                         'Authorization': `Bearer ${localStorage.getItem('token_refresh')}`,
                     }
                 });
-                debugger
                 await AsyncStorage.setItem('token', data.access_token)
                 await AsyncStorage.setItem('token_refresh', data.refresh_token)
                 return ax(originalRequest);
             } catch (err) {
-                debugger
                 // localStorage.removeItem('token')
                 // localStorage.removeItem('token_refresh')
                 // localStorage.removeItem('user')
                 // AsyncStorage.removeItem('token')
                 // AsyncStorage.removeItem('token_refresh')
                 // AsyncStorage.removeItem('user')
-                debugger
                 return Promise.reject(err);
             }
         }

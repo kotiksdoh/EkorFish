@@ -6,12 +6,12 @@ import { ModalHeader } from '@/features/auth/ui/Header';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import React, { useState } from 'react';
 import {
-    Modal,
-    ScrollView,
-    StyleSheet,
-    TouchableOpacity,
-    View,
-    useColorScheme,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+  useColorScheme,
 } from 'react-native';
 import AnimatedTextInput from './components/CustomInput';
 import { DatePickerWithIcon } from './components/DatePickerCustom';
@@ -45,7 +45,7 @@ export const CompanySelectModal: React.FC<CompanySelectModalProps> = ({
   const [kpp, setKpp] = useState('')
   const [legalAddress, setLegalAddress] = useState('')
   const [contactPerson, setContactPerson] = useState('')
-  const [dateCreated, setDateCreated] = useState('')
+  const [dateCreated, setDateCreated] = useState('17.01.2002')
   const [inn, setInn] = useState('')
 
   const loading = useAppSelector((state) => state.auth.isLoading);

@@ -8,7 +8,7 @@ import {
   useColorScheme
 } from 'react-native';
 
-export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'third';
+export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'third' | 'black';
 export type ButtonSize = 'sm' | 'md' | 'lg';
 
 interface PrimaryButtonProps extends TouchableOpacityProps {
@@ -53,6 +53,16 @@ export const PrimaryButton: React.FC<PrimaryButtonProps> = ({
     borderColor: 'transparent',
     textColor: '#000000' // или '#1B1B1C' если хотите темно-серый
   };
+
+  const blackButtonStyles = isDarkMode ? {
+    backgroundColor: '#101013',
+    borderColor: 'transparent',
+    textColor: '#FBFCFF'
+  } : {
+    backgroundColor: '#101013',
+    borderColor: 'transparent',
+    textColor: '#FBFCFF' // или '#1B1B1C' если хотите темно-серый
+  };
   
   // Обновляем variantStyles с учетом темы для third
   const variantStyles: Record<ButtonVariant, any> = {
@@ -77,6 +87,10 @@ export const PrimaryButton: React.FC<PrimaryButtonProps> = ({
       backgroundColor: thirdButtonStyles.backgroundColor,
       borderColor: thirdButtonStyles.borderColor,
     },
+    black: {
+      backgroundColor: blackButtonStyles.backgroundColor,
+      borderColor: blackButtonStyles.borderColor,
+    }
   };
 
   // Определяем цвет текста для каждого варианта
@@ -92,6 +106,8 @@ export const PrimaryButton: React.FC<PrimaryButtonProps> = ({
         return primaryColor;
       case 'third':
         return thirdButtonStyles.textColor;
+      case 'black': 
+        return blackButtonStyles.textColor;
       default:
         return primaryColor;
     }
@@ -199,6 +215,11 @@ export const PrimaryButtonWithTailwind: React.FC<PrimaryButtonProps> = ({
   // Определяем классы для third кнопки
   const thirdButtonClass = isDarkMode ? 'bg-[#202022] border-transparent' : 'bg-[#F5F5F5] border-transparent';
   const thirdTextColorClass = isDarkMode ? 'text-[#FBFCFF]' : 'text-black'; // или 'text-[#1B1B1C]'
+
+  const blackButtonClass = isDarkMode ? 'bg-[#101013] border-transparent' : 'bg-[#101013] border-transparent';
+  const blackTextColorClass = isDarkMode ? 'text-[#FBFCFF]' : 'text-[#FBFCFF]'; 
+
+
   
   const variantClasses: Record<ButtonVariant, string> = {
     primary: primaryColorClass,
@@ -206,6 +227,7 @@ export const PrimaryButtonWithTailwind: React.FC<PrimaryButtonProps> = ({
     outline: `bg-transparent border ${isDarkMode ? 'border-[#3881EE]' : 'border-[#203686]'}`,
     ghost: 'bg-transparent border-transparent',
     third: thirdButtonClass,
+    black: blackButtonClass,
   };
 
   const sizeClasses: Record<ButtonSize, string> = {
@@ -226,6 +248,7 @@ export const PrimaryButtonWithTailwind: React.FC<PrimaryButtonProps> = ({
     outline: isDarkMode ? 'text-[#3881EE]' : 'text-[#203686]',
     ghost: isDarkMode ? 'text-[#3881EE]' : 'text-[#203686]',
     third: thirdTextColorClass,
+    black: blackTextColorClass,
   };
 
   const baseClasses = cn(

@@ -17,6 +17,7 @@ interface AuthState {
   predUserData: any
   towns: Town[];
   isLoadingTowns: boolean; 
+  currentCompany: any;
 }
 interface Town {
   id: string;
@@ -39,6 +40,7 @@ const initialState: AuthState = {
   predUserData: null,
   towns: [], 
   isLoadingTowns: false, 
+  currentCompany: null as any,
 };
 
 export const getCode = createAsyncThunk(
@@ -58,7 +60,6 @@ export const sendCode = createAsyncThunk(
   "user/sendCode",
   async (payload: any, { rejectWithValue }) => {
     try {
-      debugger
       const data = await api.admin.post("/api/Account/verify-code", payload);
       return data;
     } catch (error) {
@@ -172,6 +173,15 @@ export const updateUserTown = createAsyncThunk(
   }
 );
 
+export const loadCompanyFromStorage = createAsyncThunk(
+  'company/loadFromStorage',
+  async () => {
+    const companyData = await AsyncStorage.getItem('company');
+    return companyData ? JSON.parse(companyData) : null;
+  }
+);
+
+
 const authSlice = createSlice({
   name: 'auth',
   initialState,
@@ -189,6 +199,17 @@ const authSlice = createSlice({
       state.error = null;
       state.isLoading = false;
       state.phoneNumber = null;
+    },
+    setCompany: (state, action) => {
+      state.currentCompany = action.payload;
+      (async () => {
+        try {
+          await AsyncStorage.setItem("company", JSON.stringify(action.payload));
+          console.log('Tokens saved to AsyncStorage');
+        } catch (error) {
+          console.error('Error saving tokens:', error);
+        }
+      })();
     },
   },
   extraReducers: (builder) => {
@@ -286,7 +307,16 @@ const authSlice = createSlice({
       state.isLoading = true;
     });
     builder.addCase(compliteCompany.fulfilled, (state, action) => {
+      console.log(' action.payload?',  action.payload)
       state.isLoading = false;
+      (async () => {
+        try {
+          await AsyncStorage.setItem("company", JSON.stringify(action.payload?.data?.data));
+          console.log('Tokens saved to AsyncStorage');
+        } catch (error) {
+          console.error('Error saving tokens:', error);
+        }
+      })();
     });
     builder.addCase(compliteCompany.rejected, (state, action) => {
       state.isLoading = false;
@@ -311,14 +341,15 @@ const authSlice = createSlice({
       state.isLoading = true;
     });
     builder.addCase(sendCode.fulfilled, (state, action) => {
+      debugger
       state.isLoading = false;
       console.log('action', action.payload)
       debugger
-
-      if (action.payload?.data?.data?.tokens?.accessToken && action.payload.data?.data?.tokens?.refreshToken) {
+      if (action?.payload?.data?.data?.tokens?.accessToken && action?.payload.data?.data?.tokens?.refreshToken) {
         // Используем async/await
-        state.predUserData = action.payload?.data?.data
+        console.log('action.payload?.data', action.payload?.data)
         debugger
+        state.predUserData = action.payload?.data?.data;
         (async () => {
           try {
             await AsyncStorage.setItem("token", action.payload?.data?.data?.tokens?.accessToken);
@@ -372,6 +403,13 @@ const authSlice = createSlice({
     builder.addCase(updateUserTown.rejected, (state, action) => {
       state.isLoading = false;
       axiosErrorHandler(action?.payload);
+    });
+    builder.addCase(loadCompanyFromStorage.pending, (state) => {
+    })
+    builder.addCase(loadCompanyFromStorage.fulfilled, (state, action) => {
+      state.currentCompany = action.payload;
+    })
+    builder.addCase(loadCompanyFromStorage.rejected, (state) => {
     });
   }
 });

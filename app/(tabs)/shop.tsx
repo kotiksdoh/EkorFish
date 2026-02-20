@@ -1,7 +1,8 @@
 // app/shop.tsx
-import { CartIcon, InfoIcon, LikeIcon, TrashIcon } from '@/assets/icons/icons';
+import { CartIcon, IconCompany, InfoIcon, LikeIcon, TrashIcon } from '@/assets/icons/icons';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { loadCompanyFromStorage } from '@/features/auth/authSlice';
 import { ModalHeader } from '@/features/auth/ui/Header';
 import {
   getCart,
@@ -49,11 +50,22 @@ export default function ShopScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const cartItems = useAppSelector((state) => state.catalog.cart) as CartItem[];
+  const currentCompany = useAppSelector((state) => state.auth.currentCompany);
+  const me = useAppSelector((state) => state.auth.me);
 
+  useEffect(() => {
+    console.log('currentCompany' , currentCompany)
+  },[currentCompany])
   // Загрузка корзины при монтировании
   useEffect(() => {
     loadCart();
   }, []);
+
+  useEffect(() => {
+    if (me) {
+      dispatch(loadCompanyFromStorage());
+    }
+  }, [me]);
 
   const loadCart = async () => {
     setIsLoading(true);
@@ -275,7 +287,16 @@ export default function ShopScreen() {
     return (
       <SafeAreaProvider>
         <ThemedView style={styles.safeArea} lightColor={'#EBEDF0'} darkColor='#040508'>
-          <ModalHeader showBackButton={false} />
+          <ModalHeader showBackButton={false} 
+          content={
+            <ThemedView>
+              <IconCompany/>
+              <ThemedText numberOfLines={1} style={{ maxWidth: 150 }}>
+                {currentCompany.name}
+              </ThemedText>
+            </ThemedView>
+          }
+          />
           <View style={styles.emptyContainer}>
             <CartIcon width={80} height={80} fill="#80818B" />
             <ThemedText style={styles.emptyTitle}>Корзина пуста</ThemedText>

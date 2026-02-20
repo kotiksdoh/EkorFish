@@ -86,7 +86,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   const [kpp, setKpp] = useState('')
   const [legalAddress, setLegalAddress] = useState('')
   const [contactPerson, setContactPerson] = useState('')
-  const [dateCreated, setDateCreated] = useState('')
+  const [dateCreated, setDateCreated] = useState('17.01.2002')
   // const [phone, setPhone] = useState(phoneNumber)
   // const [email, setEmail] = useState('')
 
@@ -231,13 +231,14 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 
 
   const verifyCode = (code: string) => {
+    debugger
     dispatch(sendCode({contact: phoneNumber, verificationCode: code})).then((res: any) => 
     {
+      debugger
       if(sendCode.fulfilled.match(res)){
         //TODO дальнейший сценарий
         // setError(null);
         // onLogin(phoneNumber);
-        debugger
         console.log('res.payload', res.payload)
         console.log('res.payload.data', res.payload.data)
         console.log('res.payload.data.data', res.payload.data.data)
@@ -246,16 +247,13 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         if(res.payload.data.data.needUserType){
             setCurrentScenarion(AuthScenario.NEED_ACC_TYPE)
             setCurrentScreen(ScreensScenario.ACC_TYPE)
-            debugger
         }else if(!res.payload.data.data.needUserType && res.payload.data.data.needInformationForType === 'Individual'){
             setCurrentScenarion(AuthScenario.REG_NEED)
             setCurrentScreen(ScreensScenario.USER_REG)
-            debugger
         }else if(!res.payload.data.data.needUserType && res.payload.data.data.needInformationForType === 'Legal')
         {
             setCurrentScenarion(AuthScenario.NEED_ACC_TYPE)
             setCurrentScreen(ScreensScenario.ACC_TYPE)
-            debugger
         }else if(!res.payload.data.data.needUserType && (res.payload.data.data.needInformationForType === null || res.payload.data.data.needInformationForType === undefined) ){
           console.log('dfdfdfffff')
           dispatch(getMyInfo('')).then((res) => {
@@ -276,14 +274,12 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         }
         // setCurrentScenarion()
         
-        debugger
         // resetModal();
       }else{
         setError('Неверный код подтверждения');
         setConfirmationCode(['', '', '', '']);
         codeInputRefs.current[0]?.focus();
       }
-      debugger
     }
     )
   };
@@ -387,7 +383,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       }
     )
   }
-  const handelCompliteOrg = () => {
+  const handelCompliteOrg = async () => {
     dispatch(compliteCompany({
       "id": company?.id,
       "name": company?.name,
@@ -401,6 +397,12 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       if(compliteProfile.fulfilled.match(res)){
         // resetModal()
         // handleClose()
+        try {
+
+        }catch{
+
+        }
+        //
         dispatch(getMyInfo('')).then((res) => {
           if(getMyInfo.fulfilled.match(res)){
             setCurrentScreen(ScreensScenario.ACC_TYPE)
