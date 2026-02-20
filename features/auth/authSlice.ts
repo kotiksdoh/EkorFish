@@ -205,11 +205,14 @@ const authSlice = createSlice({
       (async () => {
         try {
           await AsyncStorage.setItem("company", JSON.stringify(action.payload));
-          console.log('Tokens saved to AsyncStorage');
+          console.log('Company saved to AsyncStorage');
         } catch (error) {
-          console.error('Error saving tokens:', error);
+          console.error('Error saving company:', error);
         }
       })();
+    },
+    selectCompany: (state, action) => {
+      state.currentCompany = action.payload;
     },
   },
   extraReducers: (builder) => {
@@ -414,5 +417,5 @@ const authSlice = createSlice({
   }
 });
 
-export const { setAuthError, setAuthLoading, setPhoneNumber, clearAuth } = authSlice.actions;
+export const { setAuthError, setAuthLoading, setPhoneNumber, clearAuth, selectCompany } = authSlice.actions;
 export default authSlice.reducer;

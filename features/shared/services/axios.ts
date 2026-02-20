@@ -111,7 +111,7 @@ axdef.interceptors.response.use(
       try {
         const refreshToken = await AsyncStorage.getItem('token_refresh');
         const { data } = await axios.post(`${baseUrl}/api/Account/refresh-token`, 
-          { refresh_token: refreshToken });
+          { refreshToken: refreshToken });
         
         await AsyncStorage.setItem('token', data.data.accessToken);
         await AsyncStorage.setItem('token_refresh', data.data.refreshToken);

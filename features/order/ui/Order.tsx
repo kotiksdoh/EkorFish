@@ -2,10 +2,13 @@
 import { ArrowIconRight, IconCompany, TrashIcon } from '@/assets/icons/icons';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { selectCompany } from '@/features/auth/authSlice';
 import { ModalHeader } from '@/features/auth/ui/Header';
 import { getOrderPageData } from '@/features/catalog/catalogSlice';
 import { PrimaryButton } from '@/features/home';
 import { baseUrl } from '@/features/shared/services/axios';
+import { AddressSelectionModal } from '@/features/shared/ui/AddressSelectionModal';
+import { CompanySelectionModal } from '@/features/shared/ui/CompanySelectionModalSmall';
 import { CustomCheckbox } from '@/features/shared/ui/components/CustomCheckBox';
 import AnimatedTextInput from '@/features/shared/ui/components/CustomInput';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
@@ -72,13 +75,38 @@ export default function CheckoutModal({
   const [tabContainerWidth, setTabContainerWidth] = useState(0);
   const indicatorPosition = useRef(new Animated.Value(0)).current;
   const orderData = useAppSelector((state) => state.catalog.order);
+  const [showAddressModal, setShowAddressModal] = useState(false);
+  const [selectedAddress, setSelectedAddress] = useState<any>(null);
+  const [showCompanyModal, setShowCompanyModal] = useState(false);
   // Моковые адреса для самовывоза
   const pickupAddresses = [
     { id: '1', address: 'ул. Ленина, 1, Москва', workingHours: 'пн-пт 9:00-18:00' },
     { id: '2', address: 'пр-т Мира, 15, Москва', workingHours: 'пн-сб 10:00-20:00' },
     { id: '3', address: 'ул. Тверская, 25, Москва', workingHours: 'пн-вс 9:00-21:00' },
   ];
+  const currentCompany = useAppSelector((state) => state.auth.currentCompany);
 
+  const handleSelectCompany = (company: any) => {
+    dispatch(selectCompany(company));
+    // Сбрасываем выбранный адрес при смене компании
+    setSelectedAddress(null);
+  };
+
+  const handleSelectAddress = (address: any) => {
+    setSelectedAddress(address);
+  };
+  const handleAddAddress = () => {
+    // Здесь логика открытия модалки добавления адреса
+    console.log('Open add address modal');
+  };
+
+  const handleAddCompany = () => {
+    // Здесь логика открытия модалки регистрации компании
+    setShowAddressModal(false);
+    setTimeout(() => {
+      // открыть модалку регистрации компании
+    }, 300);
+  };
   // Методы оплаты для разных типов доставки
   const paymentMethods = {
     Delivery: ['Cashless'] as PaymentType[],
@@ -251,38 +279,44 @@ export default function CheckoutModal({
               </View>
             )}
             {selectedTab !== 'Pickup' && (
-            <View>
-            <ThemedText  style={styles.blockTitle}>Компания и адрес</ThemedText>
-              <ThemedView lightColor='#F2F4F7' style={styles.compAndAdressCont}>
-                <View style={styles.compAndAdressContRow}>
-                  <View style={styles.compAndAdressContRowDoble}>
-                    <IconCompany/>
-                    <View style={styles.compAndAdressColumn}>
-                      <ThemedText lightColor='#1B1B1C' style={styles.compText}>
-                        {/* Компания */}
-                        {/* ${profile.firstName || ''} ${profile.lastName || ''} ${profile.patronymic || ''} */}
-                        {me?.companies?.length === 0 ? `${me?.individualProfile?.firstName || ''} ${me?.individualProfile?.lastName || ''} ${me?.individualProfile?.patronymic || ''}` 
-                        : 
-                        'f'
-                        }
-                      </ThemedText>
-                      <ThemedText lightColor='#80818B' style={styles.addressTextText}>
-                        Адрес
-                      </ThemedText>
+              <View>
+                <ThemedText style={styles.blockTitle}>Компания и адрес</ThemedText>
+                <ThemedView lightColor='#F2F4F7' style={styles.compAndAdressCont}>
+                  <TouchableOpacity 
+                    style={styles.compAndAdressContRow}
+                    onPress={() => setShowAddressModal(true)}
+                  >
+                    <View style={styles.compAndAdressContRowDoble}>
+                      <IconCompany/>
+                      <View style={styles.compAndAdressColumn}>
+                        <ThemedText lightColor='#1B1B1C' style={styles.compText}
+                          numberOfLines={1} 
+                          ellipsizeMode="tail">
+                          {me?.companies?.length === 0 
+                            ? `${me?.individualProfile?.firstName || ''} ${me?.individualProfile?.lastName || ''} ${me?.individualProfile?.patronymic || ''}`.trim()
+                            : currentCompany?.name
+                          }
+                        </ThemedText>
+                        <ThemedText lightColor='#80818B' style={styles.addressTextText}  
+                          numberOfLines={1} 
+                          ellipsizeMode="tail">
+                          {selectedAddress?.address || currentCompany?.deliveryAddresses?.[0]?.address || '-'}
+                        </ThemedText>
+                      </View>
                     </View>
-                  </View>
-                  <ArrowIconRight/>
-                </View>
-                <PrimaryButton
-                  title="Изменить адрес"
-                  onPress={() => {}}
-                  variant="black"
-                  size="md"
-                  fullWidth
-                />
-              </ThemedView>
+                    <ArrowIconRight/>
+                  </TouchableOpacity>
+                  
+                  <PrimaryButton
+                    title="Изменить адрес"
+                    onPress={() => setShowAddressModal(true)}
+                    variant="black"
+                    size="md"
+                    fullWidth
+                  />
+                </ThemedView>
               </View>
-              )}
+            )}
           </ThemedView>
 
 
@@ -503,6 +537,27 @@ export default function CheckoutModal({
           initialDateTime={selectedDateTime}
         />
       </ThemedView>
+      <AddressSelectionModal
+            visible={showAddressModal}
+            onClose={() => setShowAddressModal(false)}
+            currentCompany={currentCompany}
+            companies={me?.companies || []}
+            selectedCompanyId={currentCompany?.id}
+            onSelectCompany={handleSelectCompany}
+            onAddCompany={handleAddCompany}
+            onAddAddress={handleAddAddress}
+            onSelectAddress={handleSelectAddress}
+            selectedAddressId={selectedAddress?.id}
+          />
+
+        <CompanySelectionModal
+          visible={showCompanyModal}
+          onClose={() => setShowCompanyModal(false)}
+          companies={me?.companies || []}
+          selectedCompanyId={currentCompany?.id}
+          onSelectCompany={handleSelectCompany}
+          onAddCompany={handleAddCompany}
+        />
     </RNModal>
   );
 }
@@ -982,6 +1037,7 @@ function TimeModal({ visible, onClose, onSelectTime, selectedTime, timeSlots, se
           </ScrollView>
         </ThemedView>
       </View>
+
     </RNModal>
   );
 }
@@ -1505,14 +1561,21 @@ const styles = StyleSheet.create({
   },
   compAndAdressContRowDoble:{
     flexDirection: 'row',
-    gap: 12
+    gap: 12,
+    flex: 1, // Добавьте это
+    flexShrink: 1, 
   },
   compAndAdressColumn: {
     flexDirection: 'column',
+    flex: 1,
+    flexShrink: 1,
   },
   compText: {
     fontWeight: '600',
     fontSize: 16,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    flexShrink: 1, // Чтобы текст сжималс
   },
   addressTextText:{
     fontWeight: '500',

@@ -24,6 +24,7 @@ interface CompanySelectModalProps {
   selectedCompanyId?: string;
   onSelectCompany: (company: any) => void;
   onAddCompany: () => void;
+  screenScene?: any
 }
 export enum CompanyScenario {
     DEFAULT = 'choose',
@@ -36,6 +37,7 @@ export const CompanySelectModal: React.FC<CompanySelectModalProps> = ({
   selectedCompanyId,
   onSelectCompany,
   onAddCompany,
+  screenScene = 'choose'
 }) => {
   const systemTheme = useColorScheme();
 
@@ -50,7 +52,7 @@ export const CompanySelectModal: React.FC<CompanySelectModalProps> = ({
 
   const loading = useAppSelector((state) => state.auth.isLoading);
 
-  const [currentScreen, setCurrentScreen] = useState<CompanyScenario>(CompanyScenario.DEFAULT)
+  const [currentScreen, setCurrentScreen] = useState<CompanyScenario>(screenScene)
   const dispatch = useAppDispatch()
   const handleAcceptCompany = () => {
     dispatch(compliteCompany({
@@ -242,7 +244,12 @@ export const CompanySelectModal: React.FC<CompanySelectModalProps> = ({
         title= 'Регистрация'
         showBackButton={true}
         onBackPress={() => {
+          if(screenScene === 'register'){
+            onClose();
+          }else{
             setCurrentScreen(CompanyScenario.DEFAULT)
+
+          }
         }}
       />
       <ThemedView style={styles.modalContentInnerRegUser} lightColor={'#FFFFFF'}>

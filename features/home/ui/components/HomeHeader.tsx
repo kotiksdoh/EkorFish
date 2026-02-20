@@ -1,10 +1,10 @@
 // features/home/components/HomeHeader.tsx
 import { LemonIcon, PersonCircleIcon } from '@/assets/icons/icons.js';
 import { ThemedText } from '@/components/themed-text';
+import { loadCompanyFromStorage, selectCompany } from '@/features/auth/authSlice';
 import { CompanySelectModal } from '@/features/shared/ui/CompanySelectModal';
-import { useAppSelector } from '@/store/hooks';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import React, { useCallback, useEffect, useState } from 'react';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import React, { useEffect, useState } from 'react';
 import { StyleSheet, TouchableOpacity, View, useColorScheme } from 'react-native';
 
 interface HomeHeaderProps {
@@ -26,44 +26,37 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
   const currentTheme = systemTheme || 'light';
   const codeBackgroundColor = currentTheme === 'dark' ? '#202022' : '#F2F4F7';
   const [displayName, setDisplayName] = useState('');
+  const dispatch = useAppDispatch();
+  const currentCompany = useAppSelector((state) => state.auth.currentCompany);
 
-  const handleSelectCompany = async (company: any) => {
-    console.log('Selected company:', company);
-    try {
-      await AsyncStorage.setItem("company", JSON.stringify(company));
-      console.log('Company saved to AsyncStorage');
-      // Обновляем отображаемое имя после выбора компании
-      await updateDisplayName();
-    } catch (error) {
-      console.error('Error saving company:', error);
-    }
-  };
-
-  const updateDisplayName = useCallback(async () => {
-    if (!me) {
-      setDisplayName('');
-      return;
-    }
-    
-    if (me.companies?.length > 0) {
-      const selectedComp = await AsyncStorage.getItem('company');
-      if (selectedComp) {
-        setDisplayName(JSON.parse(selectedComp)?.name || '');
-      } else if (me.companies[0]) {
-        setDisplayName(me.companies[0].name);
-      }
-    } else {
-      const profile = me.individualProfile;
-      if (profile) {
-        const name = `${profile.firstName || ''} ${profile.lastName || ''} ${profile.patronymic || ''}`.trim();
-        setDisplayName(name);
-      }
+  useEffect(() => {
+    if (me) {
+      dispatch(loadCompanyFromStorage());
     }
   }, [me]);
 
-  useEffect(() => {
-    updateDisplayName();
-  }, [me, updateDisplayName]);
+  const handleSelectCompany = async (company: any) => {
+    console.log('Selected company:', company);
+    // Используем Redux action для сохранения компании
+    dispatch(selectCompany(company));
+    setModalVisible(false);
+  };
+
+  const getDisplayName = () => {
+    if (!me) return '';
+    
+    if (me.companies?.length > 0) {
+      return currentCompany?.name || me.companies[0]?.name || '';
+    }
+    
+    const profile = me.individualProfile;
+    if (profile) {
+      return `${profile.firstName || ''} ${profile.lastName || ''} ${profile.patronymic || ''}`.trim();
+    }
+    
+    return '';
+  };
+
 
   return (
     <>
@@ -99,7 +92,7 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
                 ellipsizeMode="tail"
                 style={{ maxWidth: 150 }}
               >
-                {displayName}
+                {getDisplayName()}
               </ThemedText>
             </TouchableOpacity>
             

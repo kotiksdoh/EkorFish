@@ -1,8 +1,8 @@
 // app/shop.tsx
-import { CartIcon, IconCompany, InfoIcon, LikeIcon, TrashIcon } from '@/assets/icons/icons';
+import { ArrowIconRight, CartIcon, IconCompany, InfoIcon, LikeIcon, TrashIcon } from '@/assets/icons/icons';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { loadCompanyFromStorage } from '@/features/auth/authSlice';
+import { loadCompanyFromStorage, selectCompany } from '@/features/auth/authSlice';
 import { ModalHeader } from '@/features/auth/ui/Header';
 import {
   getCart,
@@ -13,6 +13,8 @@ import {
 import { PrimaryButton } from '@/features/home';
 import CheckoutModal from '@/features/order/ui/Order';
 import { baseUrl } from '@/features/shared/services/axios';
+import { CompanySelectModal } from '@/features/shared/ui/CompanySelectModal';
+import { CompanySelectionModal } from '@/features/shared/ui/CompanySelectionModalSmall';
 import { CustomCheckbox } from '@/features/shared/ui/components/CustomCheckBox';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { Image } from 'expo-image';
@@ -52,6 +54,8 @@ export default function ShopScreen() {
   const cartItems = useAppSelector((state) => state.catalog.cart) as CartItem[];
   const currentCompany = useAppSelector((state) => state.auth.currentCompany);
   const me = useAppSelector((state) => state.auth.me);
+  const [companyModalVisible, setCompanyModalVisible] = useState(false);
+  const [registerModalVisible, setRegisterModalVisible] = useState(false)
 
   useEffect(() => {
     console.log('currentCompany' , currentCompany)
@@ -66,6 +70,15 @@ export default function ShopScreen() {
       dispatch(loadCompanyFromStorage());
     }
   }, [me]);
+
+  const handleSelectCompany = (company: any) => {
+    dispatch(selectCompany(company));
+    setCompanyModalVisible(false);
+  };
+
+  const handleOpenRegisterModal = () => {
+    setRegisterModalVisible(true);
+  };
 
   const loadCart = async () => {
     setIsLoading(true);
@@ -272,7 +285,25 @@ export default function ShopScreen() {
     return (
       <SafeAreaProvider>
         <ThemedView style={styles.safeArea} lightColor={'#EBEDF0'} darkColor='#040508'>
-          <ModalHeader showBackButton={false} />
+          <ModalHeader showBackButton={false} 
+            content={
+              <TouchableOpacity 
+                onPress={() => {
+                  if (me?.companies?.length > 1) {
+                    console.log('Open company selector');
+                  }
+                }}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 8, justifyContent: 'space-between',  }}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <IconCompany/>
+                <ThemedText numberOfLines={1} style={{ maxWidth: 150 }}>
+                  {currentCompany?.name || me?.companies?.[0]?.name || ''}
+                </ThemedText>
+                </View>
+                <ArrowIconRight/>
+              </TouchableOpacity>
+            }/>
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#203686" />
             <ThemedText style={styles.loadingText}>Загрузка корзины...</ThemedText>
@@ -289,12 +320,22 @@ export default function ShopScreen() {
         <ThemedView style={styles.safeArea} lightColor={'#EBEDF0'} darkColor='#040508'>
           <ModalHeader showBackButton={false} 
           content={
-            <ThemedView>
-              <IconCompany/>
-              <ThemedText numberOfLines={1} style={{ maxWidth: 150 }}>
-                {currentCompany.name}
-              </ThemedText>
-            </ThemedView>
+            <TouchableOpacity 
+            onPress={() => {
+              if (me?.companies?.length > 1) {
+                console.log('Open company selector');
+              }
+            }}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 8, justifyContent: 'space-between' }}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <IconCompany/>
+            <ThemedText numberOfLines={1} style={{ maxWidth: 150 }}>
+              {currentCompany?.name || me?.companies?.[0]?.name || ''}
+            </ThemedText>
+            </View>
+            <ArrowIconRight/>
+          </TouchableOpacity>
           }
           />
           <View style={styles.emptyContainer}>
@@ -320,7 +361,23 @@ console.log('totals', totals)
   return (
     <SafeAreaProvider>
       <ThemedView style={styles.safeArea} lightColor={'#EBEDF0'} darkColor='#040508'>
-        <ModalHeader showBackButton={false} />
+        <ModalHeader showBackButton={false} 
+                  content={
+                    <TouchableOpacity 
+                    onPress={() => {
+                      setCompanyModalVisible(true);
+                    }}
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: 8, justifyContent: 'space-between', paddingHorizontal: 10 }}
+                  >
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <IconCompany/>
+                    <ThemedText numberOfLines={1} style={{ maxWidth: 150 }}>
+                      {currentCompany?.name || me?.companies?.[0]?.name || ''}
+                    </ThemedText>
+                    </View>
+                    <ArrowIconRight/>
+                  </TouchableOpacity>
+                  }/>
         
         <ScrollView 
           style={styles.scrollView}
@@ -494,6 +551,25 @@ console.log('totals', totals)
           cartItems={cartItems}
           totals={totals}
         />
+          <CompanySelectionModal
+            visible={companyModalVisible}
+            onClose={() => setCompanyModalVisible(false)}
+            companies={me?.companies || []}
+            selectedCompanyId={currentCompany?.id}
+            onSelectCompany={handleSelectCompany}
+            onAddCompany={handleOpenRegisterModal}
+          />
+
+          <CompanySelectModal
+            visible={registerModalVisible}
+            onClose={() => setRegisterModalVisible(false)}
+            companies={me?.companies || []}
+            selectedCompanyId={currentCompany?.id}
+            onSelectCompany={handleSelectCompany}
+            screenScene={'register'}
+            onAddCompany={() => {}}
+          />
+
       </ThemedView>
     </SafeAreaProvider>
   );
