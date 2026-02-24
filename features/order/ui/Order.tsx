@@ -23,9 +23,13 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
-  ActivityIndicator
+  ActivityIndicator,
+  Dimensions
 } from 'react-native';
+
+const { height: screenHeight } = Dimensions.get('window');
 
 // Енумы из бекенда
 enum DeliveryMethod {
@@ -61,11 +65,6 @@ interface Recipient {
 interface DateTimeSelection {
   date: string;
   time: string;
-}
-
-interface DeliveryMethodConfig {
-  method: DeliveryMethod;
-  availablePaymentTypes: PaymentType[];
 }
 
 export default function CheckoutModal({
@@ -115,18 +114,6 @@ export default function CheckoutModal({
     return deliveryMethods.some((m: any)=> m.method === method);
   };
 
-  // Получаем название метода доставки для отображения
-  const getMethodDisplayName = (method: DeliveryMethod): string => {
-    switch (method) {
-      case DeliveryMethod.Delivery:
-        return 'Доставка';
-      case DeliveryMethod.Pickup:
-        return 'Самовывоз';
-      default:
-        return '';
-    }
-  };
-
   // Получаем название способа оплаты для отображения
   const getPaymentTypeDisplayName = (type: PaymentType): string => {
     switch (type) {
@@ -138,7 +125,6 @@ export default function CheckoutModal({
         return '';
     }
   };
-
   // Загружаем данные при открытии модалки
   useEffect(() => {
     if (visible) {
@@ -154,6 +140,20 @@ export default function CheckoutModal({
       setSelectedPaymentType(availableTypes[0]);
     }
   }, [selectedMethod]);
+
+  // Устанавливаем ближайшую дату и время при загрузке данных
+  useEffect(() => {
+    if (orderData?.nearestDeliveryDate && !selectedDateTime.date) {
+      const nearestDate = new Date(orderData.nearestDeliveryDate);
+      const timeSlots = getTimeSlotsForDate(nearestDate, orderData?.deliverySchedule);
+      const nearestTime = timeSlots.length > 0 ? formatTimeForDisplay(timeSlots[0]) : '';
+      
+      setSelectedDateTime({
+        date: nearestDate.toDateString(),
+        time: nearestTime
+      });
+    }
+  }, [orderData]);
 
   const loadOrderData = async () => {
     try {
@@ -172,20 +172,15 @@ export default function CheckoutModal({
 
   useEffect(() => {
     if (currentCompany?.id && savedAddress) {
-        setSelectedAddress(savedAddress);
+      setSelectedAddress(savedAddress);
     }
-}, [currentCompany?.id, savedAddress]);
+  }, [currentCompany?.id, savedAddress]);
 
-// Обновляем обработчик выбора адреса
-const handleSelectAddress = async (address: any) => {
+  const handleSelectAddress = async (address: any) => {
     setSelectedAddress(address);
     if (currentCompany?.id) {
-        await saveAddress(address);
+      await saveAddress(address);
     }
-};
-
-  const handleAddAddress = () => {
-    console.log('Open add address modal');
   };
 
   const handleAddCompany = () => {
@@ -198,7 +193,6 @@ const handleSelectAddress = async (address: any) => {
   const handleMethodChange = (method: DeliveryMethod) => {
     setSelectedMethod(method);
     
-    // Анимируем индикатор
     const tabIndex = method === DeliveryMethod.Delivery ? 0 : 1;
     Animated.spring(indicatorPosition, {
       toValue: tabIndex * tabContainerWidth,
@@ -251,8 +245,24 @@ const handleSelectAddress = async (address: any) => {
     return `${date.getDate()} ${months[date.getMonth()]}, ${days[date.getDay()]}`;
   };
 
+  const formatDateTimeDisplay = () => {
+    if (selectedDateTime.date && selectedDateTime.time) {
+      return `${formatDateDisplay(selectedDateTime.date)} ${selectedDateTime.time}`;
+    }
+    
+    if (orderData?.nearestDeliveryDate) {
+      const nearestDate = new Date(orderData.nearestDeliveryDate);
+      const timeSlots = getTimeSlotsForDate(nearestDate, orderData?.deliverySchedule);
+      const nearestTime = timeSlots.length > 0 ? formatTimeForDisplay(timeSlots[0]) : '';
+      return `${formatDateDisplay(nearestDate.toDateString())} ${nearestTime}`;
+    }
+    
+    return 'Выберите дату и время';
+  };
+
   const selectedCartItems = cartItems.filter(item => selectedItems.has(item.id));
   const totalWeight = selectedCartItems.reduce((sum, item) => sum + item.quantity, 0);
+  console.log('selectedCartItems', selectedCartItems)
 
   // Рендер содержимого для самовывоза с городами из Redux
   const renderPickupContent = () => {
@@ -345,7 +355,7 @@ const handleSelectAddress = async (address: any) => {
       </ThemedView>
     );
   };
-  console.log('savedAddress', savedAddress)
+
   return (
     <RNModal
       visible={visible}
@@ -394,9 +404,10 @@ const handleSelectAddress = async (address: any) => {
                           }
                         </ThemedText>
                         <ThemedText lightColor='#80818B' style={styles.addressTextText}  
-                            numberOfLines={1} 
-                            ellipsizeMode="tail">
-                            { currentCompany.id === savedAddress.addressOwnerId ? savedAddress?.address : '-'}
+                          numberOfLines={1} 
+                          ellipsizeMode="tail">
+                          {currentCompany?.id === savedAddress?.addressOwnerId ? savedAddress?.address : 
+                           currentCompany?.deliveryAddresses?.[0]?.address || '-'}
                         </ThemedText>
                       </View>
                     </View>
@@ -424,20 +435,12 @@ const handleSelectAddress = async (address: any) => {
               onPress={() => setShowCalendarModal(true)}
             >
               <View style={styles.dateTimeRow}>
-                <ThemedText style={styles.dateTimeLabel}>Дата:</ThemedText>
-                <ThemedText style={styles.dateTimeValue}>
-                  {selectedDateTime.date ? formatDateDisplay(selectedDateTime.date) : 'Не выбрана'}
+                <ThemedText style={styles.dateTimeLabel}></ThemedText>
+                <ThemedText style={styles.dateTimeValue} numberOfLines={1}>
+                  {formatDateTimeDisplay()}
                 </ThemedText>
               </View>
-              <View style={styles.dateTimeRow}>
-                <ThemedText style={styles.dateTimeLabel}>Время:</ThemedText>
-                <ThemedText style={styles.dateTimeValue}>
-                  {selectedDateTime.time || 'Не выбрано'}
-                </ThemedText>
-              </View>
-              <View style={styles.chevronRight}>
-                {/* <ChevronRight /> */}
-              </View>
+              <ArrowIconRight style={styles.chevronRight} />
             </TouchableOpacity>
           </ThemedView>
 
@@ -492,21 +495,10 @@ const handleSelectAddress = async (address: any) => {
               </ThemedText>
             </TouchableOpacity>
           </ThemedView>
+
           {/* Блок товаров */}
           <ThemedView style={styles.block} lightColor="#FFFFFF">
             <ThemedText style={styles.blockTitle}>Информация о заказе</ThemedText>
-{/*             
-            {selectedCartItems.map((item) => (
-              <View key={item.id} style={styles.cartItem}>
-               
-                <View style={styles.cartItemInfo}>
-                  
-                </View>
-                <ThemedText style={styles.cartItemPrice}>
-                  {item.totalPrice.toLocaleString('ru-RU')} ₽
-                </ThemedText>
-              </View>
-            ))} */}
                         
             <View style={styles.totalWeight}>
               <ThemedText style={styles.totalWeightName}>Товаров в корзине</ThemedText>
@@ -522,7 +514,7 @@ const handleSelectAddress = async (address: any) => {
             </View>
           </ThemedView>
 
-          {/* Блок способа оплаты - теперь на основе данных с бекенда */}
+          {/* Блок способа оплаты */}
           <ThemedView style={styles.block} lightColor="#FFFFFF">
             <ThemedText style={styles.blockTitle}>Способ оплаты</ThemedText>
             
@@ -549,7 +541,7 @@ const handleSelectAddress = async (address: any) => {
 
           {/* Блок дополнительной информации */}
           <ThemedView style={[styles.block, styles.lastBlock]} lightColor="#FFFFFF">
-          <ThemedText style={styles.blockTitle}>Дополнительная информация</ThemedText>
+            <ThemedText style={styles.blockTitle}>Дополнительная информация</ThemedText>
             <TouchableOpacity 
               style={styles.notificationRow}
               onPress={() => setNotificationsEnabled(!notificationsEnabled)}
@@ -564,52 +556,20 @@ const handleSelectAddress = async (address: any) => {
               </ThemedText>
             </TouchableOpacity>
             <ThemedText style={styles.underNotificationText}>
-                После подтверждения заказа с вами свяжется наш менеджер для уточнения деталей.
-              </ThemedText>
-              <PrimaryButton
-                title="Оформить заказ"
-                onPress={() => {
-                  // setCheckoutModalVisible(true);
-             
-                }}
-                variant="primary"
-                size="md"
-                activeOpacity={0.8}
-                fullWidth
-              />
+              После подтверждения заказа с вами свяжется наш менеджер для уточнения деталей.
+            </ThemedText>
+            <PrimaryButton
+              title="Оформить заказ"
+              onPress={() => {
+                // Обработка оформления заказа
+              }}
+              variant="primary"
+              size="md"
+              activeOpacity={0.8}
+              fullWidth
+            />
           </ThemedView>
         </ScrollView>
-
-        {/* Нижняя панель с кнопкой */}
-        {/* <ThemedView lightColor="#FFFFFF" style={styles.bottomPanel}>
-          <View style={styles.bottomPanelContent}>
-            <View style={styles.bottomLeft}>
-              <ThemedText style={styles.bottomTotalPrice}>
-                {totals.totalPrice.toLocaleString('ru-RU')} ₽
-              </ThemedText>
-              <ThemedText style={styles.bottomItemsCount}>
-                {totals.totalItems} {getDeclension(totals.totalItems, ['товар', 'товара', 'товаров'])}
-              </ThemedText>
-            </View>
-
-            <TouchableOpacity
-              style={styles.bottomCheckoutButton}
-              onPress={() => {
-                console.log('Оформление заказа', {
-                  deliveryMethod: selectedMethod,
-                  paymentType: selectedPaymentType,
-                  pickupAddress: selectedPickupAddress,
-                  dateTime: selectedDateTime,
-                  recipients
-                });
-              }}
-            >
-              <ThemedText style={styles.bottomCheckoutButtonText}>
-                Оформить заказ
-              </ThemedText>
-            </TouchableOpacity>
-          </View>
-        </ThemedView> */}
 
         {/* Модалка выбора даты и времени */}
         <DateTimeModal
@@ -629,10 +589,8 @@ const handleSelectAddress = async (address: any) => {
         selectedCompanyId={currentCompany?.id}
         onSelectCompany={handleSelectCompany}
         onAddCompany={handleAddCompany}
-        // onAddAddress={handleAddAddress}
         onSelectAddress={handleSelectAddress}
         selectedAddressId={selectedAddress?.id}
-        // onAddressAdded={handleAddressAdded}
       />
 
       <CompanySelectionModal
@@ -647,18 +605,102 @@ const handleSelectAddress = async (address: any) => {
   );
 }
 
-// Обновленный компонент модалки выбора даты и времени
+// Вспомогательные функции для работы с датами и временем
+const getTimeSlotsForDate = (date: Date, schedule: any) => {
+  if (!schedule?.weekSchedule) return [];
+
+  const dayOfWeek = date.getDay();
+  const daysMap = {
+    0: 'Sunday',
+    1: 'Monday',
+    2: 'Tuesday',
+    3: 'Wednesday',
+    4: 'Thursday',
+    5: 'Friday',
+    6: 'Saturday'
+  };
+  
+  const dayName = daysMap[dayOfWeek as keyof typeof daysMap];
+  const daySchedule = schedule.weekSchedule[dayName];
+  
+  if (daySchedule && daySchedule.isWorkingDay) {
+    const now = new Date();
+    const isToday = date.toDateString() === now.toDateString();
+    
+    let slots = [...(daySchedule.timeSlots || [])];
+    if (isToday) {
+      const currentHour = now.getHours();
+      const currentMinutes = now.getMinutes();
+      const currentTimeInMinutes = currentHour * 60 + currentMinutes;
+      const deliveryWindowHours = schedule.deliveryWindowHours || 2;
+      
+      slots = slots.filter((slot: any) => {
+        const [slotHour, slotMinute] = slot.startTime.split(':').map(Number);
+        const slotStartInMinutes = slotHour * 60 + slotMinute;
+        return slotStartInMinutes > currentTimeInMinutes + (deliveryWindowHours * 60);
+      });
+    }
+    return slots;
+  }
+  return [];
+};
+
+const formatTimeForDisplay = (timeSlot: any) => {
+  if (!timeSlot) return '';
+  const start = timeSlot.startTime.slice(0, 5);
+  const end = timeSlot.endTime.slice(0, 5);
+  return `${start} – ${end}`;
+};
+
+// Модалка выбора даты и времени
+// Модалка выбора даты и времени
 function DateTimeModal({ visible, onClose, onConfirm, initialDateTime, deliverySchedule }: any) {
   const [selectedDate, setSelectedDate] = useState<string>(initialDateTime.date || '');
   const [selectedTime, setSelectedTime] = useState<string>(initialDateTime.time || '');
   const [availableTimeSlots, setAvailableTimeSlots] = useState<any[]>([]);
   const [months, setMonths] = useState<Date[]>([]);
   const [showTimeModal, setShowTimeModal] = useState(false);
+  const [modalTranslateY] = useState(new Animated.Value(screenHeight));
 
   const daysOfWeek = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
 
+  // Автоматически выбираем ближайшую дату и время при загрузке
   useEffect(() => {
-    // Генерируем 3 месяца для прокрутки
+    if (visible && deliverySchedule?.nearestDeliveryDate && !initialDateTime.date) {
+      const nearestDate = new Date(deliverySchedule.nearestDeliveryDate);
+      const dateString = nearestDate.toDateString();
+      setSelectedDate(dateString);
+      
+      const timeSlots = getTimeSlotsForDate(nearestDate, deliverySchedule);
+      if (timeSlots.length > 0) {
+        const nearestTime = formatTimeForDisplay(timeSlots[0]);
+        setSelectedTime(nearestTime);
+      }
+      
+      loadTimeSlotsForDate(dateString);
+    } else if (visible && initialDateTime.date) {
+      // Если есть сохраненная дата, используем её
+      setSelectedDate(initialDateTime.date);
+      setSelectedTime(initialDateTime.time);
+      loadTimeSlotsForDate(initialDateTime.date);
+    }
+  }, [visible, deliverySchedule]);
+
+  // Анимация появления
+  useEffect(() => {
+    if (visible) {
+      modalTranslateY.setValue(screenHeight);
+      Animated.spring(modalTranslateY, {
+        toValue: 0,
+        useNativeDriver: true,
+        damping: 20,
+        stiffness: 90,
+        mass: 0.8,
+      }).start();
+    }
+  }, [visible]);
+
+  useEffect(() => {
     const today = new Date();
     const monthsArray = [];
     for (let i = 0; i < 3; i++) {
@@ -674,50 +716,21 @@ function DateTimeModal({ visible, onClose, onConfirm, initialDateTime, deliveryS
     }
   }, [selectedDate, deliverySchedule]);
 
+  const handleClose = () => {
+    Animated.timing(modalTranslateY, {
+      toValue: screenHeight,
+      duration: 250,
+      useNativeDriver: true,
+    }).start(() => {
+      onClose();
+    });
+  };
+
   const loadTimeSlotsForDate = (dateString: string) => {
     if (!deliverySchedule?.weekSchedule) return;
-
     const date = new Date(dateString);
-    const dayOfWeek = date.getDay(); // 0 - воскресенье, 1 - понедельник, ...
-    
-    const daysMap = {
-      0: 'Sunday',
-      1: 'Monday',
-      2: 'Tuesday',
-      3: 'Wednesday',
-      4: 'Thursday',
-      5: 'Friday',
-      6: 'Saturday'
-    };
-    
-    const dayName = daysMap[dayOfWeek as keyof typeof daysMap];
-    const daySchedule = deliverySchedule.weekSchedule[dayName];
-    
-    if (daySchedule && daySchedule.isWorkingDay) {
-      // Фильтруем слоты, которые уже прошли, если это сегодня
-      const now = new Date();
-      const isToday = date.toDateString() === now.toDateString();
-      
-      let slots = [...(daySchedule.timeSlots || [])];
-      if (isToday) {
-        const currentHour = now.getHours();
-        const currentMinutes = now.getMinutes();
-        const currentTimeInMinutes = currentHour * 60 + currentMinutes;
-        
-        const deliveryWindowHours = deliverySchedule.deliveryWindowHours || 2;
-        
-        slots = slots.filter((slot: any) => {
-          const [slotHour, slotMinute] = slot.startTime.split(':').map(Number);
-          const slotStartInMinutes = slotHour * 60 + slotMinute;
-          // Добавляем время на подготовку заказа из конфига
-          return slotStartInMinutes > currentTimeInMinutes + (deliveryWindowHours * 60);
-        });
-      }
-      
-      setAvailableTimeSlots(slots);
-    } else {
-      setAvailableTimeSlots([]);
-    }
+    const slots = getTimeSlotsForDate(date, deliverySchedule);
+    setAvailableTimeSlots(slots);
   };
 
   const generateDaysForMonth = (month: Date) => {
@@ -763,7 +776,6 @@ function DateTimeModal({ visible, onClose, onConfirm, initialDateTime, deliveryS
   const isDateDisabled = (date: Date) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
     return date < today || !isDateAvailable(date);
   };
 
@@ -781,13 +793,6 @@ function DateTimeModal({ visible, onClose, onConfirm, initialDateTime, deliveryS
     return `${date.getDate()} ${months[date.getMonth()]}, ${days[date.getDay()]}`;
   };
 
-  const formatTimeForDisplay = (timeSlot: any) => {
-    if (!timeSlot) return '';
-    const start = timeSlot.startTime.slice(0, 5);
-    const end = timeSlot.endTime.slice(0, 5);
-    return `${start} – ${end}`;
-  };
-
   const formatMonthYear = (date: Date) => {
     const months = [
       'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
@@ -798,7 +803,8 @@ function DateTimeModal({ visible, onClose, onConfirm, initialDateTime, deliveryS
 
   const handleDateSelect = (date: Date) => {
     if (!isDateDisabled(date)) {
-      setSelectedDate(date.toDateString());
+      const dateString = date.toDateString();
+      setSelectedDate(dateString);
       setSelectedTime('');
       setShowTimeModal(true);
     }
@@ -813,7 +819,7 @@ function DateTimeModal({ visible, onClose, onConfirm, initialDateTime, deliveryS
   const handleConfirm = () => {
     if (selectedDate && selectedTime) {
       onConfirm({ date: selectedDate, time: selectedTime });
-      onClose();
+      handleClose();
     }
   };
 
@@ -833,6 +839,8 @@ function DateTimeModal({ visible, onClose, onConfirm, initialDateTime, deliveryS
         <View style={styles.daysGrid}>
           {days.map((date, index) => {
             const isSelected = date && selectedDate === date.toDateString();
+            const isNearest = date && deliverySchedule?.nearestDeliveryDate && 
+              date.toDateString() === new Date(deliverySchedule.nearestDeliveryDate).toDateString();
             const disabled = !date || isDateDisabled(date);
             
             return (
@@ -841,7 +849,7 @@ function DateTimeModal({ visible, onClose, onConfirm, initialDateTime, deliveryS
                 style={[
                   styles.dayCell,
                   disabled && styles.dayDisabled,
-                  isSelected && styles.daySelected
+                  (isSelected || isNearest) && !disabled && styles.daySelected
                 ]}
                 onPress={() => date && handleDateSelect(date)}
                 disabled={disabled}
@@ -849,7 +857,7 @@ function DateTimeModal({ visible, onClose, onConfirm, initialDateTime, deliveryS
                 <ThemedText style={[
                   styles.dayText,
                   disabled && styles.dayTextDisabled,
-                  isSelected && styles.dayTextSelected
+                  (isSelected || isNearest) && !disabled && styles.dayTextSelected
                 ]}>
                   {date?.getDate()}
                 </ThemedText>
@@ -864,89 +872,145 @@ function DateTimeModal({ visible, onClose, onConfirm, initialDateTime, deliveryS
   return (
     <RNModal
       visible={visible}
-      animationType="slide"
+      animationType="none"
       transparent={true}
-      onRequestClose={onClose}
+      onRequestClose={handleClose}
     >
-      <View style={styles.modalOverlay}>
-        <ThemedView style={styles.modalContent} lightColor="#FFFFFF">
-          <ModalHeader 
-            title="Выберите дату доставки" 
-            showBackButton={true} 
-            onBackPress={onClose}
-          />
-          
-          <FlatList
-            data={months}
-            renderItem={renderMonth}
-            keyExtractor={(item) => item.toISOString()}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.monthsList}
-          />
-
-          {/* Нижняя панель с выбранными датой/временем и кнопкой */}
-          <ThemedView lightColor="#FFFFFF" style={styles.dateTimeBottomPanel}>
-            <View style={styles.selectedDateTime}>
-              <TouchableOpacity style={styles.dateTimeBlock}>
-                <ThemedView lightColor="#F2F4F7" style={styles.dateTimeBlockInner}>
-                  <ThemedText style={styles.dateTimeBlockLabel}>Дата</ThemedText>
-                  <ThemedText style={styles.dateTimeBlockValue}>
-                    {selectedDate ? formatDateForDisplay(selectedDate) : 'Не выбрана'}
-                  </ThemedText>
-                </ThemedView>
-              </TouchableOpacity>
-
-              <TouchableOpacity 
-                style={styles.dateTimeBlock}
-                onPress={() => {
-                  if (selectedDate && availableTimeSlots.length > 0) {
-                    setShowTimeModal(true);
-                  }
-                }}
-                disabled={!selectedDate || availableTimeSlots.length === 0}
+      <TouchableWithoutFeedback onPress={handleClose}>
+        <View style={styles.modalOverlay}>
+          <TouchableWithoutFeedback>
+            <Animated.View
+              style={[
+                styles.modalContent,
+                {
+                  transform: [{ translateY: modalTranslateY }],
+                },
+              ]}
+            >
+              {/* Защелка для свайпа */}
+              <TouchableOpacity
+                style={styles.swipeHandleContainer}
+                activeOpacity={0.7}
+                onPress={handleClose}
               >
-                <ThemedView 
-                  lightColor={!selectedDate || availableTimeSlots.length === 0 ? "#F5F5F5" : "#F2F4F7"} 
-                  style={[
-                    styles.dateTimeBlockInner,
-                    (!selectedDate || availableTimeSlots.length === 0) && styles.dateTimeBlockDisabled
-                  ]}
-                >
-                  <ThemedText style={styles.dateTimeBlockLabel}>Время</ThemedText>
-                  <ThemedText style={styles.dateTimeBlockValue}>
-                    {selectedTime || 'Не выбрано'}
-                  </ThemedText>
-                </ThemedView>
+                <View style={styles.swipeHandle} />
               </TouchableOpacity>
-            </View>
 
-            <PrimaryButton
-              title="Применить"
-              onPress={handleConfirm}
-              variant="primary"
-              size="md"
-              fullWidth
-              disabled={!selectedDate || !selectedTime}
-            />
-          </ThemedView>
-        </ThemedView>
+              <ThemedText style={styles.chooseDateTime}>
+                Выберите дату доставки
+              </ThemedText>
+              {/* <ModalHeader 
+                title="Выберите дату доставки" 
+                showBackButton={false} 
+                onBackPress={handleClose}
+              /> */}
+              
+              <FlatList
+                data={months}
+                renderItem={renderMonth}
+                keyExtractor={(item) => item.toISOString()}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.monthsList}
+              />
 
-        {/* Модалка выбора времени */}
-        <TimeModal
-          visible={showTimeModal}
-          onClose={() => setShowTimeModal(false)}
-          onSelectTime={handleTimeSelect}
-          selectedTime={selectedTime}
-          timeSlots={availableTimeSlots}
-          selectedDate={selectedDate}
-        />
-      </View>
+              {/* Нижняя панель с раздельными блоками даты и времени */}
+              <ThemedView lightColor="#FFFFFF" style={styles.dateTimeBottomPanel}>
+                <View style={styles.selectedDateTime}>
+                  {/* Блок выбранной даты */}
+                  <TouchableOpacity 
+                    style={styles.dateTimeBlock}
+                    onPress={() => {
+                      // Если нужно, можно сделать что-то при нажатии на дату
+                    }}
+                  >
+                    <ThemedView lightColor="#F2F4F7" style={styles.dateTimeBlockInner}>
+                      {/* <ThemedText style={styles.dateTimeBlockLabel}>Дата</ThemedText> */}
+                      <ThemedText style={styles.dateTimeBlockValue}>
+                        {selectedDate ? formatDateForDisplay(selectedDate) : 'Не выбрана'}
+                      </ThemedText>
+                    </ThemedView>
+                  </TouchableOpacity>
+
+                  {/* Блок выбора времени */}
+                  <TouchableOpacity 
+                    style={styles.dateTimeBlock}
+                    onPress={() => {
+                      if (selectedDate && availableTimeSlots.length > 0) {
+                        setShowTimeModal(true);
+                      }
+                    }}
+                    disabled={!selectedDate || availableTimeSlots.length === 0}
+                  >
+                    <ThemedView 
+                      lightColor={!selectedDate || availableTimeSlots.length === 0 ? "#F5F5F5" : "#F2F4F7"} 
+                      style={[
+                        styles.dateTimeBlockInner,
+                        (!selectedDate || availableTimeSlots.length === 0) && styles.dateTimeBlockDisabled
+                      ]}
+                    >
+                      {/* <ThemedText style={styles.dateTimeBlockLabel}>Время</ThemedText> */}
+                      <ThemedText style={styles.dateTimeBlockValue}>
+                        {selectedTime || 'Не выбрано'}
+                      </ThemedText>
+                    </ThemedView>
+                  </TouchableOpacity>
+                </View>
+
+                <PrimaryButton
+                  title="Применить"
+                  onPress={handleConfirm}
+                  variant="primary"
+                  size="md"
+                  fullWidth
+                  disabled={!selectedDate || !selectedTime}
+                />
+              </ThemedView>
+            </Animated.View>
+          </TouchableWithoutFeedback>
+        </View>
+      </TouchableWithoutFeedback>
+
+      {/* Модалка выбора времени */}
+      <TimeModal
+        visible={showTimeModal}
+        onClose={() => setShowTimeModal(false)}
+        onSelectTime={handleTimeSelect}
+        selectedTime={selectedTime}
+        timeSlots={availableTimeSlots}
+        selectedDate={selectedDate}
+        deliverySchedule={deliverySchedule}
+      />
     </RNModal>
   );
 }
 
-// Компонент модалки выбора времени
-function TimeModal({ visible, onClose, onSelectTime, selectedTime, timeSlots, selectedDate }: any) {
+// Модалка выбора времени
+function TimeModal({ visible, onClose, onSelectTime, selectedTime, timeSlots, selectedDate, deliverySchedule }: any) {
+  const [modalTranslateY] = useState(new Animated.Value(screenHeight));
+
+  useEffect(() => {
+    if (visible) {
+      modalTranslateY.setValue(screenHeight);
+      Animated.spring(modalTranslateY, {
+        toValue: 0,
+        useNativeDriver: true,
+        damping: 20,
+        stiffness: 90,
+        mass: 0.8,
+      }).start();
+    }
+  }, [visible]);
+
+  const handleClose = () => {
+    Animated.timing(modalTranslateY, {
+      toValue: screenHeight,
+      duration: 250,
+      useNativeDriver: true,
+    }).start(() => {
+      onClose();
+    });
+  };
+
   const formatDateForHeader = (dateString: string) => {
     if (!dateString) return '';
     const date = new Date(dateString);
@@ -962,76 +1026,101 @@ function TimeModal({ visible, onClose, onSelectTime, selectedTime, timeSlots, se
     return `${date.getDate()} ${months[date.getMonth()]}, ${days[date.getDay()]}`;
   };
 
-  const formatTimeSlot = (slot: any) => {
-    const start = slot.startTime.slice(0, 5);
-    const end = slot.endTime.slice(0, 5);
-    return `${start} – ${end}`;
+  // Определяем, является ли слот ближайшим временем
+  const isNearestTime = (slot: any) => {
+    if (!selectedDate || !deliverySchedule?.nearestDeliveryDate) return false;
+    
+    const nearestDate = new Date(deliverySchedule.nearestDeliveryDate);
+    const currentDate = new Date(selectedDate);
+    
+    if (currentDate.toDateString() !== nearestDate.toDateString()) return false;
+    
+    const timeSlots = getTimeSlotsForDate(currentDate, deliverySchedule);
+    if (timeSlots.length > 0) {
+      const firstSlot = timeSlots[0];
+      return firstSlot.startTime === slot.startTime;
+    }
+    
+    return false;
   };
 
   return (
     <RNModal
       visible={visible}
-      animationType="slide"
+      animationType="none"
       transparent={true}
-      onRequestClose={onClose}
+      onRequestClose={handleClose}
     >
-      <View style={styles.modalOverlay}>
-        <ThemedView style={styles.timeModalContent} lightColor="#FFFFFF">
-          <ModalHeader 
-            title="Выберите время" 
-            showBackButton={true} 
-            onBackPress={onClose}
-          />
-          
-          {selectedDate && (
-            <ThemedView lightColor="#F2F4F7" style={styles.selectedDateHeader}>
-              <ThemedText style={styles.selectedDateHeaderText}>
-                {formatDateForHeader(selectedDate)}
+      <TouchableWithoutFeedback onPress={handleClose}>
+        <View style={styles.modalOverlay}>
+          <TouchableWithoutFeedback>
+            <Animated.View
+              style={[
+                styles.timeModalContent,
+                {
+                  transform: [{ translateY: modalTranslateY }],
+                },
+              ]}
+            >
+              {/* Защелка для свайпа */}
+              <TouchableOpacity
+                style={styles.swipeHandleContainer}
+                activeOpacity={0.7}
+                onPress={handleClose}
+              >
+                <View style={styles.swipeHandle} />
+              </TouchableOpacity>
+
+
+              <ThemedText style={styles.chooseDateTime}>
+                Выберите время
               </ThemedText>
-            </ThemedView>
-          )}
-          
-          <ScrollView style={styles.timeList} showsVerticalScrollIndicator={false}>
-            {timeSlots.map((slot: any, index: number) => {
-              const timeString = formatTimeSlot(slot);
-              const isSelected = selectedTime === timeString;
               
-              return (
-                <TouchableOpacity
-                  key={index}
-                  style={styles.timeSlot}
-                  onPress={() => onSelectTime(slot)}
-                >
-                  <View style={[
-                    styles.radioOuter,
-                    isSelected && styles.radioOuterSelected
-                  ]}>
-                    {isSelected && (
-                      <View style={styles.radioInner} />
-                    )}
-                  </View>
-                  <ThemedText style={[
-                    styles.timeSlotText,
-                    isSelected && styles.timeSlotTextSelected
-                  ]}>
-                    {timeString}
+              {/* {selectedDate && (
+                <ThemedView lightColor="#F2F4F7" style={styles.selectedDateHeader}>
+                  <ThemedText style={styles.selectedDateHeaderText}>
+                    {formatDateForHeader(selectedDate)}
                   </ThemedText>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-        </ThemedView>
-      </View>
+                </ThemedView>
+              )} */}
+              
+              <ScrollView style={styles.timeList} showsVerticalScrollIndicator={false}>
+                {timeSlots.map((slot: any, index: number) => {
+                  const timeString = formatTimeForDisplay(slot);
+                  const isSelected = selectedTime === timeString;
+                  const isNearest = isNearestTime(slot);
+                  
+                  return (
+                    <TouchableOpacity
+                      key={index}
+                      style={styles.timeSlot}
+                      onPress={() => onSelectTime(slot)}
+                    >
+                      <View style={[
+                        styles.radioOuter,
+                        (isSelected || isNearest) && styles.radioOuterSelected
+                      ]}>
+                        {(isSelected || isNearest) && (
+                          <View style={styles.radioInner} />
+                        )}
+                      </View>
+                      <ThemedText style={[
+                        styles.timeSlotText,
+                        (isSelected || isNearest) && styles.timeSlotTextSelected
+                      ]}>
+                        {timeString}
+                      </ThemedText>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            </Animated.View>
+          </TouchableWithoutFeedback>
+        </View>
+      </TouchableWithoutFeedback>
     </RNModal>
   );
 }
-
-const getDeclension = (count: number, words: [string, string, string]) => {
-  const cases = [2, 0, 1, 1, 1, 2];
-  return words[
-    count % 100 > 4 && count % 100 < 20 ? 2 : cases[Math.min(count % 10, 5)]
-  ];
-};
 
 const styles = StyleSheet.create({
   container: {
@@ -1042,7 +1131,6 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingTop: 16,
-    // paddingBottom: 100,
   },
   block: {
     borderRadius: 24,
@@ -1050,14 +1138,14 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   lastBlock: {
-    // marginBottom: 16,
+    marginBottom: 16,
   },
   blockTitle: {
     fontSize: 18,
     fontWeight: '600',
     marginBottom: 16,
   },
-  mainPicker:{
+  mainPicker: {
     fontSize: 14,
     fontWeight: '500',
   },
@@ -1156,15 +1244,18 @@ const styles = StyleSheet.create({
     padding: 12,
     backgroundColor: '#F5F5F5',
     borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   dateTimeRow: {
     flexDirection: 'row',
-    marginBottom: 4,
+    flex: 1,
   },
   dateTimeLabel: {
     fontSize: 14,
     color: '#80818B',
-    width: 50,
+    marginRight: 8,
   },
   dateTimeValue: {
     fontSize: 14,
@@ -1172,10 +1263,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   chevronRight: {
-    position: 'absolute',
-    right: 12,
-    top: '50%',
-    marginTop: -10,
+    width: 20,
+    height: 20,
   },
   recipientBlock: {
     marginBottom: 16,
@@ -1236,11 +1325,7 @@ const styles = StyleSheet.create({
   totalWeight: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    // gap:
-    // marginTop: 12,
     paddingBottom: 5,
-    // borderTopWidth: 1,
-    // borderTopColor: '#F0F3F7',
   },
   totalWeightValue: {
     fontWeight: '500',
@@ -1271,7 +1356,6 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     flex: 1,
     fontWeight: '500'
-
   },
   underNotificationText: {
     marginTop: 16,
@@ -1373,10 +1457,28 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContent: {
+    backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     minHeight: '50%',
     maxHeight: '80%',
+  },
+  swipeHandleContainer: {
+    alignItems: 'center',
+    paddingTop: 12,
+    paddingBottom: 8,
+    width: '100%',
+  },
+  swipeHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: '#E0E0E0',
+    borderRadius: 2,
+  },
+  chooseDateTime:{
+    fontWeight: '600',
+    fontSize: 20,
+    padding: 16,
   },
   monthsList: {
     padding: 16,
@@ -1445,6 +1547,24 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 5,
   },
+  selectedDateTimeBlock: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+    width: '100%',
+  },
+  selectedDateTimeInner: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 12,
+    marginRight: 8,
+  },
+  selectedDateTimeText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#1B1B1C',
+  },
   selectedDateTime: {
     flexDirection: 'row',
     gap: 8,
@@ -1473,6 +1593,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   timeModalContent: {
+    backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     maxHeight: '80%',
