@@ -2,7 +2,7 @@
 import { ArrowIconRight, IconCompany, TrashIcon } from '@/assets/icons/icons';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { selectCompany } from '@/features/auth/authSlice';
+import { selectCompany, getTowns } from '@/features/auth/authSlice';
 import { ModalHeader } from '@/features/auth/ui/Header';
 import { getOrderPageData } from '@/features/catalog/catalogSlice';
 import { PrimaryButton } from '@/features/home';
@@ -22,8 +22,20 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  View
+  View,
+  ActivityIndicator
 } from 'react-native';
+
+// Енумы из бекенда
+enum DeliveryMethod {
+  Delivery = 0,
+  Pickup = 1
+}
+
+enum PaymentType {
+  Cashless = 0,
+  Cash = 1
+}
 
 interface CheckoutModalProps {
   visible: boolean;
@@ -36,9 +48,6 @@ interface CheckoutModalProps {
     totalWeight: number;
   };
 }
-
-type DeliveryMethod = 'Delivery' | 'Pickup';
-type PaymentType = 'Cashless' | 'Cash';
 
 interface Recipient {
   id: string;
@@ -53,6 +62,11 @@ interface DateTimeSelection {
   time: string;
 }
 
+interface DeliveryMethodConfig {
+  method: DeliveryMethod;
+  availablePaymentTypes: PaymentType[];
+}
+
 export default function CheckoutModal({
   visible,
   onClose,
@@ -60,10 +74,11 @@ export default function CheckoutModal({
   cartItems,
   totals
 }: CheckoutModalProps) {
-  const [selectedTab, setSelectedTab] = useState<DeliveryMethod>('Delivery');
+  // Состояние для выбранных значений
+  const [selectedMethod, setSelectedMethod] = useState<DeliveryMethod>(DeliveryMethod.Delivery);
   const [selectedPickupAddress, setSelectedPickupAddress] = useState<string>('');
   const [selectedDateTime, setSelectedDateTime] = useState<DateTimeSelection>({ date: '', time: '' });
-  const [selectedPaymentType, setSelectedPaymentType] = useState<PaymentType>('Cashless');
+  const [selectedPaymentType, setSelectedPaymentType] = useState<PaymentType>(PaymentType.Cashless);
   const [recipients, setRecipients] = useState<Recipient[]>([
     { id: '1', firstName: '', lastName: '', phone: '', email: '' }
   ]);
@@ -74,50 +89,70 @@ export default function CheckoutModal({
   const tabContainerRef = useRef<View>(null);
   const [tabContainerWidth, setTabContainerWidth] = useState(0);
   const indicatorPosition = useRef(new Animated.Value(0)).current;
+  
+  // Данные с бекенда
   const orderData = useAppSelector((state) => state.catalog.order);
+  const deliveryMethods = orderData?.deliveryMethods || [];
+  const towns = useAppSelector((state) => state.auth.towns);
+  const isLoadingTowns = useAppSelector((state) => state.auth.isLoadingTowns);
+  
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [selectedAddress, setSelectedAddress] = useState<any>(null);
   const [showCompanyModal, setShowCompanyModal] = useState(false);
-  // Моковые адреса для самовывоза
-  const pickupAddresses = [
-    { id: '1', address: 'ул. Ленина, 1, Москва', workingHours: 'пн-пт 9:00-18:00' },
-    { id: '2', address: 'пр-т Мира, 15, Москва', workingHours: 'пн-сб 10:00-20:00' },
-    { id: '3', address: 'ул. Тверская, 25, Москва', workingHours: 'пн-вс 9:00-21:00' },
-  ];
+  
   const currentCompany = useAppSelector((state) => state.auth.currentCompany);
+  const me = useAppSelector((state) => state.auth.me);
 
-  const handleSelectCompany = (company: any) => {
-    dispatch(selectCompany(company));
-    // Сбрасываем выбранный адрес при смене компании
-    setSelectedAddress(null);
-  };
-
-  const handleSelectAddress = (address: any) => {
-    setSelectedAddress(address);
-  };
-  const handleAddAddress = () => {
-    // Здесь логика открытия модалки добавления адреса
-    console.log('Open add address modal');
+  // Получаем доступные способы оплаты для текущего метода доставки
+  const getAvailablePaymentTypes = (method: DeliveryMethod): PaymentType[] => {
+    const methodConfig = deliveryMethods.find((m: any) => m.method === method);
+    return methodConfig?.availablePaymentTypes || [];
   };
 
-  const handleAddCompany = () => {
-    // Здесь логика открытия модалки регистрации компании
-    setShowAddressModal(false);
-    setTimeout(() => {
-      // открыть модалку регистрации компании
-    }, 300);
-  };
-  // Методы оплаты для разных типов доставки
-  const paymentMethods = {
-    Delivery: ['Cashless'] as PaymentType[],
-    Pickup: ['Cashless', 'Cash'] as PaymentType[],
+  // Проверяем, доступен ли метод доставки
+  const isMethodAvailable = (method: DeliveryMethod): boolean => {
+    return deliveryMethods.some((m: any)=> m.method === method);
   };
 
+  // Получаем название метода доставки для отображения
+  const getMethodDisplayName = (method: DeliveryMethod): string => {
+    switch (method) {
+      case DeliveryMethod.Delivery:
+        return 'Доставка';
+      case DeliveryMethod.Pickup:
+        return 'Самовывоз';
+      default:
+        return '';
+    }
+  };
+
+  // Получаем название способа оплаты для отображения
+  const getPaymentTypeDisplayName = (type: PaymentType): string => {
+    switch (type) {
+      case PaymentType.Cashless:
+        return 'Безналичный расчёт';
+      case PaymentType.Cash:
+        return 'Наличными';
+      default:
+        return '';
+    }
+  };
+
+  // Загружаем данные при открытии модалки
   useEffect(() => {
     if (visible) {
       loadOrderData();
+      dispatch(getTowns());
     }
   }, [visible]);
+
+  // Обновляем способ оплаты при смене метода доставки
+  useEffect(() => {
+    const availableTypes = getAvailablePaymentTypes(selectedMethod);
+    if (availableTypes.length > 0 && !availableTypes.includes(selectedPaymentType)) {
+      setSelectedPaymentType(availableTypes[0]);
+    }
+  }, [selectedMethod]);
 
   const loadOrderData = async () => {
     try {
@@ -127,17 +162,38 @@ export default function CheckoutModal({
     }
   };
 
-  const handleTabChange = (tab: DeliveryMethod) => {
-    setSelectedTab(tab);
+  const handleSelectCompany = (company: any) => {
+    dispatch(selectCompany(company));
+    setSelectedAddress(null);
+  };
+
+  const handleSelectAddress = (address: any) => {
+    setSelectedAddress(address);
+  };
+
+  const handleAddAddress = () => {
+    console.log('Open add address modal');
+  };
+
+  const handleAddCompany = () => {
+    setShowAddressModal(false);
+    setTimeout(() => {
+      // открыть модалку регистрации компании
+    }, 300);
+  };
+
+  const handleMethodChange = (method: DeliveryMethod) => {
+    setSelectedMethod(method);
+    
+    // Анимируем индикатор
+    const tabIndex = method === DeliveryMethod.Delivery ? 0 : 1;
     Animated.spring(indicatorPosition, {
-      toValue: tab === 'Delivery' ? 0 : tabContainerWidth,
+      toValue: tabIndex * tabContainerWidth,
       useNativeDriver: true,
       damping: 15,
       mass: 1,
       stiffness: 120
     }).start();
-    
-    setSelectedPaymentType(paymentMethods[tab][0]);
   };
 
   const addRecipient = () => {
@@ -185,9 +241,98 @@ export default function CheckoutModal({
   const selectedCartItems = cartItems.filter(item => selectedItems.has(item.id));
   const totalWeight = selectedCartItems.reduce((sum, item) => sum + item.quantity, 0);
 
-  const me = useAppSelector((state) => state.auth.me);
+  // Рендер содержимого для самовывоза с городами из Redux
+  const renderPickupContent = () => {
+    if (isLoadingTowns) {
+      return (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="small" color="#203686" />
+          <ThemedText style={styles.loadingText}>Загрузка городов...</ThemedText>
+        </View>
+      );
+    }
 
-  console.log('me', me)
+    if (!towns || towns.length === 0) {
+      return (
+        <View style={styles.emptyContainer}>
+          <ThemedText style={styles.emptyText}>
+            Нет доступных городов для самовывоза
+          </ThemedText>
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.pickupContent}>
+        <ThemedText style={styles.companyName}>ООО "Торговый дом"</ThemedText>
+        {towns.map((town) => (
+          <TouchableOpacity
+            key={town.id}
+            style={styles.addressItem}
+            onPress={() => setSelectedPickupAddress(town.id)}
+          >
+            <View style={[
+              styles.radioOuter,
+              selectedPickupAddress === town.id && styles.radioOuterSelected
+            ]}>
+              {selectedPickupAddress === town.id && (
+                <View style={styles.radioInner} />
+              )}
+            </View>
+            <View style={styles.addressInfo}>
+              <ThemedText style={styles.addressText}>{town.value}</ThemedText>
+            </View>
+          </TouchableOpacity>
+        ))}
+      </View>
+    );
+  };
+
+  // Рендер табов доставки на основе данных с бекенда
+  const renderDeliveryTabs = () => {
+    const availableMethods = [
+      { method: DeliveryMethod.Delivery, label: 'Доставка' },
+      { method: DeliveryMethod.Pickup, label: 'Самовывоз' }
+    ].filter(item => isMethodAvailable(item.method));
+
+    if (availableMethods.length === 0) {
+      return null;
+    }
+
+    return (
+      <ThemedView 
+        style={styles.tabsContainer} 
+        lightColor="#F2F4F7"
+        onLayout={(e) => setTabContainerWidth(e.nativeEvent.layout.width / availableMethods.length)}
+        ref={tabContainerRef}
+      >
+        <Animated.View style={[
+          styles.activeTabIndicator,
+          {
+            width: tabContainerWidth,
+            transform: [{ translateX: indicatorPosition }]
+          }
+        ]} />
+        
+        {availableMethods.map((item) => (
+          <TouchableOpacity
+            key={item.method}
+            style={styles.tabButton}
+            onPress={() => handleMethodChange(item.method)}
+            activeOpacity={0.7}
+          >
+            <ThemedText 
+              style={styles.tabText}
+              lightColor={selectedMethod === item.method ? '#1B1B1C' : '#80818B'}
+            >
+              {item.label}
+            </ThemedText>
+          </TouchableOpacity>
+        ))}
+      </ThemedView>
+    );
+  };
+
   return (
     <RNModal
       visible={visible}
@@ -211,74 +356,12 @@ export default function CheckoutModal({
           <ThemedView style={styles.block} lightColor="#FFFFFF">
             <ThemedText style={styles.blockTitle}>Способ получения</ThemedText>
             
-            <ThemedView 
-              style={styles.tabsContainer} 
-              lightColor="#F2F4F7"
-              onLayout={(e) => setTabContainerWidth(e.nativeEvent.layout.width / 2)}
-              ref={tabContainerRef}
-            >
-              <Animated.View style={[
-                styles.activeTabIndicator,
-                {
-                  width: tabContainerWidth,
-                  transform: [{ translateX: indicatorPosition }]
-                }
-              ]} />
-              
-              <TouchableOpacity
-                style={styles.tabButton}
-                onPress={() => handleTabChange('Delivery')}
-                activeOpacity={0.7}
-              >
-                <ThemedText 
-                  style={styles.tabText}
-                  lightColor={selectedTab === 'Delivery' ? '#1B1B1C' : '#80818B'}
-                >
-                  Доставка
-                </ThemedText>
-              </TouchableOpacity>
-              
-              <TouchableOpacity
-                style={styles.tabButton}
-                onPress={() => handleTabChange('Pickup')}
-                activeOpacity={0.7}
-              >
-                <ThemedText 
-                  style={styles.tabText}
-                  lightColor={selectedTab === 'Pickup' ? '#1B1B1C' : '#80818B'}
-                >
-                  Самовывоз
-                </ThemedText>
-              </TouchableOpacity>
-            </ThemedView>
+            {renderDeliveryTabs()}
 
-            {/* Контент для самовывоза */}
-            {selectedTab === 'Pickup' && (
-              <View style={styles.pickupContent}>
-                <ThemedText style={styles.companyName}>ООО "Торговый дом"</ThemedText>
-                {pickupAddresses.map((address) => (
-                  <TouchableOpacity
-                    key={address.id}
-                    style={styles.addressItem}
-                    onPress={() => setSelectedPickupAddress(address.id)}
-                  >
-                    <View style={[
-                      styles.radioOuter,
-                      selectedPickupAddress === address.id && styles.radioOuterSelected
-                    ]}>
-                      {selectedPickupAddress === address.id && (
-                        <View style={styles.radioInner} />
-                      )}
-                    </View>
-                    <View style={styles.addressInfo}>
-                      <ThemedText style={styles.addressText}>{address.address}</ThemedText>
-                      <ThemedText style={styles.addressHours}>{address.workingHours}</ThemedText>
-                    </View>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
-            {selectedTab !== 'Pickup' && (
+            {/* Контент для самовывоза с городами из Redux */}
+            {selectedMethod === DeliveryMethod.Pickup && renderPickupContent()}
+
+            {selectedMethod === DeliveryMethod.Delivery && (
               <View>
                 <ThemedText style={styles.blockTitle}>Компания и адрес</ThemedText>
                 <ThemedView lightColor='#F2F4F7' style={styles.compAndAdressCont}>
@@ -319,7 +402,6 @@ export default function CheckoutModal({
             )}
           </ThemedView>
 
-
           {/* Блок даты и времени */}
           <ThemedView style={styles.block} lightColor="#FFFFFF">
             <ThemedText style={styles.blockTitle}>Дата и время получения</ThemedText>
@@ -349,7 +431,7 @@ export default function CheckoutModal({
           {/* Блок контактов получателя */}
           <ThemedView style={styles.block} lightColor="#FFFFFF">
             <ThemedText style={styles.blockTitle}>Контакты получателя</ThemedText>
-            
+            <ThemedText lightColor='#80818B' style={styles.mainPicker}>Основной получатель</ThemedText>
             {recipients.map((recipient, index) => (
               <View key={recipient.id} style={styles.recipientBlock}>
                 {index > 0 && (
@@ -397,70 +479,56 @@ export default function CheckoutModal({
               </ThemedText>
             </TouchableOpacity>
           </ThemedView>
-
           {/* Блок товаров */}
           <ThemedView style={styles.block} lightColor="#FFFFFF">
-            <ThemedText style={styles.blockTitle}>Товары в корзине</ThemedText>
-            
+            <ThemedText style={styles.blockTitle}>Информация о заказе</ThemedText>
+{/*             
             {selectedCartItems.map((item) => (
               <View key={item.id} style={styles.cartItem}>
-                <View style={styles.cartItemImage}>
-                  {item.productImage ? (
-                    <Image
-                      source={{ uri: `${baseUrl}/${item.productImage}` }}
-                      style={styles.image}
-                      contentFit="cover"
-                    />
-                  ) : (
-                    <Image
-                      source={require('@/assets/icons/png/noImage.png')}
-                      style={styles.image}
-                      contentFit="cover"
-                    />
-                  )}
-                </View>
+               
                 <View style={styles.cartItemInfo}>
-                  <ThemedText style={styles.cartItemName} numberOfLines={2}>
-                    {item.productName}
-                  </ThemedText>
-                  <ThemedText style={styles.cartItemQuantity}>
-                    {item.quantity} {item.measureType === 'килограмм' ? 'кг' : 'шт'} • {item.price}₽/{item.measureType === 'килограмм' ? 'кг' : 'шт'}
-                  </ThemedText>
+                  
                 </View>
                 <ThemedText style={styles.cartItemPrice}>
                   {item.totalPrice.toLocaleString('ru-RU')} ₽
                 </ThemedText>
               </View>
-            ))}
-            
+            ))} */}
+                        
             <View style={styles.totalWeight}>
-              <ThemedText>Общий вес</ThemedText>
+              <ThemedText style={styles.totalWeightName}>Товаров в корзине</ThemedText>
+              <ThemedText style={styles.totalWeightValue}>
+                {selectedCartItems.length}
+              </ThemedText>
+            </View>
+            <View style={styles.totalWeight}>
+              <ThemedText style={styles.totalWeightName}>Общий вес</ThemedText>
               <ThemedText style={styles.totalWeightValue}>
                 {totalWeight.toFixed(2)} кг
               </ThemedText>
             </View>
           </ThemedView>
 
-          {/* Блок способа оплаты */}
+          {/* Блок способа оплаты - теперь на основе данных с бекенда */}
           <ThemedView style={styles.block} lightColor="#FFFFFF">
             <ThemedText style={styles.blockTitle}>Способ оплаты</ThemedText>
             
-            {paymentMethods[selectedTab].map((method) => (
+            {getAvailablePaymentTypes(selectedMethod).map((type) => (
               <TouchableOpacity
-                key={method}
+                key={type}
                 style={styles.paymentMethod}
-                onPress={() => setSelectedPaymentType(method)}
+                onPress={() => setSelectedPaymentType(type)}
               >
                 <View style={[
                   styles.radioOuter,
-                  selectedPaymentType === method && styles.radioOuterSelected
+                  selectedPaymentType === type && styles.radioOuterSelected
                 ]}>
-                  {selectedPaymentType === method && (
+                  {selectedPaymentType === type && (
                     <View style={styles.radioInner} />
                   )}
                 </View>
                 <ThemedText style={styles.paymentMethodText}>
-                  {method === 'Cashless' ? 'Безналичный расчёт' : 'Наличными'}
+                  {getPaymentTypeDisplayName(type)}
                 </ThemedText>
               </TouchableOpacity>
             ))}
@@ -468,6 +536,7 @@ export default function CheckoutModal({
 
           {/* Блок дополнительной информации */}
           <ThemedView style={[styles.block, styles.lastBlock]} lightColor="#FFFFFF">
+          <ThemedText style={styles.blockTitle}>Дополнительная информация</ThemedText>
             <TouchableOpacity 
               style={styles.notificationRow}
               onPress={() => setNotificationsEnabled(!notificationsEnabled)}
@@ -481,33 +550,25 @@ export default function CheckoutModal({
                 Получать уведомления об оформлении и статусе доставки заказа
               </ThemedText>
             </TouchableOpacity>
+            <ThemedText style={styles.underNotificationText}>
+                После подтверждения заказа с вами свяжется наш менеджер для уточнения деталей.
+              </ThemedText>
+              <PrimaryButton
+                title="Оформить заказ"
+                onPress={() => {
+                  // setCheckoutModalVisible(true);
+             
+                }}
+                variant="primary"
+                size="md"
+                activeOpacity={0.8}
+                fullWidth
+              />
           </ThemedView>
-
-          {/* Информационный блок о доставке */}
-          <ThemedView lightColor="#E1F0FF" darkColor="#212945" style={styles.infoBlock}>
-            <View style={styles.infoTextContainer}>
-              <ThemedText lightColor="#203686" style={styles.infoTitle}>
-                Бесплатная доставка {'\n'}при заказе от — 10 000 ₽.
-              </ThemedText>
-              <ThemedText lightColor="#1B1B1C" darkColor="#FBFCFF" style={styles.infoText}>
-                Стоимость доставки по МСК и СПБ {'\n'}при заказе от 3000 ₽ до 10000 ₽ {'\n'}составит 1000 ₽. По областям 1500 ₽.
-              </ThemedText>
-              <ThemedText lightColor="#1B1B1C" darkColor="#FBFCFF" style={styles.infoText}>
-                Минимальная сумма заказа — 3 000 ₽.
-              </ThemedText>
-            </View>
-            <Image
-              source={require('@/assets/icons/png/carPng.png')}
-              style={styles.infoImage}
-              resizeMode="contain"
-            />
-          </ThemedView>
-
-          <View style={styles.bottomSpacer} />
         </ScrollView>
 
         {/* Нижняя панель с кнопкой */}
-        <ThemedView lightColor="#FFFFFF" style={styles.bottomPanel}>
+        {/* <ThemedView lightColor="#FFFFFF" style={styles.bottomPanel}>
           <View style={styles.bottomPanelContent}>
             <View style={styles.bottomLeft}>
               <ThemedText style={styles.bottomTotalPrice}>
@@ -520,14 +581,22 @@ export default function CheckoutModal({
 
             <TouchableOpacity
               style={styles.bottomCheckoutButton}
-              onPress={() => console.log('Оформление заказа')}
+              onPress={() => {
+                console.log('Оформление заказа', {
+                  deliveryMethod: selectedMethod,
+                  paymentType: selectedPaymentType,
+                  pickupAddress: selectedPickupAddress,
+                  dateTime: selectedDateTime,
+                  recipients
+                });
+              }}
             >
               <ThemedText style={styles.bottomCheckoutButtonText}>
                 Оформить заказ
               </ThemedText>
             </TouchableOpacity>
           </View>
-        </ThemedView>
+        </ThemedView> */}
 
         {/* Модалка выбора даты и времени */}
         <DateTimeModal
@@ -535,148 +604,48 @@ export default function CheckoutModal({
           onClose={() => setShowCalendarModal(false)}
           onConfirm={handleDateTimeConfirm}
           initialDateTime={selectedDateTime}
+          deliverySchedule={orderData?.deliverySchedule}
         />
       </ThemedView>
-      <AddressSelectionModal
-            visible={showAddressModal}
-            onClose={() => setShowAddressModal(false)}
-            currentCompany={currentCompany}
-            companies={me?.companies || []}
-            selectedCompanyId={currentCompany?.id}
-            onSelectCompany={handleSelectCompany}
-            onAddCompany={handleAddCompany}
-            onAddAddress={handleAddAddress}
-            onSelectAddress={handleSelectAddress}
-            selectedAddressId={selectedAddress?.id}
-          />
 
-        <CompanySelectionModal
-          visible={showCompanyModal}
-          onClose={() => setShowCompanyModal(false)}
-          companies={me?.companies || []}
-          selectedCompanyId={currentCompany?.id}
-          onSelectCompany={handleSelectCompany}
-          onAddCompany={handleAddCompany}
-        />
+      <AddressSelectionModal
+        visible={showAddressModal}
+        onClose={() => setShowAddressModal(false)}
+        currentCompany={currentCompany}
+        companies={me?.companies || []}
+        selectedCompanyId={currentCompany?.id}
+        onSelectCompany={handleSelectCompany}
+        onAddCompany={handleAddCompany}
+        // onAddAddress={handleAddAddress}
+        onSelectAddress={handleSelectAddress}
+        selectedAddressId={selectedAddress?.id}
+        // onAddressAdded={handleAddressAdded}
+      />
+
+      <CompanySelectionModal
+        visible={showCompanyModal}
+        onClose={() => setShowCompanyModal(false)}
+        companies={me?.companies || []}
+        selectedCompanyId={currentCompany?.id}
+        onSelectCompany={handleSelectCompany}
+        onAddCompany={handleAddCompany}
+      />
     </RNModal>
   );
 }
 
-// Компонент модалки выбора даты и времени
-// Компонент модалки выбора даты и времени
-function DateTimeModal({ visible, onClose, onConfirm, initialDateTime }: any) {
+// Обновленный компонент модалки выбора даты и времени
+function DateTimeModal({ visible, onClose, onConfirm, initialDateTime, deliverySchedule }: any) {
   const [selectedDate, setSelectedDate] = useState<string>(initialDateTime.date || '');
   const [selectedTime, setSelectedTime] = useState<string>(initialDateTime.time || '');
   const [availableTimeSlots, setAvailableTimeSlots] = useState<any[]>([]);
   const [months, setMonths] = useState<Date[]>([]);
   const [showTimeModal, setShowTimeModal] = useState(false);
-  const orderData = useAppSelector((state) => state.catalog.order);
-  console.log('orderData', orderData)
-  // Данные с бека (нужно получать через пропсы или из стора)
-  const deliverySchedule = orderData?.deliverySchedule
-  // {
-  //   weekSchedule: {
-  //     Monday: {
-  //       dayOfWeek: 1,
-  //       startTime: "07:00:00",
-  //       endTime: "21:00:00",
-  //       isWorkingDay: true,
-  //       timeSlots: [
-  //         { startTime: "07:00:00", endTime: "09:00:00" },
-  //         { startTime: "09:00:00", endTime: "11:00:00" },
-  //         { startTime: "11:00:00", endTime: "13:00:00" },
-  //         { startTime: "13:00:00", endTime: "15:00:00" },
-  //         { startTime: "15:00:00", endTime: "17:00:00" },
-  //         { startTime: "17:00:00", endTime: "19:00:00" },
-  //         { startTime: "19:00:00", endTime: "21:00:00" }
-  //       ]
-  //     },
-  //     Tuesday: {
-  //       dayOfWeek: 2,
-  //       startTime: "07:00:00",
-  //       endTime: "21:00:00",
-  //       isWorkingDay: true,
-  //       timeSlots: [
-  //         { startTime: "07:00:00", endTime: "09:00:00" },
-  //         { startTime: "09:00:00", endTime: "11:00:00" },
-  //         { startTime: "11:00:00", endTime: "13:00:00" },
-  //         { startTime: "13:00:00", endTime: "15:00:00" },
-  //         { startTime: "15:00:00", endTime: "17:00:00" },
-  //         { startTime: "17:00:00", endTime: "19:00:00" },
-  //         { startTime: "19:00:00", endTime: "21:00:00" }
-  //       ]
-  //     },
-  //     Wednesday: {
-  //       dayOfWeek: 3,
-  //       startTime: "07:00:00",
-  //       endTime: "21:00:00",
-  //       isWorkingDay: true,
-  //       timeSlots: [
-  //         { startTime: "07:00:00", endTime: "09:00:00" },
-  //         { startTime: "09:00:00", endTime: "11:00:00" },
-  //         { startTime: "11:00:00", endTime: "13:00:00" },
-  //         { startTime: "13:00:00", endTime: "15:00:00" },
-  //         { startTime: "15:00:00", endTime: "17:00:00" },
-  //         { startTime: "17:00:00", endTime: "19:00:00" },
-  //         { startTime: "19:00:00", endTime: "21:00:00" }
-  //       ]
-  //     },
-  //     Thursday: {
-  //       dayOfWeek: 4,
-  //       startTime: "07:00:00",
-  //       endTime: "21:00:00",
-  //       isWorkingDay: true,
-  //       timeSlots: [
-  //         { startTime: "07:00:00", endTime: "09:00:00" },
-  //         { startTime: "09:00:00", endTime: "11:00:00" },
-  //         { startTime: "11:00:00", endTime: "13:00:00" },
-  //         { startTime: "13:00:00", endTime: "15:00:00" },
-  //         { startTime: "15:00:00", endTime: "17:00:00" },
-  //         { startTime: "17:00:00", endTime: "19:00:00" },
-  //         { startTime: "19:00:00", endTime: "21:00:00" }
-  //       ]
-  //     },
-  //     Friday: {
-  //       dayOfWeek: 5,
-  //       startTime: "07:00:00",
-  //       endTime: "21:00:00",
-  //       isWorkingDay: true,
-  //       timeSlots: [
-  //         { startTime: "07:00:00", endTime: "09:00:00" },
-  //         { startTime: "09:00:00", endTime: "11:00:00" },
-  //         { startTime: "11:00:00", endTime: "13:00:00" },
-  //         { startTime: "13:00:00", endTime: "15:00:00" },
-  //         { startTime: "15:00:00", endTime: "17:00:00" },
-  //         { startTime: "17:00:00", endTime: "19:00:00" },
-  //         { startTime: "19:00:00", endTime: "21:00:00" }
-  //       ]
-  //     },
-  //     Saturday: {
-  //       dayOfWeek: 6,
-  //       startTime: "07:00:00",
-  //       endTime: "15:00:00",
-  //       isWorkingDay: true,
-  //       timeSlots: [
-  //         { startTime: "07:00:00", endTime: "09:00:00" },
-  //         { startTime: "09:00:00", endTime: "11:00:00" },
-  //         { startTime: "11:00:00", endTime: "13:00:00" },
-  //         { startTime: "13:00:00", endTime: "15:00:00" }
-  //       ]
-  //     },
-  //     Sunday: {
-  //       dayOfWeek: 0,
-  //       startTime: "00:00:00",
-  //       endTime: "00:00:00",
-  //       isWorkingDay: false,
-  //       timeSlots: []
-  //     }
-  //   }
-  // };
 
   const daysOfWeek = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
 
   useEffect(() => {
-    // Генерируем 3 месяца для прокрутки (достаточно)
+    // Генерируем 3 месяца для прокрутки
     const today = new Date();
     const monthsArray = [];
     for (let i = 0; i < 3; i++) {
@@ -687,16 +656,17 @@ function DateTimeModal({ visible, onClose, onConfirm, initialDateTime }: any) {
   }, []);
 
   useEffect(() => {
-    if (selectedDate) {
+    if (selectedDate && deliverySchedule) {
       loadTimeSlotsForDate(selectedDate);
     }
-  }, [selectedDate]);
+  }, [selectedDate, deliverySchedule]);
 
   const loadTimeSlotsForDate = (dateString: string) => {
+    if (!deliverySchedule?.weekSchedule) return;
+
     const date = new Date(dateString);
     const dayOfWeek = date.getDay(); // 0 - воскресенье, 1 - понедельник, ...
     
-    // Маппинг дней недели на английские названия
     const daysMap = {
       0: 'Sunday',
       1: 'Monday',
@@ -708,24 +678,26 @@ function DateTimeModal({ visible, onClose, onConfirm, initialDateTime }: any) {
     };
     
     const dayName = daysMap[dayOfWeek as keyof typeof daysMap];
-    const daySchedule = deliverySchedule.weekSchedule[dayName as keyof typeof deliverySchedule.weekSchedule];
+    const daySchedule = deliverySchedule.weekSchedule[dayName];
     
     if (daySchedule && daySchedule.isWorkingDay) {
       // Фильтруем слоты, которые уже прошли, если это сегодня
       const now = new Date();
       const isToday = date.toDateString() === now.toDateString();
       
-      let slots = [...daySchedule.timeSlots];
+      let slots = [...(daySchedule.timeSlots || [])];
       if (isToday) {
         const currentHour = now.getHours();
         const currentMinutes = now.getMinutes();
         const currentTimeInMinutes = currentHour * 60 + currentMinutes;
         
-        slots = slots.filter(slot => {
+        const deliveryWindowHours = deliverySchedule.deliveryWindowHours || 2;
+        
+        slots = slots.filter((slot: any) => {
           const [slotHour, slotMinute] = slot.startTime.split(':').map(Number);
           const slotStartInMinutes = slotHour * 60 + slotMinute;
-          // Добавляем 2 часа на подготовку заказа
-          return slotStartInMinutes > currentTimeInMinutes + 120;
+          // Добавляем время на подготовку заказа из конфига
+          return slotStartInMinutes > currentTimeInMinutes + (deliveryWindowHours * 60);
         });
       }
       
@@ -742,7 +714,6 @@ function DateTimeModal({ visible, onClose, onConfirm, initialDateTime }: any) {
     const lastDay = new Date(year, month_index + 1, 0);
     
     const days = [];
-    // Корректировка: если воскресенье (0), то смещение 6, иначе day - 1
     const startOffset = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1;
     
     for (let i = 0; i < startOffset; i++) {
@@ -757,6 +728,8 @@ function DateTimeModal({ visible, onClose, onConfirm, initialDateTime }: any) {
   };
 
   const isDateAvailable = (date: Date): boolean => {
+    if (!deliverySchedule?.weekSchedule) return false;
+    
     const dayOfWeek = date.getDay();
     const daysMap = {
       0: 'Sunday',
@@ -769,7 +742,7 @@ function DateTimeModal({ visible, onClose, onConfirm, initialDateTime }: any) {
     };
     
     const dayName = daysMap[dayOfWeek as keyof typeof daysMap];
-    const daySchedule = deliverySchedule.weekSchedule[dayName as keyof typeof deliverySchedule.weekSchedule];
+    const daySchedule = deliverySchedule.weekSchedule[dayName];
     
     return daySchedule?.isWorkingDay || false;
   };
@@ -778,7 +751,6 @@ function DateTimeModal({ visible, onClose, onConfirm, initialDateTime }: any) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
-    // Дата в прошлом или недоступна по расписанию
     return date < today || !isDateAvailable(date);
   };
 
@@ -814,8 +786,7 @@ function DateTimeModal({ visible, onClose, onConfirm, initialDateTime }: any) {
   const handleDateSelect = (date: Date) => {
     if (!isDateDisabled(date)) {
       setSelectedDate(date.toDateString());
-      setSelectedTime(''); // Сбрасываем время при выборе новой даты
-      // Автоматически открываем модалку выбора времени
+      setSelectedTime('');
       setShowTimeModal(true);
     }
   };
@@ -840,7 +811,6 @@ function DateTimeModal({ visible, onClose, onConfirm, initialDateTime }: any) {
       <View style={styles.monthContainer}>
         <ThemedText style={styles.monthTitle}>{formatMonthYear(month)}</ThemedText>
         
-        {/* Дни недели для каждого месяца */}
         <View style={styles.weekDays}>
           {daysOfWeek.map(day => (
             <ThemedText key={day} style={styles.weekDay}>{day}</ThemedText>
@@ -904,13 +874,7 @@ function DateTimeModal({ visible, onClose, onConfirm, initialDateTime }: any) {
           {/* Нижняя панель с выбранными датой/временем и кнопкой */}
           <ThemedView lightColor="#FFFFFF" style={styles.dateTimeBottomPanel}>
             <View style={styles.selectedDateTime}>
-              {/* Блок с выбранной датой */}
-              <TouchableOpacity 
-                style={styles.dateTimeBlock}
-                onPress={() => {
-                  // Скролл к календарю или просто закрыть/открыть
-                }}
-              >
+              <TouchableOpacity style={styles.dateTimeBlock}>
                 <ThemedView lightColor="#F2F4F7" style={styles.dateTimeBlockInner}>
                   <ThemedText style={styles.dateTimeBlockLabel}>Дата</ThemedText>
                   <ThemedText style={styles.dateTimeBlockValue}>
@@ -919,7 +883,6 @@ function DateTimeModal({ visible, onClose, onConfirm, initialDateTime }: any) {
                 </ThemedView>
               </TouchableOpacity>
 
-              {/* Блок с выбранным временем */}
               <TouchableOpacity 
                 style={styles.dateTimeBlock}
                 onPress={() => {
@@ -1006,6 +969,15 @@ function TimeModal({ visible, onClose, onSelectTime, selectedTime, timeSlots, se
             showBackButton={true} 
             onBackPress={onClose}
           />
+          
+          {selectedDate && (
+            <ThemedView lightColor="#F2F4F7" style={styles.selectedDateHeader}>
+              <ThemedText style={styles.selectedDateHeaderText}>
+                {formatDateForHeader(selectedDate)}
+              </ThemedText>
+            </ThemedView>
+          )}
+          
           <ScrollView style={styles.timeList} showsVerticalScrollIndicator={false}>
             {timeSlots.map((slot: any, index: number) => {
               const timeString = formatTimeSlot(slot);
@@ -1037,55 +1009,9 @@ function TimeModal({ visible, onClose, onSelectTime, selectedTime, timeSlots, se
           </ScrollView>
         </ThemedView>
       </View>
-
     </RNModal>
   );
 }
-
-// Компонент модалки выбора времени
-// function TimeModal({ visible, onClose, onSelectTime, selectedTime, timeSlots }: any) {
-//   return (
-//     <RNModal
-//       visible={visible}
-//       animationType="slide"
-//       transparent={true}
-//       onRequestClose={onClose}
-//     >
-//       <View style={styles.modalOverlay}>
-//         <ThemedView style={styles.modalContent} lightColor="#FFFFFF">
-//           <ModalHeader 
-//             title="Выберите время" 
-//             showBackButton={true} 
-//             onBackPress={onClose}
-//           />
-          
-//           <ScrollView style={styles.timeList}>
-//             {timeSlots.map((slot: string) => (
-//               <TouchableOpacity
-//                 key={slot}
-//                 style={styles.timeSlot}
-//                 onPress={() => {
-//                   onSelectTime(slot);
-//                   onClose();
-//                 }}
-//               >
-//                 <View style={[
-//                   styles.radioOuter,
-//                   selectedTime === slot && styles.radioOuterSelected
-//                 ]}>
-//                   {selectedTime === slot && (
-//                     <View style={styles.radioInner} />
-//                   )}
-//                 </View>
-//                 <ThemedText style={styles.timeSlotText}>{slot}</ThemedText>
-//               </TouchableOpacity>
-//             ))}
-//           </ScrollView>
-//         </ThemedView>
-//       </View>
-//     </RNModal>
-//   );
-// }
 
 const getDeclension = (count: number, words: [string, string, string]) => {
   const cases = [2, 0, 1, 1, 1, 2];
@@ -1102,8 +1028,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: 16,
-    paddingBottom: 100,
+    paddingTop: 16,
+    // paddingBottom: 100,
   },
   block: {
     borderRadius: 24,
@@ -1111,12 +1037,16 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   lastBlock: {
-    marginBottom: 16,
+    // marginBottom: 16,
   },
   blockTitle: {
     fontSize: 18,
     fontWeight: '600',
     marginBottom: 16,
+  },
+  mainPicker:{
+    fontSize: 14,
+    fontWeight: '500',
   },
   tabsContainer: {
     borderRadius: 12,
@@ -1183,7 +1113,6 @@ const styles = StyleSheet.create({
   addressText: {
     fontSize: 14,
     fontWeight: '500',
-    marginBottom: 4,
   },
   addressHours: {
     fontSize: 12,
@@ -1294,13 +1223,19 @@ const styles = StyleSheet.create({
   totalWeight: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#F0F3F7',
+    // gap:
+    // marginTop: 12,
+    paddingBottom: 5,
+    // borderTopWidth: 1,
+    // borderTopColor: '#F0F3F7',
   },
   totalWeightValue: {
-    fontWeight: '600',
+    fontWeight: '500',
+    fontSize: 14,
+  },
+  totalWeightName: {
+    fontWeight: '500',
+    fontSize: 14,
   },
   paymentMethod: {
     flexDirection: 'row',
@@ -1318,9 +1253,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   notificationText: {
-    fontSize: 14,
+    fontSize: 16,
     marginLeft: 12,
+    lineHeight: 20,
     flex: 1,
+    fontWeight: '500'
+
+  },
+  underNotificationText: {
+    marginTop: 16,
+    fontSize: 16,
+    lineHeight: 20,
+    flex: 1,
+    fontWeight: '500',
+    marginBottom: 27,
   },
   infoBlock: {
     flexDirection: 'row',
@@ -1465,6 +1411,9 @@ const styles = StyleSheet.create({
   dayTextDisabled: {
     color: '#80818B',
   },
+  dayTextSelected: {
+    color: '#FFFFFF',
+  },
   dateTimeBottomPanel: {
     position: 'absolute',
     bottom: 0,
@@ -1545,25 +1494,23 @@ const styles = StyleSheet.create({
     color: '#203686',
     fontWeight: '500',
   },
-
-  compAndAdressCont:{
-    // marginVertical: 16,
+  compAndAdressCont: {
     padding: 8,
     display: 'flex',
     flexDirection: 'column',
     borderRadius: 16
   },
-  compAndAdressContRow:{
+  compAndAdressContRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 12
   },
-  compAndAdressContRowDoble:{
+  compAndAdressContRowDoble: {
     flexDirection: 'row',
     gap: 12,
-    flex: 1, // Добавьте это
-    flexShrink: 1, 
+    flex: 1,
+    flexShrink: 1,
   },
   compAndAdressColumn: {
     flexDirection: 'column',
@@ -1575,11 +1522,30 @@ const styles = StyleSheet.create({
     fontSize: 16,
     overflow: 'hidden',
     textOverflow: 'ellipsis',
-    flexShrink: 1, // Чтобы текст сжималс
+    flexShrink: 1,
   },
-  addressTextText:{
+  addressTextText: {
     fontWeight: '500',
     fontSize: 14,
+  },
+  loadingContainer: {
+    padding: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 14,
+    color: '#80818B',
+  },
+  emptyContainer: {
+    padding: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyText: {
+    fontSize: 14,
+    color: '#80818B',
+    textAlign: 'center',
   }
-
 });

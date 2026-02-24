@@ -339,7 +339,7 @@ export default function ShopScreen() {
           }
           />
           <View style={styles.emptyContainer}>
-            <CartIcon width={80} height={80} fill="#80818B" />
+            <CartIcon width={80} height={80} />
             <ThemedText style={styles.emptyTitle}>Корзина пуста</ThemedText>
             <ThemedText style={styles.emptyDescription}>
               Добавьте товары из каталога,{'\n'}чтобы оформить заказ

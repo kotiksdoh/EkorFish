@@ -15,7 +15,24 @@ interface CategoryFilter {
   name: string;
   filterOptions: FilterOption[];
 }
+interface DeliveryAddress {
+  id: string;
+  address: string;
+  apartment?: string;
+  floor?: string;
+  entrance?: string;
+  intercom?: string;
+  comment?: string;
+}
 
+// Интерфейс для получателя
+interface Recipient {
+  id: string;
+  fullname: string;
+  phoneNumber: string;
+  email: string;
+  deliveryAddressId: string;
+}
 interface CategoryState {
   isLoading: boolean;
   isLoadingMore: boolean;
@@ -34,6 +51,12 @@ interface CategoryState {
   isLoadingCart: boolean;
 
   order: any;
+
+  addresses: DeliveryAddress[];
+  recipients: Recipient[];
+  isLoadingAddresses: boolean;
+  isLoadingRecipients: boolean;
+  isAddingAddress: boolean;
 }
 
 const initialState: CategoryState = {
@@ -53,8 +76,75 @@ const initialState: CategoryState = {
   cart: [],
   isLoadingCart: false,
   order: null,
+  addresses: [],
+  recipients: [],
+  isLoadingAddresses: false,
+  isLoadingRecipients: false,
+  isAddingAddress: false,
 };
 
+export const addDeliveryAddress = createAsyncThunk(
+  "catalog/addDeliveryAddress",
+  async ({ 
+    companyId, 
+    addressData 
+  }: { 
+    companyId: string; 
+    addressData: {
+      address: string;
+      apartment?: string | null;
+      floor?: string | null;
+      entrance?: string | null;
+      intercom?: string | null;
+      comment?: string | null;
+    }
+  }, { rejectWithValue }) => {
+    try {
+      const response = await axdef.post(`/api/Account/companies/${companyId}/addresses`, addressData);
+      return response.data.data;
+    } catch (error: any) {
+      console.log('Error adding address:', error);
+      if (error.response?.status !== 401) {
+        return rejectWithValue(error);
+      }
+      throw error;
+    }
+  }
+);
+
+// // НОВЫЙ МЕТОД: Получение списка получателей для адреса
+// export const getAddressRecipients = createAsyncThunk(
+//   "catalog/getAddressRecipients",
+//   async (deliveryAddressId: string, { rejectWithValue }) => {
+//     try {
+//       const response = await axdef.get(`/api/Account/companies/addresses/${deliveryAddressId}/recepients`);
+//       return response.data.data;
+//     } catch (error: any) {
+//       console.log('Error getting recipients:', error);
+//       if (error.response?.status !== 401) {
+//         return rejectWithValue(error);
+//       }
+//       throw error;
+//     }
+//   }
+// );
+
+// НОВЫЙ МЕТОД: Получение всех адресов компании (если нужен)
+export const getCompanyAddresses = createAsyncThunk(
+  "catalog/getCompanyAddresses",
+  async (companyId: string, { rejectWithValue }) => {
+    try {
+      const response = await axdef.get(`/api/Account/companies/${companyId}/addresses`);
+      return response.data.data;
+    } catch (error: any) {
+      console.log('Error getting addresses:', error);
+      if (error.response?.status !== 401) {
+        return rejectWithValue(error);
+      }
+      throw error;
+    }
+  }
+);
 export const getProductList = createAsyncThunk(
   "user/getProductList",
   async (payload: { 
@@ -341,6 +431,12 @@ const catalogSlice = createSlice({
     clearCart: (state) => {
       state.cart = [];
     },
+    clearAddresses: (state) => {
+      state.addresses = [];
+    },
+    clearRecipients: (state) => {
+      state.recipients = [];
+    },
   },
   extraReducers: (builder) => {
     builder.addCase(getProductList.pending, (state, action) => {
@@ -508,7 +604,36 @@ const catalogSlice = createSlice({
       state.isLoading = false;
       axiosErrorHandler(action?.payload);
     });
+    builder.addCase(addDeliveryAddress.pending, (state) => {
+      state.isAddingAddress = true;
+    });
     
+    builder.addCase(addDeliveryAddress.fulfilled, (state, action) => {
+      state.isAddingAddress = false;
+      // Если API возвращает созданный адрес, можно добавить его в список
+      if (action.payload) {
+        state.addresses = [...state.addresses, action.payload];
+      }
+    });
+    
+    builder.addCase(addDeliveryAddress.rejected, (state, action) => {
+      state.isAddingAddress = false;
+      axiosErrorHandler(action?.payload);
+    });
+    builder.addCase(getCompanyAddresses.pending, (state) => {
+      state.isLoadingAddresses = true;
+    });
+    
+    builder.addCase(getCompanyAddresses.fulfilled, (state, action) => {
+      state.addresses = action.payload || [];
+      state.isLoadingAddresses = false;
+    });
+    
+    builder.addCase(getCompanyAddresses.rejected, (state, action) => {
+      state.isLoadingAddresses = false;
+      axiosErrorHandler(action?.payload);
+    });
+
   }
 });
 
@@ -522,6 +647,8 @@ export const {
   clearSelectedSubcategory,
   updateCartItemQuantity,
   removeCartItem,
-  clearCart
+  clearCart,
+  clearAddresses,
+  clearRecipients,
 } = catalogSlice.actions;
 export default catalogSlice.reducer;
