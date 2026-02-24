@@ -27,11 +27,11 @@ interface DeliveryAddress {
 
 // Интерфейс для получателя
 interface Recipient {
-  id: string;
+  id?: string;
   fullname: string;
   phoneNumber: string;
   email: string;
-  deliveryAddressId: string;
+  deliveryAddressId?: string;
 }
 interface CategoryState {
   isLoading: boolean;
@@ -57,6 +57,9 @@ interface CategoryState {
   isLoadingAddresses: boolean;
   isLoadingRecipients: boolean;
   isAddingAddress: boolean;
+  isCreatingRecipients: boolean;
+  isCreatingOrder: boolean;
+  orderResponse: any;
 }
 
 const initialState: CategoryState = {
@@ -78,8 +81,11 @@ const initialState: CategoryState = {
   order: null,
   addresses: [],
   recipients: [],
-  isLoadingAddresses: false,
   isLoadingRecipients: false,
+  isCreatingRecipients: false,
+  isCreatingOrder: false,
+  orderResponse: null,
+  isLoadingAddresses: false,
   isAddingAddress: false,
 };
 
@@ -363,6 +369,105 @@ export const getOrderPageData = createAsyncThunk(
   }
 );
 
+export const getRecipients = createAsyncThunk(
+  "catalog/getRecipients",
+  async (deliveryAddressId: string, { rejectWithValue }) => {
+    try {
+      const response = await axdef.get(`/api/Account/companies/addresses/${deliveryAddressId}/recepients`);
+      return response.data.data;
+    } catch (error: any) {
+      console.log('Error getting recipients:', error);
+      if (error.response?.status !== 401) {
+        return rejectWithValue(error);
+      }
+      throw error;
+    }
+  }
+);
+export const createRecipient = createAsyncThunk(
+  "catalog/createRecipient",
+  async ({ 
+    deliveryAddressId, 
+    recipientData 
+  }: { 
+    deliveryAddressId: string; 
+    recipientData: {
+      fullname: string;
+      phoneNumber: string;
+      email: string;
+    }
+  }, { rejectWithValue }) => {
+    try {
+      const response = await axdef.post(
+        `/api/Account/companies/addresses/${deliveryAddressId}/recepients`, 
+        recipientData
+      );
+      return response.data.data;
+    } catch (error: any) {
+      console.log('Error creating recipient:', error);
+      if (error.response?.status !== 401) {
+        return rejectWithValue(error);
+      }
+      throw error;
+    }
+  }
+);
+// Создание получателей
+export const createRecipients = createAsyncThunk(
+  "catalog/createRecipients",
+  async ({ 
+    deliveryAddressId, 
+    recipients 
+  }: { 
+    deliveryAddressId: string; 
+    recipients: Recipient[] 
+  }, { rejectWithValue }) => {
+    try {
+      const response = await axdef.post(`/api/Account/companies/addresses/${deliveryAddressId}/recepients`, recipients);
+      return response.data.data;
+    } catch (error: any) {
+      console.log('Error creating recipients:', error);
+      if (error.response?.status !== 401) {
+        return rejectWithValue(error);
+      }
+      throw error;
+    }
+  }
+);
+
+export const deleteRecipient = createAsyncThunk(
+  "catalog/deleteRecipient",
+  async (recipientId: string, { rejectWithValue }) => {
+    try {
+      await axdef.delete(`/api/Account/companies/addresses/recepients/${recipientId}`);
+      return recipientId;
+    } catch (error: any) {
+      console.log('Error deleting recipient:', error);
+      if (error.response?.status !== 401) {
+        return rejectWithValue(error);
+      }
+      throw error;
+    }
+  }
+);
+
+// Создание заказа
+export const createOrder = createAsyncThunk(
+  "catalog/createOrder",
+  async (orderData: any, { rejectWithValue }) => {
+    try {
+      const response = await axdef.post(`/api/Order`, orderData);
+      return response.data;
+    } catch (error: any) {
+      console.log('Error creating order:', error);
+      if (error.response?.status !== 401) {
+        return rejectWithValue(error);
+      }
+      throw error;
+    }
+  }
+);
+
 const catalogSlice = createSlice({
   name: 'catalog',
   initialState,
@@ -439,6 +544,69 @@ const catalogSlice = createSlice({
     },
   },
   extraReducers: (builder) => {
+    builder.addCase(getRecipients.pending, (state) => {
+      state.isLoadingRecipients = true;
+    });
+    
+    builder.addCase(getRecipients.fulfilled, (state, action) => {
+      state.recipients = action.payload || [];
+      state.isLoadingRecipients = false;
+    });
+    
+    builder.addCase(getRecipients.rejected, (state, action) => {
+      state.isLoadingRecipients = false;
+      axiosErrorHandler(action?.payload);
+    });
+    
+    // createRecipients
+    builder.addCase(createRecipients.pending, (state) => {
+      state.isCreatingRecipients = true;
+    });
+    
+    builder.addCase(createRecipients.fulfilled, (state, action) => {
+      state.recipients = action.payload || [];
+      state.isCreatingRecipients = false;
+    });
+    
+    builder.addCase(createRecipients.rejected, (state, action) => {
+      state.isCreatingRecipients = false;
+      axiosErrorHandler(action?.payload);
+    });
+    
+    // deleteRecipient
+    builder.addCase(deleteRecipient.fulfilled, (state, action) => {
+      state.recipients = state.recipients.filter(r => r.id !== action.payload);
+    });
+    
+    // createOrder
+    builder.addCase(createOrder.pending, (state) => {
+      state.isCreatingOrder = true;
+    });
+    
+    builder.addCase(createOrder.fulfilled, (state, action) => {
+      state.isCreatingOrder = false;
+      state.orderResponse = action.payload;
+    });
+    
+    builder.addCase(createOrder.rejected, (state, action) => {
+      state.isCreatingOrder = false;
+      axiosErrorHandler(action?.payload);
+    });
+    builder.addCase(createRecipient.pending, (state) => {
+      state.isCreatingRecipients = true;
+    });
+    
+    builder.addCase(createRecipient.fulfilled, (state, action) => {
+      if (action.payload) {
+        state.recipients = [...state.recipients, action.payload];
+      }
+      state.isCreatingRecipients = false;
+    });
+    
+    builder.addCase(createRecipient.rejected, (state, action) => {
+      state.isCreatingRecipients = false;
+      axiosErrorHandler(action?.payload);
+    });
     builder.addCase(getProductList.pending, (state, action) => {
       const isLoadMore = action.meta.arg?.isLoadMore || false;
       if (isLoadMore) {

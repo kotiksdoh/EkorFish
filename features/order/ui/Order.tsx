@@ -2,9 +2,9 @@
 import { ArrowIconRight, IconCompany, TrashIcon } from '@/assets/icons/icons';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { selectCompany, getTowns } from '@/features/auth/authSlice';
+import { selectCompany, getTowns, updateUserTown } from '@/features/auth/authSlice';
 import { ModalHeader } from '@/features/auth/ui/Header';
-import { getOrderPageData } from '@/features/catalog/catalogSlice';
+import { createOrder, createRecipient, createRecipients, deleteRecipient, getOrderPageData, getRecipients } from '@/features/catalog/catalogSlice';
 import { PrimaryButton } from '@/features/home';
 import { baseUrl } from '@/features/shared/services/axios';
 import { useSavedAddress } from '@/features/shared/services/useSavedAddress';
@@ -26,7 +26,8 @@ import {
   TouchableWithoutFeedback,
   View,
   ActivityIndicator,
-  Dimensions
+  Dimensions,
+  Alert
 } from 'react-native';
 
 const { height: screenHeight } = Dimensions.get('window');
@@ -56,10 +57,11 @@ interface CheckoutModalProps {
 
 interface Recipient {
   id: string;
-  firstName: string;
-  lastName: string;
-  phone: string;
+  fullname: string;
+  phoneNumber: string;
   email: string;
+  deliveryAddressId?: string;
+  isExisting?: boolean; // флаг для существующих получателей с бекенда
 }
 
 interface DateTimeSelection {
@@ -80,10 +82,11 @@ export default function CheckoutModal({
   const [selectedDateTime, setSelectedDateTime] = useState<DateTimeSelection>({ date: '', time: '' });
   const [selectedPaymentType, setSelectedPaymentType] = useState<PaymentType>(PaymentType.Cashless);
   const [recipients, setRecipients] = useState<Recipient[]>([
-    { id: '1', firstName: '', lastName: '', phone: '', email: '' }
+    { id: '1', fullname: '', phoneNumber: '', email: '' }
   ]);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [showCalendarModal, setShowCalendarModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   
   const dispatch = useAppDispatch();
   const tabContainerRef = useRef<View>(null);
@@ -95,6 +98,9 @@ export default function CheckoutModal({
   const deliveryMethods = orderData?.deliveryMethods || [];
   const towns = useAppSelector((state) => state.auth.towns);
   const isLoadingTowns = useAppSelector((state) => state.auth.isLoadingTowns);
+  const savedRecipients = useAppSelector((state) => state.catalog.recipients);
+  const isLoadingRecipients = useAppSelector((state) => state.catalog.isLoadingRecipients);
+  const isCreatingOrder = useAppSelector((state) => state.catalog.isCreatingOrder);
   
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [selectedAddress, setSelectedAddress] = useState<any>(null);
@@ -113,7 +119,13 @@ export default function CheckoutModal({
   const isMethodAvailable = (method: DeliveryMethod): boolean => {
     return deliveryMethods.some((m: any)=> m.method === method);
   };
-
+  const handlePickTown = async(id: any) => {
+    await dispatch(updateUserTown({
+      storageId: id,
+      // townId: selectedTownId,
+    })).unwrap();
+    setSelectedPickupAddress(id)
+  }
   // Получаем название способа оплаты для отображения
   const getPaymentTypeDisplayName = (type: PaymentType): string => {
     switch (type) {
@@ -125,6 +137,7 @@ export default function CheckoutModal({
         return '';
     }
   };
+
   // Загружаем данные при открытии модалки
   useEffect(() => {
     if (visible) {
@@ -132,6 +145,13 @@ export default function CheckoutModal({
       dispatch(getTowns());
     }
   }, [visible]);
+
+  // Загружаем получателей при выборе адреса
+  useEffect(() => {
+    if (selectedAddress?.id) {
+      loadRecipients(selectedAddress.id);
+    }
+  }, [selectedAddress]);
 
   // Обновляем способ оплаты при смене метода доставки
   useEffect(() => {
@@ -155,11 +175,34 @@ export default function CheckoutModal({
     }
   }, [orderData]);
 
+  // Инициализируем получателей из сохраненных
+  useEffect(() => {
+    if (savedRecipients && savedRecipients.length > 0) {
+      const formattedRecipients = savedRecipients.map((r: any) => ({
+        id: r.id,
+        fullname: r.fullname || '',
+        phoneNumber: r.phoneNumber || '',
+        email: r.email || '',
+        deliveryAddressId: r.deliveryAddressId,
+        isExisting: true
+      }));
+      setRecipients(formattedRecipients);
+    }
+  }, [savedRecipients]);
+
   const loadOrderData = async () => {
     try {
       await dispatch(getOrderPageData()).unwrap();
     } catch (error) {
       console.error('Error loading order data:', error);
+    }
+  };
+
+  const loadRecipients = async (addressId: string) => {
+    try {
+      await dispatch(getRecipients(addressId)).unwrap();
+    } catch (error) {
+      console.error('Error loading recipients:', error);
     }
   };
 
@@ -206,15 +249,25 @@ export default function CheckoutModal({
   const addRecipient = () => {
     const newRecipient: Recipient = {
       id: Date.now().toString(),
-      firstName: '',
-      lastName: '',
-      phone: '',
+      fullname: '',
+      phoneNumber: '',
       email: '',
     };
     setRecipients([...recipients, newRecipient]);
   };
 
-  const removeRecipient = (id: string) => {
+  const removeRecipient = async (id: string) => {
+    const recipient = recipients.find(r => r.id === id);
+    
+    // Если получатель существовал на бекенде, удаляем его
+    if (recipient?.isExisting && recipient.id) {
+      try {
+        await dispatch(deleteRecipient(recipient.id)).unwrap();
+      } catch (error) {
+        console.error('Error deleting recipient:', error);
+      }
+    }
+    
     if (recipients.length > 1) {
       setRecipients(recipients.filter(r => r.id !== id));
     }
@@ -260,9 +313,149 @@ export default function CheckoutModal({
     return 'Выберите дату и время';
   };
 
+  // Валидация получателей
+  const validateRecipients = (): boolean => {
+    // Проверяем основного получателя (первый в списке)
+    const mainRecipient = recipients[0];
+    if (!mainRecipient.fullname.trim() || !mainRecipient.phoneNumber.trim() || !mainRecipient.email.trim()) {
+      Alert.alert('Ошибка', 'Заполните все поля основного получателя');
+      return false;
+    }
+
+    // Проверяем дополнительных получателей
+    for (let i = 1; i < recipients.length; i++) {
+      const recipient = recipients[i];
+      // Если хоть одно поле заполнено, проверяем все
+      if (recipient.fullname.trim() || recipient.phoneNumber.trim() || recipient.email.trim()) {
+        if (!recipient.fullname.trim() || !recipient.phoneNumber.trim() || !recipient.email.trim()) {
+          Alert.alert('Ошибка', `Заполните все поля дополнительного получателя ${i}`);
+          return false;
+        }
+      }
+    }
+
+    return true;
+  };
+
+  // Подготовка данных для создания заказа
+  const prepareOrderData = () => {
+    // Форматируем дату в ISO строку
+    const date = new Date(selectedDateTime.date);
+    const [hours, minutes] = selectedDateTime.time.split(' – ')[0].split(':').map(Number);
+    date.setHours(hours, minutes, 0, 0);
+    
+    const deliveryDate = date.toISOString();
+
+    // Подготавливаем продукты
+    const products = selectedCartItems.map(item => ({
+      productId: item.productId,
+      purchaseOptionId: item.productPurchaseOptionId,
+      quantity: item.quantity
+    }));
+
+    // Подготавливаем userInfo
+    const userInfo: any = {
+      companyId: currentCompany?.id,
+      deliveryAddressId: selectedAddress?.id
+    };
+
+    // Если нет компаний, используем individualProfileId
+    if (me?.companies?.length === 0 && me?.individualProfile?.id) {
+      userInfo.individualProfileId = me.individualProfile.id;
+      delete userInfo.companyId;
+    }
+
+    return {
+      deliveryMethod: selectedMethod,
+      deliveryDate,
+      paymentType: selectedPaymentType,
+      notificationEnabled: notificationsEnabled,
+      userInfo,
+      products
+    };
+  };
+
+  // Создание получателей
+  const createRecipientsForOrder = async () => {
+    if (!selectedAddress?.id) return false;
+  
+    // Фильтруем только заполненных получателей, которых еще нет на бекенде
+    const recipientsToCreate = recipients
+      .filter(r => r.fullname.trim() || r.phoneNumber.trim() || r.email.trim())
+      .filter(r => !r.isExisting); // Не создаем тех, кто уже есть
+  
+    if (recipientsToCreate.length === 0) return true;
+  
+    // Показываем индикатор загрузки
+    // setIsCreatingRecipients(true);
+  
+    try {
+      // Отправляем запрос для каждого получателя отдельно
+      for (const recipient of recipientsToCreate) {
+        const recipientData = {
+          fullname: recipient.fullname.trim(),
+          phoneNumber: recipient.phoneNumber.trim(),
+          email: recipient.email.trim()
+        };
+  
+        await dispatch(createRecipient({
+          deliveryAddressId: selectedAddress.id,
+          recipientData
+        })).unwrap();
+        
+        // Небольшая задержка между запросами, чтобы не перегружать сервер
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      
+      // После создания всех получателей, перезагружаем список
+      await dispatch(getRecipients(selectedAddress.id)).unwrap();
+      
+      return true;
+    } catch (error) {
+      console.error('Error creating recipients:', error);
+      Alert.alert('Ошибка', 'Не удалось создать получателей');
+      return false;
+    } finally {
+      // setIsCreatingRecipients(false);
+    }
+  };
+
+  // Оформление заказа
+  const handleCreateOrder = async () => {
+    // Валидация
+    if (!selectedAddress && selectedMethod === DeliveryMethod.Delivery) {
+      Alert.alert('Ошибка', 'Выберите адрес доставки');
+      return;
+    }
+
+    if (!selectedDateTime.date || !selectedDateTime.time) {
+      Alert.alert('Ошибка', 'Выберите дату и время доставки');
+      return;
+    }
+
+    if (!validateRecipients()) {
+      return;
+    }
+
+    // Сначала создаем получателей
+    const recipientsCreated = await createRecipientsForOrder();
+    if (!recipientsCreated) return;
+
+    // Затем создаем заказ
+    try {
+      const orderData = prepareOrderData();
+      await dispatch(createOrder(orderData)).unwrap();
+      
+      // Показываем модалку успеха
+      setShowSuccessModal(true);
+    } catch (error) {
+      console.error('Error creating order:', error);
+      Alert.alert('Ошибка', 'Не удалось оформить заказ');
+    }
+  };
+
   const selectedCartItems = cartItems.filter(item => selectedItems.has(item.id));
   const totalWeight = selectedCartItems.reduce((sum, item) => sum + item.quantity, 0);
-  console.log('selectedCartItems', selectedCartItems)
 
   // Рендер содержимого для самовывоза с городами из Redux
   const renderPickupContent = () => {
@@ -287,12 +480,11 @@ export default function CheckoutModal({
 
     return (
       <View style={styles.pickupContent}>
-        <ThemedText style={styles.companyName}>ООО "Торговый дом"</ThemedText>
         {towns.map((town) => (
           <TouchableOpacity
             key={town.id}
             style={styles.addressItem}
-            onPress={() => setSelectedPickupAddress(town.id)}
+            onPress={() => handlePickTown(town.id)}
           >
             <View style={[
               styles.radioOuter,
@@ -357,253 +549,363 @@ export default function CheckoutModal({
   };
 
   return (
-    <RNModal
-      visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
-      onRequestClose={onClose}
-    >
-      <ThemedView style={styles.container} lightColor="#EBEDF0" darkColor="#040508">
-        <ModalHeader 
-          title="Оформление" 
-          showBackButton={true} 
-          onBackPress={onClose}
-        />
+    <>
+      <RNModal
+        visible={visible}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={onClose}
+      >
+        <ThemedView style={styles.container} lightColor="#EBEDF0" darkColor="#040508">
+          <ModalHeader 
+            title="Оформление" 
+            showBackButton={true} 
+            onBackPress={onClose}
+          />
 
-        <ScrollView 
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Блок с табами доставки */}
-          <ThemedView style={styles.block} lightColor="#FFFFFF">
-            <ThemedText style={styles.blockTitle}>Способ получения</ThemedText>
-            
-            {renderDeliveryTabs()}
-
-            {/* Контент для самовывоза с городами из Redux */}
-            {selectedMethod === DeliveryMethod.Pickup && renderPickupContent()}
-
-            {selectedMethod === DeliveryMethod.Delivery && (
-              <View>
-                <ThemedText style={styles.blockTitle}>Компания и адрес</ThemedText>
-                <ThemedView lightColor='#F2F4F7' style={styles.compAndAdressCont}>
-                  <TouchableOpacity 
-                    style={styles.compAndAdressContRow}
-                    onPress={() => setShowAddressModal(true)}
-                  >
-                    <View style={styles.compAndAdressContRowDoble}>
-                      <IconCompany/>
-                      <View style={styles.compAndAdressColumn}>
-                        <ThemedText lightColor='#1B1B1C' style={styles.compText}
-                          numberOfLines={1} 
-                          ellipsizeMode="tail">
-                          {me?.companies?.length === 0 
-                            ? `${me?.individualProfile?.firstName || ''} ${me?.individualProfile?.lastName || ''} ${me?.individualProfile?.patronymic || ''}`.trim()
-                            : currentCompany?.name
-                          }
-                        </ThemedText>
-                        <ThemedText lightColor='#80818B' style={styles.addressTextText}  
-                          numberOfLines={1} 
-                          ellipsizeMode="tail">
-                          {currentCompany?.id === savedAddress?.addressOwnerId ? savedAddress?.address : 
-                           currentCompany?.deliveryAddresses?.[0]?.address || '-'}
-                        </ThemedText>
-                      </View>
-                    </View>
-                    <ArrowIconRight/>
-                  </TouchableOpacity>
-                  
-                  <PrimaryButton
-                    title="Изменить адрес"
-                    onPress={() => setShowAddressModal(true)}
-                    variant="black"
-                    size="md"
-                    fullWidth
-                  />
-                </ThemedView>
-              </View>
-            )}
-          </ThemedView>
-
-          {/* Блок даты и времени */}
-          <ThemedView style={styles.block} lightColor="#FFFFFF">
-            <ThemedText style={styles.blockTitle}>Дата и время получения</ThemedText>
-            
-            <TouchableOpacity 
-              style={styles.dateTimeDisplay}
-              onPress={() => setShowCalendarModal(true)}
+          {isLoadingRecipients ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#203686" />
+              <ThemedText style={styles.loadingText}>Загрузка получателей...</ThemedText>
+            </View>
+          ) : (
+            <ScrollView 
+              style={styles.scrollView}
+              contentContainerStyle={styles.scrollContent}
+              showsVerticalScrollIndicator={false}
             >
-              <View style={styles.dateTimeRow}>
-                <ThemedText style={styles.dateTimeLabel}></ThemedText>
-                <ThemedText style={styles.dateTimeValue} numberOfLines={1}>
-                  {formatDateTimeDisplay()}
-                </ThemedText>
-              </View>
-              <ArrowIconRight style={styles.chevronRight} />
-            </TouchableOpacity>
-          </ThemedView>
+              {/* Блок с табами доставки */}
+              <ThemedView style={styles.block} lightColor="#FFFFFF">
+                <ThemedText style={styles.blockTitle}>Способ получения</ThemedText>
+                
+                {renderDeliveryTabs()}
 
-          {/* Блок контактов получателя */}
-          <ThemedView style={styles.block} lightColor="#FFFFFF">
-            <ThemedText style={styles.blockTitle}>Контакты получателя</ThemedText>
-            <ThemedText lightColor='#80818B' style={styles.mainPicker}>Основной получатель</ThemedText>
-            {recipients.map((recipient, index) => (
-              <View key={recipient.id} style={styles.recipientBlock}>
-                {index > 0 && (
-                  <View style={styles.recipientHeader}>
-                    <ThemedText style={styles.recipientTitle}>
-                      Дополнительный получатель
-                    </ThemedText>
-                    <TouchableOpacity onPress={() => removeRecipient(recipient.id)}>
-                      <TrashIcon />
-                    </TouchableOpacity>
+                {/* Контент для самовывоза с городами из Redux */}
+                {selectedMethod === DeliveryMethod.Pickup && renderPickupContent()}
+
+                {selectedMethod === DeliveryMethod.Delivery && (
+                  <View>
+                    <ThemedText style={styles.blockTitle}>Компания и адрес</ThemedText>
+                    <ThemedView lightColor='#F2F4F7' style={styles.compAndAdressCont}>
+                      <TouchableOpacity 
+                        style={styles.compAndAdressContRow}
+                        onPress={() => setShowAddressModal(true)}
+                      >
+                        <View style={styles.compAndAdressContRowDoble}>
+                          <IconCompany/>
+                          <View style={styles.compAndAdressColumn}>
+                            <ThemedText lightColor='#1B1B1C' style={styles.compText}
+                              numberOfLines={1} 
+                              ellipsizeMode="tail">
+                              {me?.companies?.length === 0 
+                                ? `${me?.individualProfile?.firstName || ''} ${me?.individualProfile?.lastName || ''} ${me?.individualProfile?.patronymic || ''}`.trim()
+                                : currentCompany?.name
+                              }
+                            </ThemedText>
+                            <ThemedText lightColor='#80818B' style={styles.addressTextText}  
+                              numberOfLines={1} 
+                              ellipsizeMode="tail">
+                              {currentCompany?.id === savedAddress?.addressOwnerId ? savedAddress?.address : 
+                               currentCompany?.deliveryAddresses?.[0]?.address || '-'}
+                            </ThemedText>
+                          </View>
+                        </View>
+                        <ArrowIconRight/>
+                      </TouchableOpacity>
+                      
+                      <PrimaryButton
+                        title="Изменить адрес"
+                        onPress={() => setShowAddressModal(true)}
+                        variant="black"
+                        size="md"
+                        fullWidth
+                      />
+                    </ThemedView>
                   </View>
                 )}
+              </ThemedView>
+
+              {/* Блок даты и времени */}
+              <ThemedView style={styles.block} lightColor="#FFFFFF">
+                <ThemedText style={styles.blockTitle}>Дата и время получения</ThemedText>
                 
-                <AnimatedTextInput
-                  placeholder="Имя"
-                  value={recipient.firstName}
-                  onChangeText={(text) => updateRecipient(recipient.id, 'firstName', text)}
-                />
-                <View style={styles.inputSpacer} />
-                <AnimatedTextInput
-                  placeholder="Фамилия"
-                  value={recipient.lastName}
-                  onChangeText={(text) => updateRecipient(recipient.id, 'lastName', text)}
-                />
-                <View style={styles.inputSpacer} />
-                <AnimatedTextInput
-                  placeholder="Телефон"
-                  keyboardType="phone-pad"
-                  value={recipient.phone}
-                  onChangeText={(text) => updateRecipient(recipient.id, 'phone', text)}
-                />
-                <View style={styles.inputSpacer} />
-                <AnimatedTextInput
-                  placeholder="Email"
-                  keyboardType="email-address"
-                  value={recipient.email}
-                  onChangeText={(text) => updateRecipient(recipient.id, 'email', text)}
-                />
-              </View>
-            ))}
+                <TouchableOpacity 
+                  style={styles.dateTimeDisplay}
+                  onPress={() => setShowCalendarModal(true)}
+                >
+                  <View style={styles.dateTimeRow}>
+                    <ThemedText style={styles.dateTimeLabel}></ThemedText>
+                    <ThemedText style={styles.dateTimeValue} numberOfLines={1}>
+                      {formatDateTimeDisplay()}
+                    </ThemedText>
+                  </View>
+                  <ArrowIconRight style={styles.chevronRight} />
+                </TouchableOpacity>
+              </ThemedView>
 
-            <TouchableOpacity style={styles.addButton} onPress={addRecipient}>
-              <ThemedText style={styles.addButtonText} lightColor="#203686">
-                + Добавить получателя
-              </ThemedText>
-            </TouchableOpacity>
-          </ThemedView>
+              {/* Блок контактов получателя */}
+              <ThemedView style={styles.block} lightColor="#FFFFFF">
+                <ThemedText style={styles.blockTitle}>Контакты получателя</ThemedText>
+                <ThemedText lightColor='#80818B' style={styles.mainPicker}>Основной получатель *</ThemedText>
+                {recipients.map((recipient, index) => (
+                  <View key={recipient.id} style={styles.recipientBlock}>
+                    {index > 0 && (
+                      <View style={styles.recipientHeader}>
+                        <ThemedText style={styles.recipientTitle}>
+                          Дополнительный получатель
+                        </ThemedText>
+                        <TouchableOpacity onPress={() => removeRecipient(recipient.id)}>
+                          <TrashIcon />
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                    
+                    <AnimatedTextInput
+                      placeholder="ФИО *"
+                      value={recipient.fullname}
+                      onChangeText={(text) => updateRecipient(recipient.id, 'fullname', text)}
+                    />
+                    <View style={styles.inputSpacer} />
+                    <AnimatedTextInput
+                      placeholder="Телефон *"
+                      keyboardType="phone-pad"
+                      value={recipient.phoneNumber}
+                      onChangeText={(text) => updateRecipient(recipient.id, 'phoneNumber', text)}
+                    />
+                    <View style={styles.inputSpacer} />
+                    <AnimatedTextInput
+                      placeholder="Email *"
+                      keyboardType="email-address"
+                      value={recipient.email}
+                      onChangeText={(text) => updateRecipient(recipient.id, 'email', text)}
+                    />
+                  </View>
+                ))}
 
-          {/* Блок товаров */}
-          <ThemedView style={styles.block} lightColor="#FFFFFF">
-            <ThemedText style={styles.blockTitle}>Информация о заказе</ThemedText>
-                        
-            <View style={styles.totalWeight}>
-              <ThemedText style={styles.totalWeightName}>Товаров в корзине</ThemedText>
-              <ThemedText style={styles.totalWeightValue}>
-                {selectedCartItems.length}
-              </ThemedText>
-            </View>
-            <View style={styles.totalWeight}>
-              <ThemedText style={styles.totalWeightName}>Общий вес</ThemedText>
-              <ThemedText style={styles.totalWeightValue}>
-                {totalWeight.toFixed(2)} кг
-              </ThemedText>
-            </View>
-          </ThemedView>
+                <TouchableOpacity style={styles.addButton} onPress={addRecipient}>
+                  <ThemedText style={styles.addButtonText} lightColor="#203686">
+                    + Добавить получателя
+                  </ThemedText>
+                </TouchableOpacity>
+              </ThemedView>
 
-          {/* Блок способа оплаты */}
-          <ThemedView style={styles.block} lightColor="#FFFFFF">
-            <ThemedText style={styles.blockTitle}>Способ оплаты</ThemedText>
-            
-            {getAvailablePaymentTypes(selectedMethod).map((type) => (
-              <TouchableOpacity
-                key={type}
-                style={styles.paymentMethod}
-                onPress={() => setSelectedPaymentType(type)}
-              >
-                <View style={[
-                  styles.radioOuter,
-                  selectedPaymentType === type && styles.radioOuterSelected
-                ]}>
-                  {selectedPaymentType === type && (
-                    <View style={styles.radioInner} />
-                  )}
+              {/* Блок товаров */}
+              <ThemedView style={styles.block} lightColor="#FFFFFF">
+                <ThemedText style={styles.blockTitle}>Информация о заказе</ThemedText>
+                            
+                <View style={styles.totalWeight}>
+                  <ThemedText style={styles.totalWeightName}>Товаров в корзине</ThemedText>
+                  <ThemedText style={styles.totalWeightValue}>
+                    {selectedCartItems.length}
+                  </ThemedText>
                 </View>
-                <ThemedText style={styles.paymentMethodText}>
-                  {getPaymentTypeDisplayName(type)}
+                <View style={styles.totalWeight}>
+                  <ThemedText style={styles.totalWeightName}>Общий вес</ThemedText>
+                  <ThemedText style={styles.totalWeightValue}>
+                    {totalWeight.toFixed(2)} кг
+                  </ThemedText>
+                </View>
+                <View style={styles.totalWeight}>
+                  <ThemedText style={styles.totalWeightName}>Сумма заказа</ThemedText>
+                  <ThemedText style={styles.totalWeightValue}>
+                    {totals.totalPrice.toLocaleString('ru-RU')} ₽
+                  </ThemedText>
+                </View>
+              </ThemedView>
+
+              {/* Блок способа оплаты */}
+              <ThemedView style={styles.block} lightColor="#FFFFFF">
+                <ThemedText style={styles.blockTitle}>Способ оплаты</ThemedText>
+                
+                {getAvailablePaymentTypes(selectedMethod).map((type) => (
+                  <TouchableOpacity
+                    key={type}
+                    style={styles.paymentMethod}
+                    onPress={() => setSelectedPaymentType(type)}
+                  >
+                    <View style={[
+                      styles.radioOuter,
+                      selectedPaymentType === type && styles.radioOuterSelected
+                    ]}>
+                      {selectedPaymentType === type && (
+                        <View style={styles.radioInner} />
+                      )}
+                    </View>
+                    <ThemedText style={styles.paymentMethodText}>
+                      {getPaymentTypeDisplayName(type)}
+                    </ThemedText>
+                  </TouchableOpacity>
+                ))}
+              </ThemedView>
+
+              {/* Блок дополнительной информации */}
+              <ThemedView style={[styles.block, styles.lastBlock]} lightColor="#FFFFFF">
+                <ThemedText style={styles.blockTitle}>Дополнительная информация</ThemedText>
+                <TouchableOpacity 
+                  style={styles.notificationRow}
+                  onPress={() => setNotificationsEnabled(!notificationsEnabled)}
+                >
+                  <CustomCheckbox
+                    value={notificationsEnabled}
+                    onValueChange={setNotificationsEnabled}
+                    lightColor="#F2F4F7"
+                  />
+                  <ThemedText style={styles.notificationText}>
+                    Получать уведомления об оформлении и статусе доставки заказа
+                  </ThemedText>
+                </TouchableOpacity>
+                <ThemedText style={styles.underNotificationText}>
+                  После подтверждения заказа с вами свяжется наш менеджер для уточнения деталей.
                 </ThemedText>
-              </TouchableOpacity>
-            ))}
-          </ThemedView>
+                <PrimaryButton
+                  title="Оформить заказ"
+                  onPress={handleCreateOrder}
+                  variant="primary"
+                  size="md"
+                  loading={isCreatingOrder}
+                  disabled={isCreatingOrder}
+                  activeOpacity={0.8}
+                  fullWidth
+                />
+              </ThemedView>
+            </ScrollView>
+          )}
 
-          {/* Блок дополнительной информации */}
-          <ThemedView style={[styles.block, styles.lastBlock]} lightColor="#FFFFFF">
-            <ThemedText style={styles.blockTitle}>Дополнительная информация</ThemedText>
-            <TouchableOpacity 
-              style={styles.notificationRow}
-              onPress={() => setNotificationsEnabled(!notificationsEnabled)}
-            >
-              <CustomCheckbox
-                value={notificationsEnabled}
-                onValueChange={setNotificationsEnabled}
-                lightColor="#F2F4F7"
-              />
-              <ThemedText style={styles.notificationText}>
-                Получать уведомления об оформлении и статусе доставки заказа
-              </ThemedText>
-            </TouchableOpacity>
-            <ThemedText style={styles.underNotificationText}>
-              После подтверждения заказа с вами свяжется наш менеджер для уточнения деталей.
-            </ThemedText>
-            <PrimaryButton
-              title="Оформить заказ"
-              onPress={() => {
-                // Обработка оформления заказа
-              }}
-              variant="primary"
-              size="md"
-              activeOpacity={0.8}
-              fullWidth
-            />
-          </ThemedView>
-        </ScrollView>
+          {/* Модалка выбора даты и времени */}
+          <DateTimeModal
+            visible={showCalendarModal}
+            onClose={() => setShowCalendarModal(false)}
+            onConfirm={handleDateTimeConfirm}
+            initialDateTime={selectedDateTime}
+            deliverySchedule={orderData?.deliverySchedule}
+          />
+        </ThemedView>
 
-        {/* Модалка выбора даты и времени */}
-        <DateTimeModal
-          visible={showCalendarModal}
-          onClose={() => setShowCalendarModal(false)}
-          onConfirm={handleDateTimeConfirm}
-          initialDateTime={selectedDateTime}
-          deliverySchedule={orderData?.deliverySchedule}
+        <AddressSelectionModal
+          visible={showAddressModal}
+          onClose={() => setShowAddressModal(false)}
+          currentCompany={currentCompany}
+          companies={me?.companies || []}
+          selectedCompanyId={currentCompany?.id}
+          onSelectCompany={handleSelectCompany}
+          onAddCompany={handleAddCompany}
+          onSelectAddress={handleSelectAddress}
+          selectedAddressId={selectedAddress?.id}
         />
-      </ThemedView>
 
-      <AddressSelectionModal
-        visible={showAddressModal}
-        onClose={() => setShowAddressModal(false)}
-        currentCompany={currentCompany}
-        companies={me?.companies || []}
-        selectedCompanyId={currentCompany?.id}
-        onSelectCompany={handleSelectCompany}
-        onAddCompany={handleAddCompany}
-        onSelectAddress={handleSelectAddress}
-        selectedAddressId={selectedAddress?.id}
-      />
+        <CompanySelectionModal
+          visible={showCompanyModal}
+          onClose={() => setShowCompanyModal(false)}
+          companies={me?.companies || []}
+          selectedCompanyId={currentCompany?.id}
+          onSelectCompany={handleSelectCompany}
+          onAddCompany={handleAddCompany}
+        />
+      </RNModal>
 
-      <CompanySelectionModal
-        visible={showCompanyModal}
-        onClose={() => setShowCompanyModal(false)}
-        companies={me?.companies || []}
-        selectedCompanyId={currentCompany?.id}
-        onSelectCompany={handleSelectCompany}
-        onAddCompany={handleAddCompany}
+      {/* Модалка успешного заказа */}
+      <SuccessModal
+        visible={showSuccessModal}
+        onClose={() => {
+          setShowSuccessModal(false);
+          onClose();
+        }}
       />
+    </>
+  );
+}
+
+// Модалка успешного заказа
+function SuccessModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+  const [modalTranslateY] = useState(new Animated.Value(screenHeight));
+
+  useEffect(() => {
+    if (visible) {
+      modalTranslateY.setValue(screenHeight);
+      Animated.spring(modalTranslateY, {
+        toValue: 0,
+        useNativeDriver: true,
+        damping: 20,
+        stiffness: 90,
+        mass: 0.8,
+      }).start();
+    }
+  }, [visible]);
+
+  const handleClose = () => {
+    Animated.timing(modalTranslateY, {
+      toValue: screenHeight,
+      duration: 250,
+      useNativeDriver: true,
+    }).start(() => {
+      onClose();
+    });
+  };
+
+  return (
+    <RNModal
+      visible={visible}
+      animationType="none"
+      transparent={true}
+      onRequestClose={handleClose}
+    >
+      <TouchableWithoutFeedback onPress={handleClose}>
+        <View style={styles.modalOverlay}>
+          <TouchableWithoutFeedback>
+            <Animated.View
+              style={[
+                styles.modalContent,
+                {
+                  transform: [{ translateY: modalTranslateY }],
+                },
+              ]}
+            >
+              {/* Защелка для свайпа */}
+              <TouchableOpacity
+                style={styles.swipeHandleContainer}
+                activeOpacity={0.7}
+                onPress={handleClose}
+              >
+                <View style={styles.swipeHandle} />
+              </TouchableOpacity>
+
+              <View style={styles.successContainer}>
+                <ThemedText style={styles.successTitle}>Спасибо за заказ!</ThemedText>
+                <ThemedText style={styles.successText}>
+                  В ближайшее время с вами свяжется{"\n"}Ваш менеджер для уточнения деталей.
+                </ThemedText>
+
+                <View style={styles.successButtons}>
+                  <PrimaryButton
+                    title="Детали заказа"
+                    onPress={() => {
+                      // Перейти к деталям заказа
+                      handleClose();
+                    }}
+                    variant="primary"
+                    size="md"
+                    style={styles.successButton}
+                  />
+                  <PrimaryButton
+                    title="Перейти в каталог"
+                    onPress={() => {
+                      // Перейти в каталог
+                      handleClose();
+                    }}
+                    variant="third"
+                    size="md"
+                    style={styles.successButton}
+                  />
+                </View>
+              </View>
+            </Animated.View>
+          </TouchableWithoutFeedback>
+        </View>
+      </TouchableWithoutFeedback>
     </RNModal>
   );
 }
+
 
 // Вспомогательные функции для работы с датами и временем
 const getTimeSlotsForDate = (date: Date, schedule: any) => {
@@ -1681,5 +1983,32 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#80818B',
     textAlign: 'center',
-  }
+  },
+  successContainer: {
+    padding: 24,
+    alignItems: 'center',
+  },
+  successTitle: {
+    fontSize: 24,
+    fontWeight: '600',
+    color: '#203686',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  successText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#80818B',
+    textAlign: 'center',
+    marginBottom: 32,
+    lineHeight: 22,
+  },
+  successButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    width: '100%',
+  },
+  successButton: {
+    flex: 1,
+  },
 });
