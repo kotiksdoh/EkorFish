@@ -7,6 +7,7 @@ import { ModalHeader } from '@/features/auth/ui/Header';
 import { getOrderPageData } from '@/features/catalog/catalogSlice';
 import { PrimaryButton } from '@/features/home';
 import { baseUrl } from '@/features/shared/services/axios';
+import { useSavedAddress } from '@/features/shared/services/useSavedAddress';
 import { AddressSelectionModal } from '@/features/shared/ui/AddressSelectionModal';
 import { CompanySelectionModal } from '@/features/shared/ui/CompanySelectionModalSmall';
 import { CustomCheckbox } from '@/features/shared/ui/components/CustomCheckBox';
@@ -167,9 +168,21 @@ export default function CheckoutModal({
     setSelectedAddress(null);
   };
 
-  const handleSelectAddress = (address: any) => {
+  const { savedAddress, saveAddress } = useSavedAddress(currentCompany?.id);
+
+  useEffect(() => {
+    if (currentCompany?.id && savedAddress) {
+        setSelectedAddress(savedAddress);
+    }
+}, [currentCompany?.id, savedAddress]);
+
+// Обновляем обработчик выбора адреса
+const handleSelectAddress = async (address: any) => {
     setSelectedAddress(address);
-  };
+    if (currentCompany?.id) {
+        await saveAddress(address);
+    }
+};
 
   const handleAddAddress = () => {
     console.log('Open add address modal');
@@ -332,7 +345,7 @@ export default function CheckoutModal({
       </ThemedView>
     );
   };
-
+  console.log('savedAddress', savedAddress)
   return (
     <RNModal
       visible={visible}
@@ -381,9 +394,9 @@ export default function CheckoutModal({
                           }
                         </ThemedText>
                         <ThemedText lightColor='#80818B' style={styles.addressTextText}  
-                          numberOfLines={1} 
-                          ellipsizeMode="tail">
-                          {selectedAddress?.address || currentCompany?.deliveryAddresses?.[0]?.address || '-'}
+                            numberOfLines={1} 
+                            ellipsizeMode="tail">
+                            { currentCompany.id === savedAddress.addressOwnerId ? savedAddress?.address : '-'}
                         </ThemedText>
                       </View>
                     </View>

@@ -18,6 +18,7 @@ import { PrimaryButton } from './components/PrimartyButton';
 import { AddAddressModal } from './AddAddressModal';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { getCompanyAddresses } from '@/features/catalog/catalogSlice';
+import { saveSelectedAddress, getSavedAddress } from '@/features/shared/services/addressStorage';
 
 const { height: screenHeight } = Dimensions.get('window');
 
@@ -53,13 +54,26 @@ export const AddressSelectionModal: React.FC<AddressSelectionModalProps> = ({
     const [showAddAddressModal, setShowAddAddressModal] = useState(false);
     const [localAddresses, setLocalAddresses] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [savedAddressId, setSavedAddressId] = useState<string | null>(null);
 
-    // Загружаем адреса при открытии модалки или смене компании
+    // Загружаем адреса и сохраненный адрес при открытии модалки или смене компании
     useEffect(() => {
         if (visible && currentCompany?.id) {
             loadAddresses();
+            loadSavedAddress();
         }
     }, [visible, currentCompany?.id]);
+
+    const loadSavedAddress = async () => {
+        if (!currentCompany?.id) return;
+        
+        const saved = await getSavedAddress(currentCompany.id);
+        if (saved) {
+            setSavedAddressId(saved.addressId);
+        } else {
+            setSavedAddressId(null);
+        }
+    };
 
     const loadAddresses = async () => {
         if (!currentCompany?.id) return;
@@ -105,7 +119,12 @@ export const AddressSelectionModal: React.FC<AddressSelectionModalProps> = ({
         });
     };
 
-    const handleSelectAddress = (address: any) => {
+    const handleSelectAddress = async (address: any) => {
+        // Сохраняем выбранный адрес в AsyncStorage
+        if (currentCompany?.id) {
+            await saveSelectedAddress(currentCompany.id, address);
+        }
+        
         onSelectAddress(address);
         closeModalWithAnimation();
     };
@@ -122,6 +141,9 @@ export const AddressSelectionModal: React.FC<AddressSelectionModalProps> = ({
             onAddressAdded();
         }
     };
+
+    // Определяем, какой адрес показывать как выбранный
+    const effectiveSelectedId = selectedAddressId || savedAddressId;
 
     const deliveryAddresses = localAddresses.length > 0 ? localAddresses : currentCompany?.deliveryAddresses || [];
 
@@ -181,9 +203,9 @@ export const AddressSelectionModal: React.FC<AddressSelectionModalProps> = ({
                                             >
                                                 <View style={[
                                                     styles.radioOuter,
-                                                    selectedAddressId === address.id && styles.radioOuterSelected
+                                                    effectiveSelectedId === address.id && styles.radioOuterSelected
                                                 ]}>
-                                                    {selectedAddressId === address.id && (
+                                                    {effectiveSelectedId === address.id && (
                                                         <View style={styles.radioInner} />
                                                     )}
                                                 </View>
@@ -255,6 +277,7 @@ export const AddressSelectionModal: React.FC<AddressSelectionModalProps> = ({
     );
 };
 
+// Стили остаются без изменений
 const styles = StyleSheet.create({
     modalOverlay: {
         flex: 1,
