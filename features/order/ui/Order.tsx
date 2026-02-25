@@ -322,23 +322,28 @@ export default function CheckoutModal({
   // Валидация получателей
   const validateRecipients = (): boolean => {
     // Проверяем основного получателя (первый в списке)
+    debugger
+
     const mainRecipient = recipients[0];
     if (!mainRecipient.fullname.trim() || !mainRecipient.phoneNumber.trim() || !mainRecipient.email.trim()) {
       Alert.alert('Ошибка', 'Заполните все поля основного получателя');
+      debugger
       return false;
     }
+    debugger
 
     // Проверяем дополнительных получателей
-    for (let i = 1; i < recipients.length; i++) {
-      const recipient = recipients[i];
-      // Если хоть одно поле заполнено, проверяем все
-      if (recipient.fullname.trim() || recipient.phoneNumber.trim() || recipient.email.trim()) {
-        if (!recipient.fullname.trim() || !recipient.phoneNumber.trim() || !recipient.email.trim()) {
-          Alert.alert('Ошибка', `Заполните все поля дополнительного получателя ${i}`);
-          return false;
-        }
-      }
-    }
+    // for (let i = 1; i < recipients.length; i++) {
+    //   const recipient = recipients[i];
+    //   // Если хоть одно поле заполнено, проверяем все
+    //   if (recipient.fullname.trim() || recipient.phoneNumber.trim() || recipient.email.trim()) {
+    //     if (!recipient.fullname.trim() || !recipient.phoneNumber.trim() || !recipient.email.trim()) {
+    //       Alert.alert('Ошибка', `Заполните все поля дополнительного получателя ${i}`);
+    //       return false;
+    //     }
+    //   }
+    // }
+    debugger
 
     return true;
   };
@@ -384,12 +389,12 @@ export default function CheckoutModal({
   // Создание получателей
   const createRecipientsForOrder = async () => {
     if (!selectedAddress?.id) return false;
-  
+    debugger
     // Фильтруем только заполненных получателей, которых еще нет на бекенде
     const recipientsToCreate = recipients
       .filter(r => r.fullname.trim() || r.phoneNumber.trim() || r.email.trim())
       .filter(r => !r.isExisting); // Не создаем тех, кто уже есть
-  
+      debugger
     if (recipientsToCreate.length === 0) return true;
   
     // Показываем индикатор загрузки
@@ -429,24 +434,32 @@ export default function CheckoutModal({
   // Оформление заказа
   const handleCreateOrder = async () => {
     // Валидация
+    debugger
     if (!selectedAddress && selectedMethod === DeliveryMethod.Delivery) {
       Alert.alert('Ошибка', 'Выберите адрес доставки');
+      debugger
+
       return;
     }
-
+    debugger
     if (!selectedDateTime.date || !selectedDateTime.time) {
       Alert.alert('Ошибка', 'Выберите дату и время доставки');
+      debugger
       return;
     }
 
     if (!validateRecipients()) {
+      debugger
+
       return;
     }
-
+    debugger
     // Сначала создаем получателей
     const recipientsCreated = await createRecipientsForOrder();
+    console.log(recipientsCreated)
+    debugger
     if (!recipientsCreated) return;
-
+    debugger
     // Затем создаем заказ
     try {
       const orderData = prepareOrderData();
@@ -459,10 +472,21 @@ export default function CheckoutModal({
       Alert.alert('Ошибка', 'Не удалось оформить заказ');
     }
   };
+  const isItemAvailable = (item: any): boolean => {
+    return item.stockInfo !== "Нет в наличии";
+  };
+    const selectedCartItems = cartItems
+    .filter(item => selectedItems.has(item.id))
+    .filter(item => isItemAvailable(item));
+  
+    const totalWeight = selectedCartItems.reduce((sum, item) => sum + item.quantity, 0);
 
-  const selectedCartItems = cartItems.filter(item => selectedItems.has(item.id));
-  const totalWeight = selectedCartItems.reduce((sum, item) => sum + item.quantity, 0);
+    // Проверяем, есть ли недоступные товары среди выбранных
+    const hasUnavailableSelected = cartItems.some(
+      item => selectedItems.has(item.id) && !isItemAvailable(item)
+    );
 
+    console.log('hasUnavailableSelected', hasUnavailableSelected)
   // Рендер содержимого для самовывоза с городами из Redux
   const renderPickupContent = () => {
     if (isLoadingTowns) {
@@ -769,7 +793,7 @@ export default function CheckoutModal({
                   variant="primary"
                   size="md"
                   loading={isCreatingOrder}
-                  disabled={isCreatingOrder}
+                  disabled={isCreatingOrder || hasUnavailableSelected}
                   activeOpacity={0.8}
                   fullWidth
                 />

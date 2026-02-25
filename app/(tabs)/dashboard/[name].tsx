@@ -144,7 +144,11 @@ export default function CatalogDetailScreen() {
   }, [closeModalWithAnimation]);
 
   // Загрузка продуктов
-  const loadProducts = useCallback(async (isLoadMore: boolean = false, searchText: string = searchQuery) => {
+  const loadProducts = useCallback(async (
+    isLoadMore: boolean = false, 
+    searchText: string = searchQuery,
+    forceStorageId?: string 
+  ) => {
     if (isFetchingRef.current || !catalogId) return;
     
     isFetchingRef.current = true;
@@ -155,6 +159,7 @@ export default function CatalogDetailScreen() {
         categoryId: catalogId, 
         offset: isLoadMore ? (currentPage + 1) * pageSize : 0,
         count: pageSize,
+        storageId: forceStorageId  ||  me?.storageId
       };
       
       if (searchText) {
@@ -197,7 +202,7 @@ export default function CatalogDetailScreen() {
         isFetchingRef.current = false;
       }, 500);
     }
-  }, [catalogId, currentPage, dispatch, priceRange, searchQuery, selectedSubcategoryId]);
+  }, [catalogId, currentPage, dispatch, priceRange, searchQuery, selectedSubcategoryId,  me?.storageId]);
 
   // Загрузка фильтров при загрузке компоненты
   useEffect(() => {
@@ -480,7 +485,7 @@ export default function CatalogDetailScreen() {
                   </ScrollView>
                 </View>
               )}
-              { !me?.storageId ?
+              {/* { !me?.storageId ? */}
                 <TouchableOpacity onPress={() => setShowTownModal(true)}>
                 <ThemedView lightColor='#F2F4F7' style={styles.cityContainer}>
                   <ThemedView lightColor='#FFFFFF' style={styles.cityIcon}>
@@ -495,15 +500,16 @@ export default function CatalogDetailScreen() {
                 </ThemedView>
                 </TouchableOpacity>
 
-                : null
-              }
+                {/* : null
+              } */}
               <TownSelectionModal
                 visible={showTownModal}
                 onClose={() => setShowTownModal(false)}
                 storageId={me?.storageId}
-                onTownSelected={() => {
-                  // Перезагрузите товары после выбора города
-                  loadProducts(false, searchQuery);
+                onTownSelected={(newStorageId) => { // ← ПОЛУЧАЕМ НОВЫЙ ID
+                  console.log('Получили новый storageId из модалки:', newStorageId);
+                  // Используем новый ID напрямую, не ждем Redux!
+                  loadProducts(false, searchQuery, newStorageId); // ← передаем в loadProducts
                 }}
                   />
               {/* Индикатор начальной загрузки */}

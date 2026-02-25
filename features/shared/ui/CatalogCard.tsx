@@ -1,7 +1,7 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { getProductList } from '@/features/catalog/catalogSlice';
-import { useAppDispatch } from '@/store/hooks';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { useRouter } from 'expo-router';
 
 import React, { useState } from 'react';
@@ -31,6 +31,8 @@ export const CatalogCard: React.FC<CatalogCardProps> = ({
   const [imageError, setImageError] = useState(false);
   const router = useRouter();
   const dispatch = useAppDispatch()
+  const me = useAppSelector((state) => state.auth.me);
+  console.log('me', me)
   const handlePress = () => {
     console.log('Navigating to catalog-detail with:', { id, name, children });
     if (id && name) {
@@ -43,6 +45,8 @@ export const CatalogCard: React.FC<CatalogCardProps> = ({
           categoryId: id, // Раскомментируйте
           offset: 0,
           count: 10,
+          storageId: me?.storageId
+
         }
       }));
       

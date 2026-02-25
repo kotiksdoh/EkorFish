@@ -6,6 +6,7 @@ import { loadCompanyFromStorage, selectCompany } from '@/features/auth/authSlice
 import { ModalHeader } from '@/features/auth/ui/Header';
 import {
   getCart,
+  putUnFavorite,
   removeFromCart,
   toggleCartItemFavorite,
   updateCartItemQuantitys
@@ -92,7 +93,9 @@ export default function ShopScreen() {
       setIsLoading(false);
     }
   };
-
+  const isItemAvailable = (item: CartItem): boolean => {
+    return item.stockInfo !== "Нет в наличии";
+  };
   // Выбрать/снять все
   const toggleSelectAll = () => {
     if (selectedItems.size === cartItems.length) {
@@ -104,6 +107,10 @@ export default function ShopScreen() {
 
   // Выбрать/снять один товар
   const toggleSelectItem = (itemId: string) => {
+    const item = cartItems.find(item => item.id === itemId);
+    if (!item) return;
+    
+    // Разрешаем выбор любого товара, даже если нет в наличии
     const newSelected = new Set(selectedItems);
     if (newSelected.has(itemId)) {
       newSelected.delete(itemId);
@@ -142,11 +149,25 @@ export default function ShopScreen() {
   // Переключить избранное
   const handleToggleFavorite = async (cartItemId: string, productId: string, isFavorite: boolean) => {
     try {
-      await dispatch(toggleCartItemFavorite({ 
-        cartItemId, 
-        productId, 
-        isFavorite: !isFavorite 
-      })).unwrap();
+      if (isFavorite) {
+        // Если уже в избранном - удаляем
+        await dispatch(putUnFavorite(productId)).unwrap();
+        // Обновляем состояние в корзине (опционально)
+        await dispatch(toggleCartItemFavorite({ 
+          cartItemId, 
+          productId, 
+          isFavorite: false 
+        })).unwrap();
+      } else {
+        // Если не в избранном - добавляем
+        await dispatch(putUnFavorite(productId)).unwrap();
+        // Обновляем состояние в корзине
+        await dispatch(toggleCartItemFavorite({ 
+          cartItemId, 
+          productId, 
+          isFavorite: true 
+        })).unwrap();
+      }
     } catch (error) {
       console.error('Error toggling favorite:', error);
     }
@@ -154,12 +175,26 @@ export default function ShopScreen() {
 
   // Подсчет итогов
   const totals = useMemo(() => {
-    const selectedItemsArray = cartItems.filter(item => selectedItems.has(item.id));
-    const totalItems = selectedItemsArray.length;
-    const totalPrice = selectedItemsArray.reduce((sum, item) => sum + item.totalPrice, 0);
-    const totalWeight = selectedItemsArray.reduce((sum, item) => sum + item.quantity, 0);
-
-    return { totalItems, totalPrice, totalWeight };
+    const availableItems = cartItems.filter(item => isItemAvailable(item));
+    const unavailableItems = cartItems.filter(item => !isItemAvailable(item));
+    
+    const selectedAvailableItems = availableItems.filter(item => selectedItems.has(item.id));
+    const selectedUnavailableItems = unavailableItems.filter(item => selectedItems.has(item.id));
+    
+    const totalItems = selectedAvailableItems.length;
+    const totalPrice = selectedAvailableItems.reduce((sum, item) => sum + item.totalPrice, 0);
+    const totalWeight = selectedAvailableItems.reduce((sum, item) => sum + item.quantity, 0);
+    
+    // Проверяем, есть ли среди выбранных недоступные товары
+    const hasUnavailableSelected = selectedUnavailableItems.length > 0;
+  
+    return { 
+      totalItems, 
+      totalPrice, 
+      totalWeight, 
+      hasUnavailableSelected,
+      selectedUnavailableCount: selectedUnavailableItems.length 
+    };
   }, [cartItems, selectedItems]);
 
   // Форматирование цены
@@ -173,116 +208,203 @@ export default function ShopScreen() {
   // Рендер товара
   const renderCartItem = (item: CartItem) => {
     const isSelected = selectedItems.has(item.id);
-    console.log('item', item)
+    const isAvailable = isItemAvailable(item);
+    
+    // Определяем стили для stockInfo в зависимости от наличия
+    const stockInfoBackgroundColor = !isAvailable ? '#FF860526' : '#1B1B1C';
+    const stockInfoTextColor = !isAvailable ? '#FF8605' : '#FFFFFF';
+    
     return (
-      <ThemedView key={item.id} lightColor='#FFFFFF' style={styles.cartItem}>
-
-
+      <ThemedView 
+        key={item.id} 
+        lightColor='#FFFFFF' 
+        style={[
+          styles.cartItem,
+       
+        ]}
+      >
         {/* Изображение товара */}
         <View style={styles.imageContainer}>
           <ThemedView lightColor='#FFFFFF' style={styles.checkboxPhoto}>
             <CustomCheckbox
-                style={styles.checkboxPhoto}
-                value={isSelected}
-                onValueChange={() => toggleSelectItem(item.id)}
-                lightColor={'#F2F4F7'}
-                darkColor={'#202022'}
-              /> 
+              style={styles.checkboxPhoto}
+              value={isSelected}
+              onValueChange={() => toggleSelectItem(item.id)}
+              lightColor={'#F2F4F7'}
+              darkColor={'#202022'}
+              // disabled={!isAvailable} // Блокируем чекбокс если нет в наличии
+            /> 
           </ThemedView>
           {item.productImage ? (
             <Image
               source={{ uri: `${baseUrl}/${item.productImage || ''}` }}
-              style={styles.image}
+              style={[
+                styles.image,
+              ]}
               contentFit="cover"
             />
           ) : (
             <Image
               source={require('@/assets/icons/png/noImage.png')} 
-              style={styles.image}
+              style={[
+                styles.image,
+              ]}
               contentFit="cover"
             />
           )}
+          
+          {/* Оверлей для недоступного товара */}
+          {/* {!isAvailable && (
+            <View style={styles.unavailableOverlay}>
+              <ThemedText style={styles.unavailableText}>Нет в наличии</ThemedText>
+            </View>
+          )} */}
         </View>
-
+  
         {/* Информация о товаре */}
         <View style={styles.dopItemInfo}>
-        <View style={styles.itemInfo}>
-          <ThemedText style={styles.productName} numberOfLines={2}>
-            {item.productName}
-          </ThemedText>
-        
+          <View style={styles.itemInfo}>
+            <ThemedText 
+              style={[
+                styles.productName,
+                !isAvailable && styles.textUnavailable
+              ]} 
+              numberOfLines={2}
+            >
+              {item.productName}
+            </ThemedText>
+          
+            <View style={styles.priceRow}>
+              <ThemedText 
+                style={[
+                  styles.pricePerUnit,
+                  !isAvailable && styles.textUnavailable
+                ]} 
+                numberOfLines={1}
+              >
+                {formatPrice(item.totalPrice)} ₽
+              </ThemedText>
+            </View>
+          </View>
+          
           <View style={styles.priceRow}>
-            <ThemedText style={styles.pricePerUnit} numberOfLines={1}>
-              {formatPrice(item.totalPrice)} ₽
+            <ThemedText 
+              lightColor={!isAvailable ? '#80818B' : '#80818B'} 
+              style={[
+                styles.quantityTextKg,
+                !isAvailable && styles.textUnavailable
+              ]}
+            >
+              {item.price}₽ / {item.measureType === 'килограмм' ? 'кг' : 'шт'}  •  {item.quantity} {item.measureType === 'килограмм' ? 'кг' : 'шт'}
             </ThemedText>
           </View>
-
-          {/* Действия с товаром */}
-        </View>
-        <View style={styles.priceRow}>
-          <ThemedText lightColor='#80818B' style={styles.quantityTextKg}>
-            {item.price}₽ / {item.measureType === 'килограмм' ? 'кг' : 'шт'}  •  {item.quantity} {item.measureType === 'килограмм' ? 'кг' : 'шт'}
-          </ThemedText>
-
-        </View>
-        <ThemedView>
-            <ThemedText>
+          
+          {/* Сток информация с динамическим фоном и цветом */}
+          <ThemedView 
+            lightColor={stockInfoBackgroundColor}
+            style={[
+              styles.stockInfoContainer,
+              !isAvailable && styles.stockInfoOutOfStock
+            ]}
+          >
+            <ThemedText 
+              lightColor={stockInfoTextColor}
+              style={styles.stockInfoText}
+            >
               {item.stockInfo}
             </ThemedText>
           </ThemedView>
-        <View style={styles.priceRow}>
+          
+          <View style={styles.priceRow}>
             <TouchableOpacity
               style={styles.favoriteButton}
               onPress={() => handleToggleFavorite(item.id, item.productId, item.isFavorite)}
+              disabled={!isAvailable}
             >
-              <ThemedView style={styles.favoriteTheme} lightColor='#F2F4F7'>
+              <ThemedView 
+                style={[
+                  styles.favoriteTheme, 
+                  !isAvailable && styles.favoriteThemeUnavailable
+                ]} 
+                lightColor='#F2F4F7'
+              >
                 <LikeIcon isFilled={item.isFavorite} />
               </ThemedView>
             </TouchableOpacity>
-
+  
             <TouchableOpacity
               style={styles.deleteButton}
               onPress={() => handleRemoveItem(item.id)}
+              disabled={!isAvailable}
             >
-              <ThemedView style={styles.favoriteTheme} lightColor='#F2F4F7'>
-              <TrashIcon/>
+              <ThemedView 
+                style={[
+                  styles.favoriteTheme,
+                  !isAvailable && styles.favoriteThemeUnavailable
+                ]} 
+                lightColor='#F2F4F7'
+              >
+                <TrashIcon/>
               </ThemedView>
             </TouchableOpacity>
-
-            <ThemedView style={styles.quantityControls}>
-            <TouchableOpacity
-              style={styles.quantityButton}
-              onPress={() => handleUpdateQuantity(
-                item.id, 
-                item.quantity - item.purchaseOptionStep,
-                item.purchaseOptionStep,
-                Infinity
-              )}
-              disabled={item.quantity <= item.purchaseOptionStep}
+  
+            <ThemedView 
+              style={[
+                styles.quantityControls,
+                !isAvailable && styles.quantityControlsUnavailable
+              ]}
             >
-              <ThemedText style={styles.plusMinus}>-</ThemedText>
-            </TouchableOpacity>
-            
-            <ThemedText style={styles.quantityText}>
-              {item.quantity} {item.measureType === 'килограмм' ? 'кг' : 'шт'}
-            </ThemedText>
-            
-            <TouchableOpacity
-              style={styles.quantityButton}
-              onPress={() => handleUpdateQuantity(
-                item.id, 
-                item.quantity + item.purchaseOptionStep,
-                item.purchaseOptionStep,
-                Infinity
-              )}
-            >
-              <ThemedText style={styles.plusMinus}>+</ThemedText>
-            </TouchableOpacity>
-          </ThemedView>
+              <TouchableOpacity
+                style={styles.quantityButton}
+                onPress={() => handleUpdateQuantity(
+                  item.id, 
+                  item.quantity - item.purchaseOptionStep,
+                  item.purchaseOptionStep,
+                  parseInt(item.stockQuantity) || Infinity
+                )}
+                disabled={!isAvailable || item.quantity <= item.purchaseOptionStep}
+              >
+                <ThemedText 
+                  style={[
+                    styles.plusMinus,
+                    !isAvailable && styles.textUnavailable
+                  ]}
+                >
+                  -
+                </ThemedText>
+              </TouchableOpacity>
+              
+              <ThemedText 
+                style={[
+                  styles.quantityText,
+                  !isAvailable && styles.textUnavailable
+                ]}
+              >
+                {item.quantity} {item.measureType === 'килограмм' ? 'кг' : 'шт'}
+              </ThemedText>
+              
+              <TouchableOpacity
+                style={styles.quantityButton}
+                onPress={() => handleUpdateQuantity(
+                  item.id, 
+                  item.quantity + item.purchaseOptionStep,
+                  item.purchaseOptionStep,
+                  parseInt(item.stockQuantity) || Infinity
+                )}
+                disabled={!isAvailable}
+              >
+                <ThemedText 
+                  style={[
+                    styles.plusMinus,
+                    !isAvailable && styles.textUnavailable
+                  ]}
+                >
+                  +
+                </ThemedText>
+              </TouchableOpacity>
+            </ThemedView>
+          </View>
         </View>
-        </View>
-        {/* Управление количеством и цена */}
-
       </ThemedView>
     );
   };
@@ -396,28 +518,32 @@ console.log('totals', totals)
           <View style={styles.headerActions}>
             <View style={styles.checkboxRow}>
             <CustomCheckbox
-                        style={styles.checkbox}
-                        value={selectedItems.size === cartItems.length}
-                        onValueChange={toggleSelectAll}
-                        lightColor={'#F2F4F7'}
-                        darkColor={'#202022'}
-              /> 
-            <ThemedText style={styles.selectAllText}>
-                  {selectedItems.size === cartItems.length ? 'Снять все' : 'Выбрать все'}
-            </ThemedText>
+              style={styles.checkbox}
+              value={selectedItems.size === cartItems.length}
+              onValueChange={toggleSelectAll}
+              lightColor={'#F2F4F7'}
+              darkColor={'#202022'}
+            /> 
+              <ThemedText style={styles.selectAllText}>
+                {cartItems.filter(item => isItemAvailable(item)).every(item => selectedItems.has(item.id)) && cartItems.some(item => isItemAvailable(item)) 
+                  ? 'Снять все' 
+                  : 'Выбрать все'}
+              </ThemedText>
             </View>
-              <TouchableOpacity 
-                style={[
-                  styles.deleteSelectedButton,
-                  selectedItems.size === 0 && { opacity: 0.5 }
-                ]}
-                onPress={() => {
-                  selectedItems.size > 0 && selectedItems.forEach(id => handleRemoveItem(id));
-                }}
-              >
-                <TrashIcon/>
-
-              </TouchableOpacity>
+            <TouchableOpacity 
+              style={[
+                styles.deleteSelectedButton,
+                selectedItems.size === 0 && { opacity: 0.5 }
+              ]}
+              onPress={() => {
+                if (selectedItems.size > 0) {
+                  // Удаляем все выбранные товары (включая недоступные)
+                  selectedItems.forEach(id => handleRemoveItem(id));
+                }
+              }}
+            >
+              <TrashIcon/>
+            </TouchableOpacity>
           </View>
           {/* Список товаров */}
           <View style={styles.cartList}>
@@ -478,7 +604,7 @@ console.log('totals', totals)
                 activeOpacity={0.8}
                 fullWidth
                 style={styles.contButton}
-                disabled={totals.totalItems === 0}
+                disabled={totals.totalItems === 0 || totals.hasUnavailableSelected}
               />
               {totals.totalItems === 0 ?
               <ThemedView lightColor='#F2F4F7' style={styles.chooseProducts}>
@@ -533,9 +659,9 @@ console.log('totals', totals)
             <TouchableOpacity
               style={[
                 styles.bottomCheckoutButton,
-                totals.totalItems === 0 && styles.checkoutButtonDisabled
+                (totals.totalItems === 0 || totals.hasUnavailableSelected) && styles.checkoutButtonDisabled
               ]}
-              disabled={totals.totalItems === 0}
+              disabled={totals.totalItems === 0 || totals.hasUnavailableSelected}
               onPress={() => setCheckoutModalVisible(true)}
             >
               <ThemedText style={styles.bottomCheckoutButtonText}>
@@ -1005,7 +1131,57 @@ const styles = StyleSheet.create({
   uCartSecondText:{
     fontWeight: 500,
     fontSize: 14
-  }
-
+  },
+  cartItemUnavailable: {
+    opacity: 0.8,
+  },
+  imageUnavailable: {
+    opacity: 0.5,
+  },
+  unavailableOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 12,
+  },
+  unavailableText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#FF8605',
+    backgroundColor: '#FF860526',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  textUnavailable: {
+    color: '#80818B',
+  },
+  stockInfoContainer: {
+    borderRadius: 8,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    alignSelf: 'flex-start',
+    marginVertical: 8,
+  },
+  stockInfoOutOfStock: {
+    borderWidth: 1,
+    borderColor: '#FF8605',
+  },
+  stockInfoText: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  favoriteThemeUnavailable: {
+    opacity: 0.5,
+  },
+  quantityControlsUnavailable: {
+    opacity: 0.5,
+  },
 
 });

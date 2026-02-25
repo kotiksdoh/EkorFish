@@ -1,7 +1,7 @@
 import { useThemeColor } from '@/hooks/use-theme-color';
 import { StyleSheet, TouchableOpacity, View, useColorScheme } from 'react-native';
 
-export const CustomCheckbox = ({ style, value, onValueChange, lightColor, darkColor }) => {
+export const CustomCheckbox = ({ style, value, onValueChange, lightColor, darkColor, disabled }) => {
 
   const backgroundColor = useThemeColor({ light: lightColor, dark: darkColor }, 'background');
   // const borderColor =  useThemeColor({ light: borderLightColor, dark: borderDarkColor }, '');
@@ -17,7 +17,8 @@ export const CustomCheckbox = ({ style, value, onValueChange, lightColor, darkCo
         value && styles.customCheckboxChecked
       ]}
       onPress={() => onValueChange(!value)}
-      activeOpacity={0.7}
+      activeOpacity={disabled ? 1 : 0.7}
+      disabled={disabled}
     >
       {value && <View style={styles.checkmark} />}
     </TouchableOpacity>

@@ -195,6 +195,9 @@ export const getProductList = createAsyncThunk(
       if (payload.params.MaxPrice !== undefined) {
         params.append('MaxPrice', payload.params.MaxPrice.toString());
       }
+      if (payload.params.storageId !== undefined) {
+        params.append('storageId', payload.params.storageId.toString());
+      }
       
       // Добавляем фильтры
       if (selectedFilterIds.length > 0) {
@@ -259,6 +262,29 @@ export const putFavorite = createAsyncThunk(
   async (productId: string, { rejectWithValue }) => {
     try {
       const data = await axdef.put(`/api/Catalog/product/favorite?productId=${productId}`);
+      return data.data.data;
+    } catch (error: any) {
+      console.log('Error in thunk:', error);
+      
+      // ВАЖНО: Не обрабатываем 401 здесь, просто пробрасываем ошибку
+      // Интерсептор сам её перехватит и обработает
+      
+      // Но если это не 401, то возвращаем rejectWithValue
+      if (error.response?.status !== 401) {
+        return rejectWithValue(error);
+      }
+      
+      // Для 401 - просто пробрасываем ошибку дальше
+      throw error; // Это заставит интерсептор сработать
+    }
+  }
+);
+
+export const putUnFavorite = createAsyncThunk(
+  "catalog/putUnFavorite",
+  async (productId: string, { rejectWithValue }) => {
+    try {
+      const data = await axdef.put(`/api/Catalog/product/unfavorite?productId=${productId}`);
       return data.data.data;
     } catch (error: any) {
       console.log('Error in thunk:', error);

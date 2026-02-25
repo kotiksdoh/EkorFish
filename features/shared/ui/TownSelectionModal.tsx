@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { getTowns, updateUserTown } from '@/features/auth/authSlice';
+import { getMyInfo, getTowns, updateUserTown } from '@/features/auth/authSlice';
 
 const { height: screenHeight } = Dimensions.get('window');
 
@@ -20,7 +20,7 @@ interface TownSelectionModalProps {
   visible: boolean;
   onClose: () => void;
   storageId: string;
-  onTownSelected?: () => void;
+  onTownSelected: (selectedStorageId: string) => void;
 }
 
 export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
@@ -35,7 +35,7 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
   const me = useAppSelector((state) => state.auth.me);
   
   const [selectedTownId, setSelectedTownId] = useState<string | null>(
-    me?.townId || null
+    me?.storageId || null
   );
   const [isUpdating, setIsUpdating] = useState(false);
   const [modalTranslateY] = useState(new Animated.Value(screenHeight));
@@ -100,13 +100,15 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
       await dispatch(updateUserTown({
         storageId: selectedTownId,
         // townId: selectedTownId,
-      })).unwrap();
+      })).then((res) =>
+        dispatch(getMyInfo(""))
+      )
       
       // Закрываем модалку после успешного обновления
       setTimeout(() => {
         closeModalWithAnimation();
         if (onTownSelected) {
-          onTownSelected();
+          onTownSelected(selectedTownId);
         }
       }, 300);
     } catch (error) {

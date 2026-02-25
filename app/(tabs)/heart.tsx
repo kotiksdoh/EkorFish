@@ -181,6 +181,7 @@ export default function HeartScreen() {
   const isFilterSelected = (filterOptionId: string) => {
     return selectedFilterIds.includes(filterOptionId);
   };
+  const me = useAppSelector((state) => state.auth.me);
 
   // Загрузка продуктов ИЗБРАННОГО
   const loadProducts = useCallback(async (isLoadMore: boolean = false, searchText: string = searchQuery) => {
@@ -193,6 +194,8 @@ export default function HeartScreen() {
         isFavorite: true,
         offset: isLoadMore ? (currentPage + 1) * pageSize : 0,
         count: pageSize,
+        storageId: me?.storageId
+
       };
       
       if (searchText) {
@@ -225,7 +228,7 @@ export default function HeartScreen() {
       
       dispatch(getProductList({ 
         params,
-        isLoadMore
+        isLoadMore,
       }));
       
     } catch (error) {

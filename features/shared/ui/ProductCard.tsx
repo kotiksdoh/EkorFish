@@ -1,12 +1,11 @@
 import { CartIcon, LikeIcon, SnowflakeIcon } from '@/assets/icons/icons.js';
-import noImage from '@/assets/icons/png/noImage.png';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { putFavorite } from '@/features/catalog/catalogSlice';
+import { putFavorite, putUnFavorite } from '@/features/catalog/catalogSlice';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useState, useMemo } from 'react';
-import { ActivityIndicator, Image, StyleSheet, TouchableOpacity, View, Text } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Image, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 interface ProductCardProps {
   id?: number;
@@ -40,7 +39,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   
   const dispatch = useAppDispatch();
   const router = useRouter();
-  
+  console.log('productData',productData)
   // Получаем корзину из Redux
   const cartItems = useAppSelector((state) => state.catalog.cart);
   
@@ -68,9 +67,17 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
   const handleLikePress = (e: any) => {
     e.stopPropagation();
-    dispatch(putFavorite(id)).then((res: any) => 
-      setIsLiked(!isLiked)
-    );
+    
+    if (isLiked) {
+      dispatch(putUnFavorite(id)).then(() => {
+        setIsLiked(false);
+      });
+    } else {
+      // Если не лайкнуто - отправляем запрос на лайк
+      dispatch(putFavorite(id)).then(() => {
+        setIsLiked(true);
+      });
+    }
   };
 
   const handleCartPress = (e: any) => {
@@ -113,6 +120,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     //@ts-ignore
     router.push(`dashboard/product/${encodeURIComponent(id)}?productId=${id}&productName=${encodeURIComponent(name)}`);
   };
+
+  const stockInfo = productData?.originalProduct?.stocks?.[0]?.stockInfo;
+  const isOutOfStock = stockInfo === 'Нет в наличии' || false;
 
   return (
     <TouchableOpacity 
@@ -194,7 +204,21 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           >
             {name || 'Название товара'}
           </ThemedText>
-          
+          <ThemedView 
+            style={styles.stockInfo} 
+            lightColor={isOutOfStock ? '#FF860526' : '#101013'}
+            darkColor={isOutOfStock ? '#FF860526' : '#2E2E32'}
+          >
+            <ThemedText 
+              lightColor={isOutOfStock ? '#FF8605' : '#FFFFFF'}
+              darkColor={isOutOfStock ? '#FF8605' : '#FBFCFF'}
+              style={styles.stockInfoText} 
+              numberOfLines={2} 
+              ellipsizeMode="tail"
+            >
+              {stockInfo || ''}
+            </ThemedText>
+          </ThemedView>
           <View style={styles.priceRow}>
             <View style={styles.priceContainer}>
               <View style={styles.kgPriceRow}>
@@ -327,6 +351,16 @@ const styles = StyleSheet.create({
     letterSpacing: 0,
     marginBottom: 8,
     minHeight: 35,
+  },
+  stockInfo: {
+    borderRadius: 6,
+    display: 'flex',
+    marginRight: 50,
+    alignItems: 'center'
+  },
+  stockInfoText:{
+    fontWeight: '500',
+    fontSize: 12
   },
   priceRow: {
     flexDirection: 'row',
