@@ -4,7 +4,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { selectCompany, getTowns, updateUserTown } from '@/features/auth/authSlice';
 import { ModalHeader } from '@/features/auth/ui/Header';
-import { createOrder, createRecipient, createRecipients, deleteRecipient, getOrderPageData, getRecipients } from '@/features/catalog/catalogSlice';
+import { createOrder, createRecipient, createRecipients, deleteRecipient, getCart, getOrderPageData, getRecipients } from '@/features/catalog/catalogSlice';
 import { PrimaryButton } from '@/features/home';
 import { baseUrl } from '@/features/shared/services/axios';
 import { useSavedAddress } from '@/features/shared/services/useSavedAddress';
@@ -123,7 +123,13 @@ export default function CheckoutModal({
     await dispatch(updateUserTown({
       storageId: id,
       // townId: selectedTownId,
-    })).unwrap();
+    })).then((res) =>
+      {
+        if(updateUserTown.fulfilled.match(res)){
+          dispatch(getCart()).unwrap();
+        }
+      }
+    )
     setSelectedPickupAddress(id)
   }
   // Получаем название способа оплаты для отображения

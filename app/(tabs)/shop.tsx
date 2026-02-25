@@ -42,6 +42,8 @@ interface CartItem {
   totalPrice: number;
   measureType: string;
   isFavorite: boolean;
+  stockInfo: string;
+  stockQuantity: string;
 }
 
 export default function ShopScreen() {
@@ -221,8 +223,13 @@ export default function ShopScreen() {
           <ThemedText lightColor='#80818B' style={styles.quantityTextKg}>
             {item.price}₽ / {item.measureType === 'килограмм' ? 'кг' : 'шт'}  •  {item.quantity} {item.measureType === 'килограмм' ? 'кг' : 'шт'}
           </ThemedText>
-        </View>
 
+        </View>
+        <ThemedView>
+            <ThemedText>
+              {item.stockInfo}
+            </ThemedText>
+          </ThemedView>
         <View style={styles.priceRow}>
             <TouchableOpacity
               style={styles.favoriteButton}
