@@ -275,7 +275,7 @@ export default function CheckoutModal({
     }
     
     if (recipients.length > 1) {
-      setRecipients(recipients.filter(r => r.id !== id));
+      setRecipients(recipients?.filter(r => r.id !== id));
     }
   };
 
@@ -392,8 +392,8 @@ export default function CheckoutModal({
     debugger
     // Фильтруем только заполненных получателей, которых еще нет на бекенде
     const recipientsToCreate = recipients
-      .filter(r => r.fullname.trim() || r.phoneNumber.trim() || r.email.trim())
-      .filter(r => !r.isExisting); // Не создаем тех, кто уже есть
+      ?.filter(r => r.fullname.trim() || r.phoneNumber.trim() || r.email.trim())
+      ?.filter(r => !r.isExisting); // Не создаем тех, кто уже есть
       debugger
     if (recipientsToCreate.length === 0) return true;
   
@@ -476,8 +476,8 @@ export default function CheckoutModal({
     return item.stockInfo !== "Нет в наличии";
   };
     const selectedCartItems = cartItems
-    .filter(item => selectedItems.has(item.id))
-    .filter(item => isItemAvailable(item));
+    ?.filter(item => selectedItems.has(item.id))
+    ?.filter(item => isItemAvailable(item));
   
     const totalWeight = selectedCartItems.reduce((sum, item) => sum + item.quantity, 0);
 
@@ -538,7 +538,7 @@ export default function CheckoutModal({
     const availableMethods = [
       { method: DeliveryMethod.Delivery, label: 'Доставка' },
       { method: DeliveryMethod.Pickup, label: 'Самовывоз' }
-    ].filter(item => isMethodAvailable(item.method));
+    ]?.filter(item => isMethodAvailable(item.method));
 
     if (availableMethods.length === 0) {
       return null;
@@ -966,7 +966,7 @@ const getTimeSlotsForDate = (date: Date, schedule: any) => {
       const currentTimeInMinutes = currentHour * 60 + currentMinutes;
       const deliveryWindowHours = schedule.deliveryWindowHours || 2;
       
-      slots = slots.filter((slot: any) => {
+      slots = slots?.filter((slot: any) => {
         const [slotHour, slotMinute] = slot.startTime.split(':').map(Number);
         const slotStartInMinutes = slotHour * 60 + slotMinute;
         return slotStartInMinutes > currentTimeInMinutes + (deliveryWindowHours * 60);

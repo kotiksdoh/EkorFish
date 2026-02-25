@@ -7,7 +7,7 @@ import { ModalHeader } from '@/features/auth/ui/Header';
 import {
   getCart,
   putUnFavorite,
-  removeFromCart,
+  removeMultipleFromCart,
   toggleCartItemFavorite,
   updateCartItemQuantitys
 } from '@/features/catalog/catalogSlice';
@@ -121,14 +121,15 @@ export default function ShopScreen() {
   };
 
   // Удалить товар
-  const handleRemoveItem = async (cartItemId: string) => {
+  const handleRemoveItem = async () => {
+    if (selectedItems.size === 0) return;
     try {
-      await dispatch(removeFromCart(cartItemId)).unwrap();
-      const newSelected = new Set(selectedItems);
-      newSelected.delete(cartItemId);
-      setSelectedItems(newSelected);
+      // Преобразуем Set в массив ID
+      const itemIds = Array.from(selectedItems);
+      await dispatch(removeMultipleFromCart(itemIds)).unwrap();
+      setSelectedItems(new Set()); // Очищаем выделение после удаления
     } catch (error) {
-      console.error('Error removing item:', error);
+      console.error('Error removing items:', error);
     }
   };
 
@@ -536,10 +537,11 @@ console.log('totals', totals)
                 selectedItems.size === 0 && { opacity: 0.5 }
               ]}
               onPress={() => {
-                if (selectedItems.size > 0) {
-                  // Удаляем все выбранные товары (включая недоступные)
-                  selectedItems.forEach(id => handleRemoveItem(id));
-                }
+                handleRemoveItem()
+                // if (selectedItems.size > 0) {
+                //   // Удаляем все выбранные товары (включая недоступные)
+                //   selectedItems.forEach(id => handleRemoveItem(id));
+                // }
               }}
             >
               <TrashIcon/>

@@ -335,12 +335,18 @@ export const getCart = createAsyncThunk(
   }
 );
 
-export const removeFromCart = createAsyncThunk(
-  "catalog/removeFromCart",
-  async (cartItemId: string, { rejectWithValue }) => {
+export const removeMultipleFromCart = createAsyncThunk(
+  "catalog/removeMultipleFromCart",
+  async (cartItemIds: string[], { rejectWithValue }) => {
     try {
-      const response = await axdef.delete(`/api/Account/cart/${cartItemId}`);
-      return { cartItemId, data: response.data };
+      // Формируем параметры запроса: cartItemIds=kzkzkz&cartItemIds=kzkzk
+      const params = new URLSearchParams();
+      cartItemIds.forEach(id => {
+        params.append('cartItemIds', id);
+      });
+      
+      const response = await axdef.delete(`/api/Account/cart?${params.toString()}`);
+      return { cartItemIds, data: response.data };
     } catch (error: any) {
       if (error.response?.status !== 401) {
         return rejectWithValue(error);
@@ -762,9 +768,9 @@ const catalogSlice = createSlice({
       axiosErrorHandler(action?.payload);
     });
     
-    builder.addCase(removeFromCart.fulfilled, (state, action) => {
-      const { cartItemId } = action.payload;
-      state.cart = state.cart.filter(item => item.id !== cartItemId);
+    builder.addCase(removeMultipleFromCart.fulfilled, (state, action) => {
+      const { cartItemIds } = action.payload;
+      state.cart = state.cart.filter(item => !cartItemIds.includes(item.id));
     });
     
     builder.addCase(updateCartItemQuantitys.fulfilled, (state, action) => {
