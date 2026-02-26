@@ -99,7 +99,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   const [surname, setSurname] = useState("");
   const [name, setName] = useState("");
   const [secondName, setSecondName] = useState("");
-  const [birthDate, setBirthDate] = useState("");
+  const [birthDate, setBirthDate] = useState("17.01.2002");
 
   const [orgName, setOrgName] = useState("");
   const [kpp, setKpp] = useState("");

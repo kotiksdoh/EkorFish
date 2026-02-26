@@ -31,13 +31,15 @@ import {
   Alert,
   Animated,
   Dimensions,
-  FlatList, Image, Platform,
+  FlatList,
+  Image,
+  Platform,
   Modal as RNModal,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
   TouchableWithoutFeedback,
-  View
+  View,
 } from "react-native";
 
 const { height: screenHeight } = Dimensions.get("window");
@@ -405,7 +407,7 @@ export default function CheckoutModal({
 
     return true;
   };
-
+  console.log("currentCompany", currentCompany);
   // Подготовка данных для создания заказа
   const prepareOrderData = () => {
     // Форматируем дату в ISO строку
@@ -426,17 +428,36 @@ export default function CheckoutModal({
     }));
 
     // Подготавливаем userInfo
-    const userInfo: any = {
-      companyId: currentCompany?.id,
+    // if(currentCompany.type === 'individual'){
+
+    // const userInfo: any = {
+    //   companyId: currentCompany?.id,
+    //   deliveryAddressId: selectedAddress?.id,
+    // };
+    // }else{
+    //   const userInfo: any = {
+    //   individualProfileId: currentCompany?.id,
+    //   deliveryAddressId: selectedAddress?.id,
+    // };
+    // }
+    let userInfo: any = {
       deliveryAddressId: selectedAddress?.id,
     };
-
+    debugger;
+    if (currentCompany.type === "individual") {
+      userInfo.individualProfileId = currentCompany?.id;
+      debugger;
+    } else {
+      userInfo.companyId = currentCompany?.id;
+      debugger;
+    }
+    debugger;
     // Если нет компаний, используем individualProfileId
     if (me?.companies?.length === 0 && me?.individualProfile?.id) {
       userInfo.individualProfileId = me.individualProfile.id;
       delete userInfo.companyId;
     }
-
+    debugger;
     return {
       deliveryMethod: selectedMethod,
       deliveryDate,

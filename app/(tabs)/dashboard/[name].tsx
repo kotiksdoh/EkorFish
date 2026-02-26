@@ -6,6 +6,7 @@ import { ModalHeader } from "@/features/auth/ui/Header";
 import SearchInput from "@/features/auth/ui/components/SearchInput";
 import {
   AddToCart,
+  clearProducts,
   clearSelectedFilters,
   clearSelectedSubcategory,
   getCategoryFilters,
@@ -18,7 +19,7 @@ import { ProductCard } from "@/features/shared/ui/ProductCard";
 import { TownSelectionModal } from "@/features/shared/ui/TownSelectionModal";
 import AnimatedTextInput from "@/features/shared/ui/components/CustomInput";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -40,9 +41,10 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 
 export default function CatalogDetailScreen() {
-  const { catalogId, catalogName, children } = useLocalSearchParams<{
+  const { catalogId, catalogName, search, children } = useLocalSearchParams<{
     catalogId: string;
     catalogName: string;
+    search?: string;
     children?: string; // Добавляем children
   }>();
 
@@ -62,7 +64,7 @@ export default function CatalogDetailScreen() {
   }));
 
   // Состояния
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(search || "");
   const [showFilters, setShowFilters] = useState(false);
   const [sortBy, setSortBy] = useState("alphabet");
   const [priceRange, setPriceRange] = useState({
@@ -95,7 +97,67 @@ export default function CatalogDetailScreen() {
   const selectedSubcategoryId = useAppSelector(
     (state) => state.catalog.selectedSubcategoryId,
   );
+  const [showSortModal, setShowSortModal] = useState(false);
+  const sortModalTranslateY = useRef(new Animated.Value(screenHeight)).current;
+  const [isClosingSortModal, setIsClosingSortModal] = useState(false);
 
+  const sortOptions = [
+    { id: "alphabet", label: "По алфавиту" },
+    { id: "priceAsc", label: "Дешевле" },
+    { id: "priceDesc", label: "Дороже" },
+  ];
+  const closeSortModalWithAnimation = useCallback(() => {
+    if (isClosingSortModal) return;
+
+    setIsClosingSortModal(true);
+    Animated.timing(sortModalTranslateY, {
+      toValue: screenHeight,
+      duration: 250,
+      useNativeDriver: true,
+    }).start(() => {
+      setShowSortModal(false);
+      setIsClosingSortModal(false);
+    });
+  }, [isClosingSortModal]);
+
+  // Обработчик нажатия на overlay сортировки
+  const handleSortOverlayPress = useCallback(() => {
+    if (!isClosingSortModal) {
+      closeSortModalWithAnimation();
+    }
+  }, [isClosingSortModal, closeSortModalWithAnimation]);
+
+  // Эффект для анимации появления модалки сортировки
+  useEffect(() => {
+    if (showSortModal) {
+      sortModalTranslateY.setValue(screenHeight);
+      Animated.spring(sortModalTranslateY, {
+        toValue: 0,
+        useNativeDriver: true,
+        damping: 20,
+        stiffness: 90,
+        mass: 0.8,
+      }).start();
+    } else {
+      sortModalTranslateY.setValue(screenHeight);
+    }
+  }, [showSortModal]);
+
+  // Обработчик выбора сортировки
+  const handleSortSelect = (sortId: string) => {
+    setSortBy(sortId);
+    closeSortModalWithAnimation();
+    // Перезагружаем товары с новой сортировкой
+    setTimeout(() => {
+      loadProducts(false, searchQuery);
+    }, 300);
+  };
+
+  // Функция для получения текущей сортировки для отображения
+  const getCurrentSortLabel = () => {
+    const option = sortOptions.find((opt) => opt.id === sortBy);
+    return option ? option.label : "По алфавиту";
+  };
   // Подсчет примененных фильтров
   const appliedFiltersCount =
     selectedFilterIds.length +
@@ -171,11 +233,12 @@ export default function CatalogDetailScreen() {
           categoryId: catalogId,
           offset: isLoadMore ? (currentPage + 1) * pageSize : 0,
           count: pageSize,
+          search: search,
           storageId: forceStorageId || me?.storageId,
         };
 
         if (searchText) {
-          params.Search = searchText;
+          params.search = searchText;
         }
 
         // Преобразуем в числа
@@ -223,6 +286,7 @@ export default function CatalogDetailScreen() {
     [
       catalogId,
       currentPage,
+      search,
       dispatch,
       priceRange,
       searchQuery,
@@ -231,22 +295,27 @@ export default function CatalogDetailScreen() {
     ],
   );
 
-  // Загрузка фильтров при загрузке компоненты
-  useEffect(() => {
-    if (catalogId) {
-      console.log("Loading filters for catalog:", catalogId);
-      dispatch(getCategoryFilters(catalogId));
-    }
-  }, [catalogId, dispatch]);
+  useFocusEffect(
+    useCallback(() => {
+      console.log("Heart screen focused - loading favorites");
 
-  // Эффект для начальной загрузки продуктов
-  useEffect(() => {
-    if (catalogId) {
-      console.log("Initial load for catalog:", catalogId);
+      // Очищаем предыдущие товары
+      dispatch(clearProducts());
+
+      // Загружаем избранное
       loadProducts(false, "");
-    }
-  }, [catalogId]);
 
+      // Загружаем фильтры для избранного
+      dispatch(getCategoryFilters(null));
+
+      // Опционально: функция очистки при уходе с экрана
+      return () => {
+        console.log("Heart screen unfocused");
+        // Можно отменить запросы если нужно
+        // isFetchingRef.current = false;
+      };
+    }, []), // Добавьте зависимости
+  );
   // Обработчик смены подкатегории
   const handleSubcategorySelect = useCallback(
     (subcategoryId: string | null) => {
@@ -462,22 +531,15 @@ export default function CatalogDetailScreen() {
               <View style={styles.sortFilterRow}>
                 <TouchableOpacity
                   style={styles.sortButton}
-                  onPress={() => {
-                    if (sortBy === "alphabet") setSortBy("priceAsc");
-                    else if (sortBy === "priceAsc") setSortBy("priceDesc");
-                    else setSortBy("alphabet");
-                  }}
+                  onPress={() => setShowSortModal(true)} // Открываем модалку
                 >
                   <SortIcon />
                   <ThemedText style={styles.sortButtonText}>
-                    {sortBy === "alphabet"
-                      ? "По алфавиту"
-                      : sortBy === "priceAsc"
-                        ? "По цене (возр.)"
-                        : "По цене (убыв.)"}
+                    {getCurrentSortLabel()}
                   </ThemedText>
                 </TouchableOpacity>
 
+                {/* Кнопка фильтров остается без изменений */}
                 <TouchableOpacity
                   style={styles.filterButton}
                   onPress={() => setShowFilters(true)}
@@ -796,6 +858,79 @@ export default function CatalogDetailScreen() {
           onAddToCart={handleAddToCart}
           existingCartItem={existingCartItem}
         />
+        <Modal
+          visible={showSortModal}
+          animationType="none"
+          transparent={true}
+          onRequestClose={closeSortModalWithAnimation}
+          statusBarTranslucent={true}
+        >
+          <TouchableWithoutFeedback onPress={handleSortOverlayPress}>
+            <View style={styles.modalOverlay}>
+              <TouchableWithoutFeedback>
+                <Animated.View
+                  style={[
+                    styles.modalContainer,
+                    {
+                      transform: [{ translateY: sortModalTranslateY }],
+                    },
+                  ]}
+                >
+                  {/* Защелка для свайпа */}
+                  <TouchableOpacity
+                    style={styles.swipeHandleContainer}
+                    activeOpacity={0.7}
+                    onPress={closeSortModalWithAnimation}
+                  >
+                    <View style={styles.swipeHandle} />
+                  </TouchableOpacity>
+
+                  <View style={styles.modalHeader}>
+                    <TouchableOpacity>
+                      {/* Пустая слева для симметрии */}
+                    </TouchableOpacity>
+
+                    <ThemedText style={styles.modalTitle}>
+                      Сортировка
+                    </ThemedText>
+
+                    <TouchableOpacity onPress={closeSortModalWithAnimation}>
+                      {/* Пустая справа для симметрии */}
+                    </TouchableOpacity>
+                  </View>
+
+                  <ScrollView
+                    style={styles.sortOptionsContainer}
+                    showsVerticalScrollIndicator={false}
+                  >
+                    {sortOptions.map((option) => (
+                      <TouchableOpacity
+                        key={option.id}
+                        style={styles.sortOptionItem}
+                        onPress={() => handleSortSelect(option.id)}
+                      >
+                        <View style={styles.sortOptionRadio}>
+                          {sortBy === option.id && (
+                            <View style={styles.sortOptionRadioSelected} />
+                          )}
+                        </View>
+                        <ThemedText
+                          style={[
+                            styles.sortOptionText,
+                            sortBy === option.id &&
+                              styles.sortOptionTextSelected,
+                          ]}
+                        >
+                          {option.label}
+                        </ThemedText>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </Animated.View>
+              </TouchableWithoutFeedback>
+            </View>
+          </TouchableWithoutFeedback>
+        </Modal>
       </ThemedView>
     </SafeAreaProvider>
   );
@@ -1120,5 +1255,39 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "400",
     paddingHorizontal: 8,
+  },
+  sortOptionsContainer: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    maxHeight: "60%",
+  },
+  sortOptionItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 14,
+  },
+  sortOptionRadio: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: "#D8DADE",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
+  sortOptionRadioSelected: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: "#203686",
+  },
+  sortOptionText: {
+    fontFamily: "Montserrat",
+    fontSize: 16,
+    color: "#1B1B1C",
+  },
+  sortOptionTextSelected: {
+    fontWeight: "600",
   },
 });

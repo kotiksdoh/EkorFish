@@ -1,17 +1,17 @@
 import {
-    ArrowIconLeft,
-    ArrowIconRight,
-    CalendarFilledIcon,
-    Copy,
-    IconAccept,
-    IconCard,
-    IconCloseNew,
-    IconCompanyNew,
-    IconDocument,
-    IconGeo,
-    IconMessage,
-    IconNumber,
-    IconUser,
+  ArrowIconLeft,
+  ArrowIconRight,
+  CalendarFilledIcon,
+  Copy,
+  IconAccept,
+  IconCard,
+  IconCloseNew,
+  IconCompanyNew,
+  IconDocument,
+  IconGeo,
+  IconMessage,
+  IconNumber,
+  IconUser,
 } from "@/assets/icons/icons";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
@@ -21,16 +21,16 @@ import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Animated,
-    Dimensions,
-    Modal,
-    ScrollView,
-    StyleSheet,
-    TouchableOpacity,
-    TouchableWithoutFeedback,
-    View,
+  ActivityIndicator,
+  Alert,
+  Animated,
+  Dimensions,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
 } from "react-native";
 import { PrimaryButton } from "./components/PrimartyButton";
 
@@ -333,6 +333,7 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                       <ThemedText style={styles.infoValue}>
                         {orderDetails.companyName ||
                           orderDetails.company ||
+                          orderDetails.profileFullName ||
                           'ООО "ЭкорФиш"'}
                       </ThemedText>
                     </View>

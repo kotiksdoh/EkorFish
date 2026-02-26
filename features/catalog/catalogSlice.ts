@@ -176,7 +176,7 @@ export const getProductList = createAsyncThunk(
     try {
       const state = getState() as { catalog: CategoryState };
       const { selectedFilterIds, selectedSubcategoryId } = state.catalog;
-
+      console.log("params", payload.params);
       // Создаем параметры
       const params = new URLSearchParams();
 
@@ -202,8 +202,8 @@ export const getProductList = createAsyncThunk(
       if (payload.params.count !== undefined) {
         params.append("count", payload.params.count.toString());
       }
-      if (payload.params.Search) {
-        params.append("Search", payload.params.Search);
+      if (payload.params.search) {
+        params.append("search", payload.params.search);
       }
       if (payload.params.MinPrice !== undefined) {
         params.append("MinPrice", payload.params.MinPrice.toString());

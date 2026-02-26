@@ -1,22 +1,17 @@
-import chiken from '@/assets/icons/png/chiken.png';
-import conserv from '@/assets/icons/png/conserv.png';
-import fish from '@/assets/icons/png/fish.png';
-import otherMeet from '@/assets/icons/png/otherMeet.png';
-import { ThemedView } from '@/components/themed-view';
-import SearchInput from '@/features/auth/ui/components/SearchInput';
-import { SearchScreenWithHistory } from '@/features/home/ui/screens/SearchScreenWithHistory';
-import { CatalogCard } from '@/features/shared/ui/CatalogCard';
-import { useAppSelector } from '@/store/hooks';
-import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
-import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { ThemedView } from "@/components/themed-view";
+import SearchInput from "@/features/auth/ui/components/SearchInput";
+import { SearchScreenWithHistory } from "@/features/home/ui/screens/SearchScreenWithHistory";
+import { CatalogCard } from "@/features/shared/ui/CatalogCard";
+import { useAppSelector } from "@/store/hooks";
+import { useRouter } from "expo-router";
+import React, { useState } from "react";
+import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 
 export const CatalogScreen = () => {
   const [showSearch, setShowSearch] = useState(false);
 
   const handleButtonPress = () => {
-    console.log('Button pressed!');
+    console.log("Button pressed!");
   };
   const catalog = useAppSelector((state) => state.auth.categories);
   const router = useRouter();
@@ -31,13 +26,15 @@ export const CatalogScreen = () => {
   const handleSearchSubmit = (query: string) => {
     // Переходим на экран каталога с поиском
     //@ts-ignore
-    router.push(`dashboard/${encodeURIComponent("fsfs")}?catalogId=${" "}&catalogName=${undefined}&children=${encodeURIComponent("")}`,
+    router.push(
+      `dashboard/${encodeURIComponent("fsfs")}?catalogId=${" "}&catalogName=${encodeURIComponent(`${query}`)}&children=${encodeURIComponent("")}&search=${encodeURIComponent(`${query}`)}`,
     );
   };
+
   // const catalog = [
   //   {
   //     id: 1,
-  //     imageUrl: fish, 
+  //     imageUrl: fish,
   //     name: 'Рыба свежая и замороженная'
   //   },
   //   {
@@ -115,17 +112,14 @@ export const CatalogScreen = () => {
   //       imageUrl: otherMeet,
   //       name: 'Сезонные уловы и новинки'
   //     },
-    
+
   // ];
   return (
     <>
-      <ScrollView 
-        className="flex-1"
-        showsVerticalScrollIndicator={false}
-      >
-        <SafeAreaView >
-        <ThemedView lightColor={'#FFFFFF'} style={styles.container}>
-        <TouchableOpacity onPress={handleSearchPress} activeOpacity={1}>
+      <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+        {/* <SafeAreaView> */}
+        <ThemedView lightColor={"#FFFFFF"} style={styles.container}>
+          <TouchableOpacity onPress={handleSearchPress} activeOpacity={1}>
             <View pointerEvents="none">
               <SearchInput
                 isActiveButton={false}
@@ -147,11 +141,9 @@ export const CatalogScreen = () => {
             />
           ))}
         </View>
-        </SafeAreaView>
+        {/* </SafeAreaView> */}
 
         {/* </ThemedView> */}
-
-
       </ScrollView>
 
       <SearchScreenWithHistory
@@ -167,17 +159,16 @@ const styles = StyleSheet.create({
   container: {
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
-    paddingTop: 62
+    paddingTop: 42,
   },
   catalog: {
     marginTop: 8,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: 8,
-    marginHorizontal: 11
+    marginHorizontal: 11,
     // justifyContent: 'space-between',
     // Для 3 колонок на маленьких экранах
     // Для 2 колонок используйте justifyContent: 'flex-start' и marginRight
   },
- 
 });

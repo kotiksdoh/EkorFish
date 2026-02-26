@@ -11,6 +11,7 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
+  useColorScheme,
   View,
 } from "react-native";
 import Catalog from "../components/Catalog/Catalog";
@@ -26,6 +27,8 @@ interface SearchScreenWithHistoryProps {
 export const SearchScreenWithHistory: React.FC<
   SearchScreenWithHistoryProps
 > = ({ visible, onClose, onSearch }) => {
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
   const [searchQuery, setSearchQuery] = useState("");
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
   const inputRef = useRef<TextInput>(null);
@@ -187,7 +190,10 @@ export const SearchScreenWithHistory: React.FC<
               {searchHistory.map((item, index) => (
                 <TouchableOpacity
                   key={index}
-                  style={styles.historyItem}
+                  style={[
+                    styles.historyItem,
+                    { backgroundColor: isDark ? "#202022" : "#F2F4F7" },
+                  ]}
                   onPress={() => handleHistoryItemPress(item)}
                 >
                   <ThemedText style={styles.historyItemText}>{item}</ThemedText>
@@ -225,7 +231,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
-    paddingTop: 78,
+    paddingTop: 62,
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
     paddingBottom: 16,
@@ -235,7 +241,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
-    paddingTop: 78,
+    paddingTop: 62,
     paddingBottom: 16,
     gap: 12,
   },
@@ -282,7 +288,6 @@ const styles = StyleSheet.create({
   historyTitle: {
     fontSize: 16,
     fontWeight: "500",
-    color: "#1B1B1C",
   },
   clearButton: {
     fontSize: 14,
@@ -307,6 +312,5 @@ const styles = StyleSheet.create({
   },
   historyItemText: {
     fontSize: 14,
-    color: "#1B1B1C",
   },
 });

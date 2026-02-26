@@ -481,9 +481,9 @@ export default function HeartScreen() {
                     onPress={() => setShowSortModal(true)}
                   >
                     <SortIcon size={16} />
-                    {/* <ThemedText style={styles.sortFilterButtonText}>
-                      {/* {getCurrentSortLabel()} */}
-                    {/* </ThemedText> */}
+                    <ThemedText style={styles.sortFilterButtonText}>
+                      {getCurrentSortLabel()}
+                    </ThemedText>
                   </TouchableOpacity>
 
                   {/* Группы фильтров из бэкенда */}
@@ -676,15 +676,22 @@ export default function HeartScreen() {
                     style={styles.filterOptionsContainer}
                     showsVerticalScrollIndicator={true}
                   >
+                    {/*  */}
                     {selectedFilterGroup?.filterOptions.map((option: any) => (
                       <TouchableOpacity
                         key={option.id}
                         style={styles.filterOptionItem}
                         onPress={() => handleFilterToggle(option.id)}
                       >
-                        <View style={styles.filterOptionCheckbox}>
+                        <View
+                          style={[
+                            styles.radioOuter,
+                            isFilterSelected(option.id) &&
+                              styles.radioOuterSelected,
+                          ]}
+                        >
                           {isFilterSelected(option.id) && (
-                            <View style={styles.filterOptionCheckboxSelected} />
+                            <View style={styles.radioInner} />
                           )}
                         </View>
                         <ThemedText
@@ -698,6 +705,7 @@ export default function HeartScreen() {
                         </ThemedText>
                       </TouchableOpacity>
                     ))}
+                    {/*  */}
                   </ScrollView>
                 </Animated.View>
               </TouchableWithoutFeedback>
@@ -945,5 +953,26 @@ const styles = StyleSheet.create({
   image: {
     width: 86,
     height: 86,
+  },
+  radioOuter: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: "#D8DADE",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+    backgroundColor: "#FBFCFF",
+  },
+  radioOuterSelected: {
+    borderColor: "#203686",
+    borderWidth: 5,
+  },
+  radioInner: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: "#FFFFFF",
   },
 });

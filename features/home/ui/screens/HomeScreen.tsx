@@ -70,7 +70,9 @@ export const HomeScreen = ({
   const handleSearchSubmit = (query: string) => {
     // Переходим на экран каталога с поиском
     //@ts-ignore
-    router.push(`dashboard/${encodeURIComponent("fsfs")}?catalogId=${" "}&catalogName=${encodeURIComponent("")}&children=${encodeURIComponent("")}`,);
+    router.push(
+      `dashboard/${encodeURIComponent("fsfs")}?catalogId=${" "}&catalogName=${encodeURIComponent(`${query}`)}&children=${encodeURIComponent("")}&search=${encodeURIComponent(`${query}`)}`,
+    );
   };
   console.log("orders", orders);
   return (

@@ -1,11 +1,19 @@
 // features/home/components/HomeHeader.tsx
-import { LemonIcon, PersonCircleIcon } from '@/assets/icons/icons.js';
-import { ThemedText } from '@/components/themed-text';
-import { loadCompanyFromStorage, selectCompany } from '@/features/auth/authSlice';
-import { CompanySelectModal } from '@/features/shared/ui/CompanySelectModal';
-import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import React, { useEffect, useState } from 'react';
-import { StyleSheet, TouchableOpacity, View, useColorScheme } from 'react-native';
+import { LemonIcon, PersonCircleIcon } from "@/assets/icons/icons.js";
+import { ThemedText } from "@/components/themed-text";
+import {
+  loadCompanyFromStorage,
+  selectCompany,
+} from "@/features/auth/authSlice";
+import { CompanySelectModal } from "@/features/shared/ui/CompanySelectModal";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import React, { useEffect, useState } from "react";
+import {
+  StyleSheet,
+  TouchableOpacity,
+  View,
+  useColorScheme,
+} from "react-native";
 
 interface HomeHeaderProps {
   title?: string;
@@ -15,20 +23,22 @@ interface HomeHeaderProps {
 }
 
 export const HomeHeader: React.FC<HomeHeaderProps> = ({
-  title = 'EkorFish',
+  title = "EkorFish",
   transparent = true,
   onLoginPress,
   onAddCompanyPress,
 }) => {
   const me = useAppSelector((state) => state.auth.me);
   const [modalVisible, setModalVisible] = useState(false);
-  const systemTheme = useColorScheme(); 
-  const currentTheme = systemTheme || 'light';
-  const codeBackgroundColor = currentTheme === 'dark' ? '#202022' : '#F2F4F7';
-  const [displayName, setDisplayName] = useState('');
+  const systemTheme = useColorScheme();
+  const currentTheme = systemTheme || "light";
+  const codeBackgroundColor = currentTheme === "dark" ? "#202022" : "#F2F4F7";
+  const [displayName, setDisplayName] = useState("");
   const dispatch = useAppDispatch();
   const currentCompany = useAppSelector((state) => state.auth.currentCompany);
-
+  useEffect(() => {
+    console.log("me", me);
+  }, me);
   useEffect(() => {
     if (me) {
       dispatch(loadCompanyFromStorage());
@@ -36,43 +46,46 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
   }, [me]);
 
   const handleSelectCompany = async (company: any) => {
-    console.log('Selected company:', company);
+    console.log("Selected company:", company);
     // Используем Redux action для сохранения компании
     dispatch(selectCompany(company));
     setModalVisible(false);
   };
 
   const getDisplayName = () => {
-    if (!me) return '';
-    
+    if (!me) return "";
+    debugger;
     if (me.companies?.length > 0) {
-      return currentCompany?.name || me.companies[0]?.name || '';
+      return currentCompany?.name || me.companies[0]?.name || "";
     }
-    
+    debugger;
     const profile = me.individualProfile;
     if (profile) {
-      return `${profile.firstName || ''} ${profile.lastName || ''} ${profile.patronymic || ''}`.trim();
+      return `${profile.firstName || ""} ${profile.lastName || ""} ${profile.patronymic || ""}`.trim();
     }
-    
-    return '';
-  };
 
+    return "";
+  };
 
   return (
     <>
-      <View style={[
-        styles.header,
-        transparent && styles.headerTransparent
-      ]}>
+      <View style={[styles.header, transparent && styles.headerTransparent]}>
         {me === null ? (
           <View style={styles.headerContent}>
             <View></View>
             <TouchableOpacity
-              style={[{ backgroundColor: codeBackgroundColor }, styles.loginButton]}
+              style={[
+                { backgroundColor: codeBackgroundColor },
+                styles.loginButton,
+              ]}
               onPress={onLoginPress}
               activeOpacity={0.7}
             >
-              <ThemedText darkColor='#FBFCFF' lightColor='#1B1B1C' style={styles.loginButtonText}>
+              <ThemedText
+                darkColor="#FBFCFF"
+                lightColor="#1B1B1C"
+                style={styles.loginButtonText}
+              >
                 Войти
               </ThemedText>
             </TouchableOpacity>
@@ -84,10 +97,10 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
               onPress={() => setModalVisible(true)}
               activeOpacity={0.7}
             >
-              <PersonCircleIcon/>
-              <ThemedText 
-                lightColor='#FBFCFF' 
-                darkColor='#FBFCFF'
+              <PersonCircleIcon />
+              <ThemedText
+                lightColor="#FBFCFF"
+                darkColor="#FBFCFF"
                 numberOfLines={1}
                 ellipsizeMode="tail"
                 style={{ maxWidth: 150 }}
@@ -95,10 +108,12 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
                 {getDisplayName()}
               </ThemedText>
             </TouchableOpacity>
-            
+
             <View style={styles.headInfoBonus}>
-              <LemonIcon/>
-              <ThemedText lightColor='#FBFCFF' darkColor='#FBFCFF'>222</ThemedText>
+              <LemonIcon />
+              <ThemedText lightColor="#FBFCFF" darkColor="#FBFCFF">
+                222
+              </ThemedText>
             </View>
           </View>
         )}
@@ -110,10 +125,13 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
         companies={me?.companies || []}
         selectedCompanyId={me?.companies[0]?.id}
         onSelectCompany={handleSelectCompany}
-        onAddCompany={onAddCompanyPress || (() => {
-          // Здесь можно открыть модалку регистрации компании
-          console.log('Add company pressed');
-        })}
+        onAddCompany={
+          onAddCompanyPress ||
+          (() => {
+            // Здесь можно открыть модалку регистрации компании
+            console.log("Add company pressed");
+          })
+        }
       />
     </>
   );
@@ -121,7 +139,7 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
 
 const styles = StyleSheet.create({
   header: {
-    position: 'absolute',
+    position: "absolute",
     top: 40,
     left: 0,
     right: 0,
@@ -129,21 +147,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   headerTransparent: {
-    backgroundColor: 'transparent',
+    backgroundColor: "transparent",
   },
   headerContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 6
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 6,
   },
   loginButton: {
     paddingHorizontal: 16,
     paddingVertical: 3,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: 'rgba(32, 54, 134, 0.2)',
-    shadowColor: '#000',
+    borderColor: "rgba(32, 54, 134, 0.2)",
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -151,16 +169,16 @@ const styles = StyleSheet.create({
   },
   loginButtonText: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   headInfo: {
     gap: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   headInfoBonus: {
     gap: 4,
-    flexDirection: 'row',
-    alignItems: 'center',
-  }
+    flexDirection: "row",
+    alignItems: "center",
+  },
 });
