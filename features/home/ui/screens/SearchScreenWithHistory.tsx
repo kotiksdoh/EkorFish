@@ -1,21 +1,21 @@
 // features/search/ui/SearchScreenWithHistory.tsx
-import { ArrowIconLeft, CloseIcon } from '@/assets/icons/icons';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useRouter } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
+import { ArrowIconLeft, CloseIcon } from "@/assets/icons/icons";
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useRouter } from "expo-router";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Keyboard,
   ScrollView,
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  View
-} from 'react-native';
-import Catalog from '../components/Catalog/Catalog';
+  View,
+} from "react-native";
+import Catalog from "../components/Catalog/Catalog";
 
-const SEARCH_HISTORY_KEY = '@search_history';
+const SEARCH_HISTORY_KEY = "@search_history";
 
 interface SearchScreenWithHistoryProps {
   visible: boolean;
@@ -23,12 +23,10 @@ interface SearchScreenWithHistoryProps {
   onSearch: (query: string) => void;
 }
 
-export const SearchScreenWithHistory: React.FC<SearchScreenWithHistoryProps> = ({
-  visible,
-  onClose,
-  onSearch,
-}) => {
-  const [searchQuery, setSearchQuery] = useState('');
+export const SearchScreenWithHistory: React.FC<
+  SearchScreenWithHistoryProps
+> = ({ visible, onClose, onSearch }) => {
+  const [searchQuery, setSearchQuery] = useState("");
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
   const inputRef = useRef<TextInput>(null);
   const router = useRouter();
@@ -42,7 +40,7 @@ export const SearchScreenWithHistory: React.FC<SearchScreenWithHistoryProps> = (
         inputRef.current?.focus();
       }, 100);
     } else {
-      setSearchQuery('');
+      setSearchQuery("");
       Keyboard.dismiss();
     }
   }, [visible]);
@@ -54,7 +52,7 @@ export const SearchScreenWithHistory: React.FC<SearchScreenWithHistoryProps> = (
         setSearchHistory(JSON.parse(history));
       }
     } catch (error) {
-      console.error('Ошибка загрузки истории поиска:', error);
+      console.error("Ошибка загрузки истории поиска:", error);
     }
   };
 
@@ -65,23 +63,28 @@ export const SearchScreenWithHistory: React.FC<SearchScreenWithHistoryProps> = (
       // Получаем текущую историю
       const history = await AsyncStorage.getItem(SEARCH_HISTORY_KEY);
       let historyArray: string[] = history ? JSON.parse(history) : [];
-      
+
       // Удаляем дубликаты
-      historyArray = historyArray.filter(item => item.toLowerCase() !== query.toLowerCase());
-      
+      historyArray = historyArray.filter(
+        (item) => item.toLowerCase() !== query.toLowerCase(),
+      );
+
       // Добавляем новый запрос в начало
       historyArray.unshift(query);
-      
+
       // Ограничиваем историю 10 элементами
       if (historyArray.length > 10) {
         historyArray = historyArray.slice(0, 10);
       }
-      
+
       // Сохраняем
-      await AsyncStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(historyArray));
+      await AsyncStorage.setItem(
+        SEARCH_HISTORY_KEY,
+        JSON.stringify(historyArray),
+      );
       setSearchHistory(historyArray);
     } catch (error) {
-      console.error('Ошибка сохранения истории поиска:', error);
+      console.error("Ошибка сохранения истории поиска:", error);
     }
   };
 
@@ -98,17 +101,20 @@ export const SearchScreenWithHistory: React.FC<SearchScreenWithHistoryProps> = (
       await AsyncStorage.removeItem(SEARCH_HISTORY_KEY);
       setSearchHistory([]);
     } catch (error) {
-      console.error('Ошибка очистки истории поиска:', error);
+      console.error("Ошибка очистки истории поиска:", error);
     }
   };
 
   const handleRemoveHistoryItem = async (itemToRemove: string) => {
     try {
-      const newHistory = searchHistory.filter(item => item !== itemToRemove);
-      await AsyncStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(newHistory));
+      const newHistory = searchHistory.filter((item) => item !== itemToRemove);
+      await AsyncStorage.setItem(
+        SEARCH_HISTORY_KEY,
+        JSON.stringify(newHistory),
+      );
       setSearchHistory(newHistory);
     } catch (error) {
-      console.error('Ошибка удаления элемента из истории:', error);
+      console.error("Ошибка удаления элемента из истории:", error);
     }
   };
 
@@ -120,7 +126,7 @@ export const SearchScreenWithHistory: React.FC<SearchScreenWithHistoryProps> = (
   };
 
   const handleClearInput = () => {
-    setSearchQuery('');
+    setSearchQuery("");
     inputRef.current?.focus();
   };
 
@@ -131,13 +137,19 @@ export const SearchScreenWithHistory: React.FC<SearchScreenWithHistoryProps> = (
   if (!visible) return null;
 
   return (
-    <ThemedView style={styles.container} lightColor="#EBEDF0" darkColor="#040508">
-      <ThemedView 
-                  style={[
-                    searchHistory.length > 0 ? styles.headerWhithoutBorders : styles.header,
-                  ]}
+    <ThemedView
+      style={styles.container}
+      lightColor="#EBEDF0"
+      darkColor="#040508"
+    >
+      <ThemedView
+        style={[
+          searchHistory.length > 0
+            ? styles.headerWhithoutBorders
+            : styles.header,
+        ]}
       >
-        <ThemedView lightColor='#03051E08' style={styles.searchContainer}>
+        <ThemedView lightColor="#03051E08" style={styles.searchContainer}>
           <TouchableOpacity onPress={handleSearchIconPress}>
             <ArrowIconLeft stroke="#80818B" />
           </TouchableOpacity>
@@ -152,13 +164,16 @@ export const SearchScreenWithHistory: React.FC<SearchScreenWithHistoryProps> = (
             returnKeyType="search"
           />
           {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={handleClearInput} style={styles.clearInputButton}>
+            <TouchableOpacity
+              onPress={handleClearInput}
+              style={styles.clearInputButton}
+            >
               <CloseIcon stroke="#80818B" width={20} height={20} />
             </TouchableOpacity>
           )}
         </ThemedView>
       </ThemedView>
-      
+
       <ThemedView style={styles.history}>
         {searchHistory.length > 0 && (
           <>
@@ -188,10 +203,10 @@ export const SearchScreenWithHistory: React.FC<SearchScreenWithHistoryProps> = (
           </>
         )}
       </ThemedView>
-      
+
       <ScrollView style={styles.content}>
         {/* <SpecialOffers/> */}
-        <Catalog/>
+        <Catalog />
       </ScrollView>
     </ThemedView>
   );
@@ -199,7 +214,7 @@ export const SearchScreenWithHistory: React.FC<SearchScreenWithHistoryProps> = (
 
 const styles = StyleSheet.create({
   container: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
     right: 0,
@@ -207,8 +222,8 @@ const styles = StyleSheet.create({
     zIndex: 1000,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 16,
     paddingTop: 78,
     borderBottomLeftRadius: 24,
@@ -216,9 +231,9 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
     gap: 12,
   },
-  headerWhithoutBorders:{
-    flexDirection: 'row',
-    alignItems: 'center',
+  headerWhithoutBorders: {
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 16,
     paddingTop: 78,
     paddingBottom: 16,
@@ -229,8 +244,8 @@ const styles = StyleSheet.create({
   },
   searchContainer: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     borderRadius: 12,
     // borderBottomLeftRadius: 24,
     // borderBottomRightRadius: 24,
@@ -241,7 +256,7 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: 8,
     fontSize: 16,
-    color: '#1B1B1C',
+    color: "#1B1B1C",
     padding: 0,
   },
   clearInputButton: {
@@ -259,31 +274,31 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 24,
   },
   historyHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 16,
   },
   historyTitle: {
     fontSize: 16,
-    fontWeight: '500',
-    color: '#1B1B1C',
+    fontWeight: "500",
+    color: "#1B1B1C",
   },
   clearButton: {
     fontSize: 14,
-    color: '#203686',
+    color: "#203686",
   },
   historyMainCont: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+    // flex: 1,
     gap: 4,
   },
   historyItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F2F4F7',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F2F4F7",
     borderRadius: 6,
     paddingVertical: 8,
     paddingHorizontal: 8,
@@ -292,6 +307,6 @@ const styles = StyleSheet.create({
   },
   historyItemText: {
     fontSize: 14,
-    color: '#1B1B1C',
+    color: "#1B1B1C",
   },
 });

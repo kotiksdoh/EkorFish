@@ -1,20 +1,20 @@
 // HeartScreen.tsx
-import { SortIcon } from '@/assets/icons/icons';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { ModalHeader } from '@/features/auth/ui/Header';
-import SearchInput from '@/features/auth/ui/components/SearchInput';
+import { SortIcon } from "@/assets/icons/icons";
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
+import { ModalHeader } from "@/features/auth/ui/Header";
+import SearchInput from "@/features/auth/ui/components/SearchInput";
 import {
   clearProducts,
   clearSelectedFilters,
   getCategoryFilters,
   getProductList,
-  toggleFilterSelection
-} from '@/features/catalog/catalogSlice';
-import { ProductCard } from '@/features/shared/ui/ProductCard';
-import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+  toggleFilterSelection,
+} from "@/features/catalog/catalogSlice";
+import { ProductCard } from "@/features/shared/ui/ProductCard";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { useFocusEffect, useRouter } from "expo-router";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Animated,
@@ -29,28 +29,30 @@ import {
   TouchableOpacity,
   TouchableWithoutFeedback,
   View,
-} from 'react-native';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+} from "react-native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
-const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 
 export default function HeartScreen() {
   // Состояния
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [showSortModal, setShowSortModal] = useState(false);
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [selectedFilterGroup, setSelectedFilterGroup] = useState<any>(null);
-  const [sortBy, setSortBy] = useState('alphabet');
+  const [sortBy, setSortBy] = useState("alphabet");
   const [priceRange, setPriceRange] = useState({
-    min: '',
-    max: '',
+    min: "",
+    max: "",
   });
 
   const pageSize = 10;
 
   // Анимация для модалок
   const sortModalTranslateY = useRef(new Animated.Value(screenHeight)).current;
-  const filterModalTranslateY = useRef(new Animated.Value(screenHeight)).current;
+  const filterModalTranslateY = useRef(
+    new Animated.Value(screenHeight),
+  ).current;
   const [isClosingSortModal, setIsClosingSortModal] = useState(false);
   const [isClosingFilterModal, setIsClosingFilterModal] = useState(false);
 
@@ -58,12 +60,16 @@ export default function HeartScreen() {
   const products = useAppSelector((state) => state.catalog.products);
   const isLoading = useAppSelector((state) => state.catalog.isLoading);
   const isLoadingMore = useAppSelector((state) => state.catalog.isLoadingMore);
-  const isLoadingFilters = useAppSelector((state) => state.catalog.isLoadingFilters);
+  const isLoadingFilters = useAppSelector(
+    (state) => state.catalog.isLoadingFilters,
+  );
   const hasMore = useAppSelector((state) => state.catalog.hasMore);
   const currentPage = useAppSelector((state) => state.catalog.currentPage);
   const filters = useAppSelector((state) => state.catalog.filters);
-  const selectedFilterIds = useAppSelector((state) => state.catalog.selectedFilterIds);
-  
+  const selectedFilterIds = useAppSelector(
+    (state) => state.catalog.selectedFilterIds,
+  );
+
   const dispatch = useAppDispatch();
   const searchInputRef = useRef<TextInput>(null);
   const router = useRouter();
@@ -74,17 +80,17 @@ export default function HeartScreen() {
 
   // Опции сортировки
   const sortOptions = [
-    { id: 'alphabet', label: 'По алфавиту' },
-    { id: 'priceAsc', label: 'Дешевле' },
-    { id: 'priceDesc', label: 'Дороже' },
-    { id: 'new', label: 'Новые' },
-    { id: 'discount', label: 'Со скидками' },
+    { id: "alphabet", label: "По алфавиту" },
+    { id: "priceAsc", label: "Дешевле" },
+    { id: "priceDesc", label: "Дороже" },
+    { id: "new", label: "Новые" },
+    { id: "discount", label: "Со скидками" },
   ];
 
   // Функция для закрытия модалки сортировки с анимацией
   const closeSortModalWithAnimation = useCallback(() => {
     if (isClosingSortModal) return;
-    
+
     setIsClosingSortModal(true);
     Animated.timing(sortModalTranslateY, {
       toValue: screenHeight,
@@ -99,7 +105,7 @@ export default function HeartScreen() {
   // Функция для закрытия модалки фильтров с анимацией
   const closeFilterModalWithAnimation = useCallback(() => {
     if (isClosingFilterModal) return;
-    
+
     setIsClosingFilterModal(true);
     Animated.timing(filterModalTranslateY, {
       toValue: screenHeight,
@@ -165,15 +171,15 @@ export default function HeartScreen() {
 
   // Проверка, есть ли в группе выбранные фильтры
   const hasSelectedFiltersInGroup = (filterGroup: any) => {
-    return filterGroup.filterOptions.some((option: any) => 
-      selectedFilterIds.includes(option.id)
+    return filterGroup.filterOptions.some((option: any) =>
+      selectedFilterIds.includes(option.id),
     );
   };
 
   // Подсчет выбранных фильтров в группе
   const countSelectedFiltersInGroup = (filterGroup: any) => {
-    return filterGroup.filterOptions.filter((option: any) => 
-      selectedFilterIds.includes(option.id)
+    return filterGroup.filterOptions.filter((option: any) =>
+      selectedFilterIds.includes(option.id),
     ).length;
   };
 
@@ -184,104 +190,139 @@ export default function HeartScreen() {
   const me = useAppSelector((state) => state.auth.me);
 
   // Загрузка продуктов ИЗБРАННОГО
-  const loadProducts = useCallback(async (isLoadMore: boolean = false, searchText: string = searchQuery) => {
-    if (isFetchingRef.current) return;
-    
-    isFetchingRef.current = true;
-    
-    try {
-      const params: any = {
-        isFavorite: true,
-        offset: isLoadMore ? (currentPage + 1) * pageSize : 0,
-        count: pageSize,
-        storageId: me?.storageId
+  const loadProducts = useCallback(
+    async (isLoadMore: boolean = false, searchText: string = searchQuery) => {
+      if (isFetchingRef.current) return;
 
-      };
-      
-      if (searchText) {
-        params.Search = searchText;
+      isFetchingRef.current = true;
+
+      try {
+        const params: any = {
+          isFavorite: true,
+          offset: isLoadMore ? (currentPage + 1) * pageSize : 0,
+          count: pageSize,
+          storageId: me?.storageId,
+        };
+
+        if (searchText) {
+          params.Search = searchText;
+        }
+
+        // Преобразуем в числа
+        const minPrice = priceRange.min
+          ? parseFloat(priceRange.min)
+          : undefined;
+        const maxPrice = priceRange.max
+          ? parseFloat(priceRange.max)
+          : undefined;
+
+        if (minPrice !== undefined && !isNaN(minPrice)) {
+          params.MinPrice = minPrice;
+        }
+        if (maxPrice !== undefined && !isNaN(maxPrice)) {
+          params.MaxPrice = maxPrice;
+        }
+
+        // Добавляем выбранные фильтры если они есть
+        if (selectedFilterIds.length > 0) {
+          params.FilterIds = selectedFilterIds.join(",");
+        }
+
+        console.log("Loading favorite products:", {
+          isLoadMore,
+          offset: params.offset,
+          search: searchText,
+          filters: selectedFilterIds,
+          params,
+        });
+
+        dispatch(
+          getProductList({
+            params,
+            isLoadMore,
+          }),
+        );
+      } catch (error) {
+        console.error("Ошибка загрузки избранного:", error);
+      } finally {
+        setTimeout(() => {
+          isFetchingRef.current = false;
+        }, 500);
       }
-      
-      // Преобразуем в числа
-      const minPrice = priceRange.min ? parseFloat(priceRange.min) : undefined;
-      const maxPrice = priceRange.max ? parseFloat(priceRange.max) : undefined;
-      
-      if (minPrice !== undefined && !isNaN(minPrice)) {
-        params.MinPrice = minPrice;
-      }
-      if (maxPrice !== undefined && !isNaN(maxPrice)) {
-        params.MaxPrice = maxPrice;
-      }
-      
-      // Добавляем выбранные фильтры если они есть
-      if (selectedFilterIds.length > 0) {
-        params.FilterIds = selectedFilterIds.join(',');
-      }
-      
-      console.log('Loading favorite products:', { 
-        isLoadMore, 
-        offset: params.offset, 
-        search: searchText,
-        filters: selectedFilterIds,
-        params
-      });
-      
-      dispatch(getProductList({ 
-        params,
-        isLoadMore,
-      }));
-      
-    } catch (error) {
-      console.error('Ошибка загрузки избранного:', error);
-    } finally {
-      setTimeout(() => {
-        isFetchingRef.current = false;
-      }, 500);
-    }
-  }, [currentPage, dispatch, priceRange, searchQuery, selectedFilterIds]);
+    },
+    [currentPage, dispatch, priceRange, searchQuery, selectedFilterIds],
+  );
 
   // Загрузка фильтров для избранного
-  useEffect(() => {
-    console.log('Loading filters for favorites');
-    dispatch(getCategoryFilters(null));
-  }, [dispatch]);
+  // useEffect(() => {
+  //   console.log("Loading filters for favorites");
+  //   dispatch(getCategoryFilters(null));
+  // }, [dispatch]);
 
-  // Эффект для начальной загрузки продуктов
-  useEffect(() => {
-    dispatch(clearProducts())
-    console.log('Initial load for favorites');
-    loadProducts(false, '');
-  }, []);
+  // // Эффект для начальной загрузки продуктов
+  // useEffect(() => {
+  //   dispatch(clearProducts());
+  //   console.log("Initial load for favorites");
+  //   loadProducts(false, "");
+  // }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      console.log("Heart screen focused - loading favorites");
+
+      // Очищаем предыдущие товары
+      dispatch(clearProducts());
+
+      // Загружаем избранное
+      loadProducts(false, "");
+
+      // Загружаем фильтры для избранного
+      dispatch(getCategoryFilters(null));
+
+      // Опционально: функция очистки при уходе с экрана
+      return () => {
+        console.log("Heart screen unfocused");
+        // Можно отменить запросы если нужно
+        // isFetchingRef.current = false;
+      };
+    }, []), // Добавьте зависимости
+  );
 
   // Обработчик прокрутки
-  const handleScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const nativeEvent = event.nativeEvent;
-    
-    if (!nativeEvent || 
-        !nativeEvent.layoutMeasurement || 
-        !nativeEvent.contentOffset || 
+  const handleScroll = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const nativeEvent = event.nativeEvent;
+
+      if (
+        !nativeEvent ||
+        !nativeEvent.layoutMeasurement ||
+        !nativeEvent.contentOffset ||
         !nativeEvent.contentSize ||
-        isLoading || 
-        isLoadingMore || 
+        isLoading ||
+        isLoadingMore ||
         !hasMore ||
-        isFetchingRef.current) {
-      return;
-    }
-    
-    const { layoutMeasurement, contentOffset, contentSize } = nativeEvent;
-    const paddingToBottom = 50;
-    
-    const distanceFromBottom = contentSize.height - layoutMeasurement.height - contentOffset.y;
-    
-    if (distanceFromBottom < paddingToBottom) {
-      console.log('Loading more favorites...');
-      loadProducts(true, searchQuery);
-    }
-  }, [isLoading, isLoadingMore, hasMore, loadProducts, searchQuery]);
+        isFetchingRef.current
+      ) {
+        return;
+      }
+
+      const { layoutMeasurement, contentOffset, contentSize } = nativeEvent;
+      const paddingToBottom = 50;
+
+      const distanceFromBottom =
+        contentSize.height - layoutMeasurement.height - contentOffset.y;
+
+      if (distanceFromBottom < paddingToBottom) {
+        console.log("Loading more favorites...");
+        loadProducts(true, searchQuery);
+      }
+    },
+    [isLoading, isLoadingMore, hasMore, loadProducts, searchQuery],
+  );
 
   // Обработчик поиска
   const handleSearchSubmit = useCallback(() => {
-    console.log('Search submitted in favorites:', searchQuery);
+    console.log("Search submitted in favorites:", searchQuery);
     scrollViewRef.current?.scrollTo({ y: 0, animated: false });
     loadProducts(false, searchQuery);
   }, [searchQuery, loadProducts]);
@@ -321,26 +362,29 @@ export default function HeartScreen() {
   // Сброс всех фильтров
   const resetAllFilters = () => {
     dispatch(clearSelectedFilters());
-    setPriceRange({ min: '', max: '' });
+    setPriceRange({ min: "", max: "" });
     loadProducts(false, searchQuery);
   };
 
   // Сортировка продуктов
   const getSortedProducts = useCallback(() => {
     if (!products || products.length === 0) return [];
-    
+
     const sorted = [...products];
-    
+
     switch (sortBy) {
-      case 'alphabet':
+      case "alphabet":
         return sorted.sort((a, b) => a.name.localeCompare(b.name));
-      case 'priceAsc':
+      case "priceAsc":
         return sorted.sort((a, b) => a.pricePerKg - b.pricePerKg);
-      case 'priceDesc':
+      case "priceDesc":
         return sorted.sort((a, b) => b.pricePerKg - a.pricePerKg);
-      case 'new':
-        return sorted.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      case 'discount':
+      case "new":
+        return sorted.sort(
+          (a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+        );
+      case "discount":
         return sorted.sort((a, b) => {
           const aHasDiscount = a.discount && a.discount > 0;
           const bHasDiscount = b.discount && b.discount > 0;
@@ -357,28 +401,28 @@ export default function HeartScreen() {
 
   // Получаем текущую выбранную сортировку для отображения
   const getCurrentSortLabel = () => {
-    const option = sortOptions.find(opt => opt.id === sortBy);
-    return option ? option.label : 'Сортировка';
+    const option = sortOptions.find((opt) => opt.id === sortBy);
+    return option ? option.label : "Сортировка";
   };
 
   // Рендер элемента группы фильтров в горизонтальном списке
   const renderFilterGroupItem = (filterGroup: any) => {
     const hasSelected = hasSelectedFiltersInGroup(filterGroup);
     const selectedCount = countSelectedFiltersInGroup(filterGroup);
-    
+
     return (
       <TouchableOpacity
         key={filterGroup.id}
         style={[
           styles.filterGroupButton,
-          hasSelected && styles.filterGroupButtonActive
+          hasSelected && styles.filterGroupButtonActive,
         ]}
         onPress={() => handleFilterGroupPress(filterGroup)}
       >
         <ThemedText
           style={[
             styles.filterGroupText,
-            hasSelected && styles.filterGroupTextActive
+            hasSelected && styles.filterGroupTextActive,
           ]}
         >
           {filterGroup.name}
@@ -390,11 +434,15 @@ export default function HeartScreen() {
 
   return (
     <SafeAreaProvider>
-      <ThemedView style={styles.safeArea} lightColor={'#EBEDF0'} darkColor='#040508'>
+      <ThemedView
+        style={styles.safeArea}
+        lightColor={"#EBEDF0"}
+        darkColor="#040508"
+      >
         <ModalHeader
           showBackButton={false}
-          content={        
-            <SearchInput 
+          content={
+            <SearchInput
               value={searchQuery}
               onChangeText={setSearchQuery}
               placeholder="Найдите товар"
@@ -404,9 +452,9 @@ export default function HeartScreen() {
             />
           }
         />
-        
+
         <View style={styles.mainContainer}>
-          <ScrollView 
+          <ScrollView
             ref={scrollViewRef}
             style={styles.container}
             showsVerticalScrollIndicator={false}
@@ -414,11 +462,15 @@ export default function HeartScreen() {
             scrollEventThrottle={100}
             contentContainerStyle={styles.scrollContent}
           >
-            <ThemedView style={styles.themeContainer} lightColor={'#FFFFFF'} darkColor='#040508'>
+            <ThemedView
+              style={styles.themeContainer}
+              lightColor={"#FFFFFF"}
+              darkColor="#040508"
+            >
               {/* Горизонтальный список сортировки и фильтров */}
               <View style={styles.horizontalFiltersWrapper}>
-                <ScrollView 
-                  horizontal 
+                <ScrollView
+                  horizontal
                   showsHorizontalScrollIndicator={false}
                   style={styles.horizontalFiltersContainer}
                   contentContainerStyle={styles.horizontalFiltersContent}
@@ -431,13 +483,15 @@ export default function HeartScreen() {
                     <SortIcon size={16} />
                     {/* <ThemedText style={styles.sortFilterButtonText}>
                       {/* {getCurrentSortLabel()} */}
-                    {/* </ThemedText> */} 
+                    {/* </ThemedText> */}
                   </TouchableOpacity>
 
                   {/* Группы фильтров из бэкенда */}
-                  {!isLoadingFilters && filters.length > 0 && filters.map((filterGroup) => 
-                    renderFilterGroupItem(filterGroup)
-                  )}
+                  {!isLoadingFilters &&
+                    filters.length > 0 &&
+                    filters.map((filterGroup) =>
+                      renderFilterGroupItem(filterGroup),
+                    )}
                 </ScrollView>
               </View>
 
@@ -445,7 +499,9 @@ export default function HeartScreen() {
               {isLoading && !isLoadingMore && sortedProducts.length === 0 && (
                 <View style={styles.initialLoadingContainer}>
                   <ActivityIndicator size="large" color="#203686" />
-                  <ThemedText style={styles.initialLoadingText}>Загрузка избранного...</ThemedText>
+                  <ThemedText style={styles.initialLoadingText}>
+                    Загрузка избранного...
+                  </ThemedText>
                 </View>
               )}
 
@@ -458,8 +514,8 @@ export default function HeartScreen() {
                       id={product.id}
                       img={product.image}
                       name={product.name}
-                      kgPrice={product.pricePerKg.toLocaleString('ru-RU')}
-                      fullPrice={product.price.toLocaleString('ru-RU')}
+                      kgPrice={product.pricePerKg.toLocaleString("ru-RU")}
+                      fullPrice={product.price.toLocaleString("ru-RU")}
                       isFrozen={product.isFrozen}
                       isFavorite={product.isFavorite}
                     />
@@ -471,14 +527,22 @@ export default function HeartScreen() {
               {!isLoading && sortedProducts.length === 0 && (
                 <View style={styles.emptyContainer}>
                   <Image
-                    source={require('@/assets/icons/png/noItems.png')} 
+                    source={require("@/assets/icons/png/noItems.png")}
                     style={styles.image}
                     resizeMode="contain"
                   />
-                  <ThemedText lightColor='#1B1B1C' darkColor='#FBFCFF' style={styles.emptyText}>
+                  <ThemedText
+                    lightColor="#1B1B1C"
+                    darkColor="#FBFCFF"
+                    style={styles.emptyText}
+                  >
                     В избранном пока ничего нет
                   </ThemedText>
-                  <ThemedText lightColor='#80818B' darkColor='#80818B' style={styles.emptyTextSecond}>
+                  <ThemedText
+                    lightColor="#80818B"
+                    darkColor="#80818B"
+                    style={styles.emptyTextSecond}
+                  >
                     {`Добавляйте товары в избранное, \nчтобы вернуться к ним позже`}
                   </ThemedText>
                 </View>
@@ -488,7 +552,9 @@ export default function HeartScreen() {
               {isLoadingMore && (
                 <View style={styles.loadingContainer}>
                   <ActivityIndicator size="small" color="#203686" />
-                  <ThemedText style={styles.loadingText}>Загрузка...</ThemedText>
+                  <ThemedText style={styles.loadingText}>
+                    Загрузка...
+                  </ThemedText>
                 </View>
               )}
             </ThemedView>
@@ -498,14 +564,15 @@ export default function HeartScreen() {
         {/* Модальное окно сортировки */}
         <Modal
           visible={showSortModal}
-          animationType="none" 
+          animationType="none"
           transparent={true}
           onRequestClose={closeSortModalWithAnimation}
+          statusBarTranslucent={true}
         >
           <TouchableWithoutFeedback onPress={handleSortOverlayPress}>
             <View style={styles.modalOverlay}>
               <TouchableWithoutFeedback>
-                <Animated.View 
+                <Animated.View
                   style={[
                     styles.modalContainer,
                     {
@@ -523,7 +590,9 @@ export default function HeartScreen() {
                   </TouchableOpacity>
 
                   <View style={styles.modalHeader}>
-                    <ThemedText style={styles.modalTitle}>Показывать сначала</ThemedText>
+                    <ThemedText style={styles.modalTitle}>
+                      Показывать сначала
+                    </ThemedText>
                     <TouchableOpacity onPress={closeSortModalWithAnimation}>
                       {/* <ThemedText style={styles.modalCloseText}>Готово</ThemedText> */}
                     </TouchableOpacity>
@@ -537,12 +606,17 @@ export default function HeartScreen() {
                         onPress={() => handleSortSelect(option.id)}
                       >
                         <View style={styles.sortOptionRadio}>
-                          {sortBy === option.id && <View style={styles.sortOptionRadioSelected} />}
+                          {sortBy === option.id && (
+                            <View style={styles.sortOptionRadioSelected} />
+                          )}
                         </View>
-                        <ThemedText style={[
-                          styles.sortOptionText,
-                          sortBy === option.id && styles.sortOptionTextSelected
-                        ]}>
+                        <ThemedText
+                          style={[
+                            styles.sortOptionText,
+                            sortBy === option.id &&
+                              styles.sortOptionTextSelected,
+                          ]}
+                        >
                           {option.label}
                         </ThemedText>
                       </TouchableOpacity>
@@ -557,14 +631,15 @@ export default function HeartScreen() {
         {/* Модальное окно фильтров */}
         <Modal
           visible={showFilterModal}
-          animationType="none" 
+          animationType="none"
           transparent={true}
           onRequestClose={closeFilterModalWithAnimation}
+          statusBarTranslucent={true}
         >
           <TouchableWithoutFeedback onPress={handleFilterOverlayPress}>
             <View style={styles.modalOverlay}>
               <TouchableWithoutFeedback>
-                <Animated.View 
+                <Animated.View
                   style={[
                     styles.modalContainer,
                     {
@@ -587,17 +662,17 @@ export default function HeartScreen() {
                         {/* {selectedFilterGroup && countSelectedFiltersInGroup(selectedFilterGroup) > 0 ? 'Сбросить' : ''} */}
                       </ThemedText>
                     </TouchableOpacity>
-                    
+
                     <ThemedText style={styles.modalTitle}>
-                      {selectedFilterGroup?.name || 'Фильтры'}
+                      {selectedFilterGroup?.name || "Фильтры"}
                     </ThemedText>
-                    
+
                     <TouchableOpacity onPress={closeFilterModalWithAnimation}>
                       {/* <ThemedText style={styles.modalCloseText}>Готово</ThemedText> */}
                     </TouchableOpacity>
                   </View>
 
-                  <ScrollView 
+                  <ScrollView
                     style={styles.filterOptionsContainer}
                     showsVerticalScrollIndicator={true}
                   >
@@ -612,10 +687,13 @@ export default function HeartScreen() {
                             <View style={styles.filterOptionCheckboxSelected} />
                           )}
                         </View>
-                        <ThemedText style={[
-                          styles.filterOptionText,
-                          isFilterSelected(option.id) && styles.filterOptionTextSelected
-                        ]}>
+                        <ThemedText
+                          style={[
+                            styles.filterOptionText,
+                            isFilterSelected(option.id) &&
+                              styles.filterOptionTextSelected,
+                          ]}
+                        >
                           {option.value}
                         </ThemedText>
                       </TouchableOpacity>
@@ -629,7 +707,7 @@ export default function HeartScreen() {
       </ThemedView>
     </SafeAreaProvider>
   );
-};
+}
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -647,7 +725,7 @@ const styles = StyleSheet.create({
   themeContainer: {
     borderRadius: 24,
     marginTop: 10,
-    minHeight: '100%',
+    minHeight: "100%",
   },
   horizontalFiltersWrapper: {
     marginHorizontal: 16,
@@ -658,60 +736,60 @@ const styles = StyleSheet.create({
     flexGrow: 0,
   },
   horizontalFiltersContent: {
-    flexDirection: 'row',
+    flexDirection: "row",
     paddingRight: 16,
-    alignItems: 'center',
+    alignItems: "center",
   },
   sortFilterButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 8,
     paddingVertical: 7,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: "#F5F5F5",
     borderRadius: 6,
     marginRight: 8,
     // minHeight: 36,
   },
   sortFilterButtonText: {
-    fontFamily: 'Montserrat',
+    fontFamily: "Montserrat",
     fontSize: 14,
-    color: '#1B1B1C',
+    color: "#1B1B1C",
     marginLeft: 8,
   },
   filterGroupButton: {
     paddingHorizontal: 16,
     paddingVertical: 3,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: "#F5F5F5",
     borderRadius: 6,
     marginRight: 8,
     // minHeight: 36,
   },
   filterGroupButtonActive: {
-    backgroundColor: '#203686',
+    backgroundColor: "#203686",
   },
   filterGroupText: {
-    fontFamily: 'Montserrat',
+    fontFamily: "Montserrat",
     fontSize: 14,
-    color: '#1B1B1C',
+    color: "#1B1B1C",
   },
   filterGroupTextActive: {
-    color: '#FFFFFF',
-    fontWeight: '600',
+    color: "#FFFFFF",
+    fontWeight: "600",
   },
   initialLoadingContainer: {
     paddingVertical: 60,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   initialLoadingText: {
     marginTop: 12,
     fontSize: 16,
-    color: '#80818B',
+    color: "#80818B",
   },
   productsGrid: {
     marginTop: 8,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     paddingHorizontal: 16,
     gap: 8,
     minHeight: 200,
@@ -719,13 +797,13 @@ const styles = StyleSheet.create({
   },
   emptyContainer: {
     paddingVertical: 60,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   emptyText: {
     marginTop: 24,
     fontSize: 24,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   emptyTextSecond: {
     marginTop: 8,
@@ -733,25 +811,25 @@ const styles = StyleSheet.create({
   },
   loadingContainer: {
     paddingVertical: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   loadingText: {
     marginTop: 8,
     fontSize: 14,
-    color: '#80818B',
+    color: "#80818B",
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "flex-end",
   },
   modalContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    maxHeight: '70%',
-    shadowColor: '#000',
+    maxHeight: "70%",
+    shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: -2,
@@ -761,49 +839,49 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   swipeHandleContainer: {
-    alignItems: 'center',
+    alignItems: "center",
     paddingTop: 12,
     paddingBottom: 8,
-    width: '100%',
+    width: "100%",
   },
   swipeHandle: {
     width: 40,
     height: 4,
-    backgroundColor: '#E0E0E0',
+    backgroundColor: "#E0E0E0",
     borderRadius: 2,
   },
   modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    borderBottomColor: "#F0F0F0",
   },
   modalCloseText: {
-    fontFamily: 'Montserrat',
+    fontFamily: "Montserrat",
     fontSize: 16,
-    color: '#203686',
-    fontWeight: '600',
+    color: "#203686",
+    fontWeight: "600",
   },
   modalResetText: {
-    fontFamily: 'Montserrat',
+    fontFamily: "Montserrat",
     fontSize: 16,
-    color: '#203686',
+    color: "#203686",
   },
   modalTitle: {
-    fontFamily: 'Montserrat',
+    fontFamily: "Montserrat",
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   sortOptionsContainer: {
     paddingHorizontal: 20,
     paddingVertical: 16,
   },
   sortOptionItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: 14,
   },
   sortOptionRadio: {
@@ -811,33 +889,33 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 10,
     borderWidth: 2,
-    borderColor: '#D8DADE',
-    justifyContent: 'center',
-    alignItems: 'center',
+    borderColor: "#D8DADE",
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: 12,
   },
   sortOptionRadioSelected: {
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#203686',
+    backgroundColor: "#203686",
   },
   sortOptionText: {
-    fontFamily: 'Montserrat',
+    fontFamily: "Montserrat",
     fontSize: 16,
-    color: '#1B1B1C',
+    color: "#1B1B1C",
   },
   sortOptionTextSelected: {
-    fontWeight: '600',
+    fontWeight: "600",
   },
   filterOptionsContainer: {
     paddingHorizontal: 20,
     paddingVertical: 16,
-    maxHeight: '60%',
+    maxHeight: "60%",
   },
   filterOptionItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: 14,
   },
   filterOptionCheckbox: {
@@ -845,24 +923,24 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 4,
     borderWidth: 2,
-    borderColor: '#D8DADE',
-    justifyContent: 'center',
-    alignItems: 'center',
+    borderColor: "#D8DADE",
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: 12,
   },
   filterOptionCheckboxSelected: {
     width: 12,
     height: 12,
     borderRadius: 2,
-    backgroundColor: '#203686',
+    backgroundColor: "#203686",
   },
   filterOptionText: {
-    fontFamily: 'Montserrat',
+    fontFamily: "Montserrat",
     fontSize: 16,
-    color: '#1B1B1C',
+    color: "#1B1B1C",
   },
   filterOptionTextSelected: {
-    fontWeight: '600',
+    fontWeight: "600",
   },
   image: {
     width: 86,

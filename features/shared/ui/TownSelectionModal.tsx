@@ -1,20 +1,20 @@
-import React, { useEffect, useState } from 'react';
+import { ThemedText } from "@/components/themed-text";
+import { getMyInfo, getTowns, updateUserTown } from "@/features/auth/authSlice";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import React, { useEffect, useState } from "react";
 import {
-  Modal,
-  View,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
+  ActivityIndicator,
   Animated,
   Dimensions,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
   TouchableWithoutFeedback,
-  ActivityIndicator,
-} from 'react-native';
-import { ThemedText } from '@/components/themed-text';
-import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { getMyInfo, getTowns, updateUserTown } from '@/features/auth/authSlice';
+  View,
+} from "react-native";
 
-const { height: screenHeight } = Dimensions.get('window');
+const { height: screenHeight } = Dimensions.get("window");
 
 interface TownSelectionModalProps {
   visible: boolean;
@@ -33,9 +33,9 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
   const towns = useAppSelector((state) => state.auth.towns);
   const isLoadingTowns = useAppSelector((state) => state.auth.isLoadingTowns);
   const me = useAppSelector((state) => state.auth.me);
-  
+
   const [selectedTownId, setSelectedTownId] = useState<string | null>(
-    me?.storageId || null
+    me?.storageId || null,
   );
   const [isUpdating, setIsUpdating] = useState(false);
   const [modalTranslateY] = useState(new Animated.Value(screenHeight));
@@ -52,7 +52,7 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
         stiffness: 90,
         mass: 0.8,
       }).start();
-      
+
       // Загружаем города при открытии модалки
       dispatch(getTowns());
     } else {
@@ -69,7 +69,7 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
 
   const closeModalWithAnimation = () => {
     if (isClosing) return;
-    
+
     setIsClosing(true);
     Animated.timing(modalTranslateY, {
       toValue: screenHeight,
@@ -93,17 +93,17 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
 
   const handleApplyPress = async () => {
     if (!selectedTownId) return;
-    
+
     setIsUpdating(true);
-    
+
     try {
-      await dispatch(updateUserTown({
-        storageId: selectedTownId,
-        // townId: selectedTownId,
-      })).then((res) =>
-        dispatch(getMyInfo(""))
-      )
-      
+      await dispatch(
+        updateUserTown({
+          storageId: selectedTownId,
+          // townId: selectedTownId,
+        }),
+      ).then((res) => dispatch(getMyInfo("")));
+
       // Закрываем модалку после успешного обновления
       setTimeout(() => {
         closeModalWithAnimation();
@@ -112,7 +112,7 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
         }
       }, 300);
     } catch (error) {
-      console.error('Error updating town:', error);
+      console.error("Error updating town:", error);
     } finally {
       setIsUpdating(false);
     }
@@ -124,11 +124,12 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
       animationType="none"
       transparent={true}
       onRequestClose={closeModalWithAnimation}
+      statusBarTranslucent={true}
     >
       <TouchableWithoutFeedback onPress={handleOverlayPress}>
         <View style={styles.modalOverlay}>
           <TouchableWithoutFeedback>
-            <Animated.View 
+            <Animated.View
               style={[
                 styles.modalContainer,
                 {
@@ -149,7 +150,7 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
                 <ThemedText style={styles.modalTitle}>Укажите город</ThemedText>
               </View>
 
-              <ScrollView 
+              <ScrollView
                 style={styles.modalContent}
                 showsVerticalScrollIndicator={false}
               >
@@ -170,10 +171,13 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
                         disabled={isUpdating}
                       >
                         <View style={styles.townItemContent}>
-                          <View style={[
-                            styles.radioOuter,
-                            selectedTownId === town.id && styles.radioOuterSelected
-                          ]}>
+                          <View
+                            style={[
+                              styles.radioOuter,
+                              selectedTownId === town.id &&
+                                styles.radioOuterSelected,
+                            ]}
+                          >
                             {selectedTownId === town.id && (
                               <View style={styles.radioInner} />
                             )}
@@ -194,16 +198,17 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
                     )}
                   </>
                 )}
-                
+
                 <View style={styles.modalBottomSpacer} />
               </ScrollView>
 
               {/* Кнопка Применить */}
               <View style={styles.applyButtonContainer}>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={[
                     styles.applyButton,
-                    (!selectedTownId || isUpdating) && styles.applyButtonDisabled
+                    (!selectedTownId || isUpdating) &&
+                      styles.applyButtonDisabled,
                   ]}
                   onPress={handleApplyPress}
                   disabled={!selectedTownId || isUpdating}
@@ -230,16 +235,16 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "flex-end",
   },
   modalContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    maxHeight: '85%',
-    minHeight: '80%',
-    shadowColor: '#000',
+    maxHeight: "85%",
+    minHeight: "80%",
+    shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: -2,
@@ -249,38 +254,38 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   swipeHandleContainer: {
-    alignItems: 'center',
+    alignItems: "center",
     paddingTop: 12,
     paddingBottom: 8,
-    width: '100%',
+    width: "100%",
   },
   swipeHandle: {
     width: 40,
     height: 4,
-    backgroundColor: '#E0E0E0',
+    backgroundColor: "#E0E0E0",
     borderRadius: 2,
   },
   modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingHorizontal: 20,
     paddingVertical: 16,
   },
   modalTitle: {
-    fontFamily: 'Montserrat',
+    fontFamily: "Montserrat",
     fontSize: 18,
-    fontWeight: '600',
-    color: '#1B1B1C',
+    fontWeight: "600",
+    color: "#1B1B1C",
   },
   modalCloseText: {
-    fontFamily: 'Montserrat',
+    fontFamily: "Montserrat",
     fontSize: 20,
-    color: '#80818B',
+    color: "#80818B",
   },
   modalContent: {
     paddingHorizontal: 20,
-    maxHeight: '70%',
+    maxHeight: "70%",
   },
   modalBottomSpacer: {
     height: 80, // Увеличил отступ для кнопки
@@ -288,102 +293,102 @@ const styles = StyleSheet.create({
   townItem: {
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    borderBottomColor: "#F0F0F0",
   },
   townItemContent: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 5,
-    alignItems: 'center',
+    alignItems: "center",
   },
   townName: {
-    fontFamily: 'Montserrat',
+    fontFamily: "Montserrat",
     fontSize: 16,
-    color: '#1B1B1C',
+    color: "#1B1B1C",
   },
   radioOuter: {
     width: 24,
     height: 24,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: '#D8DADE',
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#FBFCFF',
+    borderColor: "#D8DADE",
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#FBFCFF",
   },
   radioOuterSelected: {
-    borderColor: '#203686',
+    borderColor: "#203686",
     borderWidth: 5,
   },
   radioInner: {
     width: 14,
     height: 14,
     borderRadius: 7,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
   },
   loadingContainer: {
     paddingVertical: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   loadingText: {
     marginTop: 12,
     fontSize: 14,
-    color: '#80818B',
+    color: "#80818B",
   },
   emptyContainer: {
     paddingVertical: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   emptyText: {
     fontSize: 16,
-    color: '#80818B',
+    color: "#80818B",
   },
   updatingOverlay: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(255, 255, 255, 0.9)",
+    justifyContent: "center",
+    alignItems: "center",
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
   },
   updatingText: {
     marginTop: 12,
     fontSize: 16,
-    color: '#203686',
-    fontWeight: '600',
+    color: "#203686",
+    fontWeight: "600",
   },
   // Новые стили для кнопки Применить
   applyButtonContainer: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
+    borderTopColor: "#F0F0F0",
   },
   applyButton: {
-    backgroundColor: '#203686',
+    backgroundColor: "#203686",
     paddingVertical: 16,
     borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   applyButtonDisabled: {
-    backgroundColor: '#A0A0A0',
+    backgroundColor: "#A0A0A0",
     opacity: 0.5,
   },
   applyButtonText: {
-    color: '#FFFFFF',
-    fontFamily: 'Montserrat',
+    color: "#FFFFFF",
+    fontFamily: "Montserrat",
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
 });

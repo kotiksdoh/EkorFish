@@ -1,4 +1,18 @@
-import { ArrowIconLeft, ArrowIconRight, CalendarFilledIcon, Copy, IconAccept, IconCard, IconCloseNew, IconCompanyNew, IconDocument, IconGeo, IconMessage, IconNumber, IconUser } from "@/assets/icons/icons";
+import {
+    ArrowIconLeft,
+    ArrowIconRight,
+    CalendarFilledIcon,
+    Copy,
+    IconAccept,
+    IconCard,
+    IconCloseNew,
+    IconCompanyNew,
+    IconDocument,
+    IconGeo,
+    IconMessage,
+    IconNumber,
+    IconUser,
+} from "@/assets/icons/icons";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { axdef, baseUrl } from "@/features/shared/services/axios";
@@ -7,16 +21,16 @@ import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Animated,
-  Dimensions,
-  Modal,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  TouchableWithoutFeedback,
-  View,
+    ActivityIndicator,
+    Alert,
+    Animated,
+    Dimensions,
+    Modal,
+    ScrollView,
+    StyleSheet,
+    TouchableOpacity,
+    TouchableWithoutFeedback,
+    View,
 } from "react-native";
 import { PrimaryButton } from "./components/PrimartyButton";
 
@@ -191,9 +205,10 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
   };
 
   const getCurrentStatusName = () => {
-    if (!orderDetails?.statuses || !orderDetails?.currentStatusId) return orderDetails?.orderStatus || "";
+    if (!orderDetails?.statuses || !orderDetails?.currentStatusId)
+      return orderDetails?.orderStatus || "";
     const currentStatus = orderDetails.statuses.find(
-      status => status.id === orderDetails.currentStatusId
+      (status) => status.id === orderDetails.currentStatusId,
     );
     return currentStatus?.name || orderDetails.orderStatus || "";
   };
@@ -201,7 +216,7 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
   const getCurrentStatusIndex = () => {
     if (!orderDetails?.statuses || !orderDetails?.currentStatusId) return -1;
     return orderDetails.statuses.findIndex(
-      status => status.id === orderDetails.currentStatusId
+      (status) => status.id === orderDetails.currentStatusId,
     );
   };
 
@@ -224,6 +239,7 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
         animationType="slide"
         transparent={false}
         onRequestClose={onClose}
+        statusBarTranslucent={true}
       >
         <ThemedView
           style={styles.container}
@@ -233,7 +249,7 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
           {/* Хедер как в SearchScreenWithHistory */}
           <ThemedView style={styles.header}>
             <TouchableOpacity onPress={onClose} style={styles.backButton}>
-              <ArrowIconLeft/>
+              <ArrowIconLeft />
             </TouchableOpacity>
 
             <View style={styles.headerTitleContainer}>
@@ -241,7 +257,7 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
             </View>
 
             <TouchableOpacity onPress={handleCopyId} style={styles.copyButton}>
-              <Copy/>
+              <Copy />
             </TouchableOpacity>
           </ThemedView>
 
@@ -262,8 +278,8 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
               {/* Белый блок */}
               <ThemedView lightColor="#FFFFFF" style={styles.whiteBlock}>
                 {/* Статус заказа - теперь кликабельный */}
-                <TouchableOpacity 
-                  style={styles.statusRow} 
+                <TouchableOpacity
+                  style={styles.statusRow}
                   onPress={() => setStatusModalVisible(true)}
                 >
                   <ThemedText lightColor="#203686" style={styles.statusText}>
@@ -277,7 +293,7 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                   {/* Номер заказа */}
                   <View style={styles.infoRow}>
                     <View style={styles.iconPlaceholder}>
-                        <IconNumber/>
+                      <IconNumber />
                     </View>
                     <View style={styles.infoContent}>
                       <ThemedText lightColor="#80818B" style={styles.infoLabel}>
@@ -292,7 +308,7 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                   {/* Ожидаемая дата доставки */}
                   <View style={styles.infoRow}>
                     <View style={styles.iconPlaceholder}>
-                      <CalendarFilledIcon/>
+                      <CalendarFilledIcon />
                     </View>
                     <View style={styles.infoContent}>
                       <ThemedText lightColor="#80818B" style={styles.infoLabel}>
@@ -307,7 +323,7 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                   {/* Компания */}
                   <View style={styles.infoRow}>
                     <View style={styles.iconPlaceholder}>
-                      <IconCompanyNew/>
+                      <IconCompanyNew />
                     </View>
 
                     <View style={styles.infoContent}>
@@ -315,7 +331,9 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                         Компания
                       </ThemedText>
                       <ThemedText style={styles.infoValue}>
-                        {orderDetails.companyName || orderDetails.company || 'ООО "ЭкорФиш"'}
+                        {orderDetails.companyName ||
+                          orderDetails.company ||
+                          'ООО "ЭкорФиш"'}
                       </ThemedText>
                     </View>
                   </View>
@@ -323,7 +341,7 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                   {/* Адрес доставки */}
                   <View style={styles.infoRow}>
                     <View style={styles.iconPlaceholder}>
-                      <IconGeo/>
+                      <IconGeo />
                     </View>
 
                     <View style={styles.infoContent}>
@@ -340,14 +358,16 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                   {/* Получатель */}
                   <View style={styles.infoRow}>
                     <View style={styles.iconPlaceholder}>
-                      <IconUser/>
+                      <IconUser />
                     </View>
                     <View style={styles.infoContent}>
                       <ThemedText lightColor="#80818B" style={styles.infoLabel}>
                         Получатель
                       </ThemedText>
                       <ThemedText style={styles.infoValue}>
-                        {orderDetails.recipientName || orderDetails.recipient || "Иванов Иван Иванович"}
+                        {orderDetails.recipientName ||
+                          orderDetails.recipient ||
+                          "Иванов Иван Иванович"}
                       </ThemedText>
                     </View>
                   </View>
@@ -355,16 +375,18 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                   {/* Оплата */}
                   <View style={styles.infoRow}>
                     <View style={styles.iconPlaceholder}>
-                      <IconCard/>
+                      <IconCard />
                     </View>
                     <View style={styles.infoContent}>
                       <ThemedText lightColor="#80818B" style={styles.infoLabel}>
                         Оплата
                       </ThemedText>
                       <ThemedText style={styles.infoValue}>
-                        {orderDetails.paymentType === "Cashless" ? "Безналичный расчет" : 
-                         orderDetails.paymentType === "Cash" ? "Наличными" : 
-                         orderDetails.payment || "Наличными при получении"}
+                        {orderDetails.paymentType === "Cashless"
+                          ? "Безналичный расчет"
+                          : orderDetails.paymentType === "Cash"
+                            ? "Наличными"
+                            : orderDetails.payment || "Наличными при получении"}
                       </ThemedText>
                     </View>
                   </View>
@@ -372,7 +394,9 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
 
                 {/* Итого */}
                 <View style={styles.totalContainer}>
-                  <ThemedText lightColor="#80818B" style={styles.totalLabel}>Итого</ThemedText>
+                  <ThemedText lightColor="#80818B" style={styles.totalLabel}>
+                    Итого
+                  </ThemedText>
                   <ThemedText style={styles.totalValue}>
                     {formatPrice(orderDetails.totalAmount)} ₽
                   </ThemedText>
@@ -398,35 +422,35 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                 <View style={styles.buttonsRow}>
                   <PrimaryButton
                     title="Отменить"
-                    onPress={() => console.log('Отменить заказ')}
+                    onPress={() => console.log("Отменить заказ")}
                     variant="third"
                     size="md"
                     activeOpacity={0.8}
                     fullWidth
                     style={styles.cancelButton}
-                    customIcon={<IconCloseNew/>}
+                    customIcon={<IconCloseNew />}
                   />
                   <PrimaryButton
                     title="Написать"
-                    onPress={() => console.log('Написать сообщение')}
+                    onPress={() => console.log("Написать сообщение")}
                     variant="third"
                     size="md"
                     style={styles.messageButton}
                     activeOpacity={0.8}
                     fullWidth
-                    customIcon={<IconMessage/>}
+                    customIcon={<IconMessage />}
                   />
                 </View>
                 <PrimaryButton
-                    title="Документы"
-                    onPress={() => console.log('Документы')}
-                    variant="third"
-                    size="md"
-                    style={styles.documentsButton}
-                    activeOpacity={0.8}
-                    fullWidth
-                    customIcon={<IconDocument/>}
-                  />
+                  title="Документы"
+                  onPress={() => console.log("Документы")}
+                  variant="third"
+                  size="md"
+                  style={styles.documentsButton}
+                  activeOpacity={0.8}
+                  fullWidth
+                  customIcon={<IconDocument />}
+                />
               </ThemedView>
 
               {/* Состав заказа */}
@@ -463,28 +487,31 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                       )}
                     </View>
                     <View style={styles.productInfo}>
-                    <View style={styles.productInfoMain}>
-                      <ThemedText style={styles.productName} numberOfLines={2}>
-                        {item.productName}
-                      </ThemedText>
-  
-                      <ThemedText
-                        lightColor="#80818B"
-                        style={styles.productQuantity}
-                      >
-                        {item.unitPrice}₽ /{" "}
-                        {item.measureType === "килограмм" ? "кг" : "шт"} •{" "}
-                        {item.quantity}{" "}
-                        {item.measureType === "килограмм" ? "кг" : "шт"}
-                      </ThemedText>
+                      <View style={styles.productInfoMain}>
+                        <ThemedText
+                          style={styles.productName}
+                          numberOfLines={2}
+                        >
+                          {item.productName}
+                        </ThemedText>
+
+                        <ThemedText
+                          lightColor="#80818B"
+                          style={styles.productQuantity}
+                        >
+                          {item.unitPrice}₽ /{" "}
+                          {item.measureType === "килограмм" ? "кг" : "шт"} •{" "}
+                          {item.quantity}{" "}
+                          {item.measureType === "килограмм" ? "кг" : "шт"}
+                        </ThemedText>
                       </View>
 
                       <View>
-                      <View style={styles.productPriceRow}>
-                        <ThemedText style={styles.productPrice}>
-                          {formatPrice(item.totalPrice)} ₽
-                        </ThemedText>
-                      </View>
+                        <View style={styles.productPriceRow}>
+                          <ThemedText style={styles.productPrice}>
+                            {formatPrice(item.totalPrice)} ₽
+                          </ThemedText>
+                        </View>
                       </View>
                     </View>
                   </View>
@@ -515,6 +542,7 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
         animationType="none"
         transparent={true}
         onRequestClose={closeProductsModal}
+        statusBarTranslucent={true}
       >
         <TouchableWithoutFeedback onPress={closeProductsModal}>
           <View style={styles.modalOverlay}>
@@ -566,22 +594,22 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                       </View>
                       <View style={styles.modalProductInfo}>
                         <View style={styles.productInfoMain}>
-                        <ThemedText
-                          style={styles.modalProductName}
-                          numberOfLines={2}
-                        >
-                          {item.productName}
-                        </ThemedText>
-              
-                        <ThemedText
-                          lightColor="#80818B"
-                          style={styles.modalProductQuantity}
-                        >
-                          {item.unitPrice}₽ /{" "}
-                          {item.measureType === "килограмм" ? "кг" : "шт"} •{" "}
-                          {item.quantity}{" "}
-                          {item.measureType === "килограмм" ? "кг" : "шт"}
-                        </ThemedText>
+                          <ThemedText
+                            style={styles.modalProductName}
+                            numberOfLines={2}
+                          >
+                            {item.productName}
+                          </ThemedText>
+
+                          <ThemedText
+                            lightColor="#80818B"
+                            style={styles.modalProductQuantity}
+                          >
+                            {item.unitPrice}₽ /{" "}
+                            {item.measureType === "килограмм" ? "кг" : "шт"} •{" "}
+                            {item.quantity}{" "}
+                            {item.measureType === "килограмм" ? "кг" : "шт"}
+                          </ThemedText>
                         </View>
                         <View style={styles.productInfoMain}>
                           <ThemedText style={styles.modalProductPrice}>
@@ -600,113 +628,117 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
 
       {/* Модалка со статусами */}
       <Modal
-  visible={statusModalVisible}
-  animationType="none"
-  transparent={true}
-  onRequestClose={closeStatusModal}
->
-  <TouchableWithoutFeedback onPress={closeStatusModal}>
-    <View style={styles.modalOverlay}>
-      <TouchableWithoutFeedback>
-        <Animated.View
-          style={[
-            styles.modalContainer,
-            {
-              transform: [{ translateY: statusModalTranslateY }],
-            },
-          ]}
-        >
-          {/* Защелка для свайпа */}
-          <TouchableOpacity
-            style={styles.swipeHandleContainer}
-            activeOpacity={0.7}
-            onPress={closeStatusModal}
-          >
-            <View style={styles.swipeHandle} />
-          </TouchableOpacity>
+        visible={statusModalVisible}
+        animationType="none"
+        transparent={true}
+        onRequestClose={closeStatusModal}
+        statusBarTranslucent={true}
+      >
+        <TouchableWithoutFeedback onPress={closeStatusModal}>
+          <View style={styles.modalOverlay}>
+            <TouchableWithoutFeedback>
+              <Animated.View
+                style={[
+                  styles.modalContainer,
+                  {
+                    transform: [{ translateY: statusModalTranslateY }],
+                  },
+                ]}
+              >
+                {/* Защелка для свайпа */}
+                <TouchableOpacity
+                  style={styles.swipeHandleContainer}
+                  activeOpacity={0.7}
+                  onPress={closeStatusModal}
+                >
+                  <View style={styles.swipeHandle} />
+                </TouchableOpacity>
 
-          <View style={styles.modalHeader}>
-            <ThemedText style={styles.modalTitle}>
-              Статус вашего заказа
-            </ThemedText>
-          </View>
-
-          {/* Список статусов */}
-          <ScrollView
-            style={styles.statusesList}
-            showsVerticalScrollIndicator={false}
-          >
-            {orderDetails?.statuses?.map((status, index) => {
-              const currentIndex = getCurrentStatusIndex();
-              const isCurrent = index === currentIndex;
-              const isNext = index === currentIndex + 1;
-              const isPast = index < currentIndex;
-              const isFuture = index > currentIndex + 1;
-              const isLast = index === orderDetails.statuses.length - 1;
-              
-              // Определяем цвета линии
-              let lineColors: [string, string];
-              if (isPast || isCurrent) {
-                lineColors = ["#203686", "#203686"]; // Для пройденных и текущего - синяя
-              } else if (isNext) {
-                lineColors = ["#203686", "#80818B"]; // Для следующего - градиент синий -> серый
-              } else {
-                lineColors = ["#80818B", "#80818B"]; // Для будущих - серая
-              }
-
-              return (
-                <View key={status.id} style={styles.statusItemContainer}>
-                  <View style={styles.statusLeftColumn}>
-                    {/* Кружок статуса */}
-                    <View style={[
-                      styles.statusCircle,
-                      (isPast || isCurrent) && styles.statusCircleCompleted,
-                      isNext && styles.statusCircleNext,
-                      isFuture && styles.statusCirclePending,
-                    ]}>
-                      {(isPast || isCurrent) && (
-                        <View style={styles.statusCircleCheckmark}>
-                          <IconAccept/>
-                          {/* <View style={styles.checkmarkKick} /> */}
-                        </View>
-                      )}
-                      {isNext && (
-                        <View style={styles.statusCurrentDot} />
-                      )}
-                    </View>
-                    
-                    {/* Линия между статусами (кроме последнего) */}
-                    {!isLast && (
-                      <View style={styles.statusLineContainer}>
-                        <LinearGradient
-                          colors={lineColors}
-                          start={{ x: 0, y: 0 }}
-                          end={{ x: 0, y: 1 }}
-                          style={styles.statusLine}
-                        />
-                      </View>
-                    )}
-                  </View>
-
-                  {/* Название статуса */}
-                  <View style={styles.statusRightColumn}>
-                    <ThemedText style={[
-                      styles.statusName,
-                      (isPast || isCurrent || isNext) && styles.statusNameCompleted
-                    ]}>
-                      {status.name}
-                    </ThemedText>
-            
-                  </View>
+                <View style={styles.modalHeader}>
+                  <ThemedText style={styles.modalTitle}>
+                    Статус вашего заказа
+                  </ThemedText>
                 </View>
-              );
-            })}
-          </ScrollView>
-        </Animated.View>
-      </TouchableWithoutFeedback>
-    </View>
-  </TouchableWithoutFeedback>
-</Modal>
+
+                {/* Список статусов */}
+                <ScrollView
+                  style={styles.statusesList}
+                  showsVerticalScrollIndicator={false}
+                >
+                  {orderDetails?.statuses?.map((status, index) => {
+                    const currentIndex = getCurrentStatusIndex();
+                    const isCurrent = index === currentIndex;
+                    const isNext = index === currentIndex + 1;
+                    const isPast = index < currentIndex;
+                    const isFuture = index > currentIndex + 1;
+                    const isLast = index === orderDetails.statuses.length - 1;
+
+                    // Определяем цвета линии
+                    let lineColors: [string, string];
+                    if (isPast || isCurrent) {
+                      lineColors = ["#203686", "#203686"]; // Для пройденных и текущего - синяя
+                    } else if (isNext) {
+                      lineColors = ["#203686", "#80818B"]; // Для следующего - градиент синий -> серый
+                    } else {
+                      lineColors = ["#80818B", "#80818B"]; // Для будущих - серая
+                    }
+
+                    return (
+                      <View key={status.id} style={styles.statusItemContainer}>
+                        <View style={styles.statusLeftColumn}>
+                          {/* Кружок статуса */}
+                          <View
+                            style={[
+                              styles.statusCircle,
+                              (isPast || isCurrent) &&
+                                styles.statusCircleCompleted,
+                              isNext && styles.statusCircleNext,
+                              isFuture && styles.statusCirclePending,
+                            ]}
+                          >
+                            {(isPast || isCurrent) && (
+                              <View style={styles.statusCircleCheckmark}>
+                                <IconAccept />
+                                {/* <View style={styles.checkmarkKick} /> */}
+                              </View>
+                            )}
+                            {isNext && <View style={styles.statusCurrentDot} />}
+                          </View>
+
+                          {/* Линия между статусами (кроме последнего) */}
+                          {!isLast && (
+                            <View style={styles.statusLineContainer}>
+                              <LinearGradient
+                                colors={lineColors}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 0, y: 1 }}
+                                style={styles.statusLine}
+                              />
+                            </View>
+                          )}
+                        </View>
+
+                        {/* Название статуса */}
+                        <View style={styles.statusRightColumn}>
+                          <ThemedText
+                            style={[
+                              styles.statusName,
+                              (isPast || isCurrent || isNext) &&
+                                styles.statusNameCompleted,
+                            ]}
+                          >
+                            {status.name}
+                          </ThemedText>
+                        </View>
+                      </View>
+                    );
+                  })}
+                </ScrollView>
+              </Animated.View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
     </>
   );
 };
@@ -734,14 +766,13 @@ const styles = StyleSheet.create({
   headerTitleContainer: {
     flex: 1,
     alignItems: "center",
-    justifyContent: 'center'
-
+    justifyContent: "center",
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: "600",
     alignItems: "center",
-    justifyContent: 'center'
+    justifyContent: "center",
   },
   copyButton: {
     padding: 8,
@@ -776,7 +807,7 @@ const styles = StyleSheet.create({
   infoRow: {
     flexDirection: "row",
     gap: 12,
-    alignItems: 'center'
+    alignItems: "center",
   },
   iconPlaceholder: {
     // width: 24,
@@ -788,7 +819,7 @@ const styles = StyleSheet.create({
   infoContent: {
     flex: 1,
     borderBottomWidth: 1,
-    borderColor: '#F0F3F7',
+    borderColor: "#F0F3F7",
     paddingBottom: 12,
   },
   infoLabel: {
@@ -816,7 +847,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingBottom: 16,
-    gap: 3
+    gap: 3,
   },
   weightLabel: {
     fontSize: 14,
@@ -901,12 +932,12 @@ const styles = StyleSheet.create({
   },
   productInfo: {
     flex: 1,
-    flexDirection: 'row'
+    flexDirection: "row",
   },
   productInfoMain: {
-    display: 'flex',
+    display: "flex",
     flex: 1,
-    flexDirection: 'column'
+    flexDirection: "column",
   },
   productName: {
     fontSize: 14,
@@ -1007,7 +1038,7 @@ const styles = StyleSheet.create({
     height: "100%",
   },
   modalProductInfo: {
-    flexDirection: 'row',
+    flexDirection: "row",
     // flex: 1,
   },
   modalProductName: {
@@ -1052,8 +1083,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     zIndex: 2,
   },
-  
- 
+
   statusCircleCurrent: {
     borderColor: "#203686",
     backgroundColor: "#FFFFFF",
@@ -1061,13 +1091,12 @@ const styles = StyleSheet.create({
     padding: 2,
   },
 
-  
   statusRightColumn: {
     flex: 1,
     paddingLeft: 12,
     paddingBottom: 20,
   },
-  
+
   modalFooter: {
     paddingHorizontal: 20,
     paddingVertical: 16,
