@@ -1,10 +1,10 @@
 import React from 'react';
 import {
-    Dimensions,
-    Image,
-    StyleSheet,
-    Text,
-    View
+  Dimensions,
+  Image,
+  StyleSheet,
+  Text,
+  View
 } from 'react-native';
 import { SlideItem } from './AutoSlider';
 

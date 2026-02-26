@@ -1,7 +1,6 @@
 import React from 'react';
 import {
-  ActivityIndicator,
-  Text,
+  ActivityIndicator, StyleSheet, Text,
   TouchableOpacity,
   TouchableOpacityProps,
   View,
@@ -21,6 +20,7 @@ interface PrimaryButtonProps extends TouchableOpacityProps {
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
   theme?: 'light' | 'dark' | 'auto';
+  customIcon?: any;
 }
 
 export const PrimaryButton: React.FC<PrimaryButtonProps> = ({
@@ -34,6 +34,7 @@ export const PrimaryButton: React.FC<PrimaryButtonProps> = ({
   rightIcon,
   style,
   theme = 'auto',
+  customIcon,
   ...props
 }) => {
   const systemTheme = useColorScheme(); // Получаем системную тему
@@ -181,8 +182,14 @@ export const PrimaryButton: React.FC<PrimaryButtonProps> = ({
       ) : leftIcon ? (
         <View style={{ marginRight: 8 }}>{leftIcon}</View>
       ) : null}
-      
+      {customIcon ?
+      <View style={stylesBut.withIcon}>
+      {customIcon}
       <Text style={textStyles}>{title}</Text>
+      </View>
+      : 
+      <Text style={textStyles}>{title}</Text>
+      }
       
       {!loading && rightIcon && (
         <View style={{ marginLeft: 8 }}>{rightIcon}</View>
@@ -190,7 +197,13 @@ export const PrimaryButton: React.FC<PrimaryButtonProps> = ({
     </TouchableOpacity>
   );
 };
-
+const stylesBut = StyleSheet.create({
+  withIcon:{
+    gap: 4,
+    display: 'flex',
+    flexDirection: 'row'
+  }
+})
 // Если вы используете NativeWind и хотите сохранить стилизацию через className:
 export const PrimaryButtonWithTailwind: React.FC<PrimaryButtonProps> = ({
   title,

@@ -2,21 +2,25 @@
 import { ArrowIconRight, IconCompany, TrashIcon } from '@/assets/icons/icons';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { selectCompany, getTowns, updateUserTown } from '@/features/auth/authSlice';
+import { getTowns, selectCompany, updateUserTown } from '@/features/auth/authSlice';
 import { ModalHeader } from '@/features/auth/ui/Header';
-import { createOrder, createRecipient, createRecipients, deleteRecipient, getCart, getOrderPageData, getRecipients } from '@/features/catalog/catalogSlice';
+import { createOrder, createRecipient, deleteRecipient, getCart, getOrderPageData, getRecipients } from '@/features/catalog/catalogSlice';
 import { PrimaryButton } from '@/features/home';
-import { baseUrl } from '@/features/shared/services/axios';
 import { useSavedAddress } from '@/features/shared/services/useSavedAddress';
 import { AddressSelectionModal } from '@/features/shared/ui/AddressSelectionModal';
 import { CompanySelectionModal } from '@/features/shared/ui/CompanySelectionModalSmall';
+import { OrderDetailsModal } from '@/features/shared/ui/OrderDetailModal';
 import { CustomCheckbox } from '@/features/shared/ui/components/CustomCheckBox';
 import AnimatedTextInput from '@/features/shared/ui/components/CustomInput';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { Image } from 'expo-image';
+import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
+import { Image } from 'react-native';
 import {
+  ActivityIndicator,
+  Alert,
   Animated,
+  Dimensions,
   FlatList,
   Platform,
   Modal as RNModal,
@@ -24,10 +28,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   TouchableWithoutFeedback,
-  View,
-  ActivityIndicator,
-  Dimensions,
-  Alert
+  View
 } from 'react-native';
 
 const { height: screenHeight } = Dimensions.get('window');
@@ -86,7 +87,9 @@ export default function CheckoutModal({
   ]);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [showCalendarModal, setShowCalendarModal] = useState(false);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showSuccessContent, setShowSuccessContent] = useState(false);
+  const [showOrderDetailsModal, setShowOrderDetailsModal] = useState(false);
+  const [createdOrderId, setCreatedOrderId] = useState<number | null>(null);
   
   const dispatch = useAppDispatch();
   const tabContainerRef = useRef<View>(null);
@@ -463,10 +466,12 @@ export default function CheckoutModal({
     // Затем создаем заказ
     try {
       const orderData = prepareOrderData();
-      await dispatch(createOrder(orderData)).unwrap();
-      
-      // Показываем модалку успеха
-      setShowSuccessModal(true);
+      const result = await dispatch(createOrder(orderData)).unwrap();
+
+      if (result?.data) {
+        setCreatedOrderId(result.data);
+      }
+      setShowSuccessContent(true);
     } catch (error) {
       console.error('Error creating order:', error);
       Alert.alert('Ошибка', 'Не удалось оформить заказ');
@@ -578,21 +583,79 @@ export default function CheckoutModal({
     );
   };
 
+  const router = useRouter();
+
   return (
     <>
       <RNModal
         visible={visible}
         animationType="slide"
         presentationStyle="pageSheet"
-        onRequestClose={onClose}
+        onRequestClose={() => {
+          if (showSuccessContent) {
+            setShowSuccessContent(false);
+            onClose();
+          } else {
+            onClose();
+          }
+        }}
       >
         <ThemedView style={styles.container} lightColor="#EBEDF0" darkColor="#040508">
           <ModalHeader 
             title="Оформление" 
-            showBackButton={true} 
-            onBackPress={onClose}
+            showBackButton={false} 
+            showCloseButton={true}
+            onBackPress={() => {
+          if (showSuccessContent) {
+            setShowSuccessContent(false);
+            onClose();
+          } else {
+            onClose();
+          }
+        }}
           />
+                  {showSuccessContent ? (
+          // Вместо SuccessModal рендерим SuccessContent
+          <ThemedView style={styles.successContainer}>
+              <Image
+                source={require('@/assets/icons/png/Icon.png')} 
+                // style={styles.imageCar}
+                resizeMode="contain"
+              />
+            <ThemedText style={styles.successTitle}>Спасибо за заказ!</ThemedText>
+            <ThemedText style={styles.successText}>
+              В ближайшее время с вами свяжется{"\n"}Ваш менеджер для уточнения деталей.
+            </ThemedText>
 
+            <View style={styles.successButtons}>
+              <PrimaryButton
+                title="Детали заказа"
+                onPress={() => {
+                  // setShowSuccessContent(false);
+                  if (createdOrderId) {
+                    setShowOrderDetailsModal(true);
+                  }
+                }}
+                variant="third"
+                size="md"
+                style={styles.successButton}
+              />
+              <PrimaryButton
+                title="В каталог"
+                onPress={() => {
+                  setShowSuccessContent(false);
+                  onClose();
+                  router.navigate('/dashboard');
+                  // Здесь можно добавить навигацию в каталог
+                }}
+                variant="primary"
+                size="md"
+                style={styles.successButton}
+              />
+            </View>
+          </ThemedView>
+        ) : (
+        <>
           {isLoadingRecipients ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color="#203686" />
@@ -800,7 +863,8 @@ export default function CheckoutModal({
               </ThemedView>
             </ScrollView>
           )}
-
+        </>
+        )}
           {/* Модалка выбора даты и времени */}
           <DateTimeModal
             visible={showCalendarModal}
@@ -832,109 +896,26 @@ export default function CheckoutModal({
           onAddCompany={handleAddCompany}
         />
       </RNModal>
-
+      <OrderDetailsModal
+        visible={showOrderDetailsModal}
+        onClose={() => {
+          setShowOrderDetailsModal(false);
+        }}
+        orderId={createdOrderId}
+      />
       {/* Модалка успешного заказа */}
-      <SuccessModal
+      {/* <SuccessModal
         visible={showSuccessModal}
         onClose={() => {
           setShowSuccessModal(false);
           onClose();
         }}
-      />
+      /> */}
     </>
   );
 }
 
-// Модалка успешного заказа
-function SuccessModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
-  const [modalTranslateY] = useState(new Animated.Value(screenHeight));
 
-  useEffect(() => {
-    if (visible) {
-      modalTranslateY.setValue(screenHeight);
-      Animated.spring(modalTranslateY, {
-        toValue: 0,
-        useNativeDriver: true,
-        damping: 20,
-        stiffness: 90,
-        mass: 0.8,
-      }).start();
-    }
-  }, [visible]);
-
-  const handleClose = () => {
-    Animated.timing(modalTranslateY, {
-      toValue: screenHeight,
-      duration: 250,
-      useNativeDriver: true,
-    }).start(() => {
-      onClose();
-    });
-  };
-
-  return (
-    <RNModal
-      visible={visible}
-      animationType="none"
-      transparent={true}
-      onRequestClose={handleClose}
-    >
-      <TouchableWithoutFeedback onPress={handleClose}>
-        <View style={styles.modalOverlay}>
-          <TouchableWithoutFeedback>
-            <Animated.View
-              style={[
-                styles.modalContent,
-                {
-                  transform: [{ translateY: modalTranslateY }],
-                },
-              ]}
-            >
-              {/* Защелка для свайпа */}
-              <TouchableOpacity
-                style={styles.swipeHandleContainer}
-                activeOpacity={0.7}
-                onPress={handleClose}
-              >
-                <View style={styles.swipeHandle} />
-              </TouchableOpacity>
-
-              <View style={styles.successContainer}>
-                <ThemedText style={styles.successTitle}>Спасибо за заказ!</ThemedText>
-                <ThemedText style={styles.successText}>
-                  В ближайшее время с вами свяжется{"\n"}Ваш менеджер для уточнения деталей.
-                </ThemedText>
-
-                <View style={styles.successButtons}>
-                  <PrimaryButton
-                    title="Детали заказа"
-                    onPress={() => {
-                      // Перейти к деталям заказа
-                      handleClose();
-                    }}
-                    variant="primary"
-                    size="md"
-                    style={styles.successButton}
-                  />
-                  <PrimaryButton
-                    title="Перейти в каталог"
-                    onPress={() => {
-                      // Перейти в каталог
-                      handleClose();
-                    }}
-                    variant="third"
-                    size="md"
-                    style={styles.successButton}
-                  />
-                </View>
-              </View>
-            </Animated.View>
-          </TouchableWithoutFeedback>
-        </View>
-      </TouchableWithoutFeedback>
-    </RNModal>
-  );
-}
 
 
 // Вспомогательные функции для работы с датами и временем
@@ -2015,14 +1996,16 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   successContainer: {
+    marginTop: 8,
     padding: 24,
     alignItems: 'center',
+    borderRadius: 24,
   },
   successTitle: {
     fontSize: 24,
     fontWeight: '600',
-    color: '#203686',
     marginBottom: 16,
+    marginTop: 24,
     textAlign: 'center',
   },
   successText: {

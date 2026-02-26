@@ -1,3 +1,4 @@
+import { CloseIcon } from '@/assets/icons/icons';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import React from 'react';
@@ -8,13 +9,15 @@ interface ModalHeaderProps {
     onBackPress?: () => void;
     showBackButton?: boolean;
     content?: any;
+    showCloseButton?:boolean
   }
   
 export const ModalHeader: React.FC<ModalHeaderProps> = ({ 
     title, 
     onBackPress, 
     showBackButton = true, 
-    content 
+    content,
+    showCloseButton
 }) => {
 
     const truncateTitle = (text: string | undefined, maxLength: number = 25) => {
@@ -25,7 +28,7 @@ export const ModalHeader: React.FC<ModalHeaderProps> = ({
 
     return (
         <ThemedView lightColor={'#FFFFFF'} darkColor='#151516' style={headerStyles.allCont}>
-            {title || showBackButton ?
+            {title || showBackButton || showCloseButton ?
             <ThemedView lightColor={'#FFFFFF'} darkColor='#151516' style={headerStyles.container}>
                 {showBackButton && (
                     <TouchableOpacity style={headerStyles.backButton} onPress={onBackPress}>
@@ -39,11 +42,19 @@ export const ModalHeader: React.FC<ModalHeaderProps> = ({
                 >
                     {truncateTitle(title)}
                 </ThemedText>
+                {showCloseButton && (
+                    <TouchableOpacity style={headerStyles.closeIcon} onPress={onBackPress}>
+                        <CloseIcon/>
+                    </TouchableOpacity>
+                )}
             </ThemedView>
             : null}
+            {!showCloseButton ?
             <View style={(!title || !showBackButton) && headerStyles.containerSub}>
             {content ? content : null}
             </View>
+            : null
+            }
         </ThemedView>
     );
 };
@@ -77,6 +88,15 @@ const headerStyles = StyleSheet.create({
         position: 'absolute',
         left: 20,
         bottom: 12,
+        width: 40,
+        height: 40,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    closeIcon:{
+        position: 'absolute',
+        right: 20,
+        bottom: 16,
         width: 40,
         height: 40,
         justifyContent: 'center',

@@ -1,22 +1,24 @@
-import { ArrowIconRight, Copy } from "@/assets/icons/icons";
+import { ArrowIconLeft, ArrowIconRight, CalendarFilledIcon, Copy, IconAccept, IconCard, IconCloseNew, IconCompanyNew, IconDocument, IconGeo, IconMessage, IconNumber, IconUser } from "@/assets/icons/icons";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { axdef, baseUrl } from "@/features/shared/services/axios";
 import * as Clipboard from "expo-clipboard";
 import { Image } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Animated,
-    Dimensions,
-    Modal,
-    ScrollView,
-    StyleSheet,
-    TouchableOpacity,
-    TouchableWithoutFeedback,
-    View,
+  ActivityIndicator,
+  Alert,
+  Animated,
+  Dimensions,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
 } from "react-native";
+import { PrimaryButton } from "./components/PrimartyButton";
 
 const { height: screenHeight } = Dimensions.get("window");
 
@@ -29,10 +31,17 @@ interface OrderProduct {
   quantity: number;
   totalPrice: number;
   measureType: string;
+  unitPrice: any;
+}
+
+interface OrderStatus {
+  id: string;
+  name: string;
 }
 
 interface OrderDetails {
   id: number;
+  orderId: any;
   orderStatus: string;
   products: OrderProduct[];
   deliveryDate: string;
@@ -43,12 +52,21 @@ interface OrderDetails {
   totalAmount: number;
   totalWeight: number;
   createdAt: string;
+  // Новые поля из бэка
+  currentStatusId: string;
+  statuses: OrderStatus[];
+  recipientName?: string;
+  recipientPhone?: string;
+  recipientEmail?: string;
+  paymentType?: string;
+  companyName?: string;
+  companyAddress?: string;
 }
 
 interface OrderDetailsModalProps {
   visible: boolean;
   onClose: () => void;
-  orderId: number;
+  orderId: any;
 }
 
 export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
@@ -59,8 +77,11 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
   const [orderDetails, setOrderDetails] = useState<OrderDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [productsModalVisible, setProductsModalVisible] = useState(false);
-  const [modalTranslateY] = useState(new Animated.Value(screenHeight));
-  const [isClosing, setIsClosing] = useState(false);
+  const [statusModalVisible, setStatusModalVisible] = useState(false);
+  const [productsModalTranslateY] = useState(new Animated.Value(screenHeight));
+  const [statusModalTranslateY] = useState(new Animated.Value(screenHeight));
+  const [isProductsModalClosing, setIsProductsModalClosing] = useState(false);
+  const [isStatusModalClosing, setIsStatusModalClosing] = useState(false);
 
   // Загрузка деталей заказа
   useEffect(() => {
@@ -74,8 +95,8 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
   // Анимация для модалки с товарами
   useEffect(() => {
     if (productsModalVisible) {
-      modalTranslateY.setValue(screenHeight);
-      Animated.spring(modalTranslateY, {
+      productsModalTranslateY.setValue(screenHeight);
+      Animated.spring(productsModalTranslateY, {
         toValue: 0,
         useNativeDriver: true,
         damping: 20,
@@ -85,17 +106,45 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
     }
   }, [productsModalVisible]);
 
-  const closeProductsModal = () => {
-    if (isClosing) return;
+  // Анимация для модалки со статусами
+  useEffect(() => {
+    if (statusModalVisible) {
+      statusModalTranslateY.setValue(screenHeight);
+      Animated.spring(statusModalTranslateY, {
+        toValue: 0,
+        useNativeDriver: true,
+        damping: 20,
+        stiffness: 90,
+        mass: 0.8,
+      }).start();
+    }
+  }, [statusModalVisible]);
 
-    setIsClosing(true);
-    Animated.timing(modalTranslateY, {
+  const closeProductsModal = () => {
+    if (isProductsModalClosing) return;
+
+    setIsProductsModalClosing(true);
+    Animated.timing(productsModalTranslateY, {
       toValue: screenHeight,
       duration: 250,
       useNativeDriver: true,
     }).start(() => {
-      setIsClosing(false);
+      setIsProductsModalClosing(false);
       setProductsModalVisible(false);
+    });
+  };
+
+  const closeStatusModal = () => {
+    if (isStatusModalClosing) return;
+
+    setIsStatusModalClosing(true);
+    Animated.timing(statusModalTranslateY, {
+      toValue: screenHeight,
+      duration: 250,
+      useNativeDriver: true,
+    }).start(() => {
+      setIsStatusModalClosing(false);
+      setStatusModalVisible(false);
     });
   };
 
@@ -115,7 +164,6 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
   const handleCopyId = async () => {
     if (orderDetails) {
       await Clipboard.setStringAsync(orderDetails.id.toString());
-      Alert.alert("Скопировано", "ID заказа скопирован в буфер обмена");
     }
   };
 
@@ -142,6 +190,31 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
     });
   };
 
+  const getCurrentStatusName = () => {
+    if (!orderDetails?.statuses || !orderDetails?.currentStatusId) return orderDetails?.orderStatus || "";
+    const currentStatus = orderDetails.statuses.find(
+      status => status.id === orderDetails.currentStatusId
+    );
+    return currentStatus?.name || orderDetails.orderStatus || "";
+  };
+
+  const getCurrentStatusIndex = () => {
+    if (!orderDetails?.statuses || !orderDetails?.currentStatusId) return -1;
+    return orderDetails.statuses.findIndex(
+      status => status.id === orderDetails.currentStatusId
+    );
+  };
+
+  const isStatusCompleted = (index: number) => {
+    const currentIndex = getCurrentStatusIndex();
+    return index <= currentIndex;
+  };
+
+  const isStatusCurrent = (index: number) => {
+    const currentIndex = getCurrentStatusIndex();
+    return index === currentIndex;
+  };
+
   if (!visible) return null;
 
   return (
@@ -160,7 +233,7 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
           {/* Хедер как в SearchScreenWithHistory */}
           <ThemedView style={styles.header}>
             <TouchableOpacity onPress={onClose} style={styles.backButton}>
-              <ThemedText style={styles.backArrow}>←</ThemedText>
+              <ArrowIconLeft/>
             </TouchableOpacity>
 
             <View style={styles.headerTitleContainer}>
@@ -168,7 +241,7 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
             </View>
 
             <TouchableOpacity onPress={handleCopyId} style={styles.copyButton}>
-              <Copy />
+              <Copy/>
             </TouchableOpacity>
           </ThemedView>
 
@@ -188,32 +261,39 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
             >
               {/* Белый блок */}
               <ThemedView lightColor="#FFFFFF" style={styles.whiteBlock}>
-                {/* Статус заказа */}
-                <View style={styles.statusRow}>
-                  <ThemedText style={styles.statusText}>
-                    {orderDetails.orderStatus}
+                {/* Статус заказа - теперь кликабельный */}
+                <TouchableOpacity 
+                  style={styles.statusRow} 
+                  onPress={() => setStatusModalVisible(true)}
+                >
+                  <ThemedText lightColor="#203686" style={styles.statusText}>
+                    {getCurrentStatusName()}
                   </ThemedText>
                   <ArrowIconRight />
-                </View>
+                </TouchableOpacity>
 
                 {/* Информационные блоки */}
                 <View style={styles.infoContainer}>
                   {/* Номер заказа */}
                   <View style={styles.infoRow}>
-                    <View style={styles.iconPlaceholder} />
+                    <View style={styles.iconPlaceholder}>
+                        <IconNumber/>
+                    </View>
                     <View style={styles.infoContent}>
                       <ThemedText lightColor="#80818B" style={styles.infoLabel}>
                         Номер заказа
                       </ThemedText>
                       <ThemedText style={styles.infoValue}>
-                        №{orderDetails.id}
+                        №{orderDetails.orderId}
                       </ThemedText>
                     </View>
                   </View>
 
                   {/* Ожидаемая дата доставки */}
                   <View style={styles.infoRow}>
-                    <View style={styles.iconPlaceholder} />
+                    <View style={styles.iconPlaceholder}>
+                      <CalendarFilledIcon/>
+                    </View>
                     <View style={styles.infoContent}>
                       <ThemedText lightColor="#80818B" style={styles.infoLabel}>
                         Ожидаемая дата доставки
@@ -226,20 +306,26 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
 
                   {/* Компания */}
                   <View style={styles.infoRow}>
-                    <View style={styles.iconPlaceholder} />
+                    <View style={styles.iconPlaceholder}>
+                      <IconCompanyNew/>
+                    </View>
+
                     <View style={styles.infoContent}>
                       <ThemedText lightColor="#80818B" style={styles.infoLabel}>
                         Компания
                       </ThemedText>
                       <ThemedText style={styles.infoValue}>
-                        {orderDetails.company || 'ООО "ЭкорФиш"'}
+                        {orderDetails.companyName || orderDetails.company || 'ООО "ЭкорФиш"'}
                       </ThemedText>
                     </View>
                   </View>
 
                   {/* Адрес доставки */}
                   <View style={styles.infoRow}>
-                    <View style={styles.iconPlaceholder} />
+                    <View style={styles.iconPlaceholder}>
+                      <IconGeo/>
+                    </View>
+
                     <View style={styles.infoContent}>
                       <ThemedText lightColor="#80818B" style={styles.infoLabel}>
                         Адрес доставки
@@ -253,26 +339,32 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
 
                   {/* Получатель */}
                   <View style={styles.infoRow}>
-                    <View style={styles.iconPlaceholder} />
+                    <View style={styles.iconPlaceholder}>
+                      <IconUser/>
+                    </View>
                     <View style={styles.infoContent}>
                       <ThemedText lightColor="#80818B" style={styles.infoLabel}>
                         Получатель
                       </ThemedText>
                       <ThemedText style={styles.infoValue}>
-                        {orderDetails.recipient || "Иванов Иван Иванович"}
+                        {orderDetails.recipientName || orderDetails.recipient || "Иванов Иван Иванович"}
                       </ThemedText>
                     </View>
                   </View>
 
                   {/* Оплата */}
                   <View style={styles.infoRow}>
-                    <View style={styles.iconPlaceholder} />
+                    <View style={styles.iconPlaceholder}>
+                      <IconCard/>
+                    </View>
                     <View style={styles.infoContent}>
                       <ThemedText lightColor="#80818B" style={styles.infoLabel}>
                         Оплата
                       </ThemedText>
                       <ThemedText style={styles.infoValue}>
-                        {orderDetails.payment || "Наличными при получении"}
+                        {orderDetails.paymentType === "Cashless" ? "Безналичный расчет" : 
+                         orderDetails.paymentType === "Cash" ? "Наличными" : 
+                         orderDetails.payment || "Наличными при получении"}
                       </ThemedText>
                     </View>
                   </View>
@@ -280,7 +372,7 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
 
                 {/* Итого */}
                 <View style={styles.totalContainer}>
-                  <ThemedText style={styles.totalLabel}>Итого</ThemedText>
+                  <ThemedText lightColor="#80818B" style={styles.totalLabel}>Итого</ThemedText>
                   <ThemedText style={styles.totalValue}>
                     {formatPrice(orderDetails.totalAmount)} ₽
                   </ThemedText>
@@ -291,7 +383,7 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                   <ThemedText lightColor="#80818B" style={styles.weightLabel}>
                     Общий вес заказа
                   </ThemedText>
-                  <ThemedText style={styles.weightValue}>
+                  <ThemedText lightColor="#80818B" style={styles.weightValue}>
                     {orderDetails.totalWeight ||
                       orderDetails.products?.reduce(
                         (acc, p) => acc + p.quantity,
@@ -304,23 +396,37 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
 
                 {/* Кнопки */}
                 <View style={styles.buttonsRow}>
-                  <TouchableOpacity style={styles.cancelButton}>
-                    <ThemedText style={styles.cancelButtonText}>
-                      Отменить
-                    </ThemedText>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.messageButton}>
-                    <ThemedText style={styles.messageButtonText}>
-                      Написать
-                    </ThemedText>
-                  </TouchableOpacity>
+                  <PrimaryButton
+                    title="Отменить"
+                    onPress={() => console.log('Отменить заказ')}
+                    variant="third"
+                    size="md"
+                    activeOpacity={0.8}
+                    fullWidth
+                    style={styles.cancelButton}
+                    customIcon={<IconCloseNew/>}
+                  />
+                  <PrimaryButton
+                    title="Написать"
+                    onPress={() => console.log('Написать сообщение')}
+                    variant="third"
+                    size="md"
+                    style={styles.messageButton}
+                    activeOpacity={0.8}
+                    fullWidth
+                    customIcon={<IconMessage/>}
+                  />
                 </View>
-
-                <TouchableOpacity style={styles.documentsButton}>
-                  <ThemedText style={styles.documentsButtonText}>
-                    Документы
-                  </ThemedText>
-                </TouchableOpacity>
+                <PrimaryButton
+                    title="Документы"
+                    onPress={() => console.log('Документы')}
+                    variant="third"
+                    size="md"
+                    style={styles.documentsButton}
+                    activeOpacity={0.8}
+                    fullWidth
+                    customIcon={<IconDocument/>}
+                  />
               </ThemedView>
 
               {/* Состав заказа */}
@@ -357,23 +463,29 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                       )}
                     </View>
                     <View style={styles.productInfo}>
+                    <View style={styles.productInfoMain}>
                       <ThemedText style={styles.productName} numberOfLines={2}>
                         {item.productName}
                       </ThemedText>
+  
+                      <ThemedText
+                        lightColor="#80818B"
+                        style={styles.productQuantity}
+                      >
+                        {item.unitPrice}₽ /{" "}
+                        {item.measureType === "килограмм" ? "кг" : "шт"} •{" "}
+                        {item.quantity}{" "}
+                        {item.measureType === "килограмм" ? "кг" : "шт"}
+                      </ThemedText>
+                      </View>
+
+                      <View>
                       <View style={styles.productPriceRow}>
                         <ThemedText style={styles.productPrice}>
                           {formatPrice(item.totalPrice)} ₽
                         </ThemedText>
                       </View>
-                      <ThemedText
-                        lightColor="#80818B"
-                        style={styles.productQuantity}
-                      >
-                        {item.price}₽ /{" "}
-                        {item.measureType === "килограмм" ? "кг" : "шт"} •{" "}
-                        {item.quantity}{" "}
-                        {item.measureType === "килограмм" ? "кг" : "шт"}
-                      </ThemedText>
+                      </View>
                     </View>
                   </View>
                 ))}
@@ -397,7 +509,7 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
         </ThemedView>
       </Modal>
 
-      {/* Модалка со всеми товарами как AddressSelectionModal */}
+      {/* Модалка со всеми товарами */}
       <Modal
         visible={productsModalVisible}
         animationType="none"
@@ -411,7 +523,7 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                 style={[
                   styles.modalContainer,
                   {
-                    transform: [{ translateY: modalTranslateY }],
+                    transform: [{ translateY: productsModalTranslateY }],
                   },
                 ]}
               >
@@ -453,47 +565,148 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                         )}
                       </View>
                       <View style={styles.modalProductInfo}>
+                        <View style={styles.productInfoMain}>
                         <ThemedText
                           style={styles.modalProductName}
                           numberOfLines={2}
                         >
                           {item.productName}
                         </ThemedText>
-                        <View style={styles.modalProductPriceRow}>
-                          <ThemedText style={styles.modalProductPrice}>
-                            {formatPrice(item.totalPrice)} ₽
-                          </ThemedText>
-                        </View>
+              
                         <ThemedText
                           lightColor="#80818B"
                           style={styles.modalProductQuantity}
                         >
-                          {item.price}₽ /{" "}
+                          {item.unitPrice}₽ /{" "}
                           {item.measureType === "килограмм" ? "кг" : "шт"} •{" "}
                           {item.quantity}{" "}
                           {item.measureType === "килограмм" ? "кг" : "шт"}
                         </ThemedText>
+                        </View>
+                        <View style={styles.productInfoMain}>
+                          <ThemedText style={styles.modalProductPrice}>
+                            {formatPrice(item.totalPrice)} ₽
+                          </ThemedText>
+                        </View>
                       </View>
                     </View>
                   ))}
                 </ScrollView>
-
-                {/* Кнопка внизу */}
-                <View style={styles.modalFooter}>
-                  <TouchableOpacity
-                    style={styles.modalCloseButton}
-                    onPress={closeProductsModal}
-                  >
-                    <ThemedText style={styles.modalCloseButtonText}>
-                      Закрыть
-                    </ThemedText>
-                  </TouchableOpacity>
-                </View>
               </Animated.View>
             </TouchableWithoutFeedback>
           </View>
         </TouchableWithoutFeedback>
       </Modal>
+
+      {/* Модалка со статусами */}
+      <Modal
+  visible={statusModalVisible}
+  animationType="none"
+  transparent={true}
+  onRequestClose={closeStatusModal}
+>
+  <TouchableWithoutFeedback onPress={closeStatusModal}>
+    <View style={styles.modalOverlay}>
+      <TouchableWithoutFeedback>
+        <Animated.View
+          style={[
+            styles.modalContainer,
+            {
+              transform: [{ translateY: statusModalTranslateY }],
+            },
+          ]}
+        >
+          {/* Защелка для свайпа */}
+          <TouchableOpacity
+            style={styles.swipeHandleContainer}
+            activeOpacity={0.7}
+            onPress={closeStatusModal}
+          >
+            <View style={styles.swipeHandle} />
+          </TouchableOpacity>
+
+          <View style={styles.modalHeader}>
+            <ThemedText style={styles.modalTitle}>
+              Статус вашего заказа
+            </ThemedText>
+          </View>
+
+          {/* Список статусов */}
+          <ScrollView
+            style={styles.statusesList}
+            showsVerticalScrollIndicator={false}
+          >
+            {orderDetails?.statuses?.map((status, index) => {
+              const currentIndex = getCurrentStatusIndex();
+              const isCurrent = index === currentIndex;
+              const isNext = index === currentIndex + 1;
+              const isPast = index < currentIndex;
+              const isFuture = index > currentIndex + 1;
+              const isLast = index === orderDetails.statuses.length - 1;
+              
+              // Определяем цвета линии
+              let lineColors: [string, string];
+              if (isPast || isCurrent) {
+                lineColors = ["#203686", "#203686"]; // Для пройденных и текущего - синяя
+              } else if (isNext) {
+                lineColors = ["#203686", "#80818B"]; // Для следующего - градиент синий -> серый
+              } else {
+                lineColors = ["#80818B", "#80818B"]; // Для будущих - серая
+              }
+
+              return (
+                <View key={status.id} style={styles.statusItemContainer}>
+                  <View style={styles.statusLeftColumn}>
+                    {/* Кружок статуса */}
+                    <View style={[
+                      styles.statusCircle,
+                      (isPast || isCurrent) && styles.statusCircleCompleted,
+                      isNext && styles.statusCircleNext,
+                      isFuture && styles.statusCirclePending,
+                    ]}>
+                      {(isPast || isCurrent) && (
+                        <View style={styles.statusCircleCheckmark}>
+                          <IconAccept/>
+                          {/* <View style={styles.checkmarkKick} /> */}
+                        </View>
+                      )}
+                      {isNext && (
+                        <View style={styles.statusCurrentDot} />
+                      )}
+                    </View>
+                    
+                    {/* Линия между статусами (кроме последнего) */}
+                    {!isLast && (
+                      <View style={styles.statusLineContainer}>
+                        <LinearGradient
+                          colors={lineColors}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 0, y: 1 }}
+                          style={styles.statusLine}
+                        />
+                      </View>
+                    )}
+                  </View>
+
+                  {/* Название статуса */}
+                  <View style={styles.statusRightColumn}>
+                    <ThemedText style={[
+                      styles.statusName,
+                      (isPast || isCurrent || isNext) && styles.statusNameCompleted
+                    ]}>
+                      {status.name}
+                    </ThemedText>
+            
+                  </View>
+                </View>
+              );
+            })}
+          </ScrollView>
+        </Animated.View>
+      </TouchableWithoutFeedback>
+    </View>
+  </TouchableWithoutFeedback>
+</Modal>
     </>
   );
 };
@@ -509,6 +722,8 @@ const styles = StyleSheet.create({
     paddingTop: 50,
     paddingBottom: 8,
     gap: 12,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
   },
   backButton: {
     padding: 8,
@@ -518,17 +733,23 @@ const styles = StyleSheet.create({
   },
   headerTitleContainer: {
     flex: 1,
+    alignItems: "center",
+    justifyContent: 'center'
+
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: "600",
+    alignItems: "center",
+    justifyContent: 'center'
   },
   copyButton: {
     padding: 8,
   },
   content: {
     flex: 1,
-    paddingHorizontal: 16,
+    // paddingHorizontal: 16,
+    marginTop: 8,
   },
   whiteBlock: {
     borderRadius: 24,
@@ -545,45 +766,46 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   statusText: {
-    fontSize: 16,
+    fontSize: 20,
     fontWeight: "600",
   },
   infoContainer: {
-    gap: 16,
+    // gap: 16,
     marginBottom: 20,
   },
   infoRow: {
     flexDirection: "row",
     gap: 12,
+    alignItems: 'center'
   },
   iconPlaceholder: {
-    width: 24,
-    height: 24,
+    // width: 24,
+    padding: 8,
+    // height: 24,
     borderRadius: 8,
     backgroundColor: "#F2F4F7",
   },
   infoContent: {
     flex: 1,
+    borderBottomWidth: 1,
+    borderColor: '#F0F3F7',
+    paddingBottom: 12,
   },
   infoLabel: {
-    fontSize: 12,
-    fontWeight: "400",
-    marginBottom: 4,
+    fontSize: 14,
+    fontWeight: "500",
+    // marginBottom: 4,
   },
   infoValue: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: "500",
   },
   totalContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 12,
-    borderTopWidth: 1,
-    borderTopColor: "#F0F3F7",
+    flexDirection: "column",
+    // paddingTop: 12,
   },
   totalLabel: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: "500",
   },
   totalValue: {
@@ -592,9 +814,9 @@ const styles = StyleSheet.create({
   },
   weightContainer: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
     paddingBottom: 16,
+    gap: 3
   },
   weightLabel: {
     fontSize: 14,
@@ -614,11 +836,9 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#FF3B30",
     alignItems: "center",
   },
   cancelButtonText: {
-    color: "#FF3B30",
     fontSize: 14,
     fontWeight: "500",
   },
@@ -627,7 +847,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#203686",
     alignItems: "center",
   },
   messageButtonText: {
@@ -638,7 +857,7 @@ const styles = StyleSheet.create({
   documentsButton: {
     paddingVertical: 12,
     borderRadius: 12,
-    backgroundColor: "#F2F4F7",
+    // backgroundColor: "#F2F4F7",
     alignItems: "center",
   },
   documentsButtonText: {
@@ -658,7 +877,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   productsTitle: {
-    fontSize: 16,
+    fontSize: 20,
     fontWeight: "600",
   },
   moreButton: {
@@ -682,6 +901,12 @@ const styles = StyleSheet.create({
   },
   productInfo: {
     flex: 1,
+    flexDirection: 'row'
+  },
+  productInfoMain: {
+    display: 'flex',
+    flex: 1,
+    flexDirection: 'column'
   },
   productName: {
     fontSize: 14,
@@ -726,7 +951,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  // Стили для модалки как в AddressSelectionModal
+  // Стили для модалок
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.5)",
@@ -736,7 +961,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    maxHeight: "80%",
+    maxHeight: "60%",
   },
   swipeHandleContainer: {
     alignItems: "center",
@@ -759,6 +984,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#1B1B1C",
   },
+  // Стили для списка товаров
   productsList: {
     paddingHorizontal: 20,
     paddingVertical: 16,
@@ -769,8 +995,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     gap: 12,
     paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F0F0F0",
   },
   modalProductImageContainer: {
     width: 74,
@@ -783,7 +1007,8 @@ const styles = StyleSheet.create({
     height: "100%",
   },
   modalProductInfo: {
-    flex: 1,
+    flexDirection: 'row',
+    // flex: 1,
   },
   modalProductName: {
     fontSize: 14,
@@ -802,6 +1027,47 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "400",
   },
+  // Стили для списка статусов
+  statusesList: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    // maxHeight: "60%",
+  },
+  statusItemContainer: {
+    flexDirection: "row",
+    minHeight: 60,
+  },
+  statusLeftColumn: {
+    width: 30,
+    alignItems: "center",
+    position: "relative",
+  },
+  statusCircle: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    zIndex: 2,
+  },
+  
+ 
+  statusCircleCurrent: {
+    borderColor: "#203686",
+    backgroundColor: "#FFFFFF",
+    borderWidth: 2,
+    padding: 2,
+  },
+
+  
+  statusRightColumn: {
+    flex: 1,
+    paddingLeft: 12,
+    paddingBottom: 20,
+  },
+  
   modalFooter: {
     paddingHorizontal: 20,
     paddingVertical: 16,
@@ -816,5 +1082,78 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "600",
+  },
+  statusCircleCompleted: {
+    borderColor: "#203686",
+    backgroundColor: "#203686",
+  },
+  statusCirclePending: {
+    borderColor: "#80818B",
+    backgroundColor: "#FFFFFF",
+  },
+  statusCircleNext: {
+    borderColor: "#203686",
+    backgroundColor: "#FFFFFF",
+    borderWidth: 2,
+  },
+  statusCurrentDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: "#203686",
+  },
+  statusCircleCheckmark: {
+    width: 10,
+    height: 10,
+    position: "relative",
+  },
+  checkmarkStem: {
+    position: "absolute",
+    width: 2,
+    height: 6,
+    backgroundColor: "#FFFFFF",
+    left: 2,
+    top: 0,
+    transform: [{ rotate: "45deg" }],
+  },
+  checkmarkKick: {
+    position: "absolute",
+    width: 2,
+    height: 3,
+    backgroundColor: "#FFFFFF",
+    left: 4,
+    top: 4,
+    transform: [{ rotate: "-45deg" }],
+  },
+  statusLineContainer: {
+    position: "absolute",
+    top: 20,
+    width: 2,
+    height: 45,
+    alignItems: "center",
+  },
+  statusLine: {
+    width: 2,
+    height: "120%",
+  },
+  statusName: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: "#80818B",
+    marginBottom: 4,
+  },
+  statusNameCompleted: {
+    color: "#1B1B1C",
+  },
+  statusCurrentLabel: {
+    fontSize: 12,
+    color: "#203686",
+    fontWeight: "500",
+  },
+  statusNextLabel: {
+    fontSize: 12,
+    color: "#203686",
+    fontWeight: "500",
+    opacity: 0.7,
   },
 });
