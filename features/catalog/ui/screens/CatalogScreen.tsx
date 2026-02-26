@@ -4,18 +4,36 @@ import fish from '@/assets/icons/png/fish.png';
 import otherMeet from '@/assets/icons/png/otherMeet.png';
 import { ThemedView } from '@/components/themed-view';
 import SearchInput from '@/features/auth/ui/components/SearchInput';
+import { SearchScreenWithHistory } from '@/features/home/ui/screens/SearchScreenWithHistory';
 import { CatalogCard } from '@/features/shared/ui/CatalogCard';
 import { useAppSelector } from '@/store/hooks';
-import React from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export const CatalogScreen = () => {
+  const [showSearch, setShowSearch] = useState(false);
+
   const handleButtonPress = () => {
     console.log('Button pressed!');
   };
   const catalog = useAppSelector((state) => state.auth.categories);
+  const router = useRouter();
 
+  const handleSearchPress = () => {
+    setShowSearch(true);
+  };
+  const handleSearchClose = () => {
+    setShowSearch(false);
+  };
+
+  const handleSearchSubmit = (query: string) => {
+    // Переходим на экран каталога с поиском
+    //@ts-ignore
+    router.push(`dashboard/${encodeURIComponent("fsfs")}?catalogId=${" "}&catalogName=${undefined}&children=${encodeURIComponent("")}`,
+    );
+  };
   // const catalog = [
   //   {
   //     id: 1,
@@ -100,13 +118,22 @@ export const CatalogScreen = () => {
     
   // ];
   return (
+    <>
       <ScrollView 
         className="flex-1"
         showsVerticalScrollIndicator={false}
       >
         <SafeAreaView >
         <ThemedView lightColor={'#FFFFFF'} style={styles.container}>
-          <SearchInput isActiveButton={false} isHeader={true}/>
+        <TouchableOpacity onPress={handleSearchPress} activeOpacity={1}>
+            <View pointerEvents="none">
+              <SearchInput
+                isActiveButton={false}
+                placeholder="Найти товары"
+                disabled={false}
+              />
+            </View>
+          </TouchableOpacity>
         </ThemedView>
         {/* <ThemedView lightColor={'#FFFFFF'} style={styles.container}> */}
         <View style={styles.catalog}>
@@ -126,6 +153,13 @@ export const CatalogScreen = () => {
 
 
       </ScrollView>
+
+      <SearchScreenWithHistory
+        visible={showSearch}
+        onClose={handleSearchClose}
+        onSearch={handleSearchSubmit}
+      />
+    </>
   );
 };
 
@@ -133,7 +167,7 @@ const styles = StyleSheet.create({
   container: {
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
-    // paddingBottom: 16
+    paddingTop: 62
   },
   catalog: {
     marginTop: 8,

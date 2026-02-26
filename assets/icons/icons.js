@@ -1686,3 +1686,49 @@ export const IconAccept = ({
   />
 </Svg>
 );
+
+export const IconSearchNew = ({
+  width = 20,
+  height = 20,
+  color = '#1B1B1C',
+  ...props
+}) => (
+  <Svg width={width} height={height} viewBox="0 0 20 20" fill="none" {...props}>
+    <Ellipse
+      cx="9.68539"
+      cy="9.51427"
+      rx="7.18539"
+      ry="7.01427"
+      stroke={color}
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <Path
+      d="M14.6826 14.7573L17.4997 17.5002"
+      stroke={color}
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);
+
+
+export const IconShare = ({
+  width = 20,
+  height = 20,
+  color = '#1B1B1C',
+  ...props
+}) => (
+  <Svg width={width} height={height} viewBox="0 0 20 20" fill="none" {...props}>
+    <Path
+      d="M18.5116 7.91275L14.182 3.39083C13.5308 2.71078 12.998 2.94124 12.998 3.90304V5.92092C6.82264 5.92092 1.73198 10.757 1 17C3.10229 14.0002 6.49709 12.0504 10.3292 12.0504C11.2482 12.0504 12.1409 12.1658 12.998 12.3775V14.3955C12.998 15.3572 13.5308 15.5878 14.182 14.9076L18.5116 10.3858C19.1628 9.70574 19.1628 8.5928 18.5116 7.91275Z"
+      stroke={color}
+      strokeWidth="1.5"
+      strokeMiterlimit="10"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);

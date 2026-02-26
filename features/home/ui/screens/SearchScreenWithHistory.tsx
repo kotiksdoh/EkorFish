@@ -1,20 +1,18 @@
 // features/search/ui/SearchScreenWithHistory.tsx
-import React, { useState, useEffect, useRef } from 'react';
-import {
-  View,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  ScrollView,
-  Text,
-  Keyboard,
-} from 'react-native';
+import { ArrowIconLeft, CloseIcon } from '@/assets/icons/icons';
+import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
-import { ThemedView } from '@/components/themed-view';
-import { ThemedText } from '@/components/themed-text';
-import { SearchIcon,  CloseIcon } from '@/assets/icons/icons';
-import SpecialOffers from '../components/SpecialOffers/SpecialOffers';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  Keyboard,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View
+} from 'react-native';
 import Catalog from '../components/Catalog/Catalog';
 
 const SEARCH_HISTORY_KEY = '@search_history';
@@ -121,17 +119,28 @@ export const SearchScreenWithHistory: React.FC<SearchScreenWithHistoryProps> = (
     onClose();
   };
 
+  const handleClearInput = () => {
+    setSearchQuery('');
+    inputRef.current?.focus();
+  };
+
+  const handleSearchIconPress = () => {
+    onClose();
+  };
+
   if (!visible) return null;
 
   return (
     <ThemedView style={styles.container} lightColor="#EBEDF0" darkColor="#040508">
-      <ThemedView style={styles.header}>
-        <TouchableOpacity onPress={onClose} style={styles.backButton}>
-          {`<`}
-        </TouchableOpacity>
-        
-        <View style={styles.searchContainer}>
-          <SearchIcon stroke="#80818B" />
+      <ThemedView 
+                  style={[
+                    searchHistory.length > 0 ? styles.headerWhithoutBorders : styles.header,
+                  ]}
+      >
+        <ThemedView lightColor='#03051E08' style={styles.searchContainer}>
+          <TouchableOpacity onPress={handleSearchIconPress}>
+            <ArrowIconLeft stroke="#80818B" />
+          </TouchableOpacity>
           <TextInput
             ref={inputRef}
             style={styles.searchInput}
@@ -142,8 +151,14 @@ export const SearchScreenWithHistory: React.FC<SearchScreenWithHistoryProps> = (
             onSubmitEditing={handleSearch}
             returnKeyType="search"
           />
-        </View>
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={handleClearInput} style={styles.clearInputButton}>
+              <CloseIcon stroke="#80818B" width={20} height={20} />
+            </TouchableOpacity>
+          )}
+        </ThemedView>
       </ThemedView>
+      
       <ThemedView style={styles.history}>
         {searchHistory.length > 0 && (
           <>
@@ -153,35 +168,31 @@ export const SearchScreenWithHistory: React.FC<SearchScreenWithHistoryProps> = (
                 <ThemedText style={styles.clearButton}>Очистить</ThemedText>
               </TouchableOpacity>
             </View>
-            <View
-                style={styles.historyMainCont}
-            >
-            {searchHistory.map((item, index) => (
-              <TouchableOpacity
-                key={index}
-                style={styles.historyItem}
-                onPress={() => handleHistoryItemPress(item)}
-              >
-                <ThemedText style={styles.historyItemText}>{item}</ThemedText>
+            <View style={styles.historyMainCont}>
+              {searchHistory.map((item, index) => (
                 <TouchableOpacity
-                  onPress={() => handleRemoveHistoryItem(item)}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  key={index}
+                  style={styles.historyItem}
+                  onPress={() => handleHistoryItemPress(item)}
                 >
-                  <CloseIcon stroke="#80818B" width={16} height={16} />
+                  <ThemedText style={styles.historyItemText}>{item}</ThemedText>
+                  <TouchableOpacity
+                    onPress={() => handleRemoveHistoryItem(item)}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  >
+                    <CloseIcon stroke="#80818B" width={16} height={16} />
+                  </TouchableOpacity>
                 </TouchableOpacity>
-              </TouchableOpacity>
-            ))}
+              ))}
             </View>
           </>
         )}
       </ThemedView>
+      
       <ScrollView style={styles.content}>
-        
-
-      <SpecialOffers/>
-      <Catalog/>
+        {/* <SpecialOffers/> */}
+        <Catalog/>
       </ScrollView>
-
     </ThemedView>
   );
 };
@@ -199,8 +210,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingTop: 50,
-    paddingBottom: 8,
+    paddingTop: 78,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+    paddingBottom: 16,
+    gap: 12,
+  },
+  headerWhithoutBorders:{
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingTop: 78,
+    paddingBottom: 16,
     gap: 12,
   },
   backButton: {
@@ -210,8 +231,9 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F2F4F7',
     borderRadius: 12,
+    // borderBottomLeftRadius: 24,
+    // borderBottomRightRadius: 24,
     paddingHorizontal: 12,
     height: 48,
   },
@@ -222,14 +244,19 @@ const styles = StyleSheet.create({
     color: '#1B1B1C',
     padding: 0,
   },
+  clearInputButton: {
+    padding: 4,
+    marginLeft: 4,
+  },
   content: {
     flex: 1,
-    paddingHorizontal: 16,
-    paddingTop: 16,
+    // paddingHorizontal: 16,
+    // paddingTop: 16,
   },
   history: {
     paddingHorizontal: 16,
-
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
   },
   historyHeader: {
     flexDirection: 'row',

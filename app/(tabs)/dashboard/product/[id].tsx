@@ -178,10 +178,11 @@ export default function ProductDetailScreen() {
     <SafeAreaProvider>
       <ThemedView style={styles.safeArea} lightColor={'#EBEDF0'} darkColor='#040508'>
         <ModalHeader
-          title={''}
           showBackButton={true}
           onBackPress={handleBack}
-          content={<></>}
+          isProduct={true}
+          productId={productId}
+          isFavorite={product?.isFavorite}
         />
         
         <View style={styles.mainContainer}>
@@ -195,6 +196,7 @@ export default function ProductDetailScreen() {
                 items={product?.images || []}
                 autoPlayInterval={4000}
                 showIndicators={true}
+                isProduct={true}
               />
               
               <View style={styles.productNameWrapper}>
@@ -217,7 +219,7 @@ export default function ProductDetailScreen() {
                     <Ionicons 
                       name={isExpanded ? "chevron-up" : "chevron-forward"} 
                       size={20} 
-                      color="#8E8E93" 
+                      color="#1B1B1C" 
                     />
                   </TouchableOpacity>
                 )}
@@ -450,6 +452,7 @@ export default function ProductDetailScreen() {
 };
 
 const styles = StyleSheet.create({
+
   safeArea: {
     flex: 1,
   },
@@ -488,7 +491,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#F2F2F7',
+    // backgroundColor: '#F2F2F7',
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 2,

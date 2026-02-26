@@ -373,12 +373,12 @@ export default function CatalogDetailScreen() {
       <ThemedText style={styles.filterItemText}>{filterOption.value}</ThemedText>
     </TouchableOpacity>
   );
-
+  console.log('catalogName', catalogName)
   return (
     <SafeAreaProvider>
       <ThemedView style={styles.safeArea} lightColor={'#EBEDF0'} darkColor='#040508'>
         <ModalHeader
-          title={catalogName || 'Каталог'}
+          title={catalogName !== 'undefined' ? catalogName : 'Каталог'}
           showBackButton={true}
           onBackPress={handleBack}
           content={        

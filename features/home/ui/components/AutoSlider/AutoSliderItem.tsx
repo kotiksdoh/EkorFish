@@ -1,10 +1,10 @@
 import React from 'react';
 import {
-  Dimensions,
-  Image,
-  StyleSheet,
-  Text,
-  View
+    Dimensions,
+    Image,
+    StyleSheet,
+    Text,
+    View
 } from 'react-native';
 import { SlideItem } from './AutoSlider';
 
@@ -13,11 +13,13 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 interface AutoSliderItemProps {
   item: SlideItem;
   sliderHeight: number;
+  isProduct?: boolean
 }
 
 export const AutoSliderItem: React.FC<AutoSliderItemProps> = ({ 
   item, 
-  sliderHeight 
+  sliderHeight,
+  isProduct
 }) => {
   const imageWidth = SCREEN_WIDTH - 32; // 16px margin с каждой стороны
   
@@ -26,7 +28,9 @@ export const AutoSliderItem: React.FC<AutoSliderItemProps> = ({
       <View style={[styles.imageWrapper, { height: sliderHeight }]}>
         <Image
           source={{ uri: item.imageUrl }}
-          style={styles.image}
+          style={[
+            isProduct ? styles.productImage :  styles.image// Добавлен условный стиль
+          ]}
           resizeMode="cover"
           onError={(e) => console.log('Image error:', e.nativeEvent.error)}
           onLoad={() => console.log('')}
@@ -69,6 +73,11 @@ const styles = StyleSheet.create({
     // borderRadius: 16,
     borderBottomRightRadius: 24,
     borderBottomLeftRadius: 24,
+  },
+  productImage: {
+    width: '93%',
+    height: '95%',
+    borderRadius: 24,
   },
   gradientOverlay: {
     position: 'absolute',

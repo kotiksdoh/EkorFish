@@ -1,38 +1,105 @@
-import { CloseIcon } from '@/assets/icons/icons';
+import { ArrowIconLeft, CloseIcon, IconSearchNew, IconShare, LikeIcon } from '@/assets/icons/icons';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import React from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
-
+import { putFavorite, putUnFavorite } from '@/features/catalog/catalogSlice';
+import { SearchScreenWithHistory } from '@/features/home/ui/screens/SearchScreenWithHistory';
+import { useAppDispatch } from '@/store/hooks';
+import { useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { Share, StyleSheet, TouchableOpacity, View } from 'react-native';
+import * as Linking from 'expo-linking';
 interface ModalHeaderProps {
     title?: string;
     onBackPress?: () => void;
     showBackButton?: boolean;
     content?: any;
-    showCloseButton?:boolean
-  }
-  
+    showCloseButton?: boolean;
+    isProduct?: boolean;
+    productId?: string;
+    isFavorite?: boolean;
+}
+
 export const ModalHeader: React.FC<ModalHeaderProps> = ({ 
     title, 
     onBackPress, 
     showBackButton = true, 
     content,
-    showCloseButton
+    showCloseButton,
+    isProduct,
+    productId,
+    isFavorite: initialIsFavorite
 }) => {
+    const [isLiked, setIsLiked] = useState(initialIsFavorite);
+    const dispatch = useAppDispatch();
+    const router = useRouter();
+
+    useEffect(() => {
+        setIsLiked(initialIsFavorite);
+    }, [initialIsFavorite]);
+
+    const handleLikePress = () => {
+        if (!productId) return;
+        
+        if (isLiked) {
+            dispatch(putUnFavorite(productId)).then(() => {
+                setIsLiked(false);
+            });
+        } else {
+            dispatch(putFavorite(productId)).then(() => {
+                setIsLiked(true);
+            });
+        }
+    };
 
     const truncateTitle = (text: string | undefined, maxLength: number = 25) => {
         if (!text) return '';
         if (text.length <= maxLength) return text;
         return text.substring(0, maxLength) + '...';
     };
+    const [showSearch, setShowSearch] = useState(false);
 
+    const handleSearchPress = () => {
+        setShowSearch(true);
+      };
+      const handleSearchClose = () => {
+        setShowSearch(false);
+      };
+    const handleSearchSubmit = (query: string) => {
+    // Переходим на экран каталога с поиском
+    //@ts-ignore
+    router.push(`dashboard/${encodeURIComponent("fsfs")}?catalogId=${" "}&catalogName=${encodeURIComponent(" ")}&children=${encodeURIComponent("")}`,);
+  };
+  const handleShare = async () => {
+  if (!productId) return;
+
+  try {
+    const productUrl = Linking.createURL(`/product/${productId}`, {
+      queryParams: { 
+        productName: title // или другое название товара
+      }
+    });
+
+    const result = await Share.share({
+      message: `Посмотрите товар: ${title || 'Товар'}\n\n${productUrl}`,
+      title: 'Поделиться товаром',
+      url: productUrl, // для iOS
+    });
+
+    if (result.action === Share.sharedAction) {
+      console.log('Поделились товаром:', productId);
+    }
+  } catch (error) {
+  }
+};
     return (
+        <>
         <ThemedView lightColor={'#FFFFFF'} darkColor='#151516' style={headerStyles.allCont}>
-            {title || showBackButton || showCloseButton ?
+            {title || showBackButton || showCloseButton || isProduct ?
             <ThemedView lightColor={'#FFFFFF'} darkColor='#151516' style={headerStyles.container}>
                 {showBackButton && (
                     <TouchableOpacity style={headerStyles.backButton} onPress={onBackPress}>
-                        <ThemedText style={headerStyles.backButtonText}>‹</ThemedText>
+                        {/* <ThemedText style={headerStyles.backButtonText}>‹</ThemedText> */}
+                        <ArrowIconLeft/>
                     </TouchableOpacity>
                 )}
                 <ThemedText 
@@ -42,6 +109,42 @@ export const ModalHeader: React.FC<ModalHeaderProps> = ({
                 >
                     {truncateTitle(title)}
                 </ThemedText>
+                {isProduct && (
+                    <TouchableOpacity 
+                        style={headerStyles.likeIcon} 
+                        onPress={handleLikePress}
+                        activeOpacity={0.7}
+                    >
+                        <LikeIcon isFilled={isLiked} />
+                    </TouchableOpacity>
+                )}
+                {isProduct && (
+                    <TouchableOpacity 
+                        style={headerStyles.searchIcon} 
+                        onPress={handleSearchPress}
+                        activeOpacity={0.7}
+                    >
+                        <IconSearchNew />
+                    </TouchableOpacity>
+                )}
+                {isProduct && (
+                    <TouchableOpacity 
+                        style={headerStyles.shareIcon} 
+                        onPress={handleShare}
+                        activeOpacity={0.7}
+                    >
+                        <IconShare />
+                    </TouchableOpacity>
+                )}
+                {isProduct && (
+                    <TouchableOpacity 
+                        style={headerStyles.likeIcon} 
+                        onPress={handleLikePress}
+                        activeOpacity={0.7}
+                    >
+                        <LikeIcon isFilled={isLiked} />
+                    </TouchableOpacity>
+                )}
                 {showCloseButton && (
                     <TouchableOpacity style={headerStyles.closeIcon} onPress={onBackPress}>
                         <CloseIcon/>
@@ -49,13 +152,19 @@ export const ModalHeader: React.FC<ModalHeaderProps> = ({
                 )}
             </ThemedView>
             : null}
-            {!showCloseButton ?
-            <View style={(!title || !showBackButton) && headerStyles.containerSub}>
+            {!showCloseButton || !isProduct ?
+            <View style={((!title && !isProduct) || !showBackButton) && headerStyles.containerSub}>
             {content ? content : null}
             </View>
             : null
             }
         </ThemedView>
+        <SearchScreenWithHistory
+            visible={showSearch}
+            onClose={handleSearchClose}
+            onSearch={handleSearchSubmit}
+        />
+        </>
     );
 };
 
@@ -82,18 +191,44 @@ const headerStyles = StyleSheet.create({
     },
     containerSub: {
         paddingTop: 62,
-
     },
     backButton: {
         position: 'absolute',
         left: 20,
-        bottom: 12,
+        bottom: 14,
         width: 40,
         height: 40,
         justifyContent: 'center',
         alignItems: 'center',
     },
-    closeIcon:{
+    closeIcon: {
+        position: 'absolute',
+        right: 20,
+        bottom: 16,
+        width: 40,
+        height: 40,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    searchIcon: {
+        position: 'absolute',
+        right: 100,
+        bottom: 16,
+        width: 40,
+        height: 40,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    shareIcon: {
+        position: 'absolute',
+        right: 60,
+        bottom: 16,
+        width: 40,
+        height: 40,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    likeIcon: {
         position: 'absolute',
         right: 20,
         bottom: 16,
@@ -104,12 +239,12 @@ const headerStyles = StyleSheet.create({
     },
     backButtonText: {
         fontSize: 32,
-        fontWeight: 300
+        fontWeight: '300'
     },
     title: {
         fontSize: 18,
-        fontWeight: '500',
+        fontWeight: '600',
         textAlign: 'center',
-        flexShrink: 1, // Добавляем для правильной работы обрезки текста
+        flexShrink: 1,
     },
 });

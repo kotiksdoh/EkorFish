@@ -69,9 +69,8 @@ export const HomeScreen = ({
 
   const handleSearchSubmit = (query: string) => {
     // Переходим на экран каталога с поиском
-    router.push(
-      `dashboard/${encodeURIComponent("fsfs")}?catalogId=${" "}&catalogName=${encodeURIComponent(" ")}&children=${encodeURIComponent("")}`,
-    );
+    //@ts-ignore
+    router.push(`dashboard/${encodeURIComponent("fsfs")}?catalogId=${" "}&catalogName=${encodeURIComponent("")}&children=${encodeURIComponent("")}`,);
   };
   console.log("orders", orders);
   return (

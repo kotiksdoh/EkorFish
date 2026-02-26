@@ -27,12 +27,14 @@ interface AutoSliderProps {
   items: SlideItem[];
   autoPlayInterval?: number;
   showIndicators?: boolean;
+  isProduct?: boolean
 }
 
 export const AutoSlider: React.FC<AutoSliderProps> = ({
   items,
   autoPlayInterval = 4000,
   showIndicators = true,
+  isProduct
 }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
@@ -105,6 +107,7 @@ export const AutoSlider: React.FC<AutoSliderProps> = ({
     <AutoSliderItem 
       item={item} 
       sliderHeight={SLIDER_HEIGHT} 
+      isProduct={isProduct}
     />
   );
 
