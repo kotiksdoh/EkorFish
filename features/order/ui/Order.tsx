@@ -13,6 +13,7 @@ import {
   createRecipient,
   deleteRecipient,
   getCart,
+  getMyOrders,
   getOrderPageData,
   getRecipients,
 } from "@/features/catalog/catalogSlice";
@@ -553,6 +554,7 @@ export default function CheckoutModal({
 
       if (result?.data) {
         setCreatedOrderId(result.data);
+        dispatch(getMyOrders()).unwrap();
       }
       setShowSuccessContent(true);
     } catch (error) {

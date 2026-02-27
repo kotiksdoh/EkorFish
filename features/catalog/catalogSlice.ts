@@ -546,7 +546,7 @@ export const deleteRecipient = createAsyncThunk(
     }
   },
 );
-
+// getMyOrders
 // Создание заказа
 export const createOrder = createAsyncThunk(
   "catalog/createOrder",

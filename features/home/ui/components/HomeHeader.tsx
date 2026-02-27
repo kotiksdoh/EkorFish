@@ -112,7 +112,7 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
             <View style={styles.headInfoBonus}>
               <LemonIcon />
               <ThemedText lightColor="#FBFCFF" darkColor="#FBFCFF">
-                222
+                0
               </ThemedText>
             </View>
           </View>

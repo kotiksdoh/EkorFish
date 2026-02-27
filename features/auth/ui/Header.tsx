@@ -208,18 +208,19 @@ const headerStyles = StyleSheet.create({
   },
   container: {
     width: "100%",
-    paddingTop: 46,
+    paddingTop: 66,
     borderBottomRightRadius: 24,
     borderBottomLeftRadius: 24,
     justifyContent: "flex-end",
-    paddingBottom: 24,
+    paddingBottom: 17,
     paddingHorizontal: 20,
     position: "relative",
     alignItems: "center",
     overflow: "hidden",
   },
   containerSub: {
-    paddingTop: 46,
+    paddingTop: 66,
+    paddingBottom: 17,
   },
   backButton: {
     position: "absolute",

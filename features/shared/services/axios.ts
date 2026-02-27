@@ -1,10 +1,10 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 
-// export const baseUrl = `http://192.168.222.205:9191`; // Локалка
+export const baseUrl = `http://192.168.222.205:9191`; // Локалка
 // export const baseUrl = `http://192.168.222.239:13333`;
-export const baseUrl = `http://46.29.13.61:13333`;
-// export const baseUrl = `http://192.168.222.238:13333`; // Сервер
+// export const baseUrl = `http://46.29.13.61:13333`;
+// export const baseUrl = `https://192.168.222.238:13333`; // Сервер
 // 192.168.222.239:13333/swagger/index.html
 
 export const ax = axios.create();
@@ -90,7 +90,7 @@ axdef.interceptors.response.use(
     console.log("Status:", error.response?.status);
 
     // Проверяем Network Error - это может быть скрытый 401 из-за CORS
-    if (error.code === "ERR_NETWORK" || error.message === "Network Error") {
+    if (error.code  !== "ERR_NETWORK" || error.message !== "Network Error") {
       console.log("Network Error detected - could be CORS issue");
 
       // Пытаемся обновить токен на всякий случай

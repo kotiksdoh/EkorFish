@@ -133,7 +133,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
   const stockInfo = productData?.originalProduct?.stocks?.[0]?.stockInfo;
   const isOutOfStock = stockInfo === "Нет в наличии" || false;
-
+  console.log('img', img)
   return (
     <TouchableOpacity
       onPress={toProductDetail}
@@ -162,7 +162,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
           {img && !imageError && (
             <Image
-              source={img}
+              // source={img}
+              source={{ uri: img }}
               style={[
                 styles.image,
                 (!isImageLoaded || isImageLoading || externalLoading) &&

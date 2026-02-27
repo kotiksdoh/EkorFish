@@ -473,9 +473,9 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                 {orderDetails.products?.slice(0, 2).map((item) => (
                   <View key={item.id} style={styles.productCard}>
                     <View style={styles.productImageContainer}>
-                      {item.productImage ? (
+                      {item.image ? (
                         <Image
-                          source={{ uri: `${baseUrl}/${item.productImage}` }}
+                          source={{ uri: `${baseUrl}/${item.image}` }}
                           style={styles.productImage}
                           contentFit="cover"
                         />
@@ -577,48 +577,47 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                   showsVerticalScrollIndicator={false}
                 >
                   {orderDetails?.products?.map((item) => (
-                    <View key={item.id} style={styles.modalProductCard}>
-                      <View style={styles.modalProductImageContainer}>
-                        {item.productImage ? (
-                          <Image
-                            source={{ uri: `${baseUrl}/${item.productImage}` }}
-                            style={styles.modalProductImage}
-                            contentFit="cover"
-                          />
-                        ) : (
-                          <Image
-                            source={require("@/assets/icons/png/noImage.png")}
-                            style={styles.modalProductImage}
-                            contentFit="cover"
-                          />
-                        )}
+                  <View key={item.id} style={styles.modalProductCard}>
+                    <View style={styles.modalProductImageContainer}>
+                      {item.image ? (
+                        <Image
+                          source={{ uri: `${baseUrl}/${item.image}` }}
+                          style={styles.modalProductImage}
+                          contentFit="cover"
+                        />
+                      ) : (
+                        <Image
+                          source={require("@/assets/icons/png/noImage.png")}
+                          style={styles.modalProductImage}
+                          contentFit="cover"
+                        />
+                      )}
+                    </View>
+                    <View style={styles.modalProductInfo}>
+                      <View style={styles.productInfoMain}>
+                        <ThemedText
+                          style={styles.modalProductName}
+                          numberOfLines={2}
+                        >
+                          {item.productName}
+                        </ThemedText>
+                        <ThemedText
+                          lightColor="#80818B"
+                          style={styles.modalProductQuantity}
+                        >
+                          {item.unitPrice}₽ /{" "}
+                          {item.measureType === "килограмм" ? "кг" : "шт"} •{" "}
+                          {item.quantity}{" "}
+                          {item.measureType === "килограмм" ? "кг" : "шт"}
+                        </ThemedText>
                       </View>
-                      <View style={styles.modalProductInfo}>
-                        <View style={styles.productInfoMain}>
-                          <ThemedText
-                            style={styles.modalProductName}
-                            numberOfLines={2}
-                          >
-                            {item.productName}
-                          </ThemedText>
-
-                          <ThemedText
-                            lightColor="#80818B"
-                            style={styles.modalProductQuantity}
-                          >
-                            {item.unitPrice}₽ /{" "}
-                            {item.measureType === "килограмм" ? "кг" : "шт"} •{" "}
-                            {item.quantity}{" "}
-                            {item.measureType === "килограмм" ? "кг" : "шт"}
-                          </ThemedText>
-                        </View>
-                        <View style={styles.productInfoMain}>
-                          <ThemedText style={styles.modalProductPrice}>
-                            {formatPrice(item.totalPrice)} ₽
-                          </ThemedText>
-                        </View>
+                      <View style={styles.productPriceContainer}>
+                        <ThemedText style={styles.modalProductPrice}>
+                          {formatPrice(item.totalPrice)} ₽
+                        </ThemedText>
                       </View>
                     </View>
+                  </View>
                   ))}
                 </ScrollView>
               </Animated.View>
@@ -935,11 +934,11 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: "row",
   },
-  productInfoMain: {
-    display: "flex",
-    flex: 1,
-    flexDirection: "column",
-  },
+  // productInfoMain: {
+  //   display: "flex",
+  //   flex: 1,
+  //   flexDirection: "column",
+  // },
   productName: {
     fontSize: 14,
     fontWeight: "500",
@@ -1022,43 +1021,53 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     maxHeight: "50%",
   },
-  modalProductCard: {
-    flexDirection: "row",
-    marginBottom: 16,
-    gap: 12,
-    paddingVertical: 8,
-  },
-  modalProductImageContainer: {
-    width: 74,
-    height: 55,
-    borderRadius: 12,
-    overflow: "hidden",
-  },
-  modalProductImage: {
-    width: "100%",
-    height: "100%",
-  },
-  modalProductInfo: {
-    flexDirection: "row",
-    // flex: 1,
-  },
-  modalProductName: {
-    fontSize: 14,
-    fontWeight: "500",
-    marginBottom: 4,
-  },
-  modalProductPriceRow: {
-    flexDirection: "row",
-    marginBottom: 4,
-  },
-  modalProductPrice: {
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  modalProductQuantity: {
-    fontSize: 12,
-    fontWeight: "400",
-  },
+modalProductCard: {
+  flexDirection: "row",
+  marginBottom: 16,
+  gap: 12,
+  paddingVertical: 8,
+},
+modalProductImageContainer: {
+  width: 74,
+  height: 55,
+  borderRadius: 12,
+  overflow: "hidden",
+},
+modalProductImage: {
+  width: "100%",
+  height: "100%",
+},
+modalProductInfo: {
+  flex: 1, // Важно: занимает оставшееся пространство
+  flexDirection: "row",
+  justifyContent: "space-between", // Распределяем пространство между элементами
+  alignItems: "flex-start", // Выравниваем по верхнему краю
+},
+productInfoMain: {
+  flex: 1, // Занимает доступное пространство
+  marginRight: 8, // Отступ от цены
+},
+modalProductName: {
+  fontSize: 14,
+  fontWeight: "500",
+  marginBottom: 4,
+  flexShrink: 1, // Позволяет тексту сжиматься
+},
+modalProductQuantity: {
+  fontSize: 12,
+  fontWeight: "400",
+},
+productPriceContainer: {
+  // Контейнер для цены
+  justifyContent: "flex-start",
+  alignItems: "flex-end",
+  minWidth: 70, // Минимальная ширина для цены
+},
+modalProductPrice: {
+  fontSize: 14,
+  fontWeight: "600",
+  textAlign: "right", // Выравнивание текста цены вправо
+},
   // Стили для списка статусов
   statusesList: {
     paddingHorizontal: 20,

@@ -173,7 +173,7 @@ export default function ProductDetailScreen() {
     if (!cartItemsForProduct.length) return null;
     return cartItemsForProduct.reduce((sum, item) => sum + item.quantity, 0);
   }, [cartItemsForProduct]);
-
+  console.log('product?.images', product?.images)
   return (
     <SafeAreaProvider>
       <ThemedView style={styles.safeArea} lightColor={'#EBEDF0'} darkColor='#040508'>

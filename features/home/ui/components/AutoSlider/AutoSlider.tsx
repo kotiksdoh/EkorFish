@@ -163,7 +163,7 @@ export const AutoSlider: React.FC<AutoSliderProps> = ({
 const styles = StyleSheet.create({
   container: {
     height: SLIDER_HEIGHT,
-    marginTop: -STATUS_BAR_HEIGHT, // ЗАХОДИТ ЗА СТАТУС БАР
+    // marginTop: -STATUS_BAR_HEIGHT, // ЗАХОДИТ ЗА СТАТУС БАР
     // backgroundColor: '#fff',
   },
   indicatorsContainer: {

@@ -137,6 +137,7 @@ export const CompanySelectModal: React.FC<CompanySelectModalProps> = ({
   //         "deliveryAddresses": []
   //     }
   //  ]
+  console.log('companies', companies)
   return (
     <Modal
       animationType="slide"
@@ -153,7 +154,7 @@ export const CompanySelectModal: React.FC<CompanySelectModalProps> = ({
         >
           {/* Хедер модалки */}
           <ModalHeader
-            title="Компании"
+            title="Аккаунты"
             showBackButton={true}
             onBackPress={() => {
               onClose();
@@ -167,7 +168,7 @@ export const CompanySelectModal: React.FC<CompanySelectModalProps> = ({
             style={styles.content}
           >
             <ThemedText style={styles.contentTitle}>
-              Выберите компанию
+              Выберите аккаунт
             </ThemedText>
 
             <ScrollView
@@ -208,7 +209,7 @@ export const CompanySelectModal: React.FC<CompanySelectModalProps> = ({
                           lightColor="#80818B"
                           darkColor="#FBFCFF80"
                         >
-                          ИНН {company.inn}
+                          ИНН {company.inn || '-'}
                         </ThemedText>
                       </View>
                     </View>
@@ -221,7 +222,7 @@ export const CompanySelectModal: React.FC<CompanySelectModalProps> = ({
           {/* Кнопка добавления компании - следует за скроллом */}
           <View style={styles.footer}>
             <PrimaryButton
-              title="+ Добавить компанию"
+              title="+ Добавить аккаунт"
               onPress={() => {
                 //   onAddCompany();
                 setCurrentScreen(CompanyScenario.REG);
@@ -231,6 +232,7 @@ export const CompanySelectModal: React.FC<CompanySelectModalProps> = ({
               variant="primary"
               size="md"
               fullWidth
+              disabled={companies.some(item => item.type === 'individual')}
             />
           </View>
         </ThemedView>
