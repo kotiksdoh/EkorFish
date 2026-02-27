@@ -6,6 +6,7 @@ export const CustomCheckbox = ({ style, value, onValueChange, lightColor, darkCo
   const backgroundColor = useThemeColor({ light: lightColor, dark: darkColor }, 'background');
   // const borderColor =  useThemeColor({ light: borderLightColor, dark: borderDarkColor }, '');
   const systemTheme = useColorScheme(); 
+  //TODO
   const currentTheme = systemTheme || 'light'
   return (
     <TouchableOpacity

@@ -1,5 +1,5 @@
 // app/modals/checkout.tsx
-import { ArrowIconRight, IconCompany, TrashIcon } from "@/assets/icons/icons";
+import { ArrowIconRight, IconCompany, IconCompanyNew, TrashIcon } from "@/assets/icons/icons";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import {
@@ -27,6 +27,7 @@ import AnimatedTextInput from "@/features/shared/ui/components/CustomInput";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
+import { useColorScheme } from "react-native";
 import {
   ActivityIndicator,
   Alert,
@@ -89,6 +90,9 @@ export default function CheckoutModal({
   cartItems,
   totals,
 }: CheckoutModalProps) {
+  const colorScheme = useColorScheme();
+  //TODO
+  const isDarkMode = colorScheme === "dark";
   // Состояние для выбранных значений
   const [selectedMethod, setSelectedMethod] = useState<DeliveryMethod>(
     DeliveryMethod.Delivery,
@@ -645,6 +649,7 @@ export default function CheckoutModal({
       <ThemedView
         style={styles.tabsContainer}
         lightColor="#F2F4F7"
+        darkColor="#202022"
         onLayout={(e) =>
           setTabContainerWidth(
             e.nativeEvent.layout.width / availableMethods.length,
@@ -655,6 +660,9 @@ export default function CheckoutModal({
         <Animated.View
           style={[
             styles.activeTabIndicator,
+            isDarkMode && {
+              backgroundColor: '#101013'
+            },
             {
               width: tabContainerWidth,
               transform: [{ translateX: indicatorPosition }],
@@ -673,6 +681,9 @@ export default function CheckoutModal({
               style={styles.tabText}
               lightColor={
                 selectedMethod === item.method ? "#1B1B1C" : "#80818B"
+              }
+              darkColor={
+                selectedMethod === item.method ? "#FBFCFF" : "#80818B"
               }
             >
               {item.label}
@@ -778,8 +789,8 @@ export default function CheckoutModal({
                   showsVerticalScrollIndicator={false}
                 >
                   {/* Блок с табами доставки */}
-                  <ThemedView style={styles.block} lightColor="#FFFFFF">
-                    <ThemedText style={styles.blockTitle}>
+                  <ThemedView style={styles.block} darkColor="#151516" lightColor="#FFFFFF">
+                    <ThemedText darkColor="#FBFCFF" lightColor="#1B1B1C" style={styles.blockTitle}>
                       Способ получения
                     </ThemedText>
 
@@ -791,10 +802,11 @@ export default function CheckoutModal({
 
                     {selectedMethod === DeliveryMethod.Delivery && (
                       <View>
-                        <ThemedText style={styles.blockTitle}>
+                        <ThemedText darkColor="#FBFCFF" lightColor="#1B1B1C" style={styles.blockTitle}>
                           Компания и адрес
                         </ThemedText>
                         <ThemedView
+                          darkColor="#202022"
                           lightColor="#F2F4F7"
                           style={styles.compAndAdressCont}
                         >
@@ -803,20 +815,23 @@ export default function CheckoutModal({
                             onPress={() => setShowAddressModal(true)}
                           >
                             <View style={styles.compAndAdressContRowDoble}>
-                              <IconCompany />
+                              <ThemedView lightColor="#FFFFFF" darkColor="#151516" style={styles.iconCont}>
+                                <IconCompanyNew color={isDarkMode ? '#FBFCFF' : "#1B1B1C"}/>
+                              </ThemedView>
                               <View style={styles.compAndAdressColumn}>
                                 <ThemedText
-                                  lightColor="#1B1B1C"
+                                  darkColor="#FBFCFF" lightColor="#1B1B1C"
                                   style={styles.compText}
                                   numberOfLines={1}
                                   ellipsizeMode="tail"
                                 >
                                   {me?.companies?.length === 0
                                     ? `${me?.individualProfile?.firstName || ""} ${me?.individualProfile?.lastName || ""} ${me?.individualProfile?.patronymic || ""}`.trim()
-                                    : currentCompany?.name}
+                                    : currentCompany?.name ? currentCompany?.name : '-'}
                                 </ThemedText>
                                 <ThemedText
                                   lightColor="#80818B"
+                                  darkColor="#FBFCFF80"
                                   style={styles.addressTextText}
                                   numberOfLines={1}
                                   ellipsizeMode="tail"
@@ -845,20 +860,23 @@ export default function CheckoutModal({
                   </ThemedView>
 
                   {/* Блок даты и времени */}
-                  <ThemedView style={styles.block} lightColor="#FFFFFF">
-                    <ThemedText style={styles.blockTitle}>
+                  <ThemedView style={styles.block} darkColor="#151516" lightColor="#FFFFFF">
+                    <ThemedText darkColor="#FBFCFF" lightColor="#1B1B1C" style={styles.blockTitle}>
                       Дата и время получения
                     </ThemedText>
 
                     <TouchableOpacity
-                      style={styles.dateTimeDisplay}
+                      style={[styles.dateTimeDisplay, isDarkMode && {
+                        backgroundColor: '#ECEFFA0D'
+                      }]}
                       onPress={() => setShowCalendarModal(true)}
                     >
                       <View style={styles.dateTimeRow}>
-                        <ThemedText style={styles.dateTimeLabel}></ThemedText>
+                        <ThemedText darkColor="#FBFCFF" lightColor="#1B1B1C" style={styles.dateTimeLabel}></ThemedText>
                         <ThemedText
                           style={styles.dateTimeValue}
                           numberOfLines={1}
+                          darkColor="#FBFCFF" lightColor="#1B1B1C"
                         >
                           {formatDateTimeDisplay()}
                         </ThemedText>
@@ -1321,7 +1339,7 @@ function DateTimeModal({
       const dateString = date.toDateString();
       setSelectedDate(dateString);
       setSelectedTime("");
-      setShowTimeModal(true);
+      // setShowTimeModal(true);
     }
   };
 
@@ -2215,6 +2233,10 @@ const styles = StyleSheet.create({
     gap: 12,
     flex: 1,
     flexShrink: 1,
+  },
+  iconCont:{
+    padding: 8,
+    borderRadius: 8
   },
   compAndAdressColumn: {
     flexDirection: "column",

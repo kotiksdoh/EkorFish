@@ -156,6 +156,7 @@ export default function RootLayout() {
       </ThemedView>
     ),
   };
+  // TODOCOMP
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Provider store={store}>

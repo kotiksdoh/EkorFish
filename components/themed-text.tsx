@@ -16,7 +16,9 @@ export function ThemedText({
   weight,
   ...rest
 }: ThemedTextProps) {
+  // TODO
   const color = useThemeColor({ light: lightColor, dark: darkColor }, 'text');
+
 
   const getFontFamily = () => {
     if (Platform.OS === 'ios') {

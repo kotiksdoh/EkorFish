@@ -28,13 +28,16 @@ import {
   TextInput,
   TouchableOpacity,
   TouchableWithoutFeedback,
-  View,
+  View, useColorScheme
 } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 
 export default function HeartScreen() {
+  const colorScheme = useColorScheme();
+//TODO
+  const isDarkMode = colorScheme === "dark";
   // Состояния
   const [searchQuery, setSearchQuery] = useState("");
   const [showSortModal, setShowSortModal] = useState(false);
@@ -415,7 +418,13 @@ export default function HeartScreen() {
         key={filterGroup.id}
         style={[
           styles.filterGroupButton,
+          isDarkMode && {
+            backgroundColor: '#202022'
+          },
           hasSelected && styles.filterGroupButtonActive,
+          isDarkMode && hasSelected && {
+            backgroundColor: '#3881EE'
+          }
         ]}
         onPress={() => handleFilterGroupPress(filterGroup)}
       >
@@ -477,10 +486,14 @@ export default function HeartScreen() {
                 >
                   {/* Кнопка сортировки */}
                   <TouchableOpacity
-                    style={styles.sortFilterButton}
+                    style={[styles.sortFilterButton,
+                      isDarkMode && {
+                        backgroundColor: '#202022'
+                      }
+                    ]}
                     onPress={() => setShowSortModal(true)}
                   >
-                    <SortIcon size={16} />
+                    <SortIcon stroke={isDarkMode ? '#FBFCFF' : "#1B1B1C"} fill={isDarkMode ? '#FBFCFF' : "#1B1B1C"} size={16} />
                     <ThemedText style={styles.sortFilterButtonText}>
                       {getCurrentSortLabel()}
                     </ThemedText>
@@ -575,6 +588,9 @@ export default function HeartScreen() {
                 <Animated.View
                   style={[
                     styles.modalContainer,
+                    isDarkMode && {
+                      backgroundColor: '#202022'
+                    },
                     {
                       transform: [{ translateY: sortModalTranslateY }],
                     },
@@ -599,28 +615,43 @@ export default function HeartScreen() {
                   </View>
 
                   <View style={styles.sortOptionsContainer}>
-                    {sortOptions.map((option) => (
-                      <TouchableOpacity
-                        key={option.id}
-                        style={styles.sortOptionItem}
-                        onPress={() => handleSortSelect(option.id)}
-                      >
-                        <View style={styles.sortOptionRadio}>
-                          {sortBy === option.id && (
-                            <View style={styles.sortOptionRadioSelected} />
-                          )}
-                        </View>
-                        <ThemedText
-                          style={[
-                            styles.sortOptionText,
-                            sortBy === option.id &&
-                              styles.sortOptionTextSelected,
-                          ]}
-                        >
-                          {option.label}
-                        </ThemedText>
-                      </TouchableOpacity>
-                    ))}
+                  {sortOptions.map((option) => (
+              <TouchableOpacity
+                key={option.id}
+                style={[
+                  styles.sortOptionItem,
+                  isDarkMode && {
+                    borderBottomColor: "#323235",
+                  },
+                ]}
+                onPress={() => handleSortSelect(option.id)}
+              >
+                <View style={styles.sortOptionItemContent}>
+                  <View
+                    style={[
+                      styles.sortOptionRadio,
+                      sortBy === option.id && styles.sortOptionRadioSelected,
+                      isDarkMode &&
+                        sortBy === option.id && {
+                          borderColor: "#4C94FF",
+                        },
+                    ]}
+                  >
+                    {sortBy === option.id && (
+                      <View style={[styles.sortOptionRadioInner, isDarkMode && { backgroundColor: "#FFFFFF" }]} />
+                    )}
+                  </View>
+                  <ThemedText
+                    style={[
+                      styles.sortOptionText,
+                      isDarkMode && { color: "#FBFCFF" },
+                    ]}
+                  >
+                    {option.label}
+                  </ThemedText>
+                </View>
+              </TouchableOpacity>
+            ))}
                   </View>
                 </Animated.View>
               </TouchableWithoutFeedback>
@@ -642,6 +673,9 @@ export default function HeartScreen() {
                 <Animated.View
                   style={[
                     styles.modalContainer,
+                    isDarkMode && {
+                      backgroundColor: '#202022'
+                    },
                     {
                       transform: [{ translateY: filterModalTranslateY }],
                     },
@@ -688,6 +722,10 @@ export default function HeartScreen() {
                             styles.radioOuter,
                             isFilterSelected(option.id) &&
                               styles.radioOuterSelected,
+                              isDarkMode &&
+                              isFilterSelected(option.id) && {
+                                borderColor: "#4C94FF",
+                              },
                           ]}
                         >
                           {isFilterSelected(option.id) && (
@@ -864,8 +902,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 20,
     paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F0F0F0",
+    // borderBottomWidth: 1,
+    // borderBottomColor: "#F0F0F0",
   },
   modalCloseText: {
     fontFamily: "Montserrat",
@@ -888,33 +926,33 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
   },
   sortOptionItem: {
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F0F0F0",
+  },
+  sortOptionItemContent: {
     flexDirection: "row",
+    gap: 12,
     alignItems: "center",
-    paddingVertical: 14,
   },
   sortOptionRadio: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     borderWidth: 2,
     borderColor: "#D8DADE",
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 12,
   },
   sortOptionRadioSelected: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: "#203686",
+    borderColor: "#203686",
+    borderWidth: 5,
   },
-  sortOptionText: {
-    fontFamily: "Montserrat",
-    fontSize: 16,
-    color: "#1B1B1C",
-  },
-  sortOptionTextSelected: {
-    fontWeight: "600",
+  sortOptionRadioInner: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: "#FFFFFF",
   },
   filterOptionsContainer: {
     paddingHorizontal: 20,
@@ -963,7 +1001,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
-    backgroundColor: "#FBFCFF",
+    // backgroundColor: "#FBFCFF",
   },
   radioOuterSelected: {
     borderColor: "#203686",

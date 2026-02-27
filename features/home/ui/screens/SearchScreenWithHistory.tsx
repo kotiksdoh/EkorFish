@@ -11,8 +11,8 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  useColorScheme,
   View,
+  useColorScheme,
 } from "react-native";
 import Catalog from "../components/Catalog/Catalog";
 
@@ -28,6 +28,7 @@ export const SearchScreenWithHistory: React.FC<
   SearchScreenWithHistoryProps
 > = ({ visible, onClose, onSearch }) => {
   const colorScheme = useColorScheme();
+  // TODO
   const isDark = colorScheme === "dark";
   const [searchQuery, setSearchQuery] = useState("");
   const [searchHistory, setSearchHistory] = useState<string[]>([]);

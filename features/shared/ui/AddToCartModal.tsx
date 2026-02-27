@@ -13,6 +13,7 @@ import {
   Text,
   TouchableOpacity,
   View,
+  useColorScheme,
 } from 'react-native';
 
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -71,6 +72,9 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
   onAddToCart,
   existingCartItem
 }) => {
+  const colorScheme = useColorScheme();
+  //TODO
+    const isDarkMode = colorScheme === "dark";
   const [selectedTab, setSelectedTab] = useState<string>('');
   const [quantity, setQuantity] = useState<number>(0);
   const [selectedOption, setSelectedOption] = useState<PurchaseOption | null>(null);

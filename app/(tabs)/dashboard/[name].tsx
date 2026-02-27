@@ -35,12 +35,16 @@ import {
   TouchableOpacity,
   TouchableWithoutFeedback,
   View,
+  useColorScheme,
 } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 
 export default function CatalogDetailScreen() {
+const colorScheme = useColorScheme();
+//TODO
+const isDarkMode = colorScheme === "dark";
   const { catalogId, catalogName, search, children } = useLocalSearchParams<{
     catalogId: string;
     catalogName: string;
@@ -480,7 +484,15 @@ export default function CatalogDetailScreen() {
       key={filterOption.id}
       style={[
         styles.filterItem,
+        isDarkMode && {
+          backgroundColor: '#202022',
+          borderColor: '#323235'
+        },
         isFilterSelected(filterOption.id) && styles.filterItemSelected,
+        isDarkMode && isFilterSelected(filterOption.id) && {
+          backgroundColor: '#202022',
+          borderColor: '#3881EE'
+        }
       ]}
       onPress={() => handleFilterToggle(filterOption.id)}
     >
@@ -533,7 +545,7 @@ export default function CatalogDetailScreen() {
                   style={styles.sortButton}
                   onPress={() => setShowSortModal(true)} // Открываем модалку
                 >
-                  <SortIcon />
+                  <SortIcon stroke={isDarkMode ? '#FBFCFF' : "#1B1B1C"} fill={isDarkMode ? '#FBFCFF' : "#1B1B1C"}/>
                   <ThemedText style={styles.sortButtonText}>
                     {getCurrentSortLabel()}
                   </ThemedText>
@@ -548,7 +560,7 @@ export default function CatalogDetailScreen() {
                     {appliedFiltersCount > 0 && (
                       <View style={styles.filterBadge}></View>
                     )}
-                    <FilterXsIcon />
+                    <FilterXsIcon stroke={isDarkMode ? '#FBFCFF' : "#1B1B1C"} fill={isDarkMode ? '#FBFCFF' : "#1B1B1C"}/>
                   </View>
                   <ThemedText style={styles.filterButtonText}>
                     Фильтры
@@ -570,16 +582,26 @@ export default function CatalogDetailScreen() {
                       key="all"
                       style={[
                         styles.subcategoryButton,
-                        selectedSubcategoryId === null &&
-                          styles.subcategoryButtonActive,
+                        selectedSubcategoryId === null && styles.subcategoryButtonActive,
+                        // Для темной темы: фон для невыбранных
+                        isDarkMode && !(selectedSubcategoryId === null) && {
+                          backgroundColor: "#202022",
+                        },
+                        // Для темной темы: фон для выбранных
+                        isDarkMode && selectedSubcategoryId === null && {
+                          backgroundColor: "#3881EE",
+                        },
                       ]}
                       onPress={() => handleSubcategorySelect("all")}
                     >
                       <ThemedText
                         style={[
                           styles.subcategoryText,
-                          selectedSubcategoryId === null &&
-                            styles.subcategoryTextActive,
+                          selectedSubcategoryId === null && styles.subcategoryTextActive,
+                          // Для темной темы: текст всегда #FBFCFF
+                          isDarkMode && {
+                            color: "#FBFCFF",
+                          },
                         ]}
                       >
                         Все
@@ -594,6 +616,16 @@ export default function CatalogDetailScreen() {
                           styles.subcategoryButton,
                           selectedSubcategoryId === subcategory.id &&
                             styles.subcategoryButtonActive,
+                          // Для темной темы: фон для невыбранных
+                          isDarkMode &&
+                            !(selectedSubcategoryId === subcategory.id) && {
+                              backgroundColor: "#202022",
+                            },
+                          // Для темной темы: фон для выбранных
+                          isDarkMode &&
+                            selectedSubcategoryId === subcategory.id && {
+                              backgroundColor: "#3881EE",
+                            },
                         ]}
                         onPress={() => handleSubcategorySelect(subcategory.id)}
                       >
@@ -602,6 +634,10 @@ export default function CatalogDetailScreen() {
                             styles.subcategoryText,
                             selectedSubcategoryId === subcategory.id &&
                               styles.subcategoryTextActive,
+                            // Для темной темы: текст всегда #FBFCFF
+                            isDarkMode && {
+                              color: "#FBFCFF",
+                            },
                           ]}
                         >
                           {subcategory.name}
@@ -613,11 +649,11 @@ export default function CatalogDetailScreen() {
               )}
               {/* { !me?.storageId ? */}
               <TouchableOpacity onPress={() => setShowTownModal(true)}>
-                <ThemedView lightColor="#F2F4F7" style={styles.cityContainer}>
-                  <ThemedView lightColor="#FFFFFF" style={styles.cityIcon}>
-                    <WarningIcon />
+                <ThemedView darkColor="#202022" lightColor="#F2F4F7" style={styles.cityContainer}>
+                  <ThemedView darkColor="#151516" lightColor="#FFFFFF" style={styles.cityIcon}>
+                    <WarningIcon stroke={isDarkMode ? '#FBFCFF' : "#1B1B1C"} fill={isDarkMode ? '#FBFCFF' : "#1B1B1C"}/>
                   </ThemedView>
-                  <ThemedText style={styles.cityText}>
+                  <ThemedText darkColor="#FBFCFF" style={styles.cityText}>
                     Укажите ваш город, чтобы увидеть наличие товаров
                   </ThemedText>
                   <ThemedText style={styles.arrowIcon}>›</ThemedText>
@@ -722,6 +758,12 @@ export default function CatalogDetailScreen() {
                 <Animated.View
                   style={[
                     styles.modalContainer,
+                    isDarkMode ? {
+                      backgroundColor: "#202022",
+                    } : 
+                    {
+                      backgroundColor: "#FFFFFF",
+                    },
                     {
                       transform: [{ translateY: modalTranslateY }],
                     },
@@ -740,11 +782,11 @@ export default function CatalogDetailScreen() {
                     <TouchableOpacity>
                       {/* <ThemedText style={styles.modalCloseText}>Отмена</ThemedText> */}
                     </TouchableOpacity>
-
+                    {/*  */}
                     <ThemedText style={styles.modalTitle}>Фильтры</ThemedText>
 
                     <TouchableOpacity onPress={resetFilters}>
-                      <ThemedText style={styles.modalResetText}>
+                      <ThemedText lightColor="#203686" darkColor="#4C94FF" style={styles.modalResetText}>
                         Сбросить
                       </ThemedText>
                     </TouchableOpacity>
@@ -806,7 +848,7 @@ export default function CatalogDetailScreen() {
                       filters.length > 0 &&
                       filters.map((filterGroup) => (
                         <View key={filterGroup.id} style={styles.filterSection}>
-                          <ThemedText style={styles.filterSectionTitle}>
+                          <ThemedText darkColor="#FBFCFF" style={styles.filterSectionTitle}>
                             {filterGroup.name}
                           </ThemedText>
 
@@ -833,7 +875,11 @@ export default function CatalogDetailScreen() {
 
                   {/* Кнопка применения */}
                   <TouchableOpacity
-                    style={styles.applyButton}
+                    style={[styles.applyButton,
+                      isDarkMode && {
+                        backgroundColor: '#3881EE'
+                      }
+                    ]}
                     onPress={applyFilters}
                   >
                     <ThemedText style={styles.applyButtonText}>
@@ -871,6 +917,9 @@ export default function CatalogDetailScreen() {
                 <Animated.View
                   style={[
                     styles.modalContainer,
+                    isDarkMode && {
+                      backgroundColor: '#202022'
+                    },
                     {
                       transform: [{ translateY: sortModalTranslateY }],
                     },
@@ -903,28 +952,43 @@ export default function CatalogDetailScreen() {
                     style={styles.sortOptionsContainer}
                     showsVerticalScrollIndicator={false}
                   >
-                    {sortOptions.map((option) => (
-                      <TouchableOpacity
-                        key={option.id}
-                        style={styles.sortOptionItem}
-                        onPress={() => handleSortSelect(option.id)}
-                      >
-                        <View style={styles.sortOptionRadio}>
-                          {sortBy === option.id && (
-                            <View style={styles.sortOptionRadioSelected} />
-                          )}
-                        </View>
-                        <ThemedText
-                          style={[
-                            styles.sortOptionText,
-                            sortBy === option.id &&
-                              styles.sortOptionTextSelected,
-                          ]}
-                        >
-                          {option.label}
-                        </ThemedText>
-                      </TouchableOpacity>
-                    ))}
+            {sortOptions.map((option) => (
+              <TouchableOpacity
+                key={option.id}
+                style={[
+                  styles.sortOptionItem,
+                  isDarkMode && {
+                    borderBottomColor: "#323235",
+                  },
+                ]}
+                onPress={() => handleSortSelect(option.id)}
+              >
+                <View style={styles.sortOptionItemContent}>
+                  <View
+                    style={[
+                      styles.sortOptionRadio,
+                      sortBy === option.id && styles.sortOptionRadioSelected,
+                      isDarkMode &&
+                        sortBy === option.id && {
+                          borderColor: "#4C94FF",
+                        },
+                    ]}
+                  >
+                    {sortBy === option.id && (
+                      <View style={[styles.sortOptionRadioInner, isDarkMode && { backgroundColor: "#FFFFFF" }]} />
+                    )}
+                  </View>
+                  <ThemedText
+                    style={[
+                      styles.sortOptionText,
+                      isDarkMode && { color: "#FBFCFF" },
+                    ]}
+                  >
+                    {option.label}
+                  </ThemedText>
+                </View>
+              </TouchableOpacity>
+            ))}
                   </ScrollView>
                 </Animated.View>
               </TouchableWithoutFeedback>
@@ -1108,8 +1172,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 20,
     paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F0F0F0",
   },
   modalCloseText: {
     fontFamily: "Montserrat",
@@ -1124,7 +1186,7 @@ const styles = StyleSheet.create({
   modalResetText: {
     fontFamily: "Montserrat",
     fontSize: 16,
-    color: "#203686",
+    // color: "#203686",
   },
   modalContent: {
     paddingHorizontal: 20,
@@ -1162,7 +1224,7 @@ const styles = StyleSheet.create({
   priceSeparator: {
     width: 16,
     height: 1,
-    backgroundColor: "#80818B",
+    backgroundColor: "transparent",
     marginHorizontal: 8,
   },
   filterItems: {
@@ -1262,25 +1324,33 @@ const styles = StyleSheet.create({
     maxHeight: "60%",
   },
   sortOptionItem: {
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F0F0F0",
+  },
+  sortOptionItemContent: {
     flexDirection: "row",
+    gap: 12,
     alignItems: "center",
-    paddingVertical: 14,
   },
   sortOptionRadio: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     borderWidth: 2,
     borderColor: "#D8DADE",
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 12,
   },
   sortOptionRadioSelected: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: "#203686",
+    borderColor: "#203686",
+    borderWidth: 5,
+  },
+  sortOptionRadioInner: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: "#FFFFFF",
   },
   sortOptionText: {
     fontFamily: "Montserrat",

@@ -2,14 +2,15 @@ import { CheckCircleIcon, CloseCircleIcon } from '@/assets/icons/icons';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { ModalHeader } from '@/features/auth/ui/Header';
-import { AddToCartModal } from '@/features/shared/ui/AddToCartModal';
-import { getProduct, AddToCart } from '@/features/catalog/catalogSlice'; // Импортируем AddToCart
+import { AddToCart, getProduct } from '@/features/catalog/catalogSlice'; // Импортируем AddToCart
 import { AutoSlider } from '@/features/home';
+import { AddToCartModal } from '@/features/shared/ui/AddToCartModal';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Animated,
   Dimensions,
   LayoutAnimation,
   LayoutChangeEvent,
@@ -18,10 +19,10 @@ import {
   StyleSheet,
   TouchableOpacity,
   UIManager,
-  View
+  View,
+  useColorScheme
 } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { Animated } from 'react-native';
 
 // Включаем LayoutAnimation для Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -31,6 +32,9 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
 export default function ProductDetailScreen() {
+  const colorScheme = useColorScheme();
+//TODO
+  const isDarkMode = colorScheme === "dark";
   const { productId, productName } = useLocalSearchParams<{
     productId: string;
     productName?: string; 
@@ -262,7 +266,7 @@ export default function ProductDetailScreen() {
             
             <ThemedView 
               style={styles.themeContainer} 
-              lightColor={'#FFFFFF'} 
+              lightColor='#FFFFFF'
               darkColor='#040508'
             >
               <ThemedView 
@@ -274,6 +278,9 @@ export default function ProductDetailScreen() {
               >
                 <Animated.View style={[
                   styles.activeTabIndicator,
+                  isDarkMode && {
+                    backgroundColor: '#101013'
+                  },
                   {
                     width: tabContainerWidth,
                     transform: [{ translateX: indicatorPosition }]
@@ -540,7 +547,7 @@ const styles = StyleSheet.create({
   tabsContainer: {
     borderRadius: 12,
     padding: 3,
-    backgroundColor: '#F2F4F7',
+    // backgroundColor: '#F2F4F7',
     flexDirection: 'row',
     position: 'relative',
     marginBottom: 16,

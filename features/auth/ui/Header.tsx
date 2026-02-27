@@ -13,7 +13,7 @@ import { useAppDispatch } from "@/store/hooks";
 import * as Linking from "expo-linking";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { Share, StyleSheet, TouchableOpacity, View } from "react-native";
+import { Share, StyleSheet, TouchableOpacity, View, useColorScheme } from "react-native";
 interface ModalHeaderProps {
   title?: string;
   onBackPress?: () => void;
@@ -35,6 +35,9 @@ export const ModalHeader: React.FC<ModalHeaderProps> = ({
   productId,
   isFavorite: initialIsFavorite,
 }) => {
+  const colorScheme = useColorScheme();
+//TODO
+  const isDarkMode = colorScheme === "dark";
   const [isLiked, setIsLiked] = useState(initialIsFavorite);
   const dispatch = useAppDispatch();
   const router = useRouter();
@@ -121,7 +124,7 @@ export const ModalHeader: React.FC<ModalHeaderProps> = ({
                 onPress={onBackPress}
               >
                 {/* <ThemedText style={headerStyles.backButtonText}>‹</ThemedText> */}
-                <ArrowIconLeft />
+                <ArrowIconLeft color={isDarkMode ? '#FBFCFF' : '#1B1B1C'} />
               </TouchableOpacity>
             )}
             <ThemedText
@@ -146,7 +149,7 @@ export const ModalHeader: React.FC<ModalHeaderProps> = ({
                 onPress={handleSearchPress}
                 activeOpacity={0.7}
               >
-                <IconSearchNew />
+                <IconSearchNew  color={isDarkMode ? '#FBFCFF' : '#1B1B1C'}/>
               </TouchableOpacity>
             )}
             {isProduct && (
@@ -155,7 +158,7 @@ export const ModalHeader: React.FC<ModalHeaderProps> = ({
                 onPress={handleShare}
                 activeOpacity={0.7}
               >
-                <IconShare />
+                <IconShare color={isDarkMode ? '#FBFCFF' : '#1B1B1C'} />
               </TouchableOpacity>
             )}
             {isProduct && (

@@ -3,6 +3,7 @@ import {
   ArrowIconRight,
   CartIcon,
   IconCompany,
+  IconCompanyNew,
   InfoIcon,
   LikeIcon,
   TrashIcon,
@@ -37,7 +38,7 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  View,
+  View, useColorScheme
 } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
@@ -73,6 +74,9 @@ const CartItemComponent = ({
   onRemove: () => void;
   onToggleFavorite: (productId: string, isFavorite: boolean) => Promise<void>;
 }) => {
+  const colorScheme = useColorScheme();
+  //TODO
+  const isDarkMode = colorScheme === "dark";
   const [isFavorite, setIsFavorite] = useState(item.isFavorite);
   const isAvailable = isItemAvailable(item);
 
@@ -102,10 +106,10 @@ const CartItemComponent = ({
   };
 
   return (
-    <ThemedView lightColor="#FFFFFF" style={[styles.cartItem]}>
+    <ThemedView darkColor="#151516" lightColor="#FFFFFF" style={[styles.cartItem]}>
       {/* Изображение товара */}
       <View style={styles.imageContainer}>
-        <ThemedView lightColor="#FFFFFF" style={styles.checkboxPhoto}>
+        <ThemedView darkColor="#151516" lightColor="#FFFFFF" style={styles.checkboxPhoto}>
           <CustomCheckbox
             style={styles.checkboxPhoto}
             value={isSelected}
@@ -135,6 +139,8 @@ const CartItemComponent = ({
           <ThemedText
             style={[styles.productName, !isAvailable && styles.textUnavailable]}
             numberOfLines={2}
+              lightColor="#202022"
+              darkColor="#F2F4F7"
           >
             {item.productName}
           </ThemedText>
@@ -146,6 +152,8 @@ const CartItemComponent = ({
                 !isAvailable && styles.textUnavailable,
               ]}
               numberOfLines={1}
+              lightColor="#202022"
+              darkColor="#F2F4F7"
             >
               {formatPrice(item.totalPrice)} ₽
             </ThemedText>
@@ -155,6 +163,7 @@ const CartItemComponent = ({
         <View style={styles.priceRow}>
           <ThemedText
             lightColor={!isAvailable ? "#80818B" : "#80818B"}
+            darkColor="#FBFCFF80"
             style={[
               styles.quantityTextKg,
               !isAvailable && styles.textUnavailable,
@@ -175,7 +184,8 @@ const CartItemComponent = ({
             ]}
           >
             <ThemedText
-              lightColor={stockInfoTextColor}
+              lightColor="#202022"
+              darkColor="#F2F4F7"
               style={styles.stockInfoText}
             >
               {item.stockInfo}
@@ -194,6 +204,7 @@ const CartItemComponent = ({
                 !isAvailable && styles.favoriteThemeUnavailable,
               ]}
               lightColor="#F2F4F7"
+              darkColor="#202022"
             >
               <LikeIcon isFilled={isFavorite} />
             </ThemedView>
@@ -210,14 +221,19 @@ const CartItemComponent = ({
                 !isAvailable && styles.favoriteThemeUnavailable,
               ]}
               lightColor="#F2F4F7"
+              darkColor="#202022"
+
             >
-              <TrashIcon />
+              <TrashIcon stroke={isDarkMode ? '#FBFCFF' : "#1B1B1C"} fill={isDarkMode ? '#FBFCFF' : "#1B1B1C"}/>
             </ThemedView>
           </TouchableOpacity>
 
           <ThemedView
             style={[
               styles.quantityControls,
+              isDarkMode && {
+                backgroundColor: '#202022'
+              },
               !isAvailable && styles.quantityControlsUnavailable,
             ]}
           >
@@ -235,6 +251,8 @@ const CartItemComponent = ({
                   styles.plusMinus,
                   !isAvailable && styles.textUnavailable,
                 ]}
+              lightColor="#202022"
+              darkColor="#F2F4F7"
               >
                 -
               </ThemedText>
@@ -245,6 +263,8 @@ const CartItemComponent = ({
                 styles.quantityText,
                 !isAvailable && styles.textUnavailable,
               ]}
+              lightColor="#202022"
+              darkColor="#F2F4F7"
             >
               {item.quantity} {item.measureType === "килограмм" ? "кг" : "шт"}
             </ThemedText>
@@ -261,6 +281,8 @@ const CartItemComponent = ({
                   styles.plusMinus,
                   !isAvailable && styles.textUnavailable,
                 ]}
+              lightColor="#202022"
+              darkColor="#F2F4F7"
               >
                 +
               </ThemedText>
@@ -278,6 +300,9 @@ const isItemAvailable = (item: CartItem): boolean => {
 };
 
 export default function ShopScreen() {
+  const colorScheme = useColorScheme();
+  //TODO
+  const isDarkMode = colorScheme === "dark";
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
   const [checkoutModalVisible, setCheckoutModalVisible] = useState(false);
@@ -484,12 +509,12 @@ export default function ShopScreen() {
                 <View
                   style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
                 >
-                  <IconCompany />
-                  <ThemedText numberOfLines={1} style={{ maxWidth: 150 }}>
+                  <IconCompanyNew color={isDarkMode ? '#FBFCFF' : "#1B1B1C"} />
+                  <ThemedText darkColor="#FBFCFF" lightColor="#1B1B1C" numberOfLines={1} style={{ maxWidth: 150 }}>
                     {currentCompany?.name || me?.companies?.[0]?.name || ""}
                   </ThemedText>
                 </View>
-                <ArrowIconRight />
+                <ArrowIconRight color={isDarkMode ? '#FBFCFF' : "#1B1B1C"} />
               </TouchableOpacity>
             }
           />
@@ -532,12 +557,12 @@ export default function ShopScreen() {
                 <View
                   style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
                 >
-                  <IconCompany />
-                  <ThemedText numberOfLines={1} style={{ maxWidth: 150 }}>
+                  <IconCompanyNew color={isDarkMode ? '#FBFCFF' : "#1B1B1C"} />
+                  <ThemedText darkColor="#FBFCFF" lightColor="#1B1B1C" numberOfLines={1} style={{ maxWidth: 150 }}>
                     {currentCompany?.name || me?.companies?.[0]?.name || ""}
                   </ThemedText>
                 </View>
-                <ArrowIconRight />
+                <ArrowIconRight color={isDarkMode ? '#FBFCFF' : "#1B1B1C"} />
               </TouchableOpacity>
             }
           />
@@ -586,12 +611,12 @@ export default function ShopScreen() {
               <View
                 style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
               >
-                <IconCompany />
-                <ThemedText numberOfLines={1} style={{ maxWidth: 150 }}>
+                <IconCompanyNew color={isDarkMode ? '#FBFCFF' : "#1B1B1C"} />
+                <ThemedText darkColor="#FBFCFF" lightColor="#1B1B1C" numberOfLines={1} style={{ maxWidth: 150 }}>
                   {currentCompany?.name || me?.companies?.[0]?.name || ""}
                 </ThemedText>
               </View>
-              <ArrowIconRight />
+              <ArrowIconRight stroke={isDarkMode ? '#FBFCFF' : "#1B1B1C"} />
             </TouchableOpacity>
           }
         />
@@ -601,7 +626,7 @@ export default function ShopScreen() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          <ThemedView lightColor="#FFFFFF" style={styles.mainCont}>
+          <ThemedView darkColor="#151516" lightColor="#FFFFFF" style={styles.mainCont}>
             {/* Шапка с выбором всех товаров */}
             <View style={styles.headerActions}>
               <View style={styles.checkboxRow}>
@@ -628,7 +653,7 @@ export default function ShopScreen() {
                 ]}
                 onPress={handleRemoveItem}
               >
-                <TrashIcon />
+                <TrashIcon stroke={isDarkMode ? '#FBFCFF' : "#1B1B1C"} fill={isDarkMode ? '#FBFCFF' : "#1B1B1C"} />
               </TouchableOpacity>
             </View>
             {/* Список товаров */}
@@ -662,12 +687,13 @@ export default function ShopScreen() {
             {totals.totalItems > 0 ? (
               <View style={styles.uCart}>
                 <View style={styles.uCartMain}>
-                  <ThemedText style={styles.uCartMainText} lightColor="#1B1B1C">
+                  <ThemedText style={styles.uCartMainText} darkColor="#FBFCFF" lightColor="#1B1B1C">
                     Ваша корзина
                   </ThemedText>
                   <ThemedText
                     style={styles.uCartSecondText}
                     lightColor="#80818B"
+                    darkColor="#FBFCFF80"
                   >
                     {totals.totalItems}{" "}
                     {getDeclension(totals.totalItems, [
@@ -679,18 +705,20 @@ export default function ShopScreen() {
                   </ThemedText>
                 </View>
                 <View style={styles.uCartMain}>
-                  <ThemedText>Товары ({totals.totalItems})</ThemedText>
-                  <ThemedText>{formatPrice(totals.totalPrice)} ₽</ThemedText>
+                  <ThemedText darkColor="#FBFCFF" lightColor="#1B1B1C">Товары ({totals.totalItems})</ThemedText>
+                  <ThemedText darkColor="#FBFCFF" lightColor="#1B1B1C">{formatPrice(totals.totalPrice)} ₽</ThemedText>
                 </View>
 
-                <View style={styles.uCartMainLast}>
-                  <ThemedText>Скидка</ThemedText>
-                  <ThemedText lightColor="#6FBD15">0 ₽</ThemedText>
+                <View style={[styles.uCartMainLast, isDarkMode && {
+                  borderColor: '#252527'
+                }]}>
+                  <ThemedText darkColor="#FBFCFF" lightColor="#1B1B1C">Скидка</ThemedText>
+                  <ThemedText lightColor="#6FBD15" darkColor="#6FBD15">0 ₽</ThemedText>
                 </View>
 
                 <View style={styles.totalCountMain}>
-                  <ThemedText>ИТОГО</ThemedText>
-                  <ThemedText>{formatPrice(totals.totalPrice)} ₽</ThemedText>
+                  <ThemedText darkColor="#FBFCFF" lightColor="#1B1B1C">ИТОГО</ThemedText>
+                  <ThemedText darkColor="#FBFCFF" lightColor="#1B1B1C">{formatPrice(totals.totalPrice)} ₽</ThemedText>
                 </View>
               </View>
             ) : null}
@@ -709,11 +737,11 @@ export default function ShopScreen() {
               }
             />
             {totals.totalItems === 0 ? (
-              <ThemedView lightColor="#F2F4F7" style={styles.chooseProducts}>
-                <ThemedView lightColor="#FFFFFF" style={styles.iconStyleCont}>
-                  <InfoIcon />
+              <ThemedView darkColor="#202022" lightColor="#F2F4F7" style={styles.chooseProducts}>
+                <ThemedView darkColor="#151516" lightColor="#FFFFFF" style={styles.iconStyleCont}>
+                  <InfoIcon stroke={isDarkMode ? '#FBFCFF' : "#1B1B1C"} fill={isDarkMode ? '#FBFCFF' : "#1B1B1C"}/>
                 </ThemedView>
-                <ThemedText>
+                <ThemedText darkColor="#FBFCFF" lightColor="#1B1B1C">
                   Выберите товары, чтобы перейти к оформлению заказа
                 </ThemedText>
               </ThemedView>
@@ -727,6 +755,7 @@ export default function ShopScreen() {
               <View style={styles.textContainer}>
                 <ThemedText
                   lightColor="#203686"
+                  darkColor="#4C94FF"
                   style={styles.textContainerMain}
                 >
                   Бесплатная доставка {"\n"}при заказе от — 10 000 ₽.
@@ -760,10 +789,10 @@ export default function ShopScreen() {
         </ScrollView>
 
         {/* Фиксированная нижняя плашка */}
-        <ThemedView lightColor="#FFFFFF" style={styles.bottomPanel}>
+        <ThemedView darkColor="#151516" lightColor="#FFFFFF" style={styles.bottomPanel}>
           <View style={styles.bottomPanelContent}>
             <View style={styles.bottomLeft}>
-              <ThemedText style={styles.bottomTotalPrice}>
+              <ThemedText darkColor="#FBFCFF" style={styles.bottomTotalPrice}>
                 {formatPrice(totals.totalPrice)} ₽
               </ThemedText>
               <ThemedText style={styles.bottomItemsCount}>
@@ -781,6 +810,9 @@ export default function ShopScreen() {
             <TouchableOpacity
               style={[
                 styles.bottomCheckoutButton,
+                isDarkMode && {
+                  backgroundColor: '#3881EE'
+                },
                 (totals.totalItems === 0 || totals.hasUnavailableSelected) &&
                   styles.checkoutButtonDisabled,
               ]}

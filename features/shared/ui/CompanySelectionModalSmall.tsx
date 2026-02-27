@@ -11,6 +11,7 @@ import {
   TouchableOpacity,
   TouchableWithoutFeedback,
   View,
+  useColorScheme,
 } from "react-native";
 import { PrimaryButton } from "./components/PrimartyButton";
 
@@ -33,6 +34,9 @@ export const CompanySelectionModal: React.FC<CompanySelectionModalProps> = ({
   onSelectCompany,
   onAddCompany,
 }) => {
+  const colorScheme = useColorScheme();
+  //TODO
+  const isDarkMode = colorScheme === "dark";
   const [modalTranslateY] = useState(new Animated.Value(screenHeight));
   const [isClosing, setIsClosing] = useState(false);
 
@@ -99,6 +103,9 @@ export const CompanySelectionModal: React.FC<CompanySelectionModalProps> = ({
             <Animated.View
               style={[
                 styles.modalContainer,
+                isDarkMode && {
+                  backgroundColor: '#202022'
+                },
                 {
                   transform: [{ translateY: modalTranslateY }],
                 },
@@ -129,7 +136,9 @@ export const CompanySelectionModal: React.FC<CompanySelectionModalProps> = ({
                 {companies.map((company) => (
                   <TouchableOpacity
                     key={company.id}
-                    style={styles.companyItem}
+                    style={[styles.companyItem, isDarkMode && {
+                      borderColor: '#323235'
+                    }]}
                     onPress={() => handleSelectCompany(company)}
                   >
                     <View
@@ -137,6 +146,9 @@ export const CompanySelectionModal: React.FC<CompanySelectionModalProps> = ({
                         styles.radioOuter,
                         selectedCompanyId === company.id &&
                           styles.radioOuterSelected,
+                          isDarkMode && selectedCompanyId === company.id && {
+                            borderColor:'#4C94FF'
+                          }
                       ]}
                     >
                       {selectedCompanyId === company.id && (
@@ -302,7 +314,7 @@ const styles = StyleSheet.create({
     borderColor: "#D8DADE",
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#FBFCFF",
+    // backgroundColor: "#FBFCFF",
   },
   radioOuterSelected: {
     borderColor: "#203686",

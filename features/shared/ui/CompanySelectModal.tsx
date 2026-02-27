@@ -256,6 +256,7 @@ export const CompanySelectModal: React.FC<CompanySelectModalProps> = ({
           <ThemedView
             style={styles.modalContentInnerRegUser}
             lightColor={"#FFFFFF"}
+            darkColor="#151516"
           >
             <View>
               <ThemedText style={styles.accountTypeTitle}>

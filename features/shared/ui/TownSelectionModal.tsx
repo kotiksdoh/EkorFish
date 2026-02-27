@@ -1,4 +1,5 @@
 import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
 import { getMyInfo, getTowns, updateUserTown } from "@/features/auth/authSlice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import React, { useEffect, useState } from "react";
@@ -12,6 +13,7 @@ import {
   TouchableOpacity,
   TouchableWithoutFeedback,
   View,
+  useColorScheme,
 } from "react-native";
 
 const { height: screenHeight } = Dimensions.get("window");
@@ -29,6 +31,9 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
   storageId,
   onTownSelected,
 }) => {
+  // TODO
+  const colorScheme = useColorScheme();
+  const isDarkMode = colorScheme === "dark";
   const dispatch = useAppDispatch();
   const towns = useAppSelector((state) => state.auth.towns);
   const isLoadingTowns = useAppSelector((state) => state.auth.isLoadingTowns);
@@ -132,6 +137,12 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
             <Animated.View
               style={[
                 styles.modalContainer,
+                isDarkMode ? {
+                  backgroundColor: "#202022",
+                } : 
+                {
+                  backgroundColor: "#FFFFFF",
+                },
                 {
                   transform: [{ translateY: modalTranslateY }],
                 },
@@ -166,16 +177,25 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
                     {towns.map((town) => (
                       <TouchableOpacity
                         key={town.id}
-                        style={styles.townItem}
+                        style={[styles.townItem, 
+                          isDarkMode && {
+                            borderBottomColor: "#323235",
+                          }
+                        ]}
                         onPress={() => handleTownSelect(town.id)}
                         disabled={isUpdating}
                       >
                         <View style={styles.townItemContent}>
                           <View
-                            style={[
+                           style={[
                               styles.radioOuter,
                               selectedTownId === town.id &&
                                 styles.radioOuterSelected,
+                              // Для темной темы: изменяем цвет бордера выбранной радио-кнопки
+                              isDarkMode &&
+                                selectedTownId === town.id && {
+                                  borderColor: "#4C94FF",
+                                },
                             ]}
                           >
                             {selectedTownId === town.id && (
@@ -203,10 +223,13 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
               </ScrollView>
 
               {/* Кнопка Применить */}
-              <View style={styles.applyButtonContainer}>
+              <ThemedView darkColor="#202022" lightColor='#FFFFFF'style={styles.applyButtonContainer}>
                 <TouchableOpacity
                   style={[
                     styles.applyButton,
+                    isDarkMode && {
+                      backgroundColor: "#3881EE",
+                    },
                     (!selectedTownId || isUpdating) &&
                       styles.applyButtonDisabled,
                   ]}
@@ -221,7 +244,7 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
                     </ThemedText>
                   )}
                 </TouchableOpacity>
-              </View>
+              </ThemedView>
 
               {/* Оверлей загрузки (убираем, так как теперь индикатор в кнопке) */}
             </Animated.View>
@@ -313,7 +336,7 @@ const styles = StyleSheet.create({
     borderColor: "#D8DADE",
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#FBFCFF",
+    // backgroundColor: "#FBFCFF",
   },
   radioOuterSelected: {
     borderColor: "#203686",
@@ -370,9 +393,6 @@ const styles = StyleSheet.create({
     right: 0,
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: "#FFFFFF",
-    borderTopWidth: 1,
-    borderTopColor: "#F0F0F0",
   },
   applyButton: {
     backgroundColor: "#203686",

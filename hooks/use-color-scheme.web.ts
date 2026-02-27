@@ -16,6 +16,6 @@ export function useColorScheme() {
   if (hasHydrated) {
     return colorScheme;
   }
-
+// TODO
   return 'light';
 }
