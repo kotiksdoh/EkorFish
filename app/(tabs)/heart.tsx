@@ -208,7 +208,7 @@ export default function HeartScreen() {
         };
 
         if (searchText) {
-          params.Search = searchText;
+          params.search = searchText;
         }
 
         // Преобразуем в числа
@@ -790,7 +790,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 8,
-    paddingVertical: 7,
+    paddingVertical: 3,
     backgroundColor: "#F5F5F5",
     borderRadius: 6,
     marginRight: 8,

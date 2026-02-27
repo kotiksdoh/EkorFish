@@ -9,7 +9,8 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "bundleIdentifier": "com.kotiksdoh.EkorFish",
+      "buildNumber": "1.0.0"
     },
     "android": {
       "adaptiveIcon": {

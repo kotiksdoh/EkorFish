@@ -193,13 +193,15 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     }
   };
   const handleCodeInputChange = (text: string, index: number) => {
-    // Автоматически обрабатываем вставку длинного текста
+    // Проверяем, является ли это вставкой (текст длиннее 1 символа)
     if (text.length > 1) {
       // Очищаем текст от всего, кроме цифр
       const cleanedCode = text.replace(/\D/g, "");
-      const codeDigits = cleanedCode.substring(0, 4).split("");
-
-      if (codeDigits.length === 4) {
+      
+      // Если вставили 4 или больше цифр, берем первые 4
+      if (cleanedCode.length >= 4) {
+        const codeDigits = cleanedCode.substring(0, 4).split("");
+        
         // Заполняем все поля
         const newCode = [...confirmationCode];
         codeDigits.forEach((digit, idx) => {
@@ -207,39 +209,77 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             newCode[idx] = digit;
           }
         });
-
+  
         setConfirmationCode(newCode);
-
+  
         // Фокусируемся на последнем поле
         if (codeInputRefs.current[3]) {
           codeInputRefs.current[3].focus();
         }
-
+  
         // Автоматически отправляем на проверку
         setTimeout(() => {
           verifyCode(newCode.join(""));
         }, 100);
+        
+        return; // Важно: выходим, чтобы не обрабатывать дальше
+      } else {
+        // Если вставили меньше 4 цифр, заполняем сколько есть
+        const codeDigits = cleanedCode.split("");
+        const newCode = [...confirmationCode];
+        
+        // Сначала очищаем все поля
+        for (let i = 0; i < 4; i++) {
+          newCode[i] = "";
+        }
+        
+        // Затем заполняем доступными цифрами
+        codeDigits.forEach((digit, idx) => {
+          if (idx < 4) {
+            newCode[idx] = digit;
+          }
+        });
+        
+        setConfirmationCode(newCode);
+        
+        // Фокусируемся на следующем пустом поле или последнем заполненном
+        if (codeDigits.length < 4 && codeInputRefs.current[codeDigits.length]) {
+          codeInputRefs.current[codeDigits.length].focus();
+        }
+        
         return;
       }
     }
-
+  
     // Обычная обработка одного символа
-    const singleChar = text.length > 0 ? text.charAt(text.length - 1) : "";
-
+    const lastChar = text.length > 0 ? text.charAt(text.length - 1) : "";
+    
     const newCode = [...confirmationCode];
-    newCode[index] = singleChar;
+    newCode[index] = lastChar;
     setConfirmationCode(newCode);
-
-    if (singleChar && index < 3) {
+  
+    // Автоматический переход к следующему полю
+    if (lastChar && index < 3) {
       codeInputRefs.current[index + 1]?.focus();
     }
-
-    if (!singleChar && index > 0) {
+  
+    // Возврат к предыдущему полю при удалении
+    if (!lastChar && index > 0) {
       codeInputRefs.current[index - 1]?.focus();
     }
-
+  
+    // Проверка кода, если все поля заполнены
     if (newCode.every((char) => char !== "")) {
       verifyCode(newCode.join(""));
+    }
+  };
+
+  const handlePaste = (event: any, index: number) => {
+    // Для веб-версии
+    if (Platform.OS === 'web') {
+      event.preventDefault();
+      const pastedText = event.clipboardData.getData('text');
+      handleCodeInputChange(pastedText, index);
     }
   };
 
@@ -634,36 +674,35 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                     <View style={styles.codeInputsContainer}>
                       {[0, 1, 2, 3].map((_, index) => (
                         <TextInput
-                          key={index}
-                          ref={(ref) => {
-                            if (ref) {
-                              codeInputRefs.current[index] = ref;
-                            }
-                          }}
-                          style={[
-                            styles.codeInput,
-                            {
-                              backgroundColor: codeInputBackgroundColor,
-                              color: codeInputColor,
-                            },
-                            error && styles.codeInputError,
-                            loading && styles.codeInputDisabled,
-                          ]}
-                          value={confirmationCode[index]}
-                          onChangeText={(text) =>
-                            handleCodeInputChange(text, index)
+                        key={index}
+                        ref={(ref) => {
+                          if (ref) {
+                            codeInputRefs.current[index] = ref;
                           }
-                          onKeyPress={(event) => handleKeyPress(event, index)}
-                          keyboardType="number-pad"
-                          maxLength={1}
-                          textAlign="center"
-                          autoFocus={index === 0}
-                          placeholder=""
-                          placeholderTextColor={error ? "#FF3B30" : "#80818B"}
-                          editable={!loading}
-                          selectTextOnFocus={!loading}
-                          contextMenuHidden={loading}
-                        />
+                        }}
+                        style={[
+                          styles.codeInput,
+                          {
+                            backgroundColor: codeInputBackgroundColor,
+                            color: codeInputColor,
+                          },
+                          error && styles.codeInputError,
+                          loading && styles.codeInputDisabled,
+                        ]}
+                        value={confirmationCode[index]}
+                        onChangeText={(text) => handleCodeInputChange(text, index)}
+                        onKeyPress={(event) => handleKeyPress(event, index)}
+                        onPaste={(event) => handlePaste(event, index)} // Добавлено для веб
+                        keyboardType="number-pad"
+                        maxLength={1}
+                        textAlign="center"
+                        autoFocus={index === 0}
+                        placeholder=""
+                        placeholderTextColor={error ? "#FF3B30" : "#80818B"}
+                        editable={!loading}
+                        selectTextOnFocus={!loading}
+                        contextMenuHidden={loading}
+                      />
                       ))}
                     </View>
                     {/* Сообщение об ошибке */}

@@ -182,7 +182,7 @@ export const SearchScreenWithHistory: React.FC<
         {searchHistory.length > 0 && (
           <>
             <View style={styles.historyHeader}>
-              <ThemedText style={styles.historyTitle}>История</ThemedText>
+              <ThemedText lightColor="#80818B" darkColor="#FBFCFF80" style={styles.historyTitle}>Вы искали</ThemedText>
               <TouchableOpacity onPress={handleClearHistory}>
                 <ThemedText style={styles.clearButton}>Очистить</ThemedText>
               </TouchableOpacity>
@@ -299,6 +299,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flexWrap: "wrap",
     // flex: 1,
+    marginBottom: 10,
     gap: 4,
   },
   historyItem: {

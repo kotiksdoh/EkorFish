@@ -6,12 +6,12 @@ import { addDeliveryAddress } from "@/features/catalog/catalogSlice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import React, { useEffect, useState } from "react";
 import {
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    View
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  View
 } from "react-native";
 import AnimatedTextInput from "./components/CustomInput";
 import { PrimaryButton } from "./components/PrimartyButton";
@@ -203,8 +203,6 @@ export const AddAddressModal: React.FC<AddAddressModalProps> = ({
                     onChangeText={(value) =>
                       setFormData((prev) => ({ ...prev, comment: value }))
                     }
-                    multiline
-                    numberOfLines={3}
                     style={styles.commentInput}
                   />
                 </View>
@@ -269,8 +267,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   commentInput: {
-    minHeight: 80,
-    textAlignVertical: "top",
+    // textAlignVertical: "top",
   },
   footer: {
     position: "absolute",

@@ -1,5 +1,5 @@
 // app/modals/checkout.tsx
-import { ArrowIconRight, IconCompany, IconCompanyNew, TrashIcon } from "@/assets/icons/icons";
+import { ArrowIconRight, IconCompanyNew, TrashIcon } from "@/assets/icons/icons";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import {
@@ -27,7 +27,6 @@ import AnimatedTextInput from "@/features/shared/ui/components/CustomInput";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
-import { useColorScheme } from "react-native";
 import {
   ActivityIndicator,
   Alert,
@@ -41,7 +40,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   TouchableWithoutFeedback,
-  View,
+  View, useColorScheme
 } from "react-native";
 
 const { height: screenHeight } = Dimensions.get("window");
@@ -262,7 +261,7 @@ export default function CheckoutModal({
       setSelectedAddress(savedAddress);
     }
   }, [currentCompany?.id, savedAddress]);
-
+  console.log('savedAddress', savedAddress)
   const handleSelectAddress = async (address: any) => {
     setSelectedAddress(address);
     if (currentCompany?.id) {
@@ -838,7 +837,7 @@ export default function CheckoutModal({
                                 >
                                   {currentCompany?.id ===
                                   savedAddress?.addressOwnerId
-                                    ? savedAddress?.address
+                                    ? `${savedAddress?.address}, этаж ${savedAddress?.floor}, кв ${savedAddress?.apartment}`
                                     : currentCompany?.deliveryAddresses?.[0]
                                         ?.address || "-"}
                                 </ThemedText>
@@ -897,13 +896,13 @@ export default function CheckoutModal({
                       <View key={recipient.id} style={styles.recipientBlock}>
                         {index > 0 && (
                           <View style={styles.recipientHeader}>
-                            <ThemedText style={styles.recipientTitle}>
+                            <ThemedText lightColor="#80818B" style={styles.recipientTitle}>
                               Дополнительный получатель
                             </ThemedText>
                             <TouchableOpacity
                               onPress={() => removeRecipient(recipient.id)}
                             >
-                              <TrashIcon />
+                              <TrashIcon fill="#F10B34" stroke="#F10B34"/>
                             </TouchableOpacity>
                           </View>
                         )}
@@ -1866,7 +1865,6 @@ const styles = StyleSheet.create({
   recipientTitle: {
     fontSize: 14,
     fontWeight: "500",
-    color: "#203686",
   },
   inputSpacer: {
     height: 8,

@@ -177,7 +177,7 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
 
   const handleCopyId = async () => {
     if (orderDetails) {
-      await Clipboard.setStringAsync(orderDetails.id.toString());
+      await Clipboard.setStringAsync(orderDetails?.id?.toString());
     }
   };
 
