@@ -356,7 +356,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
 const styles = StyleSheet.create({
   cardTouchable: {
-    width: "48.8%",
+    width: "48.5%",
     marginBottom: 12,
   },
   container: {

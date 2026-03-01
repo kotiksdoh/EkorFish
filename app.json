@@ -26,8 +26,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.kotiksdoh.EkorFish",
-      "usesCleartextTraffic": true
+      "package": "com.kotiksdoh.EkorFish"
     },
     "web": {
       "output": "static",
@@ -47,7 +46,18 @@
           }
         }
       ],
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          },
+          "ios": {
+            "usesCleartextTraffic": true
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
