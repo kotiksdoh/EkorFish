@@ -193,92 +193,78 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     }
   };
   const handleCodeInputChange = (text: string, index: number) => {
-    // Проверяем, является ли это вставкой (текст длиннее 1 символа)
-    if (text.length > 1) {
-      // Очищаем текст от всего, кроме цифр
-      const cleanedCode = text.replace(/\D/g, "");
-      
-      // Если вставили 4 или больше цифр, берем первые 4
-      if (cleanedCode.length >= 4) {
-        const codeDigits = cleanedCode.substring(0, 4).split("");
-        
-        // Заполняем все поля
-        const newCode = [...confirmationCode];
-        codeDigits.forEach((digit, idx) => {
-          if (idx < 4) {
-            newCode[idx] = digit;
-          }
-        });
-  
-        setConfirmationCode(newCode);
-  
-        // Фокусируемся на последнем поле
-        if (codeInputRefs.current[3]) {
-          codeInputRefs.current[3].focus();
-        }
-  
-        // Автоматически отправляем на проверку
-        setTimeout(() => {
-          verifyCode(newCode.join(""));
-        }, 100);
-        
-        return; // Важно: выходим, чтобы не обрабатывать дальше
-      } else {
-        // Если вставили меньше 4 цифр, заполняем сколько есть
-        const codeDigits = cleanedCode.split("");
-        const newCode = [...confirmationCode];
-        
-        // Сначала очищаем все поля
-        for (let i = 0; i < 4; i++) {
-          newCode[i] = "";
-        }
-        
-        // Затем заполняем доступными цифрами
-        codeDigits.forEach((digit, idx) => {
-          if (idx < 4) {
-            newCode[idx] = digit;
-          }
-        });
-        
-        setConfirmationCode(newCode);
-        
-        // Фокусируемся на следующем пустом поле или последнем заполненном
-        if (codeDigits.length < 4 && codeInputRefs.current[codeDigits.length]) {
-          codeInputRefs.current[codeDigits.length].focus();
-        }
-        
-        return;
-      }
+    // Если текст пустой - просто обновляем текущий индекс
+    if (text === "") {
+      const newCode = [...confirmationCode];
+      newCode[index] = "";
+      setConfirmationCode(newCode);
+      return;
     }
-  
-    // Обычная обработка одного символа
-    const lastChar = text.length > 0 ? text.charAt(text.length - 1) : "";
-    
+
+    // Проверяем, является ли это вставкой (текст длиннее 1 символа или несколько цифр)
+    const cleanedText = text.replace(/\D/g, "");
+
+    if (cleanedText.length > 1) {
+      // ВСТАВКА - распределяем символы по инпутам
+      const newCode = [...confirmationCode];
+      const chars = cleanedText.split("");
+
+      // Заполняем начиная с текущего индекса
+      for (let i = 0; i < chars.length && index + i < 4; i++) {
+        newCode[index + i] = chars[i];
+      }
+
+      setConfirmationCode(newCode);
+
+      // Фокусируемся на следующем пустом поле или последнем заполненном
+      const nextEmptyIndex = newCode.findIndex(
+        (val, i) => i > index && val === "",
+      );
+      if (nextEmptyIndex !== -1) {
+        codeInputRefs.current[nextEmptyIndex]?.focus();
+      } else if (index + chars.length < 4) {
+        codeInputRefs.current[index + chars.length]?.focus();
+      }
+
+      // Проверяем, заполнен ли весь код
+      if (newCode.every((char) => char !== "")) {
+        setTimeout(() => verifyCode(newCode.join("")), 100);
+      }
+      return;
+    }
+
+    // Обычный ввод одного символа
+    const lastChar = cleanedText.charAt(cleanedText.length - 1);
     const newCode = [...confirmationCode];
     newCode[index] = lastChar;
     setConfirmationCode(newCode);
-  
-    // Автоматический переход к следующему полю
+
+    // Переход к следующему полю
     if (lastChar && index < 3) {
       codeInputRefs.current[index + 1]?.focus();
     }
-  
-    // Возврат к предыдущему полю при удалении
-    if (!lastChar && index > 0) {
-      codeInputRefs.current[index - 1]?.focus();
-    }
-  
-    // Проверка кода, если все поля заполнены
+
+    // Проверка кода если все заполнено
     if (newCode.every((char) => char !== "")) {
       verifyCode(newCode.join(""));
     }
   };
 
+  // Добавляем обработчик для нативной вставки на iOS
+  const handleTextInput = (nativeEvent: any, index: number) => {
+    const text = nativeEvent.text;
+    if (text && text.length > 1) {
+      handleCodeInputChange(text, index);
+    }
+  };
+
+  // Удаляем handlePaste, так как он не нужен для iOS
+
   const handlePaste = (event: any, index: number) => {
     // Для веб-версии
-    if (Platform.OS === 'web') {
+    if (Platform.OS === "web") {
       event.preventDefault();
-      const pastedText = event.clipboardData.getData('text');
+      const pastedText = event.clipboardData.getData("text");
       handleCodeInputChange(pastedText, index);
     }
   };
@@ -674,35 +660,44 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                     <View style={styles.codeInputsContainer}>
                       {[0, 1, 2, 3].map((_, index) => (
                         <TextInput
-                        key={index}
-                        ref={(ref) => {
-                          if (ref) {
-                            codeInputRefs.current[index] = ref;
+                          key={index}
+                          ref={(ref) => {
+                            if (ref) {
+                              codeInputRefs.current[index] = ref;
+                            }
+                          }}
+                          style={[
+                            styles.codeInput,
+                            {
+                              backgroundColor: codeInputBackgroundColor,
+                              color: codeInputColor,
+                            },
+                            error && styles.codeInputError,
+                            loading && styles.codeInputDisabled,
+                          ]}
+                          value={confirmationCode[index]}
+                          onChangeText={(text) =>
+                            handleCodeInputChange(text, index)
                           }
-                        }}
-                        style={[
-                          styles.codeInput,
-                          {
-                            backgroundColor: codeInputBackgroundColor,
-                            color: codeInputColor,
-                          },
-                          error && styles.codeInputError,
-                          loading && styles.codeInputDisabled,
-                        ]}
-                        value={confirmationCode[index]}
-                        onChangeText={(text) => handleCodeInputChange(text, index)}
-                        onKeyPress={(event) => handleKeyPress(event, index)}
-                        onPaste={(event) => handlePaste(event, index)} // Добавлено для веб
-                        keyboardType="number-pad"
-                        maxLength={1}
-                        textAlign="center"
-                        autoFocus={index === 0}
-                        placeholder=""
-                        placeholderTextColor={error ? "#FF3B30" : "#80818B"}
-                        editable={!loading}
-                        selectTextOnFocus={!loading}
-                        contextMenuHidden={loading}
-                      />
+                          onKeyPress={(event) => handleKeyPress(event, index)}
+                          // Убираем maxLength, чтобы ловить вставку
+                          keyboardType="number-pad"
+                          textContentType="oneTimeCode"
+                          autoComplete="off"
+                          textAlign="center"
+                          autoFocus={index === 0}
+                          placeholder=""
+                          placeholderTextColor="#80818B"
+                          editable={!loading}
+                          selectTextOnFocus={!loading}
+                          // Для iOS добавляем обработку через onSelectionChange
+                          onSelectionChange={(event) => {
+                            if (Platform.OS === "ios") {
+                              const { selection } = event.nativeEvent;
+                              // Если выделен весь текст или часть - это может быть вставка
+                            }
+                          }}
+                        />
                       ))}
                     </View>
                     {/* Сообщение об ошибке */}

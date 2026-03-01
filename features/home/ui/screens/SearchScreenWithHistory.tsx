@@ -139,7 +139,7 @@ export const SearchScreenWithHistory: React.FC<
   };
 
   if (!visible) return null;
-
+  const textColor = isDark ? "#FFFFFF" : "#1B1B1C";
   return (
     <ThemedView
       style={styles.container}
@@ -155,11 +155,14 @@ export const SearchScreenWithHistory: React.FC<
       >
         <ThemedView lightColor="#03051E08" style={styles.searchContainer}>
           <TouchableOpacity onPress={handleSearchIconPress}>
-            <ArrowIconLeft stroke="#80818B" />
+            <ArrowIconLeft color={isDark ? "#FBFCFF" : "#80818B"} />
           </TouchableOpacity>
           <TextInput
             ref={inputRef}
-            style={styles.searchInput}
+            style={[
+              styles.searchInput,
+              { color: textColor }, // Динамический цвет текста
+            ]}
             placeholder="Найти товары"
             placeholderTextColor="#80818B"
             value={searchQuery}
@@ -182,7 +185,13 @@ export const SearchScreenWithHistory: React.FC<
         {searchHistory.length > 0 && (
           <>
             <View style={styles.historyHeader}>
-              <ThemedText lightColor="#80818B" darkColor="#FBFCFF80" style={styles.historyTitle}>Вы искали</ThemedText>
+              <ThemedText
+                lightColor="#80818B"
+                darkColor="#FBFCFF80"
+                style={styles.historyTitle}
+              >
+                Вы искали
+              </ThemedText>
               <TouchableOpacity onPress={handleClearHistory}>
                 <ThemedText style={styles.clearButton}>Очистить</ThemedText>
               </TouchableOpacity>

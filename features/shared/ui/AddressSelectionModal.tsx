@@ -3,21 +3,22 @@ import { ArrowIconRight } from "@/assets/icons/icons";
 import { ThemedText } from "@/components/themed-text";
 import { getCompanyAddresses } from "@/features/catalog/catalogSlice";
 import {
-    getSavedAddress,
-    saveSelectedAddress,
+  getSavedAddress,
+  saveSelectedAddress,
 } from "@/features/shared/services/addressStorage";
 import { useAppDispatch } from "@/store/hooks";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Animated,
-    Dimensions,
-    Modal,
-    ScrollView,
-    StyleSheet,
-    TouchableOpacity,
-    TouchableWithoutFeedback,
-    View,
+  ActivityIndicator,
+  Animated,
+  Dimensions,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  useColorScheme,
+  View,
 } from "react-native";
 import { AddAddressModal } from "./AddAddressModal";
 import { CompanySelectModal } from "./CompanySelectModal";
@@ -50,6 +51,9 @@ export const AddressSelectionModal: React.FC<AddressSelectionModalProps> = ({
   onAddCompany,
   onAddressAdded,
 }) => {
+  const colorScheme = useColorScheme();
+  //TODO
+  const isDarkMode = colorScheme === "dark";
   const dispatch = useAppDispatch();
   const [modalTranslateY] = useState(new Animated.Value(screenHeight));
   const [isClosing, setIsClosing] = useState(false);
@@ -168,6 +172,9 @@ export const AddressSelectionModal: React.FC<AddressSelectionModalProps> = ({
               <Animated.View
                 style={[
                   styles.modalContainer,
+                  isDarkMode && {
+                    backgroundColor: "#202022",
+                  },
                   {
                     transform: [{ translateY: modalTranslateY }],
                   },
@@ -191,6 +198,7 @@ export const AddressSelectionModal: React.FC<AddressSelectionModalProps> = ({
                 <View style={styles.companyInfo}>
                   <ThemedText
                     lightColor="#80818B"
+                    darkColor="#FBFCFF80"
                     numberOfLines={1}
                     style={styles.companyName}
                   >
@@ -211,7 +219,12 @@ export const AddressSelectionModal: React.FC<AddressSelectionModalProps> = ({
                     deliveryAddresses.map((address: any, index: number) => (
                       <TouchableOpacity
                         key={address.id || index}
-                        style={styles.addressItem}
+                        style={[
+                          styles.addressItem,
+                          isDarkMode && {
+                            borderBottomColor: "#323235",
+                          },
+                        ]}
                         onPress={() => handleSelectAddress(address)}
                       >
                         <View
@@ -219,6 +232,10 @@ export const AddressSelectionModal: React.FC<AddressSelectionModalProps> = ({
                             styles.radioOuter,
                             effectiveSelectedId === address.id &&
                               styles.radioOuterSelected,
+                            isDarkMode &&
+                              effectiveSelectedId === address.id && {
+                                borderColor: "#4C94FF",
+                              },
                           ]}
                         >
                           {effectiveSelectedId === address.id && (
@@ -275,23 +292,22 @@ export const AddressSelectionModal: React.FC<AddressSelectionModalProps> = ({
             </TouchableWithoutFeedback>
           </View>
         </TouchableWithoutFeedback>
+        <CompanySelectModal
+          visible={showCompanyModal}
+          onClose={() => setShowCompanyModal(false)}
+          companies={companies}
+          selectedCompanyId={selectedCompanyId}
+          onSelectCompany={handleSelectCompany}
+          onAddCompany={onAddCompany}
+        />
+
+        <AddAddressModal
+          visible={showAddAddressModal}
+          onClose={() => setShowAddAddressModal(false)}
+          onSuccess={handleAddressAdded}
+          companyId={currentCompany?.id}
+        />
       </Modal>
-
-      <CompanySelectModal
-        visible={showCompanyModal}
-        onClose={() => setShowCompanyModal(false)}
-        companies={companies}
-        selectedCompanyId={selectedCompanyId}
-        onSelectCompany={handleSelectCompany}
-        onAddCompany={onAddCompany}
-      />
-
-      <AddAddressModal
-        visible={showAddAddressModal}
-        onClose={() => setShowAddAddressModal(false)}
-        onSuccess={handleAddressAdded}
-        companyId={currentCompany?.id}
-      />
     </>
   );
 };
@@ -328,7 +344,6 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontWeight: "600",
-    color: "#1B1B1C",
   },
   addressesContainer: {
     paddingHorizontal: 20,
@@ -357,7 +372,6 @@ const styles = StyleSheet.create({
   addressText: {
     fontSize: 16,
     fontWeight: "500",
-    color: "#1B1B1C",
     lineHeight: 22,
   },
   radioOuter: {

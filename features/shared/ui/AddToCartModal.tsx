@@ -1,8 +1,9 @@
 // features/shared/ui/AddToCartModal.tsx
-import { PackageIcon, RetailIcon, WholesaleIcon } from '@/assets/icons/icons';
-import { ThemedText } from '@/components/themed-text';
-import { useThemeColor } from '@/hooks/use-theme-color';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { PackageIcon, RetailIcon, WholesaleIcon } from "@/assets/icons/icons";
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
+import { useThemeColor } from "@/hooks/use-theme-color";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Animated,
   Dimensions,
@@ -14,9 +15,9 @@ import {
   TouchableOpacity,
   View,
   useColorScheme,
-} from 'react-native';
+} from "react-native";
 
-const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
+const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get("window");
 const MODAL_HEIGHT = SCREEN_HEIGHT * 0.44;
 
 interface PurchaseOption {
@@ -46,19 +47,23 @@ interface AddToCartModalProps {
 }
 
 // Маппинг иконок по кодам
-const getIconForCode = (code: string, isActive: boolean) => {
-  const activeColor = '#203686';
-  const inactiveColor = '#80818B';
+const getIconForCode = (
+  code: string,
+  isActive: boolean,
+  isDarkMode: boolean,
+) => {
+  const activeColor = !isDarkMode ? "#203686" : "#4C94FF";
+  const inactiveColor = "#80818B";
   const fillColor = isActive ? activeColor : inactiveColor;
-  
+
   switch (code) {
-    case 'retail':
+    case "retail":
       return <RetailIcon fill={fillColor} width={16} height={16} />;
-    case 'wholesale':
-    case 'wholesale_small':
-    case 'wholesale_large':
+    case "wholesale":
+    case "wholesale_small":
+    case "wholesale_large":
       return <WholesaleIcon fill={fillColor} width={16} height={16} />;
-    case 'package':
+    case "package":
       return <PackageIcon fill={fillColor} width={16} height={16} />;
     default:
       return null;
@@ -70,32 +75,38 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
   onClose,
   product,
   onAddToCart,
-  existingCartItem
+  existingCartItem,
 }) => {
   const colorScheme = useColorScheme();
   //TODO
-    const isDarkMode = colorScheme === "dark";
-  const [selectedTab, setSelectedTab] = useState<string>('');
+  const isDarkMode = colorScheme === "dark";
+  const [selectedTab, setSelectedTab] = useState<string>("");
   const [quantity, setQuantity] = useState<number>(0);
-  const [selectedOption, setSelectedOption] = useState<PurchaseOption | null>(null);
-  
+  const [selectedOption, setSelectedOption] = useState<PurchaseOption | null>(
+    null,
+  );
+
   const translateY = useRef(new Animated.Value(MODAL_HEIGHT)).current;
-  
-  const backgroundColor = useThemeColor({}, 'background');
 
-  const getQuantityForOption = useCallback((optionId: string) => {
-    if (!existingCartItem?.length) return 0;
-    const item = existingCartItem.find(item => item.productPurchaseOptionId === optionId);
-    return item?.quantity || 0;
-  }, [existingCartItem]);
+  const backgroundColor = useThemeColor({}, "background");
 
+  const getQuantityForOption = useCallback(
+    (optionId: string) => {
+      if (!existingCartItem?.length) return 0;
+      const item = existingCartItem.find(
+        (item) => item.productPurchaseOptionId === optionId,
+      );
+      return item?.quantity || 0;
+    },
+    [existingCartItem],
+  );
 
   useEffect(() => {
     if (visible && product) {
       if (existingCartItem && existingCartItem?.length > 0) {
         const firstCartItem = existingCartItem[0];
         const option = product.purchaseOptions.find(
-          opt => opt.id === firstCartItem.productPurchaseOptionId
+          (opt) => opt.id === firstCartItem.productPurchaseOptionId,
         );
         if (option) {
           setSelectedTab(option.id);
@@ -117,7 +128,7 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
           setQuantity(firstOption.minQuantity);
         }
       }
-      
+
       Animated.spring(translateY, {
         toValue: 0,
         useNativeDriver: true,
@@ -126,7 +137,7 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
       }).start();
     } else {
       translateY.setValue(MODAL_HEIGHT);
-      setSelectedTab('');
+      setSelectedTab("");
       setQuantity(0);
       setSelectedOption(null);
     }
@@ -155,7 +166,7 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
           }).start();
         }
       },
-    })
+    }),
   ).current;
 
   const closeModal = useCallback(() => {
@@ -166,24 +177,27 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
     }).start(() => {
       onClose();
       // Сбрасываем состояния
-      setSelectedTab('');
+      setSelectedTab("");
       setQuantity(0);
       setSelectedOption(null);
     });
   }, [onClose]);
 
-  const handleTabChange = useCallback((tabId: string) => {
-    setSelectedTab(tabId);
-    const option = product?.purchaseOptions.find(opt => opt.id === tabId);
-    if (option) {
-      setSelectedOption(option);
-      setQuantity(option.minQuantity);
-    }
-  }, [product]);
+  const handleTabChange = useCallback(
+    (tabId: string) => {
+      setSelectedTab(tabId);
+      const option = product?.purchaseOptions.find((opt) => opt.id === tabId);
+      if (option) {
+        setSelectedOption(option);
+        setQuantity(option.minQuantity);
+      }
+    },
+    [product],
+  );
 
   const handleIncreaseQuantity = useCallback(() => {
     if (!selectedOption) return;
-    
+
     const newQuantity = quantity + selectedOption.step;
     if (newQuantity <= selectedOption.maxQuantity) {
       setQuantity(parseFloat(newQuantity.toFixed(2)));
@@ -192,7 +206,7 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
 
   const handleDecreaseQuantity = useCallback(() => {
     if (!selectedOption) return;
-    
+
     const newQuantity = quantity - selectedOption.step;
     if (newQuantity >= selectedOption.minQuantity) {
       setQuantity(parseFloat(newQuantity.toFixed(2)));
@@ -210,10 +224,11 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
 
   const totalPrice = selectedOption ? selectedOption.price * quantity : 0;
   const optionsCount = product.purchaseOptions.length;
-  
-  const tabWidth = optionsCount > 0 
-    ? (SCREEN_WIDTH - 32 - 6 - (optionsCount * 4)) / optionsCount
-    : 0;
+
+  const tabWidth =
+    optionsCount > 0
+      ? (SCREEN_WIDTH - 32 - 6 - optionsCount * 4) / optionsCount
+      : 0;
 
   return (
     <Animated.View
@@ -223,11 +238,14 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
           transform: [{ translateY }],
           backgroundColor,
         },
+        isDarkMode && {
+          borderColor: "#252527",
+        },
       ]}
       {...panResponder.panHandlers}
     >
       <View style={styles.swipeIndicatorContainer}>
-        <View style={[styles.swipeIndicator, { backgroundColor: '#C0C0C5' }]} />
+        <View style={[styles.swipeIndicator, { backgroundColor: "#C0C0C5" }]} />
       </View>
 
       <View style={styles.header}>
@@ -243,7 +261,7 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
           </View>
         )}
         <View style={styles.productInfo}>
-          <ThemedText 
+          <ThemedText
             style={styles.productName}
             numberOfLines={2}
             ellipsizeMode="tail"
@@ -253,108 +271,135 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
         </View>
       </View>
 
-      <View style={[styles.mainContentContainer]}>
-        <View style={styles.tabsContainer}>
-{product.purchaseOptions.map((option) => {
-  const isActive = selectedTab === option.id;
-  const quantityInCart = getQuantityForOption(option.id);
-  
-  return (
-    <TouchableOpacity
-      key={option.id}
-      style={[
-        styles.tabButton,
-        { width: tabWidth },
-        isActive && [styles.activeTabButton, { backgroundColor }],
-      ]}
-      onPress={() => handleTabChange(option.id)}
-      activeOpacity={0.7}
-    >
-      <View style={styles.tabContent}>
-        {getIconForCode(option.code, isActive)}
-        <ThemedText
-          style={[
-            styles.tabText,
-            isActive && styles.activeTabText,
-          ]}
-          lightColor={isActive ? '#1B1B1C' : '#80818B'}
-          darkColor={isActive ? '#FBFCFF' : '#FBFCFF80'}
-          numberOfLines={1}
-        >
-          {option.name}
-        </ThemedText>
-        {quantityInCart > 0 && (
-          <View style={styles.tabBadge}>
-            <Text style={styles.tabBadgeText}>
-              {quantityInCart > 10 ? '10+' : quantityInCart}
-            </Text>
-          </View>
-        )}
-      </View>
-    </TouchableOpacity>
-  );
-})}
-        </View>
+      <ThemedView
+        style={[
+          styles.mainContentContainer,
+          isDarkMode && {
+            borderColor: "#252527",
+          },
+        ]}
+      >
+        <ThemedView darkColor="#202022" style={styles.tabsContainer}>
+          {product.purchaseOptions.map((option) => {
+            const isActive = selectedTab === option.id;
+            const quantityInCart = getQuantityForOption(option.id);
+
+            return (
+              <TouchableOpacity
+                key={option.id}
+                style={[
+                  styles.tabButton,
+                  { width: tabWidth },
+                  isActive && [styles.activeTabButton, { backgroundColor }],
+                ]}
+                onPress={() => handleTabChange(option.id)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.tabContent}>
+                  {getIconForCode(option.code, isActive, isDarkMode)}
+                  <ThemedText
+                    style={[
+                      styles.tabText,
+                      isActive && styles.activeTabText,
+                      isDarkMode &&
+                        isActive && {
+                          color: "#4C94FF",
+                        },
+                    ]}
+                    lightColor={isActive ? "#1B1B1C" : "#80818B"}
+                    darkColor={isActive ? "#FBFCFF" : "#FBFCFF80"}
+                    numberOfLines={1}
+                  >
+                    {option.name}
+                  </ThemedText>
+                  {/* {quantityInCart > 0 && (
+                    <View style={styles.tabBadge}>
+                      <Text style={styles.tabBadgeText}>
+                        {quantityInCart > 10 ? "10+" : quantityInCart}
+                      </Text>
+                    </View>
+                  )} */}
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+        </ThemedView>
 
         {selectedOption && (
           <View style={styles.pricesContainer}>
             <View style={styles.priceRow}>
               <ThemedText style={styles.priceValue}>
-                {selectedOption.price.toLocaleString('ru-RU')} ₽/{product.measureType === 'килограмм' ? 'кг' : 'шт'}
+                {selectedOption.price.toLocaleString("ru-RU")} ₽/
+                {product.measureType === "килограмм" ? "кг" : "шт"}
               </ThemedText>
               <ThemedText style={styles.totalPriceValue}>
-                {totalPrice.toLocaleString('ru-RU', {
+                {totalPrice.toLocaleString("ru-RU", {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
-                })} ₽
+                })}{" "}
+                ₽
               </ThemedText>
             </View>
           </View>
         )}
-      </View>
+      </ThemedView>
 
       {selectedOption && (
         <View style={styles.actionsContainer}>
           <TouchableOpacity
-            style={styles.addToCartButton}
+            style={[
+              styles.addToCartButton,
+              isDarkMode && {
+                backgroundColor: "#202022",
+              },
+            ]}
             onPress={handleAddToCart}
           >
             <ThemedText style={styles.addToCartButtonText}>
               {/* {existingCartItem ? 'Обновить корзину' : 'Добавить в корзину'}
                */}
-               Добавить в корзину
+              Добавить в корзину
             </ThemedText>
           </TouchableOpacity>
 
-          <View style={styles.quantityControls}>
+          <View
+            style={[
+              styles.quantityControls,
+              isDarkMode && {
+                backgroundColor: "#202022",
+              },
+            ]}
+          >
             <TouchableOpacity
               style={[
                 styles.quantityButton,
-                { backgroundColor },
-                quantity <= selectedOption.minQuantity && styles.quantityButtonDisabled,
+                // { backgroundColor },
+                quantity <= selectedOption.minQuantity &&
+                  styles.quantityButtonDisabled,
               ]}
               onPress={handleDecreaseQuantity}
               disabled={quantity <= selectedOption.minQuantity}
             >
-              <Text style={styles.quantityButtonText}>-</Text>
+              <ThemedText style={styles.quantityButtonText}>-</ThemedText>
             </TouchableOpacity>
-            
+
             <View style={styles.quantityDisplay}>
               <ThemedText style={styles.quantityText}>
-                {quantity} {product.measureType === 'килограмм' ? 'кг' : 'шт'}
+                {quantity} {product.measureType === "килограмм" ? "кг" : "шт"}
               </ThemedText>
             </View>
-            
+
             <TouchableOpacity
               style={[
                 styles.quantityButton,
-                { backgroundColor },
-                quantity >= selectedOption.maxQuantity && styles.quantityButtonDisabled,
+                // { backgroundColor },
+                quantity >= selectedOption.maxQuantity &&
+                  styles.quantityButtonDisabled,
               ]}
               onPress={handleIncreaseQuantity}
               disabled={quantity >= selectedOption.maxQuantity}
             >
-              <Text style={styles.quantityButtonText}>+</Text>
+              <ThemedText style={styles.quantityButtonText}>+</ThemedText>
             </TouchableOpacity>
           </View>
         </View>
@@ -365,13 +410,13 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
 
 const styles = StyleSheet.create({
   modalContainer: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    borderColor: '#F0F3F7',
+    borderColor: "#F0F3F7",
     paddingHorizontal: 16,
     paddingTop: 8,
     paddingBottom: 20,
@@ -379,7 +424,7 @@ const styles = StyleSheet.create({
     zIndex: 9999,
   },
   swipeIndicatorContainer: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 16,
   },
   swipeIndicator: {
@@ -388,8 +433,8 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 20,
   },
   productImage: {
@@ -399,37 +444,35 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   noImage: {
-    backgroundColor: '#F5F5F5',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#F5F5F5",
+    justifyContent: "center",
+    alignItems: "center",
   },
   noImageText: {
     fontSize: 10,
-    color: '#80818B',
+    color: "#80818B",
   },
   productInfo: {
     flex: 1,
   },
   productName: {
     fontSize: 14,
-    fontWeight: '600',
-    fontFamily: 'Montserrat',
+    fontWeight: "600",
+    fontFamily: "Montserrat",
   },
   mainContentContainer: {
     borderWidth: 1,
     borderRadius: 16,
-    backgroundColor: '#FFFFFF',
-    borderColor: '#F0F3F7',
+    borderColor: "#F0F3F7",
   },
   tabsContainer: {
-    flexDirection: 'row',
-    backgroundColor: '#F2F4F7',
+    flexDirection: "row",
     borderRadius: 16,
     padding: 3,
     height: 54,
     ...Platform.select({
       ios: {
-        shadowColor: '#000',
+        shadowColor: "#000",
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.1,
         shadowRadius: 2,
@@ -444,14 +487,14 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 4,
     borderRadius: 13,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginHorizontal: 2,
   },
   activeTabButton: {
     ...Platform.select({
       ios: {
-        shadowColor: '#000',
+        shadowColor: "#000",
         shadowOffset: {
           width: 0,
           height: 1,
@@ -465,22 +508,22 @@ const styles = StyleSheet.create({
     }),
   },
   tabContent: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     height: 40,
   },
   tabText: {
     fontSize: 12,
-    fontWeight: '500',
-    textAlign: 'center',
-    fontFamily: 'Montserrat',
-    fontVariant: ['lining-nums', 'proportional-nums'],
+    fontWeight: "500",
+    textAlign: "center",
+    fontFamily: "Montserrat",
+    fontVariant: ["lining-nums", "proportional-nums"],
     lineHeight: 14,
     marginTop: 4,
   },
   activeTabText: {
-    fontWeight: '500',
-    color: '#1B1B1C',
+    fontWeight: "500",
+    color: "#1B1B1C",
   },
   pricesContainer: {
     marginTop: 20,
@@ -488,47 +531,44 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   priceRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-end",
     marginBottom: 4,
   },
   priceValue: {
     fontSize: 20,
-    fontWeight: '700',
-    color: '#203686',
-    fontFamily: 'Montserrat',
+    fontWeight: "700",
+    fontFamily: "Montserrat",
   },
   totalPriceValue: {
     fontSize: 20,
-    fontWeight: '700',
-    color: '#1B1B1C',
-    fontFamily: 'Montserrat',
+    fontWeight: "700",
+    fontFamily: "Montserrat",
   },
   actionsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginTop: 16,
   },
   addToCartButton: {
-    backgroundColor: '#F2F4F7',
+    backgroundColor: "#F2F4F7",
     borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    justifyContent: "center",
+    alignItems: "center",
   },
   addToCartButtonText: {
     fontSize: 14,
-    fontWeight: '600',
-    fontFamily: 'Montserrat',
-    color: '#1B1B1C',
+    fontWeight: "600",
+    fontFamily: "Montserrat",
   },
   quantityControls: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F5F5F5',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F5F5F5",
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -537,11 +577,11 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     ...Platform.select({
       ios: {
-        shadowColor: '#000',
+        shadowColor: "#000",
         shadowOffset: {
           width: 0,
           height: 1,
@@ -559,36 +599,34 @@ const styles = StyleSheet.create({
   },
   quantityButtonText: {
     fontSize: 20,
-    fontWeight: '600',
-    color: '#1B1B1C',
+    fontWeight: "600",
   },
   quantityDisplay: {
     marginHorizontal: 16,
-    minWidth: 60,
-    alignItems: 'center',
+    minWidth: 50,
+    alignItems: "center",
   },
   quantityText: {
     fontSize: 16,
-    fontWeight: '600',
-    fontFamily: 'Montserrat',
-    color: '#1B1B1C',
+    fontWeight: "600",
+    fontFamily: "Montserrat",
   },
   tabBadge: {
-    position: 'absolute',
+    position: "absolute",
     top: -4,
     right: -4,
-    backgroundColor: '#FF3B30',
+    backgroundColor: "#FF3B30",
     borderRadius: 10,
     minWidth: 18,
     height: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     paddingHorizontal: 3,
   },
   tabBadgeText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 10,
-    fontWeight: '700',
-    fontFamily: 'Montserrat',
+    fontWeight: "700",
+    fontFamily: "Montserrat",
   },
 });

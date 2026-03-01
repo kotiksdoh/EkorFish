@@ -137,12 +137,13 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
             <Animated.View
               style={[
                 styles.modalContainer,
-                isDarkMode ? {
-                  backgroundColor: "#202022",
-                } : 
-                {
-                  backgroundColor: "#FFFFFF",
-                },
+                isDarkMode
+                  ? {
+                      backgroundColor: "#202022",
+                    }
+                  : {
+                      backgroundColor: "#FFFFFF",
+                    },
                 {
                   transform: [{ translateY: modalTranslateY }],
                 },
@@ -177,17 +178,18 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
                     {towns.map((town) => (
                       <TouchableOpacity
                         key={town.id}
-                        style={[styles.townItem, 
+                        style={[
+                          styles.townItem,
                           isDarkMode && {
                             borderBottomColor: "#323235",
-                          }
+                          },
                         ]}
                         onPress={() => handleTownSelect(town.id)}
                         disabled={isUpdating}
                       >
                         <View style={styles.townItemContent}>
                           <View
-                           style={[
+                            style={[
                               styles.radioOuter,
                               selectedTownId === town.id &&
                                 styles.radioOuterSelected,
@@ -223,7 +225,11 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
               </ScrollView>
 
               {/* Кнопка Применить */}
-              <ThemedView darkColor="#202022" lightColor='#FFFFFF'style={styles.applyButtonContainer}>
+              <ThemedView
+                darkColor="#202022"
+                lightColor="#FFFFFF"
+                style={styles.applyButtonContainer}
+              >
                 <TouchableOpacity
                   style={[
                     styles.applyButton,
@@ -299,7 +305,6 @@ const styles = StyleSheet.create({
     fontFamily: "Montserrat",
     fontSize: 18,
     fontWeight: "600",
-    color: "#1B1B1C",
   },
   modalCloseText: {
     fontFamily: "Montserrat",
@@ -326,7 +331,6 @@ const styles = StyleSheet.create({
   townName: {
     fontFamily: "Montserrat",
     fontSize: 16,
-    color: "#1B1B1C",
   },
   radioOuter: {
     width: 24,

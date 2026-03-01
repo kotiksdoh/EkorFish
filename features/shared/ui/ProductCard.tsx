@@ -1,10 +1,18 @@
 import { CartIcon, LikeIcon, SnowflakeIcon } from "@/assets/icons/icons.js";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { LoginModal } from "@/features/auth/ui/components/LoginModal";
 import { putFavorite, putUnFavorite } from "@/features/catalog/catalogSlice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
-import React, { useEffect, useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   ActivityIndicator,
   Image,
@@ -24,7 +32,11 @@ interface ProductCardProps {
   isFavorite?: boolean;
   productData?: any;
   onAddToCartPress?: (product: any) => void;
+  isDis?: boolean;
 }
+
+// Заглушка для изображения
+const PLACEHOLDER_IMAGE = require("@/assets/icons/png/noImage.png");
 
 export const ProductCard: React.FC<ProductCardProps> = ({
   id,
@@ -37,18 +49,17 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   isFavorite,
   productData,
   onAddToCartPress,
+  isDis = false,
 }) => {
-  const [isImageLoaded, setIsImageLoaded] = useState(false);
   const [isImageLoading, setIsImageLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
   const [isLiked, setIsLiked] = useState(isFavorite);
+  const imageLoadTimeoutRef = useRef<NodeJS.Timeout>();
 
   const dispatch = useAppDispatch();
   const router = useRouter();
-  // Получаем корзину из Redux
   const cartItems = useAppSelector((state) => state.catalog.cart);
 
-  // Находим товар в корзине
   const cartItem = useMemo(() => {
     if (!productData?.purchaseOptions?.[0]?.id) return null;
     return cartItems?.find(
@@ -58,30 +69,33 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     );
   }, [cartItems, productData]);
 
-  // Форматируем количество для отображения
-  const cartQuantityDisplay = useMemo(() => {
-    if (!cartItem) return null;
-    const qty = cartItem.quantity;
-    if (qty > 10) return "10+";
-    return qty.toString();
-  }, [cartItem]);
-
   useEffect(() => {
     setIsLiked(isFavorite);
   }, [isFavorite]);
+  const [loginModalVisible, setLoginModalVisible] = useState(false);
 
-  const handleLikePress = (e: any) => {
+  const handleLoginPress = () => {
+    setLoginModalVisible(true);
+  };
+
+  const handleLogin = (phoneNumber: string) => {
+    console.log("Login with:", phoneNumber);
+    setLoginModalVisible(false);
+  };
+  const handleLikePress = async (e: any) => {
     e.stopPropagation();
-
+    const token = await AsyncStorage.getItem("token");
+    if (!token) {
+      handleLoginPress();
+      return; // Выходим, если нет токена
+    }
+    if (isDis) {
+      return;
+    }
     if (isLiked) {
-      dispatch(putUnFavorite(id)).then(() => {
-        setIsLiked(false);
-      });
+      dispatch(putUnFavorite(id)).then(() => setIsLiked(false));
     } else {
-      // Если не лайкнуто - отправляем запрос на лайк
-      dispatch(putFavorite(id)).then(() => {
-        setIsLiked(true);
-      });
+      dispatch(putFavorite(id)).then(() => setIsLiked(true));
     }
   };
 
@@ -92,23 +106,52 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     }
   };
 
-  const handleImageLoadStart = () => {
+  // Очищаем таймаут при размонтировании
+  useEffect(() => {
+    return () => {
+      if (imageLoadTimeoutRef.current) {
+        clearTimeout(imageLoadTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const handleImageLoadStart = useCallback(() => {
     setIsImageLoading(true);
     setImageError(false);
-  };
 
-  const handleImageLoadEnd = () => {
+    // Устанавливаем таймаут на случай, если изображение загружается слишком долго
+    if (imageLoadTimeoutRef.current) {
+      clearTimeout(imageLoadTimeoutRef.current);
+    }
+
+    imageLoadTimeoutRef.current = setTimeout(() => {
+      if (isImageLoading) {
+        console.log("Image loading timeout:", img);
+        setIsImageLoading(false);
+        setImageError(true);
+      }
+    }, 10000); // 10 секунд таймаут
+  }, [img, isImageLoading]);
+
+  const handleImageLoadEnd = useCallback(() => {
     setIsImageLoading(false);
-    setIsImageLoaded(true);
-  };
+    setImageError(false);
+    if (imageLoadTimeoutRef.current) {
+      clearTimeout(imageLoadTimeoutRef.current);
+    }
+  }, []);
 
-  const handleImageError = () => {
+  const handleImageError = useCallback(() => {
+    console.log("Image failed to load:", img);
     setIsImageLoading(false);
     setImageError(true);
-  };
+    if (imageLoadTimeoutRef.current) {
+      clearTimeout(imageLoadTimeoutRef.current);
+    }
+  }, [img]);
+
   const cartItemsForProduct = useMemo(() => {
     if (!productData?.purchaseOptions) return [];
-
     return (
       cartItems?.filter((item: any) => item.productId === productData.id) || []
     );
@@ -125,158 +168,189 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   }, [cartItemsForProduct]);
 
   const toProductDetail = () => {
-    //@ts-ignore
-    router.push(
-      `dashboard/product/${encodeURIComponent(id)}?productId=${id}&productName=${encodeURIComponent(name)}`,
-    );
+    if (!isDis) {
+      router.push(
+        `dashboard/product/${encodeURIComponent(id)}?productId=${id}&productName=${encodeURIComponent(name)}`,
+      );
+    }
   };
+
+  // Определяем, является ли URL валидным
+  const isValidImageUrl = useCallback((url: string): boolean => {
+    if (!url || typeof url !== "string") return false;
+    // Проверяем, что URL не пустой и не заканчивается на слеш
+    return url.length > 10 && !url.endsWith("/") && url.startsWith("http");
+  }, []);
+
+  // Определяем источник изображения
+  const imageSource = useMemo(() => {
+    // Если нет изображения или оно невалидное
+    if (!img || (typeof img === "string" && !isValidImageUrl(img))) {
+      return PLACEHOLDER_IMAGE;
+    }
+
+    // Если это строка с URL
+    if (typeof img === "string") {
+      return {
+        uri: img,
+        cache: "force-cache",
+      };
+    }
+
+    // Если это уже объект изображения (require)
+    return img;
+  }, [img, isValidImageUrl]);
+
+  // Проверяем, нужно ли показывать заглушку
+  const showPlaceholder =
+    !img || imageError || (typeof img === "string" && !isValidImageUrl(img));
+
+  // Сбрасываем состояние при изменении img
+  useEffect(() => {
+    if (showPlaceholder) {
+      setIsImageLoading(false);
+      setImageError(true);
+    } else {
+      setIsImageLoading(true);
+      setImageError(false);
+    }
+  }, [img, showPlaceholder]);
 
   const stockInfo = productData?.originalProduct?.stocks?.[0]?.stockInfo;
   const isOutOfStock = stockInfo === "Нет в наличии" || false;
-  console.log('img', img)
+
   return (
-    <TouchableOpacity
-      onPress={toProductDetail}
-      activeOpacity={0.9}
-      style={styles.cardTouchable}
-    >
-      <ThemedView lightColor="#FFFFFF" style={styles.container}>
-        <View style={styles.imageContainer}>
-          {!isImageLoaded && (isImageLoading || externalLoading) && (
-            <View style={[styles.image, styles.imageLoadingContainer]}>
-              <ActivityIndicator
-                size="small"
-                color="#666666"
-                style={styles.loader}
-              />
-            </View>
-          )}
-
-          {imageError && (
+    <>
+      <TouchableOpacity
+        onPress={toProductDetail}
+        activeOpacity={0.9}
+        style={styles.cardTouchable}
+      >
+        <ThemedView lightColor="#FFFFFF" style={styles.container}>
+          <View style={styles.imageContainer}>
+            {/* Всегда показываем изображение, но с правильным источником */}
             <Image
-              source={require("@/assets/icons/png/noImage.png")}
+              source={showPlaceholder ? PLACEHOLDER_IMAGE : imageSource}
               style={styles.image}
               resizeMode="cover"
+              onLoadStart={!showPlaceholder ? handleImageLoadStart : undefined}
+              onLoadEnd={!showPlaceholder ? handleImageLoadEnd : undefined}
+              onError={!showPlaceholder ? handleImageError : undefined}
             />
-          )}
 
-          {img && !imageError && (
-            <Image
-              // source={img}
-              source={{ uri: img }}
-              style={[
-                styles.image,
-                (!isImageLoaded || isImageLoading || externalLoading) &&
-                  styles.imageHidden,
-              ]}
-              resizeMode="cover"
-              onLoadStart={handleImageLoadStart}
-              onLoadEnd={handleImageLoadEnd}
-              onError={handleImageError}
-            />
-          )}
-          {!img && (
-            <Image
-              source={require("@/assets/icons/png/noImage.png")}
-              style={styles.image}
-              resizeMode="cover"
-            />
-          )}
+            {/* Индикатор загрузки */}
+            {!showPlaceholder && isImageLoading && (
+              <View
+                style={[StyleSheet.absoluteFill, styles.imageLoadingContainer]}
+              >
+                <ActivityIndicator size="small" color="#666666" />
+              </View>
+            )}
 
-          {isFrozen && !isImageLoading && (
-            <View style={styles.frozenIcon}>
-              <SnowflakeIcon />
-            </View>
-          )}
+            {/* Иконка заморозки */}
+            {isFrozen && !isImageLoading && !showPlaceholder && (
+              <View style={styles.frozenIcon}>
+                <SnowflakeIcon />
+              </View>
+            )}
 
-          <TouchableOpacity
-            style={[styles.heartIcon, isLiked && styles.heartIconActive]}
-            onPress={handleLikePress}
-            activeOpacity={0.7}
-          >
-            {!isImageLoading &&
-              (isLiked ? (
+            {/* Иконка лайка */}
+            <TouchableOpacity
+              style={[styles.heartIcon, isLiked && styles.heartIconActive]}
+              onPress={handleLikePress}
+              activeOpacity={0.7}
+            >
+              {isLiked ? (
                 <LikeIcon isFilled={true} />
               ) : (
                 <LikeIcon isFilled={false} />
-              ))}
-          </TouchableOpacity>
-
-          {/* Бейдж корзины с количеством */}
-        </View>
-
-        <View style={styles.infoContainer}>
-          <ThemedText
-            lightColor="#1B1B1C"
-            darkColor="#FBFCFF"
-            style={styles.name}
-            numberOfLines={2}
-            ellipsizeMode="tail"
-          >
-            {name || "Название товара"}
-          </ThemedText>
-          {stockInfo ? (
-            <ThemedView
-              style={styles.stockInfo}
-              lightColor={isOutOfStock ? "#FF860526" : "#101013"}
-              darkColor={isOutOfStock ? "#FF860526" : "#2E2E32"}
-            >
-              <ThemedText
-                lightColor={isOutOfStock ? "#FF8605" : "#FFFFFF"}
-                darkColor={isOutOfStock ? "#FF8605" : "#FBFCFF"}
-                style={styles.stockInfoText}
-                numberOfLines={2}
-                ellipsizeMode="tail"
-              >
-                {stockInfo || ""}
-              </ThemedText>
-            </ThemedView>
-          ) : null}
-          <View style={styles.priceRow}>
-            <View style={styles.priceContainer}>
-              <View style={styles.kgPriceRow}>
-                <ThemedText
-                  lightColor="#203686"
-                  darkColor="#4C94FF"
-                  style={styles.kgPrice}
-                >
-                  {kgPrice ? kgPrice : "0,00"}
-                </ThemedText>
-                <ThemedText
-                  lightColor="#203686"
-                  darkColor="#4C94FF"
-                  style={styles.kgLabel}
-                >
-                  ₽ / кг
-                </ThemedText>
-              </View>
-
-              <ThemedText
-                lightColor="#80818B"
-                darkColor="#FBFCFF80"
-                style={styles.fullPrice}
-              >
-                {fullPrice ? `${fullPrice}₽` : "0,00 ₽"}
-              </ThemedText>
-            </View>
-            {totalCartQuantity && (
-              <View style={styles.cartBadge}>
-                <ThemedText style={styles.cartBadgeText}>
-                  {totalCartQuantity}
-                </ThemedText>
-              </View>
-            )}
-            <TouchableOpacity
-              style={[styles.cartButton, cartItem && styles.cartButtonActive]}
-              onPress={handleCartPress}
-              activeOpacity={0.7}
-            >
-              <CartIcon />
+              )}
             </TouchableOpacity>
           </View>
-        </View>
-      </ThemedView>
-    </TouchableOpacity>
+
+          <View style={styles.infoContainer}>
+            <ThemedText
+              lightColor="#1B1B1C"
+              darkColor="#FBFCFF"
+              style={styles.name}
+              numberOfLines={2}
+              ellipsizeMode="tail"
+            >
+              {name || "Название товара"}
+            </ThemedText>
+
+            {stockInfo && (
+              <ThemedView
+                style={styles.stockInfo}
+                lightColor={isOutOfStock ? "#FF860526" : "#101013"}
+                darkColor={isOutOfStock ? "#FF860526" : "#2E2E32"}
+              >
+                <ThemedText
+                  lightColor={isOutOfStock ? "#FF8605" : "#FFFFFF"}
+                  darkColor={isOutOfStock ? "#FF8605" : "#FBFCFF"}
+                  style={styles.stockInfoText}
+                  numberOfLines={2}
+                  ellipsizeMode="tail"
+                >
+                  {stockInfo}
+                </ThemedText>
+              </ThemedView>
+            )}
+
+            <View style={styles.priceRow}>
+              <View style={styles.priceContainer}>
+                <View style={styles.kgPriceRow}>
+                  <ThemedText
+                    lightColor="#203686"
+                    darkColor="#4C94FF"
+                    style={styles.kgPrice}
+                  >
+                    {kgPrice ? kgPrice : "0,00"}
+                  </ThemedText>
+                  <ThemedText
+                    lightColor="#203686"
+                    darkColor="#4C94FF"
+                    style={styles.kgLabel}
+                  >
+                    ₽ / кг
+                  </ThemedText>
+                </View>
+
+                <ThemedText
+                  lightColor="#80818B"
+                  darkColor="#FBFCFF80"
+                  style={styles.fullPrice}
+                >
+                  {fullPrice ? `${fullPrice}₽` : "0,00 ₽"}
+                </ThemedText>
+              </View>
+
+              {totalCartQuantity && (
+                <View style={styles.cartBadge}>
+                  <ThemedText style={styles.cartBadgeText}>
+                    {totalCartQuantity}
+                  </ThemedText>
+                </View>
+              )}
+
+              <TouchableOpacity
+                style={[styles.cartButton, cartItem && styles.cartButtonActive]}
+                onPress={handleCartPress}
+                activeOpacity={0.7}
+              >
+                <CartIcon />
+              </TouchableOpacity>
+            </View>
+          </View>
+        </ThemedView>
+      </TouchableOpacity>
+      <LoginModal
+        visible={loginModalVisible}
+        onClose={() => setLoginModalVisible(false)}
+        onLogin={handleLogin}
+        enumFlag={"login"}
+      />
+    </>
   );
 };
 

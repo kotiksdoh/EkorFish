@@ -137,7 +137,7 @@ export const CompanySelectModal: React.FC<CompanySelectModalProps> = ({
   //         "deliveryAddresses": []
   //     }
   //  ]
-  console.log('companies', companies)
+  console.log("companies", companies);
   return (
     <Modal
       animationType="slide"
@@ -200,7 +200,7 @@ export const CompanySelectModal: React.FC<CompanySelectModalProps> = ({
                         >
                           {company.name}
                         </ThemedText>
-                        {`>`}
+                        <ThemedText>{`>`}</ThemedText>
                       </View>
 
                       <View style={styles.companyInnRow}>
@@ -209,7 +209,7 @@ export const CompanySelectModal: React.FC<CompanySelectModalProps> = ({
                           lightColor="#80818B"
                           darkColor="#FBFCFF80"
                         >
-                          ИНН {company.inn || '-'}
+                          ИНН {company.inn || "-"}
                         </ThemedText>
                       </View>
                     </View>
@@ -232,7 +232,7 @@ export const CompanySelectModal: React.FC<CompanySelectModalProps> = ({
               variant="primary"
               size="md"
               fullWidth
-              disabled={companies.some(item => item.type === 'individual')}
+              disabled={companies.some((item) => item.type === "individual")}
             />
           </View>
         </ThemedView>

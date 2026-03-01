@@ -4,7 +4,7 @@ import { getProductList } from "@/features/catalog/catalogSlice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { useRouter } from "expo-router";
 
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Dimensions,
@@ -66,6 +66,17 @@ export const CatalogCard: React.FC<CatalogCardProps> = ({
       );
     }
   };
+  const imageSource = useMemo(() => {
+    if (!img) return require("@/assets/icons/png/noImage.png");
+
+    // Если img - строка, используем как URI
+    if (typeof img === "string") {
+      return { uri: img };
+    }
+
+    // Если img - объект (например, от require), используем как есть
+    return img;
+  }, [img]);
   ///dashboard/${encodeURIComponent(name)}?catalogId=${id}&catalogName=${encodeURIComponent(name)}
   return (
     // <Link
@@ -120,7 +131,7 @@ export const CatalogCard: React.FC<CatalogCardProps> = ({
             <View style={styles.imageContainer}>
               <Image
                 // source={{ uri: img }}
-                source={img}
+                source={imageSource}
                 style={[styles.image, isImageLoading && styles.imageHidden]}
                 resizeMode="cover"
                 onLoadStart={() => {

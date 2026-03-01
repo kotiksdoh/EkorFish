@@ -10,10 +10,18 @@ import { ThemedView } from "@/components/themed-view";
 import { putFavorite, putUnFavorite } from "@/features/catalog/catalogSlice";
 import { SearchScreenWithHistory } from "@/features/home/ui/screens/SearchScreenWithHistory";
 import { useAppDispatch } from "@/store/hooks";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Linking from "expo-linking";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { Share, StyleSheet, TouchableOpacity, View, useColorScheme } from "react-native";
+import {
+  Share,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+  useColorScheme,
+} from "react-native";
+import { LoginModal } from "./components/LoginModal";
 interface ModalHeaderProps {
   title?: string;
   onBackPress?: () => void;
@@ -36,7 +44,7 @@ export const ModalHeader: React.FC<ModalHeaderProps> = ({
   isFavorite: initialIsFavorite,
 }) => {
   const colorScheme = useColorScheme();
-//TODO
+  //TODO
   const isDarkMode = colorScheme === "dark";
   const [isLiked, setIsLiked] = useState(initialIsFavorite);
   const dispatch = useAppDispatch();
@@ -46,9 +54,23 @@ export const ModalHeader: React.FC<ModalHeaderProps> = ({
     setIsLiked(initialIsFavorite);
   }, [initialIsFavorite]);
 
-  const handleLikePress = () => {
-    if (!productId) return;
+  const [loginModalVisible, setLoginModalVisible] = useState(false);
 
+  const handleLoginPress = () => {
+    setLoginModalVisible(true);
+  };
+
+  const handleLogin = (phoneNumber: string) => {
+    console.log("Login with:", phoneNumber);
+    setLoginModalVisible(false);
+  };
+  const handleLikePress = async () => {
+    if (!productId) return;
+    const token = await AsyncStorage.getItem("token");
+    if (!token) {
+      handleLoginPress();
+      return; // Выходим, если нет токена
+    }
     if (isLiked) {
       dispatch(putUnFavorite(productId)).then(() => {
         setIsLiked(false);
@@ -124,7 +146,7 @@ export const ModalHeader: React.FC<ModalHeaderProps> = ({
                 onPress={onBackPress}
               >
                 {/* <ThemedText style={headerStyles.backButtonText}>‹</ThemedText> */}
-                <ArrowIconLeft color={isDarkMode ? '#FBFCFF' : '#1B1B1C'} />
+                <ArrowIconLeft color={isDarkMode ? "#FBFCFF" : "#1B1B1C"} />
               </TouchableOpacity>
             )}
             <ThemedText
@@ -149,7 +171,7 @@ export const ModalHeader: React.FC<ModalHeaderProps> = ({
                 onPress={handleSearchPress}
                 activeOpacity={0.7}
               >
-                <IconSearchNew  color={isDarkMode ? '#FBFCFF' : '#1B1B1C'}/>
+                <IconSearchNew color={isDarkMode ? "#FBFCFF" : "#1B1B1C"} />
               </TouchableOpacity>
             )}
             {isProduct && (
@@ -158,7 +180,7 @@ export const ModalHeader: React.FC<ModalHeaderProps> = ({
                 onPress={handleShare}
                 activeOpacity={0.7}
               >
-                <IconShare color={isDarkMode ? '#FBFCFF' : '#1B1B1C'} />
+                <IconShare color={isDarkMode ? "#FBFCFF" : "#1B1B1C"} />
               </TouchableOpacity>
             )}
             {isProduct && (
@@ -196,6 +218,12 @@ export const ModalHeader: React.FC<ModalHeaderProps> = ({
         onClose={handleSearchClose}
         onSearch={handleSearchSubmit}
       />
+      <LoginModal
+        visible={loginModalVisible}
+        onClose={() => setLoginModalVisible(false)}
+        onLogin={handleLogin}
+        enumFlag={"login"}
+      />
     </>
   );
 };
@@ -228,7 +256,7 @@ const headerStyles = StyleSheet.create({
   backButton: {
     position: "absolute",
     left: 20,
-    bottom: 14,
+    bottom: 10,
     width: 40,
     height: 40,
     justifyContent: "center",

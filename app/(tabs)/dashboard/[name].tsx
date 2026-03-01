@@ -42,9 +42,9 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 
 export default function CatalogDetailScreen() {
-const colorScheme = useColorScheme();
-//TODO
-const isDarkMode = colorScheme === "dark";
+  const colorScheme = useColorScheme();
+  //TODO
+  const isDarkMode = colorScheme === "dark";
   const { catalogId, catalogName, search, children } = useLocalSearchParams<{
     catalogId: string;
     catalogName: string;
@@ -485,14 +485,15 @@ const isDarkMode = colorScheme === "dark";
       style={[
         styles.filterItem,
         isDarkMode && {
-          backgroundColor: '#202022',
-          borderColor: '#323235'
+          backgroundColor: "#202022",
+          borderColor: "#323235",
         },
         isFilterSelected(filterOption.id) && styles.filterItemSelected,
-        isDarkMode && isFilterSelected(filterOption.id) && {
-          backgroundColor: '#202022',
-          borderColor: '#3881EE'
-        }
+        isDarkMode &&
+          isFilterSelected(filterOption.id) && {
+            backgroundColor: "#202022",
+            borderColor: "#3881EE",
+          },
       ]}
       onPress={() => handleFilterToggle(filterOption.id)}
     >
@@ -545,7 +546,10 @@ const isDarkMode = colorScheme === "dark";
                   style={styles.sortButton}
                   onPress={() => setShowSortModal(true)} // Открываем модалку
                 >
-                  <SortIcon stroke={isDarkMode ? '#FBFCFF' : "#1B1B1C"} fill={isDarkMode ? '#FBFCFF' : "#1B1B1C"}/>
+                  <SortIcon
+                    stroke={isDarkMode ? "#FBFCFF" : "#1B1B1C"}
+                    fill={isDarkMode ? "#FBFCFF" : "#1B1B1C"}
+                  />
                   <ThemedText style={styles.sortButtonText}>
                     {getCurrentSortLabel()}
                   </ThemedText>
@@ -560,7 +564,10 @@ const isDarkMode = colorScheme === "dark";
                     {appliedFiltersCount > 0 && (
                       <View style={styles.filterBadge}></View>
                     )}
-                    <FilterXsIcon stroke={isDarkMode ? '#FBFCFF' : "#1B1B1C"} fill={isDarkMode ? '#FBFCFF' : "#1B1B1C"}/>
+                    <FilterXsIcon
+                      stroke={isDarkMode ? "#FBFCFF" : "#1B1B1C"}
+                      fill={isDarkMode ? "#FBFCFF" : "#1B1B1C"}
+                    />
                   </View>
                   <ThemedText style={styles.filterButtonText}>
                     Фильтры
@@ -582,22 +589,26 @@ const isDarkMode = colorScheme === "dark";
                       key="all"
                       style={[
                         styles.subcategoryButton,
-                        selectedSubcategoryId === null && styles.subcategoryButtonActive,
+                        selectedSubcategoryId === null &&
+                          styles.subcategoryButtonActive,
                         // Для темной темы: фон для невыбранных
-                        isDarkMode && !(selectedSubcategoryId === null) && {
-                          backgroundColor: "#202022",
-                        },
+                        isDarkMode &&
+                          !(selectedSubcategoryId === null) && {
+                            backgroundColor: "#202022",
+                          },
                         // Для темной темы: фон для выбранных
-                        isDarkMode && selectedSubcategoryId === null && {
-                          backgroundColor: "#3881EE",
-                        },
+                        isDarkMode &&
+                          selectedSubcategoryId === null && {
+                            backgroundColor: "#3881EE",
+                          },
                       ]}
                       onPress={() => handleSubcategorySelect("all")}
                     >
                       <ThemedText
                         style={[
                           styles.subcategoryText,
-                          selectedSubcategoryId === null && styles.subcategoryTextActive,
+                          selectedSubcategoryId === null &&
+                            styles.subcategoryTextActive,
                           // Для темной темы: текст всегда #FBFCFF
                           isDarkMode && {
                             color: "#FBFCFF",
@@ -649,9 +660,20 @@ const isDarkMode = colorScheme === "dark";
               )}
               {/* { !me?.storageId ? */}
               <TouchableOpacity onPress={() => setShowTownModal(true)}>
-                <ThemedView darkColor="#202022" lightColor="#F2F4F7" style={styles.cityContainer}>
-                  <ThemedView darkColor="#151516" lightColor="#FFFFFF" style={styles.cityIcon}>
-                    <WarningIcon stroke={isDarkMode ? '#FBFCFF' : "#1B1B1C"} fill={isDarkMode ? '#FBFCFF' : "#1B1B1C"}/>
+                <ThemedView
+                  darkColor="#202022"
+                  lightColor="#F2F4F7"
+                  style={styles.cityContainer}
+                >
+                  <ThemedView
+                    darkColor="#151516"
+                    lightColor="#FFFFFF"
+                    style={styles.cityIcon}
+                  >
+                    <WarningIcon
+                      stroke={isDarkMode ? "#FBFCFF" : "#1B1B1C"}
+                      fill={isDarkMode ? "#FBFCFF" : "#1B1B1C"}
+                    />
                   </ThemedView>
                   <ThemedText darkColor="#FBFCFF" style={styles.cityText}>
                     Укажите ваш город, чтобы увидеть наличие товаров
@@ -691,7 +713,7 @@ const isDarkMode = colorScheme === "dark";
                 <View style={styles.productsGrid}>
                   {sortedProducts.map((product) => (
                     <ProductCard
-                      key={`${product.id}-${currentPage}-${selectedSubcategoryId}`}
+                      key={`${product.id}`}
                       id={product.id}
                       img={product.image}
                       name={product.name}
@@ -758,12 +780,13 @@ const isDarkMode = colorScheme === "dark";
                 <Animated.View
                   style={[
                     styles.modalContainer,
-                    isDarkMode ? {
-                      backgroundColor: "#202022",
-                    } : 
-                    {
-                      backgroundColor: "#FFFFFF",
-                    },
+                    isDarkMode
+                      ? {
+                          backgroundColor: "#202022",
+                        }
+                      : {
+                          backgroundColor: "#FFFFFF",
+                        },
                     {
                       transform: [{ translateY: modalTranslateY }],
                     },
@@ -779,14 +802,14 @@ const isDarkMode = colorScheme === "dark";
                   </TouchableOpacity>
 
                   <View style={styles.modalHeader}>
-                    <TouchableOpacity>
-                      {/* <ThemedText style={styles.modalCloseText}>Отмена</ThemedText> */}
-                    </TouchableOpacity>
-                    {/*  */}
                     <ThemedText style={styles.modalTitle}>Фильтры</ThemedText>
 
                     <TouchableOpacity onPress={resetFilters}>
-                      <ThemedText lightColor="#203686" darkColor="#4C94FF" style={styles.modalResetText}>
+                      <ThemedText
+                        lightColor="#203686"
+                        darkColor="#4C94FF"
+                        style={styles.modalResetText}
+                      >
                         Сбросить
                       </ThemedText>
                     </TouchableOpacity>
@@ -848,7 +871,10 @@ const isDarkMode = colorScheme === "dark";
                       filters.length > 0 &&
                       filters.map((filterGroup) => (
                         <View key={filterGroup.id} style={styles.filterSection}>
-                          <ThemedText darkColor="#FBFCFF" style={styles.filterSectionTitle}>
+                          <ThemedText
+                            darkColor="#FBFCFF"
+                            style={styles.filterSectionTitle}
+                          >
                             {filterGroup.name}
                           </ThemedText>
 
@@ -875,10 +901,11 @@ const isDarkMode = colorScheme === "dark";
 
                   {/* Кнопка применения */}
                   <TouchableOpacity
-                    style={[styles.applyButton,
+                    style={[
+                      styles.applyButton,
                       isDarkMode && {
-                        backgroundColor: '#3881EE'
-                      }
+                        backgroundColor: "#3881EE",
+                      },
                     ]}
                     onPress={applyFilters}
                   >
@@ -918,7 +945,7 @@ const isDarkMode = colorScheme === "dark";
                   style={[
                     styles.modalContainer,
                     isDarkMode && {
-                      backgroundColor: '#202022'
+                      backgroundColor: "#202022",
                     },
                     {
                       transform: [{ translateY: sortModalTranslateY }],
@@ -952,43 +979,49 @@ const isDarkMode = colorScheme === "dark";
                     style={styles.sortOptionsContainer}
                     showsVerticalScrollIndicator={false}
                   >
-            {sortOptions.map((option) => (
-              <TouchableOpacity
-                key={option.id}
-                style={[
-                  styles.sortOptionItem,
-                  isDarkMode && {
-                    borderBottomColor: "#323235",
-                  },
-                ]}
-                onPress={() => handleSortSelect(option.id)}
-              >
-                <View style={styles.sortOptionItemContent}>
-                  <View
-                    style={[
-                      styles.sortOptionRadio,
-                      sortBy === option.id && styles.sortOptionRadioSelected,
-                      isDarkMode &&
-                        sortBy === option.id && {
-                          borderColor: "#4C94FF",
-                        },
-                    ]}
-                  >
-                    {sortBy === option.id && (
-                      <View style={[styles.sortOptionRadioInner, isDarkMode && { backgroundColor: "#FFFFFF" }]} />
-                    )}
-                  </View>
-                  <ThemedText
-                    style={[
-                      styles.sortOptionText,
-                      isDarkMode && { color: "#FBFCFF" },
-                    ]}
-                  >
-                    {option.label}
-                  </ThemedText>
-                </View>
-              </TouchableOpacity>
-            ))}
+                    {sortOptions.map((option) => (
+                      <TouchableOpacity
+                        key={option.id}
+                        style={[
+                          styles.sortOptionItem,
+                          isDarkMode && {
+                            borderBottomColor: "#323235",
+                          },
+                        ]}
+                        onPress={() => handleSortSelect(option.id)}
+                      >
+                        <View style={styles.sortOptionItemContent}>
+                          <View
+                            style={[
+                              styles.sortOptionRadio,
+                              sortBy === option.id &&
+                                styles.sortOptionRadioSelected,
+                              isDarkMode &&
+                                sortBy === option.id && {
+                                  borderColor: "#4C94FF",
+                                },
+                            ]}
+                          >
+                            {sortBy === option.id && (
+                              <View
+                                style={[
+                                  styles.sortOptionRadioInner,
+                                  isDarkMode && { backgroundColor: "#FFFFFF" },
+                                ]}
+                              />
+                            )}
+                          </View>
+                          <ThemedText
+                            style={[
+                              styles.sortOptionText,
+                              isDarkMode && { color: "#FBFCFF" },
+                            ]}
+                          >
+                            {option.label}
+                          </ThemedText>
+                        </View>
+                      </TouchableOpacity>
+                    ))}
                   </ScrollView>
                 </Animated.View>
               </TouchableWithoutFeedback>
@@ -1251,7 +1284,6 @@ const styles = StyleSheet.create({
   filterItemText: {
     fontFamily: "Montserrat",
     fontSize: 14,
-    color: "#1B1B1C",
   },
   applyButton: {
     backgroundColor: "#203686",

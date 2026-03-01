@@ -2,7 +2,6 @@
 import {
   ArrowIconRight,
   CartIcon,
-  IconCompany,
   IconCompanyNew,
   InfoIcon,
   LikeIcon,
@@ -29,6 +28,7 @@ import { CompanySelectModal } from "@/features/shared/ui/CompanySelectModal";
 import { CompanySelectionModal } from "@/features/shared/ui/CompanySelectionModalSmall";
 import { CustomCheckbox } from "@/features/shared/ui/components/CustomCheckBox";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
@@ -38,7 +38,8 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  View, useColorScheme
+  View,
+  useColorScheme,
 } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
@@ -106,10 +107,18 @@ const CartItemComponent = ({
   };
 
   return (
-    <ThemedView darkColor="#151516" lightColor="#FFFFFF" style={[styles.cartItem]}>
+    <ThemedView
+      darkColor="#151516"
+      lightColor="#FFFFFF"
+      style={[styles.cartItem]}
+    >
       {/* Изображение товара */}
       <View style={styles.imageContainer}>
-        <ThemedView darkColor="#151516" lightColor="#FFFFFF" style={styles.checkboxPhoto}>
+        <ThemedView
+          darkColor="#151516"
+          lightColor="#FFFFFF"
+          style={styles.checkboxPhoto}
+        >
           <CustomCheckbox
             style={styles.checkboxPhoto}
             value={isSelected}
@@ -139,25 +148,24 @@ const CartItemComponent = ({
           <ThemedText
             style={[styles.productName, !isAvailable && styles.textUnavailable]}
             numberOfLines={2}
-              lightColor="#202022"
-              darkColor="#F2F4F7"
+            lightColor="#202022"
+            darkColor="#F2F4F7"
           >
             {item.productName}
           </ThemedText>
 
-          <View style={styles.priceRow}>
-            <ThemedText
-              style={[
-                styles.pricePerUnit,
-                !isAvailable && styles.textUnavailable,
-              ]}
-              numberOfLines={1}
-              lightColor="#202022"
-              darkColor="#F2F4F7"
-            >
-              {formatPrice(item.totalPrice)} ₽
-            </ThemedText>
-          </View>
+          {/* Цена теперь справа с фиксированной шириной */}
+          <ThemedText
+            style={[
+              styles.pricePerUnit,
+              !isAvailable && styles.textUnavailable,
+            ]}
+            numberOfLines={1}
+            lightColor="#202022"
+            darkColor="#F2F4F7"
+          >
+            {formatPrice(item.totalPrice)} ₽
+          </ThemedText>
         </View>
 
         <View style={styles.priceRow}>
@@ -178,6 +186,7 @@ const CartItemComponent = ({
         {item?.stockInfo ? (
           <ThemedView
             lightColor={stockInfoBackgroundColor}
+            darkColor={stockInfoBackgroundColor}
             style={[
               styles.stockInfoContainer,
               !isAvailable && styles.stockInfoOutOfStock,
@@ -192,6 +201,7 @@ const CartItemComponent = ({
             </ThemedText>
           </ThemedView>
         ) : null}
+
         <View style={styles.priceRow}>
           <TouchableOpacity
             style={styles.favoriteButton}
@@ -222,9 +232,11 @@ const CartItemComponent = ({
               ]}
               lightColor="#F2F4F7"
               darkColor="#202022"
-
             >
-              <TrashIcon stroke={isDarkMode ? '#FBFCFF' : "#1B1B1C"} fill={isDarkMode ? '#FBFCFF' : "#1B1B1C"}/>
+              <TrashIcon
+                stroke={isDarkMode ? "#FBFCFF" : "#1B1B1C"}
+                fill={isDarkMode ? "#FBFCFF" : "#1B1B1C"}
+              />
             </ThemedView>
           </TouchableOpacity>
 
@@ -232,7 +244,7 @@ const CartItemComponent = ({
             style={[
               styles.quantityControls,
               isDarkMode && {
-                backgroundColor: '#202022'
+                backgroundColor: "#202022",
               },
               !isAvailable && styles.quantityControlsUnavailable,
             ]}
@@ -251,8 +263,8 @@ const CartItemComponent = ({
                   styles.plusMinus,
                   !isAvailable && styles.textUnavailable,
                 ]}
-              lightColor="#202022"
-              darkColor="#F2F4F7"
+                lightColor="#202022"
+                darkColor="#F2F4F7"
               >
                 -
               </ThemedText>
@@ -281,8 +293,8 @@ const CartItemComponent = ({
                   styles.plusMinus,
                   !isAvailable && styles.textUnavailable,
                 ]}
-              lightColor="#202022"
-              darkColor="#F2F4F7"
+                lightColor="#202022"
+                darkColor="#F2F4F7"
               >
                 +
               </ThemedText>
@@ -304,7 +316,7 @@ export default function ShopScreen() {
   //TODO
   const isDarkMode = colorScheme === "dark";
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [checkoutModalVisible, setCheckoutModalVisible] = useState(false);
 
   const router = useRouter();
@@ -340,6 +352,11 @@ export default function ShopScreen() {
   };
 
   const loadCart = async () => {
+    const token = await AsyncStorage.getItem("token");
+    if (!token) {
+      console.log("No token found - skipping favorites loading");
+      return; // Выходим, если нет токена
+    }
     setIsLoading(true);
     try {
       await dispatch(getCart()).unwrap();
@@ -509,12 +526,17 @@ export default function ShopScreen() {
                 <View
                   style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
                 >
-                  <IconCompanyNew color={isDarkMode ? '#FBFCFF' : "#1B1B1C"} />
-                  <ThemedText darkColor="#FBFCFF" lightColor="#1B1B1C" numberOfLines={1} style={{ maxWidth: 150 }}>
+                  <IconCompanyNew color={isDarkMode ? "#FBFCFF" : "#1B1B1C"} />
+                  <ThemedText
+                    darkColor="#FBFCFF"
+                    lightColor="#1B1B1C"
+                    numberOfLines={1}
+                    style={{ maxWidth: 150 }}
+                  >
                     {currentCompany?.name || me?.companies?.[0]?.name || ""}
                   </ThemedText>
                 </View>
-                <ArrowIconRight color={isDarkMode ? '#FBFCFF' : "#1B1B1C"} />
+                <ArrowIconRight color={isDarkMode ? "#FBFCFF" : "#1B1B1C"} />
               </TouchableOpacity>
             }
           />
@@ -543,26 +565,30 @@ export default function ShopScreen() {
             content={
               <TouchableOpacity
                 onPress={() => {
-                  if (me?.companies?.length > 1) {
-                    console.log("Open company selector");
-                  }
+                  setCompanyModalVisible(true);
                 }}
                 style={{
                   flexDirection: "row",
                   alignItems: "center",
                   gap: 8,
                   justifyContent: "space-between",
+                  paddingHorizontal: 10,
                 }}
               >
                 <View
                   style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
                 >
-                  <IconCompanyNew color={isDarkMode ? '#FBFCFF' : "#1B1B1C"} />
-                  <ThemedText darkColor="#FBFCFF" lightColor="#1B1B1C" numberOfLines={1} style={{ maxWidth: 150 }}>
+                  <IconCompanyNew color={isDarkMode ? "#FBFCFF" : "#1B1B1C"} />
+                  <ThemedText
+                    darkColor="#FBFCFF"
+                    lightColor="#1B1B1C"
+                    numberOfLines={1}
+                    style={{ maxWidth: 150 }}
+                  >
                     {currentCompany?.name || me?.companies?.[0]?.name || ""}
                   </ThemedText>
                 </View>
-                <ArrowIconRight color={isDarkMode ? '#FBFCFF' : "#1B1B1C"} />
+                <ArrowIconRight stroke={isDarkMode ? "#FBFCFF" : "#1B1B1C"} />
               </TouchableOpacity>
             }
           />
@@ -611,12 +637,17 @@ export default function ShopScreen() {
               <View
                 style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
               >
-                <IconCompanyNew color={isDarkMode ? '#FBFCFF' : "#1B1B1C"} />
-                <ThemedText darkColor="#FBFCFF" lightColor="#1B1B1C" numberOfLines={1} style={{ maxWidth: 150 }}>
+                <IconCompanyNew color={isDarkMode ? "#FBFCFF" : "#1B1B1C"} />
+                <ThemedText
+                  darkColor="#FBFCFF"
+                  lightColor="#1B1B1C"
+                  numberOfLines={1}
+                  style={{ maxWidth: 150 }}
+                >
                   {currentCompany?.name || me?.companies?.[0]?.name || ""}
                 </ThemedText>
               </View>
-              <ArrowIconRight stroke={isDarkMode ? '#FBFCFF' : "#1B1B1C"} />
+              <ArrowIconRight stroke={isDarkMode ? "#FBFCFF" : "#1B1B1C"} />
             </TouchableOpacity>
           }
         />
@@ -626,7 +657,11 @@ export default function ShopScreen() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          <ThemedView darkColor="#151516" lightColor="#FFFFFF" style={styles.mainCont}>
+          <ThemedView
+            darkColor="#151516"
+            lightColor="#FFFFFF"
+            style={styles.mainCont}
+          >
             {/* Шапка с выбором всех товаров */}
             <View style={styles.headerActions}>
               <View style={styles.checkboxRow}>
@@ -653,7 +688,10 @@ export default function ShopScreen() {
                 ]}
                 onPress={handleRemoveItem}
               >
-                <TrashIcon stroke={isDarkMode ? '#FBFCFF' : "#1B1B1C"} fill={isDarkMode ? '#FBFCFF' : "#1B1B1C"} />
+                <TrashIcon
+                  stroke={isDarkMode ? "#FBFCFF" : "#1B1B1C"}
+                  fill={isDarkMode ? "#FBFCFF" : "#1B1B1C"}
+                />
               </TouchableOpacity>
             </View>
             {/* Список товаров */}
@@ -687,7 +725,11 @@ export default function ShopScreen() {
             {totals.totalItems > 0 ? (
               <View style={styles.uCart}>
                 <View style={styles.uCartMain}>
-                  <ThemedText style={styles.uCartMainText} darkColor="#FBFCFF" lightColor="#1B1B1C">
+                  <ThemedText
+                    style={styles.uCartMainText}
+                    darkColor="#FBFCFF"
+                    lightColor="#1B1B1C"
+                  >
                     Ваша корзина
                   </ThemedText>
                   <ThemedText
@@ -705,20 +747,37 @@ export default function ShopScreen() {
                   </ThemedText>
                 </View>
                 <View style={styles.uCartMain}>
-                  <ThemedText darkColor="#FBFCFF" lightColor="#1B1B1C">Товары ({totals.totalItems})</ThemedText>
-                  <ThemedText darkColor="#FBFCFF" lightColor="#1B1B1C">{formatPrice(totals.totalPrice)} ₽</ThemedText>
+                  <ThemedText darkColor="#FBFCFF" lightColor="#1B1B1C">
+                    Товары ({totals.totalItems})
+                  </ThemedText>
+                  <ThemedText darkColor="#FBFCFF" lightColor="#1B1B1C">
+                    {formatPrice(totals.totalPrice)} ₽
+                  </ThemedText>
                 </View>
 
-                <View style={[styles.uCartMainLast, isDarkMode && {
-                  borderColor: '#252527'
-                }]}>
-                  <ThemedText darkColor="#FBFCFF" lightColor="#1B1B1C">Скидка</ThemedText>
-                  <ThemedText lightColor="#6FBD15" darkColor="#6FBD15">0 ₽</ThemedText>
+                <View
+                  style={[
+                    styles.uCartMainLast,
+                    isDarkMode && {
+                      borderColor: "#252527",
+                    },
+                  ]}
+                >
+                  <ThemedText darkColor="#FBFCFF" lightColor="#1B1B1C">
+                    Скидка
+                  </ThemedText>
+                  <ThemedText lightColor="#6FBD15" darkColor="#6FBD15">
+                    0 ₽
+                  </ThemedText>
                 </View>
 
                 <View style={styles.totalCountMain}>
-                  <ThemedText darkColor="#FBFCFF" lightColor="#1B1B1C">ИТОГО</ThemedText>
-                  <ThemedText darkColor="#FBFCFF" lightColor="#1B1B1C">{formatPrice(totals.totalPrice)} ₽</ThemedText>
+                  <ThemedText darkColor="#FBFCFF" lightColor="#1B1B1C">
+                    ИТОГО
+                  </ThemedText>
+                  <ThemedText darkColor="#FBFCFF" lightColor="#1B1B1C">
+                    {formatPrice(totals.totalPrice)} ₽
+                  </ThemedText>
                 </View>
               </View>
             ) : null}
@@ -737,9 +796,20 @@ export default function ShopScreen() {
               }
             />
             {totals.totalItems === 0 ? (
-              <ThemedView darkColor="#202022" lightColor="#F2F4F7" style={styles.chooseProducts}>
-                <ThemedView darkColor="#151516" lightColor="#FFFFFF" style={styles.iconStyleCont}>
-                  <InfoIcon stroke={isDarkMode ? '#FBFCFF' : "#1B1B1C"} fill={isDarkMode ? '#FBFCFF' : "#1B1B1C"}/>
+              <ThemedView
+                darkColor="#202022"
+                lightColor="#F2F4F7"
+                style={styles.chooseProducts}
+              >
+                <ThemedView
+                  darkColor="#151516"
+                  lightColor="#FFFFFF"
+                  style={styles.iconStyleCont}
+                >
+                  <InfoIcon
+                    stroke={isDarkMode ? "#FBFCFF" : "#1B1B1C"}
+                    fill={isDarkMode ? "#FBFCFF" : "#1B1B1C"}
+                  />
                 </ThemedView>
                 <ThemedText darkColor="#FBFCFF" lightColor="#1B1B1C">
                   Выберите товары, чтобы перейти к оформлению заказа
@@ -789,7 +859,11 @@ export default function ShopScreen() {
         </ScrollView>
 
         {/* Фиксированная нижняя плашка */}
-        <ThemedView darkColor="#151516" lightColor="#FFFFFF" style={styles.bottomPanel}>
+        <ThemedView
+          darkColor="#151516"
+          lightColor="#FFFFFF"
+          style={styles.bottomPanel}
+        >
           <View style={styles.bottomPanelContent}>
             <View style={styles.bottomLeft}>
               <ThemedText darkColor="#FBFCFF" style={styles.bottomTotalPrice}>
@@ -811,7 +885,7 @@ export default function ShopScreen() {
               style={[
                 styles.bottomCheckoutButton,
                 isDarkMode && {
-                  backgroundColor: '#3881EE'
+                  backgroundColor: "#3881EE",
                 },
                 (totals.totalItems === 0 || totals.hasUnavailableSelected) &&
                   styles.checkoutButtonDisabled,
@@ -1025,26 +1099,34 @@ const styles = StyleSheet.create({
   },
   itemInfo: {
     flex: 1,
-    display: "flex",
     flexDirection: "row",
     justifyContent: "space-between",
-    // marginRight: 12,
+    alignItems: "flex-start", // Выравнивание по верхнему краю
+    gap: 8, // Отступ между названием и ценой
   },
+
   productName: {
     fontSize: 14,
     fontWeight: "500",
-    // marginBottom: 4,
     lineHeight: 18,
+    flex: 1, // Название занимает доступное место
+    flexShrink: 1, // Позволяет сжиматься при необходимости
+    marginRight: 8, // Отступ от цены
+  },
+
+  pricePerUnit: {
+    fontSize: 14,
+    fontWeight: "600",
+    flexShrink: 0, // Цена не сжимается
+    textAlign: "right", // Выравнивание текста цены по правому краю
+    minWidth: 80, // Минимальная ширина для цены
   },
   priceRow: {
     flexDirection: "row",
     // alignItems: 'center',
     // marginBottom: 8,
   },
-  pricePerUnit: {
-    fontSize: 14,
-    fontWeight: "600",
-  },
+
   itemActions: {
     flexDirection: "row",
     alignItems: "center",
@@ -1322,7 +1404,6 @@ const styles = StyleSheet.create({
   },
   stockInfoOutOfStock: {
     borderWidth: 1,
-    borderColor: "#FF8605",
   },
   stockInfoText: {
     fontSize: 12,

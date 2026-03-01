@@ -104,7 +104,7 @@ export const CompanySelectionModal: React.FC<CompanySelectionModalProps> = ({
               style={[
                 styles.modalContainer,
                 isDarkMode && {
-                  backgroundColor: '#202022'
+                  backgroundColor: "#202022",
                 },
                 {
                   transform: [{ translateY: modalTranslateY }],
@@ -136,9 +136,12 @@ export const CompanySelectionModal: React.FC<CompanySelectionModalProps> = ({
                 {companies.map((company) => (
                   <TouchableOpacity
                     key={company.id}
-                    style={[styles.companyItem, isDarkMode && {
-                      borderColor: '#323235'
-                    }]}
+                    style={[
+                      styles.companyItem,
+                      isDarkMode && {
+                        borderBottomColor: "#323235",
+                      },
+                    ]}
                     onPress={() => handleSelectCompany(company)}
                   >
                     <View
@@ -146,9 +149,10 @@ export const CompanySelectionModal: React.FC<CompanySelectionModalProps> = ({
                         styles.radioOuter,
                         selectedCompanyId === company.id &&
                           styles.radioOuterSelected,
-                          isDarkMode && selectedCompanyId === company.id && {
-                            borderColor:'#4C94FF'
-                          }
+                        isDarkMode &&
+                          selectedCompanyId === company.id && {
+                            borderColor: "#4C94FF",
+                          },
                       ]}
                     >
                       {selectedCompanyId === company.id && (
@@ -244,7 +248,6 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#1B1B1C",
   },
   companiesContainer: {
     paddingHorizontal: 20,
@@ -279,7 +282,6 @@ const styles = StyleSheet.create({
   companyName: {
     fontSize: 16,
     fontWeight: "500",
-    color: "#1B1B1C",
     marginBottom: 4,
   },
   companyInn: {

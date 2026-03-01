@@ -13,6 +13,7 @@ import {
 } from "@/features/catalog/catalogSlice";
 import { ProductCard } from "@/features/shared/ui/ProductCard";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -28,7 +29,8 @@ import {
   TextInput,
   TouchableOpacity,
   TouchableWithoutFeedback,
-  View, useColorScheme
+  View,
+  useColorScheme,
 } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
@@ -36,7 +38,7 @@ const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 
 export default function HeartScreen() {
   const colorScheme = useColorScheme();
-//TODO
+  //TODO
   const isDarkMode = colorScheme === "dark";
   // Состояния
   const [searchQuery, setSearchQuery] = useState("");
@@ -238,7 +240,11 @@ export default function HeartScreen() {
           filters: selectedFilterIds,
           params,
         });
-
+        const token = await AsyncStorage.getItem("token");
+        if (!token) {
+          console.log("No token found - skipping favorites loading");
+          return; // Выходим, если нет токена
+        }
         dispatch(
           getProductList({
             params,
@@ -271,16 +277,26 @@ export default function HeartScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      console.log("Heart screen focused - loading favorites");
+      const checkTokenAndLoad = async () => {
+        const token = await AsyncStorage.getItem("token");
+        if (!token) {
+          console.log("No token found - skipping favorites loading");
+          return; // Выходим, если нет токена
+        }
 
-      // Очищаем предыдущие товары
-      dispatch(clearProducts());
+        console.log("Heart screen focused - loading favorites");
 
-      // Загружаем избранное
-      loadProducts(false, "");
+        // Очищаем предыдущие товары
+        dispatch(clearProducts());
 
-      // Загружаем фильтры для избранного
-      dispatch(getCategoryFilters(null));
+        // Загружаем избранное
+        loadProducts(false, "");
+
+        // Загружаем фильтры для избранного
+        dispatch(getCategoryFilters(null));
+      };
+
+      checkTokenAndLoad();
 
       // Опционально: функция очистки при уходе с экрана
       return () => {
@@ -288,7 +304,7 @@ export default function HeartScreen() {
         // Можно отменить запросы если нужно
         // isFetchingRef.current = false;
       };
-    }, []), // Добавьте зависимости
+    }, [dispatch]), // Добавьте необходимые зависимости
   );
 
   // Обработчик прокрутки
@@ -339,6 +355,7 @@ export default function HeartScreen() {
   // Обработчик переключения фильтра
   const handleFilterToggle = (filterOptionId: string) => {
     dispatch(toggleFilterSelection(filterOptionId));
+    applyFilters();
   };
 
   // Сброс фильтров в текущей группе
@@ -354,7 +371,6 @@ export default function HeartScreen() {
 
   // Применение фильтров
   const applyFilters = () => {
-    closeFilterModalWithAnimation();
     // Перезагружаем товары с новыми фильтрами
     setTimeout(() => {
       scrollViewRef.current?.scrollTo({ y: 0, animated: false });
@@ -419,12 +435,13 @@ export default function HeartScreen() {
         style={[
           styles.filterGroupButton,
           isDarkMode && {
-            backgroundColor: '#202022'
+            backgroundColor: "#202022",
           },
           hasSelected && styles.filterGroupButtonActive,
-          isDarkMode && hasSelected && {
-            backgroundColor: '#3881EE'
-          }
+          isDarkMode &&
+            hasSelected && {
+              backgroundColor: "#3881EE",
+            },
         ]}
         onPress={() => handleFilterGroupPress(filterGroup)}
       >
@@ -458,6 +475,7 @@ export default function HeartScreen() {
               isActiveButton={false}
               onSubmitEditing={handleSearchSubmit}
               ref={searchInputRef}
+              isFav={true}
             />
           }
         />
@@ -486,14 +504,19 @@ export default function HeartScreen() {
                 >
                   {/* Кнопка сортировки */}
                   <TouchableOpacity
-                    style={[styles.sortFilterButton,
+                    style={[
+                      styles.sortFilterButton,
                       isDarkMode && {
-                        backgroundColor: '#202022'
-                      }
+                        backgroundColor: "#202022",
+                      },
                     ]}
                     onPress={() => setShowSortModal(true)}
                   >
-                    <SortIcon stroke={isDarkMode ? '#FBFCFF' : "#1B1B1C"} fill={isDarkMode ? '#FBFCFF' : "#1B1B1C"} size={16} />
+                    <SortIcon
+                      stroke={isDarkMode ? "#FBFCFF" : "#1B1B1C"}
+                      fill={isDarkMode ? "#FBFCFF" : "#1B1B1C"}
+                      size={16}
+                    />
                     <ThemedText style={styles.sortFilterButtonText}>
                       {getCurrentSortLabel()}
                     </ThemedText>
@@ -523,7 +546,7 @@ export default function HeartScreen() {
                 <View style={styles.productsGrid}>
                   {sortedProducts.map((product) => (
                     <ProductCard
-                      key={`${product.id}-${currentPage}`}
+                      key={`${product.id}`}
                       id={product.id}
                       img={product.image}
                       name={product.name}
@@ -589,7 +612,7 @@ export default function HeartScreen() {
                   style={[
                     styles.modalContainer,
                     isDarkMode && {
-                      backgroundColor: '#202022'
+                      backgroundColor: "#202022",
                     },
                     {
                       transform: [{ translateY: sortModalTranslateY }],
@@ -615,43 +638,49 @@ export default function HeartScreen() {
                   </View>
 
                   <View style={styles.sortOptionsContainer}>
-                  {sortOptions.map((option) => (
-              <TouchableOpacity
-                key={option.id}
-                style={[
-                  styles.sortOptionItem,
-                  isDarkMode && {
-                    borderBottomColor: "#323235",
-                  },
-                ]}
-                onPress={() => handleSortSelect(option.id)}
-              >
-                <View style={styles.sortOptionItemContent}>
-                  <View
-                    style={[
-                      styles.sortOptionRadio,
-                      sortBy === option.id && styles.sortOptionRadioSelected,
-                      isDarkMode &&
-                        sortBy === option.id && {
-                          borderColor: "#4C94FF",
-                        },
-                    ]}
-                  >
-                    {sortBy === option.id && (
-                      <View style={[styles.sortOptionRadioInner, isDarkMode && { backgroundColor: "#FFFFFF" }]} />
-                    )}
-                  </View>
-                  <ThemedText
-                    style={[
-                      styles.sortOptionText,
-                      isDarkMode && { color: "#FBFCFF" },
-                    ]}
-                  >
-                    {option.label}
-                  </ThemedText>
-                </View>
-              </TouchableOpacity>
-            ))}
+                    {sortOptions.map((option) => (
+                      <TouchableOpacity
+                        key={option.id}
+                        style={[
+                          styles.sortOptionItem,
+                          isDarkMode && {
+                            borderBottomColor: "#323235",
+                          },
+                        ]}
+                        onPress={() => handleSortSelect(option.id)}
+                      >
+                        <View style={styles.sortOptionItemContent}>
+                          <View
+                            style={[
+                              styles.sortOptionRadio,
+                              sortBy === option.id &&
+                                styles.sortOptionRadioSelected,
+                              isDarkMode &&
+                                sortBy === option.id && {
+                                  borderColor: "#4C94FF",
+                                },
+                            ]}
+                          >
+                            {sortBy === option.id && (
+                              <View
+                                style={[
+                                  styles.sortOptionRadioInner,
+                                  isDarkMode && { backgroundColor: "#FFFFFF" },
+                                ]}
+                              />
+                            )}
+                          </View>
+                          <ThemedText
+                            style={[
+                              styles.sortOptionText,
+                              isDarkMode && { color: "#FBFCFF" },
+                            ]}
+                          >
+                            {option.label}
+                          </ThemedText>
+                        </View>
+                      </TouchableOpacity>
+                    ))}
                   </View>
                 </Animated.View>
               </TouchableWithoutFeedback>
@@ -674,7 +703,7 @@ export default function HeartScreen() {
                   style={[
                     styles.modalContainer,
                     isDarkMode && {
-                      backgroundColor: '#202022'
+                      backgroundColor: "#202022",
                     },
                     {
                       transform: [{ translateY: filterModalTranslateY }],
@@ -722,7 +751,7 @@ export default function HeartScreen() {
                             styles.radioOuter,
                             isFilterSelected(option.id) &&
                               styles.radioOuterSelected,
-                              isDarkMode &&
+                            isDarkMode &&
                               isFilterSelected(option.id) && {
                                 borderColor: "#4C94FF",
                               },
@@ -799,7 +828,6 @@ const styles = StyleSheet.create({
   sortFilterButtonText: {
     fontFamily: "Montserrat",
     fontSize: 14,
-    color: "#1B1B1C",
     marginLeft: 8,
   },
   filterGroupButton: {
@@ -816,7 +844,6 @@ const styles = StyleSheet.create({
   filterGroupText: {
     fontFamily: "Montserrat",
     fontSize: 14,
-    color: "#1B1B1C",
   },
   filterGroupTextActive: {
     color: "#FFFFFF",
@@ -983,7 +1010,6 @@ const styles = StyleSheet.create({
   filterOptionText: {
     fontFamily: "Montserrat",
     fontSize: 16,
-    color: "#1B1B1C",
   },
   filterOptionTextSelected: {
     fontWeight: "600",

@@ -4,7 +4,13 @@ import { ThemedView } from "@/components/themed-view";
 import { OrderDetailsModal } from "@/features/shared/ui/OrderDetailModal";
 import * as Clipboard from "expo-clipboard";
 import React, { useState } from "react";
-import { Alert, StyleSheet, TouchableOpacity, View } from "react-native";
+import {
+  Alert,
+  StyleSheet,
+  TouchableOpacity,
+  useColorScheme,
+  View,
+} from "react-native";
 
 export interface Order {
   id: number;
@@ -47,6 +53,9 @@ const formatDeliveryDate = (dateString: string): string => {
 };
 
 export default function OrdersCard({ order }: OrdersCardProps) {
+  const colorScheme = useColorScheme();
+  //TODO
+  const isDarkMode = colorScheme === "dark";
   const [modalVisible, setModalVisible] = useState(false);
 
   const handleCopyId = async () => {
@@ -75,7 +84,7 @@ export default function OrdersCard({ order }: OrdersCardProps) {
               >
                 {order.id}
               </ThemedText>
-              <Copy />
+              <Copy fill={isDarkMode ? "#FBFCFF" : "#1B1B1C"} />
             </ThemedView>
           </TouchableOpacity>
           <ThemedText

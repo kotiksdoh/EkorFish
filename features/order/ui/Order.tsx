@@ -1,5 +1,9 @@
 // app/modals/checkout.tsx
-import { ArrowIconRight, IconCompanyNew, TrashIcon } from "@/assets/icons/icons";
+import {
+  ArrowIconRight,
+  IconCompanyNew,
+  TrashIcon,
+} from "@/assets/icons/icons";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import {
@@ -40,7 +44,8 @@ import {
   StyleSheet,
   TouchableOpacity,
   TouchableWithoutFeedback,
-  View, useColorScheme
+  View,
+  useColorScheme,
 } from "react-native";
 
 const { height: screenHeight } = Dimensions.get("window");
@@ -261,7 +266,7 @@ export default function CheckoutModal({
       setSelectedAddress(savedAddress);
     }
   }, [currentCompany?.id, savedAddress]);
-  console.log('savedAddress', savedAddress)
+  console.log("savedAddress", savedAddress);
   const handleSelectAddress = async (address: any) => {
     setSelectedAddress(address);
     if (currentCompany?.id) {
@@ -660,7 +665,7 @@ export default function CheckoutModal({
           style={[
             styles.activeTabIndicator,
             isDarkMode && {
-              backgroundColor: '#101013'
+              backgroundColor: "#101013",
             },
             {
               width: tabContainerWidth,
@@ -681,9 +686,7 @@ export default function CheckoutModal({
               lightColor={
                 selectedMethod === item.method ? "#1B1B1C" : "#80818B"
               }
-              darkColor={
-                selectedMethod === item.method ? "#FBFCFF" : "#80818B"
-              }
+              darkColor={selectedMethod === item.method ? "#FBFCFF" : "#80818B"}
             >
               {item.label}
             </ThemedText>
@@ -700,7 +703,7 @@ export default function CheckoutModal({
       <RNModal
         visible={visible}
         animationType="slide"
-        presentationStyle="pageSheet"
+        transparent={true}
         statusBarTranslucent={true}
         onRequestClose={() => {
           if (showSuccessContent) {
@@ -788,8 +791,16 @@ export default function CheckoutModal({
                   showsVerticalScrollIndicator={false}
                 >
                   {/* Блок с табами доставки */}
-                  <ThemedView style={styles.block} darkColor="#151516" lightColor="#FFFFFF">
-                    <ThemedText darkColor="#FBFCFF" lightColor="#1B1B1C" style={styles.blockTitle}>
+                  <ThemedView
+                    style={styles.block}
+                    darkColor="#151516"
+                    lightColor="#FFFFFF"
+                  >
+                    <ThemedText
+                      darkColor="#FBFCFF"
+                      lightColor="#1B1B1C"
+                      style={styles.blockTitle}
+                    >
                       Способ получения
                     </ThemedText>
 
@@ -801,7 +812,11 @@ export default function CheckoutModal({
 
                     {selectedMethod === DeliveryMethod.Delivery && (
                       <View>
-                        <ThemedText darkColor="#FBFCFF" lightColor="#1B1B1C" style={styles.blockTitle}>
+                        <ThemedText
+                          darkColor="#FBFCFF"
+                          lightColor="#1B1B1C"
+                          style={styles.blockTitle}
+                        >
                           Компания и адрес
                         </ThemedText>
                         <ThemedView
@@ -814,19 +829,28 @@ export default function CheckoutModal({
                             onPress={() => setShowAddressModal(true)}
                           >
                             <View style={styles.compAndAdressContRowDoble}>
-                              <ThemedView lightColor="#FFFFFF" darkColor="#151516" style={styles.iconCont}>
-                                <IconCompanyNew color={isDarkMode ? '#FBFCFF' : "#1B1B1C"}/>
+                              <ThemedView
+                                lightColor="#FFFFFF"
+                                darkColor="#151516"
+                                style={styles.iconCont}
+                              >
+                                <IconCompanyNew
+                                  color={isDarkMode ? "#FBFCFF" : "#1B1B1C"}
+                                />
                               </ThemedView>
                               <View style={styles.compAndAdressColumn}>
                                 <ThemedText
-                                  darkColor="#FBFCFF" lightColor="#1B1B1C"
+                                  darkColor="#FBFCFF"
+                                  lightColor="#1B1B1C"
                                   style={styles.compText}
                                   numberOfLines={1}
                                   ellipsizeMode="tail"
                                 >
                                   {me?.companies?.length === 0
                                     ? `${me?.individualProfile?.firstName || ""} ${me?.individualProfile?.lastName || ""} ${me?.individualProfile?.patronymic || ""}`.trim()
-                                    : currentCompany?.name ? currentCompany?.name : '-'}
+                                    : currentCompany?.name
+                                      ? currentCompany?.name
+                                      : "-"}
                                 </ThemedText>
                                 <ThemedText
                                   lightColor="#80818B"
@@ -836,7 +860,8 @@ export default function CheckoutModal({
                                   ellipsizeMode="tail"
                                 >
                                   {currentCompany?.id ===
-                                  savedAddress?.addressOwnerId
+                                    savedAddress?.addressOwnerId &&
+                                  savedAddress?.address
                                     ? `${savedAddress?.address}, этаж ${savedAddress?.floor}, кв ${savedAddress?.apartment}`
                                     : currentCompany?.deliveryAddresses?.[0]
                                         ?.address || "-"}
@@ -859,23 +884,39 @@ export default function CheckoutModal({
                   </ThemedView>
 
                   {/* Блок даты и времени */}
-                  <ThemedView style={styles.block} darkColor="#151516" lightColor="#FFFFFF">
-                    <ThemedText darkColor="#FBFCFF" lightColor="#1B1B1C" style={styles.blockTitle}>
+                  <ThemedView
+                    style={styles.block}
+                    darkColor="#151516"
+                    lightColor="#FFFFFF"
+                  >
+                    <ThemedText
+                      darkColor="#FBFCFF"
+                      lightColor="#1B1B1C"
+                      style={styles.blockTitle}
+                    >
                       Дата и время получения
                     </ThemedText>
 
                     <TouchableOpacity
-                      style={[styles.dateTimeDisplay, isDarkMode && {
-                        backgroundColor: '#ECEFFA0D'
-                      }]}
+                      style={[
+                        styles.dateTimeDisplay,
+                        isDarkMode && {
+                          backgroundColor: "#ECEFFA0D",
+                        },
+                      ]}
                       onPress={() => setShowCalendarModal(true)}
                     >
                       <View style={styles.dateTimeRow}>
-                        <ThemedText darkColor="#FBFCFF" lightColor="#1B1B1C" style={styles.dateTimeLabel}></ThemedText>
+                        <ThemedText
+                          darkColor="#FBFCFF"
+                          lightColor="#1B1B1C"
+                          style={styles.dateTimeLabel}
+                        ></ThemedText>
                         <ThemedText
                           style={styles.dateTimeValue}
                           numberOfLines={1}
-                          darkColor="#FBFCFF" lightColor="#1B1B1C"
+                          darkColor="#FBFCFF"
+                          lightColor="#1B1B1C"
                         >
                           {formatDateTimeDisplay()}
                         </ThemedText>
@@ -896,13 +937,16 @@ export default function CheckoutModal({
                       <View key={recipient.id} style={styles.recipientBlock}>
                         {index > 0 && (
                           <View style={styles.recipientHeader}>
-                            <ThemedText lightColor="#80818B" style={styles.recipientTitle}>
+                            <ThemedText
+                              lightColor="#80818B"
+                              style={styles.recipientTitle}
+                            >
                               Дополнительный получатель
                             </ThemedText>
                             <TouchableOpacity
                               onPress={() => removeRecipient(recipient.id)}
                             >
-                              <TrashIcon fill="#F10B34" stroke="#F10B34"/>
+                              <TrashIcon fill="#F10B34" stroke="#F10B34" />
                             </TouchableOpacity>
                           </View>
                         )}
@@ -1083,14 +1127,15 @@ export default function CheckoutModal({
           onSelectCompany={handleSelectCompany}
           onAddCompany={handleAddCompany}
         />
+        <OrderDetailsModal
+          visible={showOrderDetailsModal}
+          onClose={() => {
+            setShowOrderDetailsModal(false);
+          }}
+          orderId={createdOrderId}
+        />
       </RNModal>
-      <OrderDetailsModal
-        visible={showOrderDetailsModal}
-        onClose={() => {
-          setShowOrderDetailsModal(false);
-        }}
-        orderId={createdOrderId}
-      />
+
       {/* Модалка успешного заказа */}
       {/* <SuccessModal
         visible={showSuccessModal}
@@ -1161,6 +1206,9 @@ function DateTimeModal({
   initialDateTime,
   deliverySchedule,
 }: any) {
+  const colorScheme = useColorScheme();
+  //TODO
+  const isDarkMode = colorScheme === "dark";
   const [selectedDate, setSelectedDate] = useState<string>(
     initialDateTime.date || "",
   );
@@ -1389,6 +1437,11 @@ function DateTimeModal({
                   styles.dayCell,
                   disabled && styles.dayDisabled,
                   (isSelected || isNearest) && !disabled && styles.daySelected,
+                  isDarkMode &&
+                    (isSelected || isNearest) &&
+                    !disabled && {
+                      backgroundColor: "#4C94FF",
+                    },
                 ]}
                 onPress={() => date && handleDateSelect(date)}
                 disabled={disabled}
@@ -1425,6 +1478,10 @@ function DateTimeModal({
             <Animated.View
               style={[
                 styles.modalContent,
+                isDarkMode && {
+                  backgroundColor: "#202022",
+                },
+
                 {
                   transform: [{ translateY: modalTranslateY }],
                 },
@@ -1471,6 +1528,7 @@ function DateTimeModal({
                   >
                     <ThemedView
                       lightColor="#F2F4F7"
+                      darkColor="#ECEFFA0D"
                       style={styles.dateTimeBlockInner}
                     >
                       {/* <ThemedText style={styles.dateTimeBlockLabel}>Дата</ThemedText> */}
@@ -1498,6 +1556,7 @@ function DateTimeModal({
                           ? "#F5F5F5"
                           : "#F2F4F7"
                       }
+                      darkColor="#ECEFFA0D"
                       style={[
                         styles.dateTimeBlockInner,
                         (!selectedDate || availableTimeSlots.length === 0) &&
@@ -1550,6 +1609,9 @@ function TimeModal({
   selectedDate,
   deliverySchedule,
 }: any) {
+  const colorScheme = useColorScheme();
+  //TODO
+  const isDarkMode = colorScheme === "dark";
   const [modalTranslateY] = useState(new Animated.Value(screenHeight));
 
   useEffect(() => {
@@ -1636,6 +1698,9 @@ function TimeModal({
             <Animated.View
               style={[
                 styles.timeModalContent,
+                isDarkMode && {
+                  backgroundColor: "#202022",
+                },
                 {
                   transform: [{ translateY: modalTranslateY }],
                 },
@@ -1674,7 +1739,10 @@ function TimeModal({
                   return (
                     <TouchableOpacity
                       key={index}
-                      style={styles.timeSlot}
+                      style={[
+                        styles.timeSlot,
+                        isDarkMode && { borderBottomColor: "#323235" },
+                      ]}
                       onPress={() => onSelectTime(slot)}
                     >
                       <View
@@ -1682,6 +1750,10 @@ function TimeModal({
                           styles.radioOuter,
                           (isSelected || isNearest) &&
                             styles.radioOuterSelected,
+                          isDarkMode &&
+                            (isSelected || isNearest) && {
+                              borderColor: "#4C94FF",
+                            },
                         ]}
                       >
                         {(isSelected || isNearest) && (
@@ -1693,6 +1765,10 @@ function TimeModal({
                           styles.timeSlotText,
                           (isSelected || isNearest) &&
                             styles.timeSlotTextSelected,
+                          isDarkMode &&
+                            (isSelected || isNearest) && {
+                              color: "#4C94FF",
+                            },
                         ]}
                       >
                         {timeString}
@@ -1814,7 +1890,6 @@ const styles = StyleSheet.create({
     borderColor: "#D8DADE",
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#FBFCFF",
   },
   radioOuterSelected: {
     borderColor: "#203686",
@@ -2094,6 +2169,7 @@ const styles = StyleSheet.create({
   },
   dayCell: {
     width: "14.28%",
+    height: "14.28%",
     aspectRatio: 1,
     justifyContent: "center",
     alignItems: "center",
@@ -2232,9 +2308,9 @@ const styles = StyleSheet.create({
     flex: 1,
     flexShrink: 1,
   },
-  iconCont:{
+  iconCont: {
     padding: 8,
-    borderRadius: 8
+    borderRadius: 8,
   },
   compAndAdressColumn: {
     flexDirection: "column",

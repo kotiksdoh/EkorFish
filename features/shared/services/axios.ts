@@ -3,8 +3,8 @@ import axios from "axios";
 
 // export const baseUrl = `http://192.168.222.205:9191`; // Локалка
 // export const baseUrl = `http://192.168.222.239:13333`;
-// export const baseUrl = `http://46.29.13.61:13333`;
-export const baseUrl = `http://192.168.222.238:13333`; // Сервер
+export const baseUrl = `http://46.29.13.61:13333`;
+// export const baseUrl = `http://192.168.222.238:13333`; // Сервер
 // 192.168.222.239:13333/swagger/index.html
 
 export const ax = axios.create();
@@ -23,16 +23,12 @@ ax.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
     // console.log(window.location.href)
-    const href =
-      window.location.href.split("/")[
-        window.location.href.split("/").length - 1
-      ];
+
     console.log("error.response", error.response);
     if (
       error.response &&
       error.response.status === 401 &&
-      !originalRequest._retry &&
-      href !== "auth"
+      !originalRequest._retry
     ) {
       debugger;
       originalRequest._retry = true;
@@ -90,7 +86,7 @@ axdef.interceptors.response.use(
     console.log("Status:", error.response?.status);
 
     // Проверяем Network Error - это может быть скрытый 401 из-за CORS
-    if (error.code  !== "ERR_NETWORK" || error.message !== "Network Error") {
+    if (error.code !== "ERR_NETWORK" || error.message !== "Network Error") {
       console.log("Network Error detected - could be CORS issue");
 
       // Пытаемся обновить токен на всякий случай
