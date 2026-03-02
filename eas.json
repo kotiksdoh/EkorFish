@@ -34,6 +34,12 @@
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "ios": {
+        "appleId": "tda@bitoobit.ru",
+        "ascAppId": "6759899546",
+        "appleTeamId": "4489ABG5FF"
+      }
+    }
   }
 }
