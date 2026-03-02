@@ -14,6 +14,7 @@ import {
   View,
   useColorScheme,
 } from "react-native";
+import { BonusPage } from "../screens/BonusScreen";
 
 interface HomeHeaderProps {
   title?: string;
@@ -30,6 +31,7 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
 }) => {
   const me = useAppSelector((state) => state.auth.me);
   const [modalVisible, setModalVisible] = useState(false);
+  const [bonusModalVisible, setBonusModalVisible] = useState(false);
   const systemTheme = useColorScheme();
   const currentTheme = systemTheme || "light";
   const codeBackgroundColor = currentTheme === "dark" ? "#202022" : "#F2F4F7";
@@ -108,13 +110,18 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
                 {getDisplayName()}
               </ThemedText>
             </TouchableOpacity>
-
+            <TouchableOpacity
+              style={styles.headInfo}
+              onPress={() => setBonusModalVisible(true)}
+              activeOpacity={0.7}
+            >
             <View style={styles.headInfoBonus}>
               <LemonIcon />
               <ThemedText lightColor="#FBFCFF" darkColor="#FBFCFF">
                 0
               </ThemedText>
             </View>
+            </TouchableOpacity>
           </View>
         )}
       </View>
@@ -132,6 +139,10 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
             console.log("Add company pressed");
           })
         }
+      />
+      <BonusPage
+        visible={bonusModalVisible}
+        onClose={() => setBonusModalVisible(false)}
       />
     </>
   );
