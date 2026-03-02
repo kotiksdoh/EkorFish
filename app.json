@@ -15,7 +15,8 @@
         "NSAppTransportSecurity": {
           "NSAllowsArbitraryLoads": true
         }
-      }
+      },
+      "supportsTablet": false
     },
     "android": {
       "adaptiveIcon": {
