@@ -3,7 +3,7 @@ import axios from "axios";
 
 // export const baseUrl = `http://192.168.222.205:9191`; // Локалка
 // export const baseUrl = `http://192.168.222.239:13333`;
-export const baseUrl = `http://46.29.13.61:13333`;
+export const baseUrl = `https://ekortest.bitoobit.ru`;
 // export const baseUrl = `http://192.168.222.238:13333`; // Сервер
 // 192.168.222.239:13333/swagger/index.html
 
