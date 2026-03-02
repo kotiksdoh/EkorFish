@@ -79,7 +79,7 @@ export default function HeartScreen() {
   const searchInputRef = useRef<TextInput>(null);
   const router = useRouter();
   const scrollViewRef = useRef<ScrollView>(null);
-
+  const [hasToken, setHasToken] = useState<boolean | null>(null);
   // Ref для предотвращения двойных запросов
   const isFetchingRef = useRef(false);
 
@@ -135,7 +135,17 @@ export default function HeartScreen() {
       closeFilterModalWithAnimation();
     }
   }, [isClosingFilterModal, closeFilterModalWithAnimation]);
-
+  
+  useFocusEffect(
+    useCallback(() => {
+      const checkToken = async () => {
+        const token = await AsyncStorage.getItem("token");
+        setHasToken(!!token);
+      };
+      checkToken();
+    }, [])
+  );
+  
   // Эффект для анимации появления модалки сортировки
   useEffect(() => {
     if (showSortModal) {
@@ -387,10 +397,13 @@ export default function HeartScreen() {
 
   // Сортировка продуктов
   const getSortedProducts = useCallback(() => {
+    // Если нет токена или токен null, возвращаем пустой массив
+    if (!hasToken) return [];
+    
     if (!products || products.length === 0) return [];
-
+  
     const sorted = [...products];
-
+  
     switch (sortBy) {
       case "alphabet":
         return sorted.sort((a, b) => a.name.localeCompare(b.name));
@@ -414,7 +427,7 @@ export default function HeartScreen() {
       default:
         return sorted;
     }
-  }, [products, sortBy]);
+  }, [products, sortBy, hasToken]);
 
   const sortedProducts = getSortedProducts();
 
@@ -540,7 +553,7 @@ export default function HeartScreen() {
                   </ThemedText>
                 </View>
               )}
-
+{/*  */}
               {/* Сетка товаров */}
               {!isLoading && sortedProducts.length > 0 && (
                 <View style={styles.productsGrid}>
