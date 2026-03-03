@@ -334,7 +334,6 @@ const styles = StyleSheet.create({
   },
   whiteProfileCard: {
     width: "100%",
-    maxWidth: 402,
     height: 119,
     borderRadius: 24,
     padding: 16,
