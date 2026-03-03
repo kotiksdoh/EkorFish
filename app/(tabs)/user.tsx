@@ -210,14 +210,14 @@ const handleSaveProfile = async (data: any) => {
                 </View>
               )}
             </View>
-            <View style={styles.profileInfo}>
+            <ThemedView style={styles.profileInfo}>
               <ThemedText style={styles.profileName}>
                 TODO
               </ThemedText>
               <ThemedText style={styles.profileEmail}>
                 в разработке
               </ThemedText>
-            </View>
+            </ThemedView>
           </ThemedView>
         </LinearGradient>
 
@@ -387,7 +387,6 @@ const styles = StyleSheet.create({
   infoCard: {
     borderRadius: 24,
     padding: 16,
-    backgroundColor: "#FFFFFF",
   },
   infoContainer: {
     gap: 16,
