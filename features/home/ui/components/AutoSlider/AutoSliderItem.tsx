@@ -16,7 +16,6 @@ export const AutoSliderItem: React.FC<AutoSliderItemProps> = ({
   isProduct,
 }) => {
   const imageWidth = SCREEN_WIDTH - 32; // 16px margin с каждой стороны
-  console.log("item.imageUrl", item.imageUrl);
   return (
     <View style={[styles.container, { width: SCREEN_WIDTH }]}>
       <View style={[styles.imageWrapper, { height: sliderHeight }]}>

@@ -28,7 +28,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.kotiksdoh.EkorFishNew"
+      "package": "com.kotiksdoh.EkorFish"
     },
     "web": {
       "output": "static",

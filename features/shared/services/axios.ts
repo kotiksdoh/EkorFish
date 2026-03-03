@@ -87,7 +87,7 @@ axdef.interceptors.response.use(
     console.log("Status:", error.response?.status);
 
     // Проверяем Network Error - это может быть скрытый 401 из-за CORS
-    if (error.code !== "ERR_NETWORK" || error.message !== "Network Error") {
+    if (error.code !== "ERR_NETWORK" || error.message !== "Network Error" || error.response?.status !== 400 || error.response?.status !== 403 || error.response?.status !== 405 || error.response?.status !== 500) {
       console.log("Network Error detected - could be CORS issue");
 
       // Пытаемся обновить токен на всякий случай

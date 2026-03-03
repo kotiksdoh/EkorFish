@@ -118,6 +118,8 @@ export default function CheckoutModal({
   const [showSuccessContent, setShowSuccessContent] = useState(false);
   const [showOrderDetailsModal, setShowOrderDetailsModal] = useState(false);
   const [createdOrderId, setCreatedOrderId] = useState<number | null>(null);
+  const [showChangePickupModal, setShowChangePickupModal] = useState(false);
+  const [pendingPickupAddress, setPendingPickupAddress] = useState<string | null>(null);
 
   const dispatch = useAppDispatch();
   const tabContainerRef = useRef<View>(null);
@@ -154,18 +156,45 @@ export default function CheckoutModal({
   const isMethodAvailable = (method: DeliveryMethod): boolean => {
     return deliveryMethods.some((m: any) => m.method === method);
   };
+  // const handlePickTown = async (id: any) => {
+  //   await dispatch(
+  //     updateUserTown({
+  //       storageId: id,
+  //       // townId: selectedTownId,
+  //     }),
+  //   ).then((res) => {
+  //     if (updateUserTown.fulfilled.match(res)) {
+  //       dispatch(getCart()).unwrap();
+  //     }
+  //   });
+  //   setSelectedPickupAddress(id);
+  // };
   const handlePickTown = async (id: any) => {
+    setPendingPickupAddress(id);
+    setShowChangePickupModal(true);
+  };
+
+  const confirmChangePickup = async () => {
+    if (!pendingPickupAddress) return;
+    
+    setShowChangePickupModal(false);
+    
     await dispatch(
       updateUserTown({
-        storageId: id,
-        // townId: selectedTownId,
+        storageId: pendingPickupAddress,
       }),
     ).then((res) => {
       if (updateUserTown.fulfilled.match(res)) {
         dispatch(getCart()).unwrap();
       }
     });
-    setSelectedPickupAddress(id);
+    setSelectedPickupAddress(pendingPickupAddress);
+    setPendingPickupAddress(null);
+  };
+
+  const cancelChangePickup = () => {
+    setShowChangePickupModal(false);
+    setPendingPickupAddress(null);
   };
   // Получаем название способа оплаты для отображения
   const getPaymentTypeDisplayName = (type: PaymentType): string => {
@@ -1135,6 +1164,56 @@ export default function CheckoutModal({
           }}
           orderId={createdOrderId}
         />
+
+      <RNModal
+        visible={showChangePickupModal}
+        animationType="none"
+        transparent={true}
+        onRequestClose={cancelChangePickup}
+        statusBarTranslucent={true}
+
+      >
+        <TouchableWithoutFeedback onPress={cancelChangePickup}>
+          <View style={styles.modalOverlay}>
+            <TouchableWithoutFeedback>
+              <ThemedView 
+                style={styles.confirmModalContent}
+                lightColor="#FFFFFF"
+                darkColor="#202022"
+              >
+                <View style={styles.confirmModalHeader}>
+                  <ThemedText style={styles.confirmModalTitle}>
+                    Вы меняете склад самовывоза
+                  </ThemedText>
+                </View>
+
+                <View style={styles.confirmModalBody}>
+                  <ThemedText  style={styles.confirmModalText}>
+                    Наличие товаров на складах разное. Состав корзины может измениться.
+                  </ThemedText>
+                </View>
+
+                <View style={styles.confirmModalButtons}>
+                  <PrimaryButton
+                    title="Сменить склад"
+                    onPress={confirmChangePickup}
+                    variant="primary"
+                    size="md"
+                    style={styles.confirmButton}
+                  />
+                  <PrimaryButton
+                    title="Отменить"
+                    onPress={cancelChangePickup}
+                    variant="third"
+                    size="md"
+                    style={styles.cancelButton}
+                  />
+                </View>
+              </ThemedView>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </RNModal>
       </RNModal>
 
       {/* Модалка успешного заказа */}
@@ -2377,5 +2456,38 @@ const styles = StyleSheet.create({
   },
   successButton: {
     flex: 1,
+  },
+  confirmModalContent: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    // width: '90%',
+    maxWidth: 400,
+    alignSelf: 'center',
+  },
+  confirmModalHeader: {
+    marginBottom: 16,
+  },
+  confirmModalTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+  },
+  confirmModalBody: {
+    marginBottom: 24,
+  },
+  confirmModalText: {
+    fontSize: 16,
+    fontWeight: '500',
+    lineHeight: 22,
+  },
+  confirmModalButtons: {
+    flexDirection: 'column',
+    gap: 12,
+  },
+  confirmButton: {
+    width: '100%',
+  },
+  cancelButton: {
+    width: '100%',
   },
 });
