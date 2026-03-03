@@ -201,7 +201,8 @@ const stylesBut = StyleSheet.create({
   withIcon:{
     gap: 4,
     display: 'flex',
-    flexDirection: 'row'
+    flexDirection: 'row',
+    alignItems: 'center'
   }
 })
 // Если вы используете NativeWind и хотите сохранить стилизацию через className:

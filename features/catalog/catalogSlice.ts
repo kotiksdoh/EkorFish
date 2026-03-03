@@ -283,17 +283,10 @@ export const putFavorite = createAsyncThunk(
       return data.data.data;
     } catch (error: any) {
       console.log("Error in thunk:", error);
-
-      // ВАЖНО: Не обрабатываем 401 здесь, просто пробрасываем ошибку
-      // Интерсептор сам её перехватит и обработает
-
-      // Но если это не 401, то возвращаем rejectWithValue
       if (error.response?.status !== 401) {
         return rejectWithValue(error);
       }
-
-      // Для 401 - просто пробрасываем ошибку дальше
-      throw error; // Это заставит интерсептор сработать
+      throw error; 
     }
   },
 );
