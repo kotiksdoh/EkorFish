@@ -1,7 +1,7 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { Image, ScrollView, StyleSheet, TouchableOpacity, View, useColorScheme } from "react-native";
+import { Image, Platform, ScrollView, StyleSheet, TouchableOpacity, View, useColorScheme } from "react-native";
 
 import { ArrowIconRight, ExitIcon, IconGeo, PencilIcon } from "@/assets/icons/icons";
 import { ThemedText } from "@/components/themed-text";
@@ -35,12 +35,48 @@ export default function TabTwoScreen() {
   const currentCompany = useAppSelector((state) => state.auth.currentCompany);
 
   // Загружаем сохраненные данные профиля
-// Загружаем сохраненные данные профиля
-useEffect(() => {
-  const loadProfileData = async () => {
+  useEffect(() => {
+    const loadProfileData = async () => {
+      try {
+        const savedColorId = await AsyncStorage.getItem('profileCoverColorId');
+        const savedAvatar = await AsyncStorage.getItem('profileAvatar');
+        
+        // Маппинг ID цветов в первый цвет градиента для фона
+        const colorToGradientFirst = {
+          'light1': '#ACCBEE',
+          'light2': '#EEACCF',
+          'light3': '#ACEECC',
+          'light4': '#EEE2AC',
+          'light5': '#CED0D4',
+          'dark1': '#697D93',
+          'dark2': '#865F74',
+          'dark3': '#5A7165',
+          'dark4': '#8B8670',
+          'dark5': '#515257',
+        };
+        
+        const coverColor = savedColorId ? (colorToGradientFirst[savedColorId as keyof typeof colorToGradientFirst] || '#ACCBEE') : '#ACCBEE';
+        
+        setProfileData(prev => ({
+          ...prev,
+          coverColor: coverColor,
+          avatar: savedAvatar || null,
+        }));
+      } catch (error) {
+        console.error('Error loading profile data:', error);
+      }
+    };
+    
+    loadProfileData();
+  }, []);
+
+  const handleSaveProfile = async (data: any) => {
     try {
-      const savedColorId = await AsyncStorage.getItem('profileCoverColorId');
-      const savedAvatar = await AsyncStorage.getItem('profileAvatar');
+      // Сохраняем в AsyncStorage
+      if (data.avatar) {
+        await AsyncStorage.setItem('profileAvatar', data.avatar);
+      }
+      await AsyncStorage.setItem('profileCoverColorId', data.coverColor);
       
       // Маппинг ID цветов в первый цвет градиента для фона
       const colorToGradientFirst = {
@@ -56,59 +92,22 @@ useEffect(() => {
         'dark5': '#515257',
       };
       
-      const coverColor = savedColorId ? (colorToGradientFirst[savedColorId as keyof typeof colorToGradientFirst] || '#ACCBEE') : '#ACCBEE';
+      const coverColor = colorToGradientFirst[data.coverColor as keyof typeof colorToGradientFirst] || '#ACCBEE';
       
+      // Обновляем локальное состояние
       setProfileData(prev => ({
         ...prev,
+        name: data.name,
+        surname: data.surname,
+        avatar: data.avatar,
         coverColor: coverColor,
-        avatar: savedAvatar || null,
       }));
+      
+      setEditModalVisible(false);
     } catch (error) {
-      console.error('Error loading profile data:', error);
+      console.error('Error saving profile:', error);
     }
   };
-  
-  loadProfileData();
-}, []);
-
-const handleSaveProfile = async (data: any) => {
-  try {
-    // Сохраняем в AsyncStorage
-    if (data.avatar) {
-      await AsyncStorage.setItem('profileAvatar', data.avatar);
-    }
-    await AsyncStorage.setItem('profileCoverColorId', data.coverColor);
-    
-    // Маппинг ID цветов в первый цвет градиента для фона
-    const colorToGradientFirst = {
-      'light1': '#ACCBEE',
-      'light2': '#EEACCF',
-      'light3': '#ACEECC',
-      'light4': '#EEE2AC',
-      'light5': '#CED0D4',
-      'dark1': '#697D93',
-      'dark2': '#865F74',
-      'dark3': '#5A7165',
-      'dark4': '#8B8670',
-      'dark5': '#515257',
-    };
-    
-    const coverColor = colorToGradientFirst[data.coverColor as keyof typeof colorToGradientFirst] || '#ACCBEE';
-    
-    // Обновляем локальное состояние
-    setProfileData(prev => ({
-      ...prev,
-      name: data.name,
-      surname: data.surname,
-      avatar: data.avatar,
-      coverColor: coverColor,
-    }));
-    
-    setEditModalVisible(false);
-  } catch (error) {
-    console.error('Error saving profile:', error);
-  }
-};
 
   // Обновляем данные когда меняется me
   useEffect(() => {
@@ -180,46 +179,51 @@ const handleSaveProfile = async (data: any) => {
   return (
     <>
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-        <LinearGradient
-          colors={[profileData.coverColor, "#E7F0FD"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.gradientContainer}
-        >
-          {/* Иконка карандаша */}
-          <TouchableOpacity 
-            style={styles.pencilIconContainer} 
-            onPress={() => setEditModalVisible(true)}
+        {/* Используем View с градиентом и дополнительными настройками для Android */}
+        <View style={styles.gradientWrapper}>
+          <LinearGradient
+            colors={[profileData.coverColor, "#E7F0FD"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.gradientContainer}
+            // Добавляем locations для лучшего рендеринга на Android
+            locations={[0, 1]}
           >
-            <PencilIcon width={24} height={24} fill="#1B1B1C" />
-          </TouchableOpacity>
+            {/* Иконка карандаша */}
+            <TouchableOpacity 
+              style={styles.pencilIconContainer} 
+              onPress={() => setEditModalVisible(true)}
+            >
+              <PencilIcon width={24} height={24} fill="#1B1B1C" />
+            </TouchableOpacity>
 
-          {/* Белый блок с фото профиля */}
-          <ThemedView style={styles.whiteProfileCard}>
-            <View style={styles.profileImageContainer}>
-              {profileData.avatar ? (
-                <Image 
-                  source={{ uri: profileData.avatar }} 
-                  style={styles.profileImage} 
-                />
-              ) : (
-                <View style={[styles.profileImagePlaceholder, { backgroundColor: profileData.coverColor }]}>
-                  <ThemedText style={styles.profileImagePlaceholderText}>
-                    {profileData.name?.charAt(0) || ''}{profileData.surname?.charAt(0) || ''}
-                  </ThemedText>
-                </View>
-              )}
-            </View>
-            <ThemedView style={styles.profileInfo}>
-              <ThemedText style={styles.profileName}>
-                TODO
-              </ThemedText>
-              <ThemedText style={styles.profileEmail}>
-                в разработке
-              </ThemedText>
+            {/* Белый блок с фото профиля */}
+            <ThemedView style={styles.whiteProfileCard}>
+              <View style={styles.profileImageContainer}>
+                {profileData.avatar ? (
+                  <Image 
+                    source={{ uri: profileData.avatar }} 
+                    style={styles.profileImage} 
+                  />
+                ) : (
+                  <View style={[styles.profileImagePlaceholder, { backgroundColor: profileData.coverColor }]}>
+                    <ThemedText style={styles.profileImagePlaceholderText}>
+                      {profileData.name?.charAt(0) || ''}{profileData.surname?.charAt(0) || ''}
+                    </ThemedText>
+                  </View>
+                )}
+              </View>
+              <ThemedView style={styles.profileInfo}>
+                <ThemedText style={styles.profileName}>
+                  TODO
+                </ThemedText>
+                <ThemedText style={styles.profileEmail}>
+                  в разработке
+                </ThemedText>
+              </ThemedView>
             </ThemedView>
-          </ThemedView>
-        </LinearGradient>
+          </LinearGradient>
+        </View>
 
         {/* Информационные блоки */}
         <ThemedView style={styles.infoCard}>
@@ -311,15 +315,36 @@ const styles = StyleSheet.create({
     position: "absolute",
     
   },
+  gradientWrapper: {
+    width: "100%",
+    height: 250,
+    marginBottom: 16,
+    // Добавляем обработку для Android
+    ...Platform.select({
+      android: {
+        overflow: 'hidden',
+        borderRadius: 24,
+        // Добавляем аппаратное ускорение для Android
+        transform: [{ perspective: 1000 }],
+      },
+    }),
+  },
   gradientContainer: {
     width: "100%",
     height: 250,
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
-    marginBottom: 16,
     position: "relative",
     justifyContent: "flex-end",
     alignItems: "center",
+    // Добавляем для Android
+    ...Platform.select({
+      android: {
+        // Улучшаем рендеринг градиента на Android
+        borderBottomLeftRadius: 24,
+        borderBottomRightRadius: 24,
+      },
+    }),
   },
   pencilIconContainer: {
     position: "absolute",
@@ -331,6 +356,12 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     justifyContent: "center",
     alignItems: "center",
+    // Добавляем для Android
+    ...Platform.select({
+      android: {
+        elevation: 5,
+      },
+    }),
   },
   whiteProfileCard: {
     width: "100%",
@@ -341,7 +372,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
     marginBottom: 0,
-
     position: "relative",
   },
   profileImageContainer: {
@@ -369,7 +399,6 @@ const styles = StyleSheet.create({
   profileInfo: {
     flex: 1,
     justifyContent: "center",
-    // marginLeft: 100, // Отступ после фото
   },
   profileName: {
     fontSize: 18,
