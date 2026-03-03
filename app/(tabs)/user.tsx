@@ -323,7 +323,8 @@ const styles = StyleSheet.create({
     ...Platform.select({
       android: {
         overflow: 'hidden',
-        borderRadius: 24,
+        borderBottomLeftRadius: 24,
+        borderBottomRightRadius: 24,
         // Добавляем аппаратное ускорение для Android
         transform: [{ perspective: 1000 }],
       },
