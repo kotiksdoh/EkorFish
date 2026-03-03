@@ -4,6 +4,7 @@ import { ThemedText } from "@/components/themed-text";
 import {
   loadCompanyFromStorage,
   selectCompany,
+  setCompany,
 } from "@/features/auth/authSlice";
 import { CompanySelectModal } from "@/features/shared/ui/CompanySelectModal";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -50,7 +51,7 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
   const handleSelectCompany = async (company: any) => {
     console.log("Selected company:", company);
     // Используем Redux action для сохранения компании
-    dispatch(selectCompany(company));
+    dispatch(setCompany(company));
     setModalVisible(false);
   };
 

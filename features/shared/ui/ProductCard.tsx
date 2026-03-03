@@ -126,7 +126,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
     imageLoadTimeoutRef.current = setTimeout(() => {
       if (isImageLoading) {
-        console.log("Image loading timeout:", img);
         setIsImageLoading(false);
         setImageError(true);
       }
@@ -142,7 +141,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   }, []);
 
   const handleImageError = useCallback(() => {
-    console.log("Image failed to load:", img);
     setIsImageLoading(false);
     setImageError(true);
     if (imageLoadTimeoutRef.current) {

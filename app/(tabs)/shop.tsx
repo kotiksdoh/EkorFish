@@ -12,6 +12,7 @@ import { ThemedView } from "@/components/themed-view";
 import {
   loadCompanyFromStorage,
   selectCompany,
+  setCompany,
 } from "@/features/auth/authSlice";
 import { ModalHeader } from "@/features/auth/ui/Header";
 import {
@@ -343,7 +344,7 @@ export default function ShopScreen() {
   }, [me]);
 
   const handleSelectCompany = (company: any) => {
-    dispatch(selectCompany(company));
+    dispatch(setCompany(company));
     setCompanyModalVisible(false);
   };
 

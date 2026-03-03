@@ -561,6 +561,9 @@ const catalogSlice = createSlice({
   name: "catalog",
   initialState,
   reducers: {
+    clearCatalogState: (state) => {
+      return initialState;
+    },
     clearProducts: (state) => {
       state.isLoading = false;
       state.isLoadingMore = false;
@@ -929,5 +932,6 @@ export const {
   clearCart,
   clearAddresses,
   clearRecipients,
+  clearCatalogState
 } = catalogSlice.actions;
 export default catalogSlice.reducer;

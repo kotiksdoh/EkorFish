@@ -8,8 +8,8 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import {
   getTowns,
-  selectCompany,
-  updateUserTown,
+  setCompany,
+  updateUserTown
 } from "@/features/auth/authSlice";
 import { ModalHeader } from "@/features/auth/ui/Header";
 import {
@@ -284,7 +284,7 @@ export default function CheckoutModal({
   };
 
   const handleSelectCompany = (company: any) => {
-    dispatch(selectCompany(company));
+    dispatch(setCompany(company));
     setSelectedAddress(null);
   };
 
