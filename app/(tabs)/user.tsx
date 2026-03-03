@@ -357,12 +357,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     justifyContent: "center",
     alignItems: "center",
-    // Добавляем для Android
-    ...Platform.select({
-      android: {
-        elevation: 5,
-      },
-    }),
+
   },
   whiteProfileCard: {
     width: "100%",
