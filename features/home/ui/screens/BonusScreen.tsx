@@ -237,7 +237,7 @@ export const BonusPage: React.FC<BonusPageProps> = ({
       >
         {/* Хедер с кнопкой закрытия */}
         <ModalHeader
-          title="Ваши бонусы"
+          title="TODO в разработке..."
           showBackButton={true}
           onBackPress={onClose}
         />

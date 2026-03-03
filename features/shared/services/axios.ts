@@ -30,6 +30,7 @@ ax.interceptors.response.use(
       error.response.status === 401 &&
       !originalRequest._retry
     ) {
+      console.log('error.response.status', error?.response?.status)
       debugger;
       originalRequest._retry = true;
       try {

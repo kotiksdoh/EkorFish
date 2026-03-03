@@ -250,7 +250,6 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "600",
     marginBottom: 16,
-    color: "#1B1B1C",
   },
   formContainer: {
     gap: 16,
@@ -277,6 +276,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 34,
     paddingTop: 16,
-    backgroundColor: "#FFFFFF",
   },
 });

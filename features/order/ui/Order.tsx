@@ -962,6 +962,7 @@ export default function CheckoutModal({
                         <AnimatedTextInput
                           placeholder="Телефон *"
                           keyboardType="phone-pad"
+                          maxLength={12}
                           value={recipient.phoneNumber}
                           onChangeText={(text) =>
                             updateRecipient(recipient.id, "phoneNumber", text)

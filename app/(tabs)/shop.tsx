@@ -223,7 +223,7 @@ const CartItemComponent = ({
           <TouchableOpacity
             style={styles.deleteButton}
             onPress={onRemove}
-            disabled={!isAvailable}
+            // disabled={!isAvailable}
           >
             <ThemedView
               style={[
@@ -1403,7 +1403,7 @@ const styles = StyleSheet.create({
     marginVertical: 8,
   },
   stockInfoOutOfStock: {
-    borderWidth: 1,
+    // borderWidth: 1,
   },
   stockInfoText: {
     fontSize: 12,
