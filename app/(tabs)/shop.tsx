@@ -31,8 +31,8 @@ import { CustomCheckbox } from "@/features/shared/ui/components/CustomCheckBox";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Image } from "expo-image";
-import { useRouter } from "expo-router";
-import React, { useEffect, useMemo, useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Platform,
@@ -331,11 +331,29 @@ export default function ShopScreen() {
   useEffect(() => {
     console.log("currentCompany", currentCompany);
   }, [currentCompany]);
-
+// 
   // Загрузка корзины при монтировании
-  useEffect(() => {
-    loadCart();
-  }, []);
+  // useEffect(() => {
+  //   loadCart();
+  // }, []);
+  useFocusEffect(
+    useCallback(() => {
+      const checkTokenAndLoad = async () => {
+        const token = await AsyncStorage.getItem("token");
+        if (!token) {
+          console.log("No token found - skipping favorites loading");
+          return; // Выходим, если нет токена
+        }
+
+        loadCart();
+      };
+
+      checkTokenAndLoad();
+
+      return () => {
+      };
+    }, [dispatch]), 
+  );
 
   useEffect(() => {
     if (me) {

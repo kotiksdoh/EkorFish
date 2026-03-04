@@ -592,6 +592,7 @@ export default function CheckoutModal({
       if (result?.data) {
         setCreatedOrderId(result.data);
         dispatch(getMyOrders()).unwrap();
+        dispatch(getCart()).unwrap();
       }
       setShowSuccessContent(true);
     } catch (error) {
@@ -726,7 +727,6 @@ export default function CheckoutModal({
   };
 
   const router = useRouter();
-
   return (
     <>
       <RNModal
@@ -892,8 +892,7 @@ export default function CheckoutModal({
                                     savedAddress?.addressOwnerId &&
                                   savedAddress?.address
                                     ? `${savedAddress?.address}, этаж ${savedAddress?.floor}, кв ${savedAddress?.apartment}`
-                                    : currentCompany?.deliveryAddresses?.[0]
-                                        ?.address || "-"}
+                                    :  "-"}
                                 </ThemedText>
                               </View>
                             </View>

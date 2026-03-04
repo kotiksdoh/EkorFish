@@ -21,6 +21,7 @@ interface PrimaryButtonProps extends TouchableOpacityProps {
   rightIcon?: React.ReactNode;
   theme?: 'light' | 'dark' | 'auto';
   customIcon?: any;
+  customTextColor?: any;
 }
 
 export const PrimaryButton: React.FC<PrimaryButtonProps> = ({
@@ -35,6 +36,7 @@ export const PrimaryButton: React.FC<PrimaryButtonProps> = ({
   style,
   theme = 'auto',
   customIcon,
+  customTextColor,
   ...props
 }) => {
   const systemTheme = useColorScheme(); // Получаем системную тему
@@ -188,7 +190,7 @@ export const PrimaryButton: React.FC<PrimaryButtonProps> = ({
       <Text style={textStyles}>{title}</Text>
       </View>
       : 
-      <Text style={textStyles}>{title}</Text>
+      <Text style={customTextColor ? { color: customTextColor } : textStyles}>{title}</Text>
       }
       
       {!loading && rightIcon && (

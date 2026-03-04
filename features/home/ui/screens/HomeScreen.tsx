@@ -110,7 +110,7 @@ export const HomeScreen = ({
                 keyExtractor={(item) => item.id.toString()}
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                renderItem={({ item }) => <OrdersCard order={item} />}
+                renderItem={({ item }) => <OrdersCard order={item} fullWidth={false}/>}
                 contentContainerStyle={styles.ordersList}
               />
             </View>

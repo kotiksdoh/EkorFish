@@ -8,16 +8,16 @@ import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from "expo-linear-gradient";
 import { useEffect, useRef, useState } from 'react';
 import {
-    Animated,
-    Dimensions,
-    Image,
-    Modal as RNModal,
-    ScrollView,
-    StyleSheet,
-    TouchableOpacity,
-    TouchableWithoutFeedback,
-    View,
-    useColorScheme
+  Animated,
+  Dimensions,
+  Image,
+  Modal as RNModal,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
+  useColorScheme
 } from "react-native";
 import AnimatedTextInput from "./components/CustomInput";
 
@@ -35,6 +35,7 @@ interface ProfileEditModalProps {
     avatar: string | null;
     coverColor: string;
   };
+  handleLogout: () => void;
 }
 
 // Цвета для светлой темы
@@ -105,7 +106,7 @@ const DARK_COLORS = [
   },
 ];
 
-export const ProfileEditModal = ({ visible, onClose, onSave, initialData }: ProfileEditModalProps) => {
+export const ProfileEditModal = ({ visible, onClose, onSave, initialData, handleLogout }: ProfileEditModalProps) => {
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === "dark";
   
@@ -320,22 +321,49 @@ export const ProfileEditModal = ({ visible, onClose, onSave, initialData }: Prof
                     />
                   </ThemedView>
 
-                  {/* Color Picker Trigger */}
-                  <TouchableOpacity onPress={() => setShowColorPicker(true)}>
                     <ThemedView lightColor="#FFFFFF" darkColor='#151516' style={styles.colorPickerTrigger}>
-                        
-                      <ThemedText style={styles.colorPickerLabel}>Изменить цвет обложки</ThemedText>
-                      <View style={styles.colorPickerRight}>
-                        <LinearGradient
-                          colors={selectedColor.gradient}
-                          start={{ x: 0, y: 0 }}
-                          end={{ x: 1, y: 0 }}
-                          style={styles.colorCircle}
-                        />
-                        <ArrowIconRight />
-                      </View>
+                      <AnimatedTextInput
+                        placeholder="Номер"
+                        placeholderTextColor="#80818B"
+                        value={name}
+                        onChangeText={setName}
+                      />
+                      <AnimatedTextInput
+                        placeholder="Почта"
+                        placeholderTextColor="#80818B"
+                        value={surname}
+                        onChangeText={setSurname}
+                      />
+                        <TouchableOpacity style={styles.colorPickerCont} onPress={() => setShowColorPicker(true)}>
+                          
+                        <ThemedText style={styles.colorPickerLabel}>Изменить цвет обложки</ThemedText>
+                        <View style={styles.colorPickerRight}>
+                          <LinearGradient
+                            colors={selectedColor.gradient}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 0 }}
+                            style={styles.colorCircle}
+                          />
+                          <ArrowIconRight />
+                        </View>
+                       </TouchableOpacity>
+
                     </ThemedView>
-                  </TouchableOpacity>
+
+                    <ThemedView lightColor="#FFFFFF" darkColor='#151516' style={styles.BottomCard}>
+                      <PrimaryButton
+                        title="Выйти"
+                        onPress={() => {
+                          handleLogout();
+                        }}
+                        variant="third"
+                        size="md"
+                        loading={false}
+                        activeOpacity={0.8}
+                        fullWidth
+                        customTextColor={'#F10B34'}
+                      />
+                    </ThemedView>
                 </ScrollView>
               </Animated.View>
             </TouchableWithoutFeedback>
@@ -484,12 +512,26 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     gap: 16
   },
+  BottomCard:{
+    borderRadius: 16,
+    padding: 12,
+    marginBottom: 16,
+    gap: 16,
+    marginTop: 16,
+  },
   colorPickerTrigger: {
+    flexDirection: 'column',
+    // alignItems: 'center',
+    padding: 16,
+    borderRadius: 24,
+    gap: 16
+  },
+  colorPickerCont: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    borderRadius: 24
+    marginTop: 6,
+    paddingLeft: 6
+    // alignItems: 'center',
   },
   colorPickerLabel: {
     fontSize: 14,

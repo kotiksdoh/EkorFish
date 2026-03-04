@@ -3,7 +3,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { Image, Platform, ScrollView, StyleSheet, TouchableOpacity, View, useColorScheme } from "react-native";
 
-import { ArrowIconRight, ExitIcon, IconGeo, PencilIcon } from "@/assets/icons/icons";
+import { ArrowIconRight, BoxIcon, ExitIcon, IconGeo, PencilIcon } from "@/assets/icons/icons";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Fonts } from "@/constants/theme";
@@ -11,6 +11,7 @@ import { clearAuthState, setCompany } from "@/features/auth/authSlice";
 import { LoginModal } from "@/features/auth/ui/components/LoginModal";
 import { clearCatalogState } from "@/features/catalog/catalogSlice";
 import { CompanySelectModal } from "@/features/shared/ui/CompanySelectModal";
+import { MyOrdersModal } from "@/features/shared/ui/MyOrders";
 import { ProfileEditModal } from "@/features/shared/ui/ProfileEditModal";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -24,6 +25,7 @@ export default function TabTwoScreen() {
   const [loginModalVisible, setLoginModalVisible] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
+  const [myOrderModalVisible, setMyOrderModalVisible] = useState(false);
   const [profileData, setProfileData] = useState({
     name: '',
     surname: '',
@@ -151,6 +153,7 @@ export default function TabTwoScreen() {
       dispatch(clearAuthState());
       dispatch(clearCatalogState());
       await AsyncStorage.clear();
+      setEditModalVisible(false)
       router.replace("/");
     } catch (error) {
       console.error("Ошибка при очистке AsyncStorage:", error);
@@ -253,6 +256,31 @@ export default function TabTwoScreen() {
               </View>
             </TouchableOpacity>
 
+            <TouchableOpacity style={styles.infoRow} onPress={() => setMyOrderModalVisible(true)}>
+              <ThemedView
+                lightColor="#F2F4F7"
+                darkColor="#202022"
+                style={styles.iconPlaceholder}
+              >
+                <BoxIcon />
+              </ThemedView>
+              <View
+                style={[
+                  styles.infoContent,
+                  isDarkMode && {
+                    borderColor: "#252527",
+                  },
+                ]}
+              >
+                <ThemedText lightColor="#1B1B1C" style={styles.infoLabel}>
+                  Мои заказы
+                </ThemedText>
+                <View style={styles.infoValueContainer}>
+                  <ArrowIconRight />
+                </View>
+              </View>
+            </TouchableOpacity>
+
             <TouchableOpacity style={styles.infoRow} onPress={handleLogout}>
               <ThemedView
                 lightColor="#F2F4F7"
@@ -302,6 +330,12 @@ export default function TabTwoScreen() {
         onClose={() => setEditModalVisible(false)}
         onSave={handleSaveProfile}
         initialData={profileData}
+        handleLogout={handleLogout}
+      />
+
+      <MyOrdersModal
+          visible={myOrderModalVisible}
+          onClose={() => setMyOrderModalVisible(false)}
       />
     </>
   );

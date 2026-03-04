@@ -1808,3 +1808,60 @@ export const ExitIcon = ({
     </G>
   </Svg>
 );
+export const BoxIcon = ({
+  width = 24,
+  height = 24,
+  fill = "#80818B",
+  ...props
+}) => (
+  <Svg width={width} height={height} viewBox="0 0 24 24" fill="none" {...props}>
+    <Mask
+      id="mask0_9701_31681"
+      style={{ maskType: 'luminance' }}
+      maskUnits="userSpaceOnUse"
+      x={2}
+      y={2}
+      width={20}
+      height={20}
+    >
+      <Path 
+        d="M2 4C2 2.89543 2.89543 2 4 2H20C21.1046 2 22 2.89543 22 4V20C22 21.1046 21.1046 22 20 22H4C2.89543 22 2 21.1046 2 20V4Z" 
+        fill="white" 
+      />
+    </Mask>
+    <G mask="url(#mask0_9701_31681)">
+      <Path
+        d="M20.0918 18.3746C20.8852 18.0889 21.4141 17.3362 21.4141 16.4929V7.50691C21.4141 6.66365 20.8852 5.91098 20.0918 5.62523L12.6777 2.95488C12.2397 2.79711 11.7603 2.79711 11.3223 2.95488L3.90821 5.62524C3.11484 5.91099 2.58594 6.66365 2.58594 7.50691V16.4929C2.58594 17.3362 3.11484 18.0889 3.90821 18.3746L11.3223 21.045C11.7603 21.2027 12.2397 21.2027 12.6777 21.045L20.0918 18.3746Z"
+        stroke={fill}
+        strokeWidth="1.5"
+        strokeMiterlimit="10"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M2.83301 6.72135L11.3162 9.80615C11.7577 9.9667 12.2416 9.9667 12.6832 9.80615L21.1663 6.72135"
+        stroke={fill}
+        strokeWidth="1.5"
+        strokeMiterlimit="10"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </G>
+    <Path
+      d="M7.44336 4.35192L16.9996 7.97168"
+      stroke={fill}
+      strokeWidth="1.5"
+      strokeMiterlimit="10"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <Path
+      d="M12 10.0553L12 21.2891"
+      stroke={fill}
+      strokeWidth="1.5"
+      strokeMiterlimit="10"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);

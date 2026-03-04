@@ -8,8 +8,8 @@ import {
   Alert,
   StyleSheet,
   TouchableOpacity,
-  useColorScheme,
   View,
+  useColorScheme,
 } from "react-native";
 
 export interface Order {
@@ -22,6 +22,7 @@ export interface Order {
 
 interface OrdersCardProps {
   order: Order;
+  fullWidth: boolean
 }
 
 const formatDeliveryDate = (dateString: string): string => {
@@ -52,7 +53,7 @@ const formatDeliveryDate = (dateString: string): string => {
   }
 };
 
-export default function OrdersCard({ order }: OrdersCardProps) {
+export default function OrdersCard({ order, fullWidth }: OrdersCardProps) {
   const colorScheme = useColorScheme();
   //TODO
   const isDarkMode = colorScheme === "dark";
@@ -68,7 +69,9 @@ export default function OrdersCard({ order }: OrdersCardProps) {
 
   return (
     <>
-      <ThemedView lightColor="#F2F4F7" darkColor="#2A2F3A" style={styles.card}>
+      <ThemedView lightColor="#F2F4F7" darkColor="#2A2F3A" style={[styles.card, fullWidth && {
+        width: '100%'
+      }]}>
         {/* Верхняя часть: ID и кол-во/сумма */}
         <View style={styles.topRow}>
           <TouchableOpacity onPress={handleCopyId}>

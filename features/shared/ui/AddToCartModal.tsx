@@ -3,6 +3,7 @@ import { PackageIcon, RetailIcon, WholesaleIcon } from "@/assets/icons/icons";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { useThemeColor } from "@/hooks/use-theme-color";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Animated,
@@ -213,7 +214,12 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
     }
   }, [quantity, selectedOption]);
 
-  const handleAddToCart = useCallback(() => {
+  const handleAddToCart = useCallback(async () => {
+    const token = await AsyncStorage.getItem("token");
+    if (!token) {
+      console.log("No token found - skipping favorites loading");
+      return; // Выходим, если нет токена
+    }
     if (product && selectedOption) {
       onAddToCart(product.id, selectedOption.id, quantity);
       closeModal();
