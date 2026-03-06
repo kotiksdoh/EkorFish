@@ -1,14 +1,14 @@
 import * as Clipboard from "expo-clipboard";
 import React, { useEffect, useState } from "react";
 import {
-    Animated,
-    Dimensions,
-    Modal,
-    ScrollView,
-    StyleSheet,
-    TouchableOpacity,
-    View,
-    useColorScheme
+  Animated,
+  Dimensions,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+  useColorScheme
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 
@@ -19,6 +19,7 @@ import { ModalHeader } from "@/features/auth/ui/Header";
 import { TRootState } from "@/store/store";
 import { PrimaryButton } from "../..";
 import SpecialOffers from "../components/SpecialOffers/SpecialOffers";
+import { useAppSelector } from "@/store/hooks";
 
 const { height: screenHeight } = Dimensions.get("window");
 
@@ -46,6 +47,7 @@ export const BonusPage: React.FC<BonusPageProps> = ({
   const dispatch = useDispatch();
   
   const user = useSelector((state: TRootState)=> state.auth.me);
+  const me = useAppSelector((state) => state.auth.me);
   
   const [bonusHistory, setBonusHistory] = useState<BonusTransaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -255,7 +257,9 @@ export const BonusPage: React.FC<BonusPageProps> = ({
                 <View style={styles.bonusRow}>
                     <View style={styles.bonusRowMain}>
                     <LemonIcon height={20} width={20}/>
-                    <ThemedText style={styles.mainText}>1500</ThemedText>
+                    <ThemedText style={styles.mainText}>
+                      {me?.bonus || 0}
+                    </ThemedText>
                     </View>
                     <ThemedText darkColor="#FBFCFF80" lightColor="#80818B">1 балл = 1 ₽</ThemedText>
                 </View>

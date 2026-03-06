@@ -603,10 +603,7 @@ export default function CheckoutModal({
   const isItemAvailable = (item: any): boolean => {
     return item.stockInfo !== "Нет в наличии";
   };
-  const selectedCartItems = cartItems
-    ?.filter((item) => selectedItems.has(item.id))
-    ?.filter((item) => isItemAvailable(item));
-
+  const selectedCartItems = cartItems?.filter((item) => selectedItems.has(item.id));
   const totalWeight = selectedCartItems.reduce(
     (sum, item) => sum + item.quantity,
     0,
@@ -614,9 +611,13 @@ export default function CheckoutModal({
 
   // Проверяем, есть ли недоступные товары среди выбранных
   const hasUnavailableSelected = cartItems.some(
-    (item) => selectedItems.has(item.id) && !isItemAvailable(item),
+    (item) => selectedItems.has(item.id) && !isItemAvailable(item)
   );
-
+  useEffect(() => {
+    if (me?.storageId) {
+      setSelectedPickupAddress(me.storageId);
+    }
+  }, [me?.storageId]);
   console.log("hasUnavailableSelected", hasUnavailableSelected);
   // Рендер содержимого для самовывоза с городами из Redux
   const renderPickupContent = () => {
@@ -1117,7 +1118,10 @@ export default function CheckoutModal({
                       variant="primary"
                       size="md"
                       loading={isCreatingOrder}
-                      disabled={isCreatingOrder || hasUnavailableSelected}
+                      disabled={
+                        isCreatingOrder || 
+                        (selectedMethod === DeliveryMethod.Pickup && hasUnavailableSelected)
+                      }
                       activeOpacity={0.8}
                       fullWidth
                     />

@@ -25,7 +25,7 @@ interface Town {
 }
 
 interface UpdateTownPayload {
-  storageId: string;
+  storageId: string | null;
 }
 
 const initialState: AuthState = {

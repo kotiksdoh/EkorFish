@@ -323,17 +323,13 @@ export const ProfileEditModal = ({ visible, onClose, onSave, initialData, handle
 
                     <ThemedView lightColor="#FFFFFF" darkColor='#151516' style={styles.colorPickerTrigger}>
                       <AnimatedTextInput
-                        placeholder="Номер"
+                        placeholder="Логин"
                         placeholderTextColor="#80818B"
                         value={name}
                         onChangeText={setName}
+                        disabled={true}
                       />
-                      <AnimatedTextInput
-                        placeholder="Почта"
-                        placeholderTextColor="#80818B"
-                        value={surname}
-                        onChangeText={setSurname}
-                      />
+         
                         <TouchableOpacity style={styles.colorPickerCont} onPress={() => setShowColorPicker(true)}>
                           
                         <ThemedText style={styles.colorPickerLabel}>Изменить цвет обложки</ThemedText>

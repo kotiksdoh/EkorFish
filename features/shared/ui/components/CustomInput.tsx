@@ -20,6 +20,7 @@ interface AnimatedTextInputProps extends Omit<TextInputProps, 'style'> {
   inputStyle?: any;
   lightColor?: string;
   darkColor?: string;
+  disabled?: boolean;
 }
 
 const AnimatedTextInput: React.FC<AnimatedTextInputProps> = ({
@@ -33,6 +34,7 @@ const AnimatedTextInput: React.FC<AnimatedTextInputProps> = ({
   inputStyle,
   lightColor,
   darkColor,
+  disabled = false,
   ...props
 }) => {
   const color = useThemeColor({ light: lightColor, dark: darkColor }, 'text');

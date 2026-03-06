@@ -5,20 +5,21 @@ import { ModalHeader } from "@/features/auth/ui/Header";
 import { getMyOrders } from "@/features/catalog/catalogSlice";
 import OrdersCard from "@/features/home/ui/components/Orders/OrdersCard";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Image } from "expo-image";
 import { useFocusEffect } from "expo-router";
 import React, { useCallback, useState } from "react";
 import {
-    ActivityIndicator,
-    Animated,
-    Dimensions,
-    FlatList,
-    LayoutChangeEvent,
-    Modal,
-    StyleSheet,
-    TouchableOpacity,
-    View,
-    useColorScheme,
+  ActivityIndicator,
+  Animated,
+  Dimensions,
+  FlatList,
+  LayoutChangeEvent,
+  Modal,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+  useColorScheme,
 } from "react-native";
 
 const { width: screenWidth } = Dimensions.get("window");
@@ -49,7 +50,13 @@ export const MyOrdersModal: React.FC<MyOrdersProps> = ({
 
   useFocusEffect(
     useCallback(() => {
-        dispatch(getMyOrders()).unwrap();
+      const checkToken = async () => {
+        const token = await AsyncStorage.getItem("token");
+        if (token) {
+          dispatch(getMyOrders()).unwrap();
+        }
+      };
+      checkToken();
     }, [])
   );
 

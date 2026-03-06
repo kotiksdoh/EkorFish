@@ -3,8 +3,7 @@ import { LemonIcon, PersonCircleIcon } from "@/assets/icons/icons.js";
 import { ThemedText } from "@/components/themed-text";
 import {
   loadCompanyFromStorage,
-  selectCompany,
-  setCompany,
+  setCompany
 } from "@/features/auth/authSlice";
 import { CompanySelectModal } from "@/features/shared/ui/CompanySelectModal";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -119,7 +118,7 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
             <View style={styles.headInfoBonus}>
               <LemonIcon />
               <ThemedText lightColor="#FBFCFF" darkColor="#FBFCFF">
-                0
+                {me?.bonus || 0}
               </ThemedText>
             </View>
             </TouchableOpacity>
