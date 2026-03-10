@@ -49,6 +49,7 @@ export default function CatalogDetailScreen() {
     catalogId: string;
     catalogName: string;
     search?: string;
+    // isPromo?: boolean
     children?: string; // Добавляем children
   }>();
 

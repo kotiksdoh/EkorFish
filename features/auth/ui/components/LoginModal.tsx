@@ -39,6 +39,7 @@ import {
   compliteProfile,
   getCode,
   getMyInfo,
+  getMyParams,
   searchCompany,
   sendCode,
 } from "../../authSlice";
@@ -317,6 +318,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
               if (getMyInfo.fulfilled.match(res)) {
                 // resetModal()
                 // handleClose()
+                dispatch(getMyParams(""))
                 console.log(
                   "res?.payload?.data?.data",
                   res?.payload?.data?.data,
@@ -411,6 +413,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       if (compliteProfile.fulfilled.match(res)) {
         dispatch(getMyInfo("")).then((res) => {
           if (getMyInfo.fulfilled.match(res)) {
+            dispatch(getMyParams(""))
             setCurrentScreen(ScreensScenario.ACC_TYPE);
             setCurrentScenarion(AuthScenario.DEFAULT);
             resetModal();
@@ -435,6 +438,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       if (compliteCompany.fulfilled.match(res)) {
         dispatch(getMyInfo("")).then((res) => {
           if (getMyInfo.fulfilled.match(res)) {
+            dispatch(getMyParams(""))
             setCurrentScreen(ScreensScenario.ACC_TYPE);
             setCurrentScenarion(AuthScenario.DEFAULT);
             resetModal();
@@ -464,6 +468,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         //
         dispatch(getMyInfo("")).then((res) => {
           if (getMyInfo.fulfilled.match(res)) {
+            dispatch(getMyParams(""))
             setCurrentScreen(ScreensScenario.ACC_TYPE);
             setCurrentScenarion(AuthScenario.DEFAULT);
             resetModal();
@@ -476,6 +481,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   const handleInitUser = () => {
     dispatch(getMyInfo("")).then((res) => {
       if (getMyInfo.fulfilled.match(res)) {
+        dispatch(getMyParams(""))
         setCurrentScreen(ScreensScenario.ACC_TYPE);
         setCurrentScenarion(AuthScenario.DEFAULT);
         resetModal();

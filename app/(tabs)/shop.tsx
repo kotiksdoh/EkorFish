@@ -4,6 +4,7 @@ import {
   CartIcon,
   IconCompanyNew,
   InfoIcon,
+  LemonIcon,
   LikeIcon,
   TrashIcon,
 } from "@/assets/icons/icons";
@@ -11,8 +12,7 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import {
   loadCompanyFromStorage,
-  selectCompany,
-  setCompany,
+  setCompany
 } from "@/features/auth/authSlice";
 import { ModalHeader } from "@/features/auth/ui/Header";
 import {
@@ -328,14 +328,36 @@ export default function ShopScreen() {
   const [companyModalVisible, setCompanyModalVisible] = useState(false);
   const [registerModalVisible, setRegisterModalVisible] = useState(false);
 
-  useEffect(() => {
-    console.log("currentCompany", currentCompany);
-  }, [currentCompany]);
+  const [bonusParams, setBonusParams] = useState<{
+    isAccrueBonuses: boolean;
+    bonusPercent: number;
+  }>({ isAccrueBonuses: false, bonusPercent: 0 });
+
+  const authParams = useAppSelector((state) => state.auth.params);
 // 
   // Загрузка корзины при монтировании
   // useEffect(() => {
   //   loadCart();
   // }, []);
+  useEffect(() => {
+    if (authParams && Array.isArray(authParams)) {
+      console.log('authParams', authParams);
+      
+      const isAccrueBonuses = authParams?.find(
+        (p: any) => p.name === "IS_ACCRUE_BONUSES"
+      )?.value === "1";
+      
+      const bonusPercent = parseInt(
+        authParams?.find((p: any) => p.name === "BONUS_ACCRUE_PERCENT")?.value || "0"
+      );
+
+      setBonusParams({
+        isAccrueBonuses,
+        bonusPercent,
+      });
+    }
+  }, [authParams]);
+
   useFocusEffect(
     useCallback(() => {
       const checkTokenAndLoad = async () => {
@@ -370,6 +392,7 @@ export default function ShopScreen() {
     setRegisterModalVisible(true);
   };
 
+ 
   const loadCart = async () => {
     const token = await AsyncStorage.getItem("token");
     if (!token) {
@@ -497,6 +520,10 @@ export default function ShopScreen() {
       0,
     );
 
+    const bonusAmount = bonusParams.isAccrueBonuses && bonusParams.bonusPercent > 0
+    ? Math.floor(totalPrice * (bonusParams.bonusPercent / 100))
+    : 0;
+
     // Проверяем, есть ли среди выбранных недоступные товары
     const hasUnavailableSelected = selectedUnavailableItems.length > 0;
 
@@ -506,8 +533,9 @@ export default function ShopScreen() {
       totalWeight,
       hasUnavailableSelected,
       selectedUnavailableCount: selectedUnavailableItems.length,
+      bonusAmount
     };
-  }, [cartItems, selectedItems]);
+  }, [cartItems, selectedItems, bonusParams]);
 
   // Форматирование цены
   const formatPrice = (price: number) => {
@@ -766,29 +794,58 @@ export default function ShopScreen() {
                   </ThemedText>
                 </View>
                 <View style={styles.uCartMain}>
-                  <ThemedText darkColor="#FBFCFF" lightColor="#1B1B1C">
+                  <ThemedText darkColor="#FBFCFF" lightColor="#1B1B1C" style={{ fontSize: 16 }}>
                     Товары ({totals.totalItems})
                   </ThemedText>
-                  <ThemedText darkColor="#FBFCFF" lightColor="#1B1B1C">
+                  <ThemedText darkColor="#FBFCFF" lightColor="#1B1B1C" style={{ fontSize: 16, fontWeight: "600" }}>
                     {formatPrice(totals.totalPrice)} ₽
                   </ThemedText>
                 </View>
 
                 <View
                   style={[
-                    styles.uCartMainLast,
+                    styles.uCartMain,
                     isDarkMode && {
                       borderColor: "#252527",
                     },
                   ]}
                 >
-                  <ThemedText darkColor="#FBFCFF" lightColor="#1B1B1C">
+                  <ThemedText darkColor="#FBFCFF" lightColor="#1B1B1C" style={{ fontSize: 16 }}>
                     Скидка
                   </ThemedText>
-                  <ThemedText lightColor="#6FBD15" darkColor="#6FBD15">
+                  <ThemedText lightColor="#6FBD15" darkColor="#6FBD15" style={{ fontSize: 16, fontWeight: "600" }}>
                     0 ₽
                   </ThemedText>
                 </View>
+
+                {bonusParams.isAccrueBonuses && bonusParams.bonusPercent > 0 && totals.totalItems > 0 && (
+                    <View
+                      style={[
+                        styles.uCartMainLast,
+                        isDarkMode && {
+                          borderBottomColor: "#252527",
+                        },
+                      ]}
+                    >
+                      <ThemedText 
+                        darkColor="#FBFCFF" 
+                        lightColor="#1B1B1C"
+                        style={{ fontSize: 16 }}
+                      >
+                        Бонусов начислим
+                      </ThemedText>
+                      <View style={{display: 'flex', flexDirection: 'row', gap: 4}}>
+                      <ThemedText 
+                        darkColor="#FBFCFF" 
+                        lightColor="#1B1B1C"
+                        style={{ fontSize: 16, fontWeight: "600" }}
+                      >
+                        {totals.bonusAmount} 
+                      </ThemedText>
+                      <LemonIcon />
+                      </View>
+                    </View>
+                  )}
 
                 <View style={styles.totalCountMain}>
                   <ThemedText darkColor="#FBFCFF" lightColor="#1B1B1C">

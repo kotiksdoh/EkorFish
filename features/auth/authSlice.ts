@@ -12,12 +12,18 @@ interface AuthState {
   phoneNumber: string | null;
   company: any;
   me: any;
+  params: any[];
   sliders: any[];
   categories: any[];
   predUserData: any;
   towns: Town[];
   isLoadingTowns: boolean;
   currentCompany: any;
+
+  bonusHistory: any[];
+  isLoadingBonus: boolean;
+  hasMoreBonus: boolean;
+  currentBonusPage: number;
 }
 interface Town {
   id: string;
@@ -35,12 +41,18 @@ const initialState: AuthState = {
   phoneNumber: null,
   company: null,
   me: null,
+  params: [],
   sliders: [],
   categories: [],
   predUserData: null,
   towns: [],
   isLoadingTowns: false,
   currentCompany: null as any,
+
+  bonusHistory: [],
+  isLoadingBonus: false,
+  hasMoreBonus: true,
+  currentBonusPage: 0,
 };
 
 export const getCode = createAsyncThunk(
@@ -126,6 +138,19 @@ export const getMyInfo = createAsyncThunk(
   },
 );
 
+export const getMyParams = createAsyncThunk(
+  "user/getMyParams",
+  async (payload: any, { rejectWithValue }) => {
+    try {
+      const data = await axdef.get("/api/AdditionalInformation/params");
+      return data;
+    } catch (error) {
+      console.log(error);
+      return rejectWithValue(error);
+    }
+  },
+);
+
 export const getSliderItems = createAsyncThunk(
   "user/getSliderItems",
   async (payload: any, { rejectWithValue }) => {
@@ -186,6 +211,28 @@ export const loadCompanyFromStorage = createAsyncThunk(
   },
 );
 
+export const getBonusHistory = createAsyncThunk(
+  "user/getBonusHistory",
+  async (params: { offset: number; count: number }, { rejectWithValue }) => {
+    try {
+      const data = await axdef.get("/api/Account/bonus/list", {
+        params: {
+          offset: params.offset,
+          count: params.count
+        }
+      });
+      return {
+        data: data.data,
+        offset: params.offset,
+        count: params.count
+      };
+    } catch (error) {
+      console.log(error);
+      return rejectWithValue(error);
+    }
+  },
+);
+
 const authSlice = createSlice({
   name: "auth",
   initialState,
@@ -220,6 +267,11 @@ const authSlice = createSlice({
     },
     selectCompany: (state, action) => {
       state.currentCompany = action.payload;
+    },
+    clearBonusHistory: (state) => {
+      state.bonusHistory = [];
+      state.hasMoreBonus = true;
+      state.currentBonusPage = 0;
     },
   },
   extraReducers: (builder) => {
@@ -331,6 +383,19 @@ const authSlice = createSlice({
       state.isLoading = false;
     });
     builder.addCase(compliteProfile.rejected, (state, action) => {
+      state.isLoading = false;
+      axiosErrorHandler(action?.payload);
+    });
+
+    builder.addCase(getMyParams.pending, (state) => {
+      state.isLoading = true;
+    });
+    builder.addCase(getMyParams.fulfilled, (state, action) => {
+      state.isLoading = false;
+      console.log('params', action.payload)
+      state.params = action.payload.data.data;
+    });
+    builder.addCase(getMyParams.rejected, (state, action) => {
       state.isLoading = false;
       axiosErrorHandler(action?.payload);
     });
@@ -447,7 +512,54 @@ const authSlice = createSlice({
       state.currentCompany = action.payload;
     });
     builder.addCase(loadCompanyFromStorage.rejected, (state) => {});
+
+    builder.addCase(getBonusHistory.pending, (state, action) => {
+      state.isLoadingBonus = true;
+      // Если это первая загрузка (offset = 0), можно показать индикатор загрузки
+      // Но историю не очищаем, чтобы не было пустого экрана при подгрузке
+    });
+    
+    builder.addCase(getBonusHistory.fulfilled, (state, action) => {
+      state.isLoadingBonus = false;
+      
+      // Получаем данные из ответа
+      // Предполагаем, что API возвращает массив в data.data
+      const responseData = action.payload.data?.data || [];
+      const newItems = responseData;
+      const offset = action.payload.offset;
+      
+      console.log(`Loaded ${newItems.length} items at offset ${offset}`);
+      
+      if (offset === 0) {
+        // При первой загрузке или обновлении - заменяем историю
+        state.bonusHistory = newItems;
+        state.currentBonusPage = 0;
+      } else {
+        // При подгрузке - добавляем к существующей
+        state.bonusHistory = [...state.bonusHistory, ...newItems];
+        state.currentBonusPage += 1;
+      }
+      
+      // Проверяем, есть ли еще данные
+      // Если получили меньше элементов, чем запрашивали, значит данных больше нет
+      const pageSize = action.payload.count || 10;
+      state.hasMoreBonus = newItems.length === pageSize;
+      
+      console.log('Bonus history updated:', {
+        total: state.bonusHistory.length,
+        hasMore: state.hasMoreBonus,
+        currentPage: state.currentBonusPage
+      });
+    });
+    
+    builder.addCase(getBonusHistory.rejected, (state, action) => {
+      state.isLoadingBonus = false;
+      state.hasMoreBonus = false;
+      axiosErrorHandler(action?.payload);
+    });
   },
+
+  
 });
 
 export const {
@@ -458,5 +570,6 @@ export const {
   selectCompany,
   setCompany,
   clearAuthState,
+  clearBonusHistory
 } = authSlice.actions;
 export default authSlice.reducer;

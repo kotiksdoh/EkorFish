@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import {
   getCategoryItems,
   getMyInfo,
+  getMyParams,
   getSliderItems,
 } from "@/features/auth/authSlice";
 import { getCart, getMyOrders } from "@/features/catalog/catalogSlice";
@@ -29,6 +30,7 @@ const loadAppResources = async () => {
     await store.dispatch(getCategoryItems("")).unwrap();
     if (token) {
       await store.dispatch(getMyInfo("")).unwrap();
+      await store.dispatch(getMyParams("")).unwrap();
       await store.dispatch(getCart()).unwrap();
       await store.dispatch(getMyOrders()).unwrap();
     }

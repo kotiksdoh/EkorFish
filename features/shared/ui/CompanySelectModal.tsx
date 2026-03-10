@@ -1,7 +1,7 @@
 // features/home/components/CompanySelectModal.tsx
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { compliteCompany, getMyInfo } from "@/features/auth/authSlice";
+import { compliteCompany, getMyInfo, getMyParams } from "@/features/auth/authSlice";
 import { ModalHeader } from "@/features/auth/ui/Header";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import React, { useState } from "react";
@@ -69,6 +69,7 @@ export const CompanySelectModal: React.FC<CompanySelectModalProps> = ({
       if (compliteCompany.fulfilled.match(res)) {
         dispatch(getMyInfo("")).then((res) => {
           if (getMyInfo.fulfilled.match(res)) {
+            dispatch(getMyParams(""))
             setCurrentScreen(CompanyScenario.DEFAULT);
           }
         });
