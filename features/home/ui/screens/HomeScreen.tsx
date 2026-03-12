@@ -1,7 +1,7 @@
 // screens/HomeScreen.tsx
 import { ThemedView } from "@/components/themed-view";
 import SearchInput from "@/features/auth/ui/components/SearchInput";
-import { useAppSelector } from "@/store/hooks";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import React, { useState } from "react";
 import {
   FlatList,
@@ -16,6 +16,8 @@ import DeliveryInfoCard from "../components/DeliveryInfoCard";
 import { HomeHeader } from "../components/HomeHeader";
 import SpecialOffers from "../components/SpecialOffers/SpecialOffers";
 // import { SearchScreenWithHistory } from '@/features/search/ui/SearchScreenWithHistory';
+import { AddToCart } from "@/features/catalog/catalogSlice";
+import { AddToCartModal } from "@/features/shared/ui/AddToCartModal";
 import { useRouter } from "expo-router";
 import OrdersCard from "../components/Orders/OrdersCard";
 import { SearchScreenWithHistory } from "./SearchScreenWithHistory";
@@ -55,6 +57,12 @@ export const HomeScreen = ({
   handleLoginPress: () => void;
 }) => {
   const [showSearch, setShowSearch] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<any>(null);
+  const [existingCartItem, setExistingCartItem] = useState<any>(null);
+  const [showAddToCartModal, setShowAddToCartModal] = useState(false);
+  const cartItems = useAppSelector((state) => state.catalog.cart);
+  const dispatch = useAppDispatch();
+
   const sliderItems = useAppSelector((state) => state.auth.sliders);
   const router = useRouter();
   const orders = useAppSelector((state) => state.catalog.orders);
@@ -71,7 +79,35 @@ export const HomeScreen = ({
     // Переходим на экран каталога с поиском
     //@ts-ignore
     router.push(
-      `dashboard/${encodeURIComponent("fsfs")}?catalogId=${" "}&catalogName=${encodeURIComponent(`${query}`)}&children=${encodeURIComponent("")}&search=${encodeURIComponent(`${query}`)}`,
+      `dashboard/${encodeURIComponent("fsfs")}?catalogId=${" "}&catalogName=${encodeURIComponent(`${query}`)}&children=${encodeURIComponent("")}&search=${encodeURIComponent(`${query}`)}&isPromo=false`,
+    );
+  };
+
+  const handleAddToCartPress = (product: any) => {
+    const cartItemsForProduct =
+      cartItems?.filter((item: any) => item.productId === product.id) || [];
+
+    setSelectedProduct(product);
+    setExistingCartItem(cartItemsForProduct);
+    setShowAddToCartModal(true);
+  };
+
+  const handleAddToCart = (
+    productId: string,
+    optionId: string,
+    quantity: number,
+  ) => {
+    console.log("Добавлено в корзину:", {
+      productId,
+      optionId,
+      quantity,
+    });
+    dispatch(
+      AddToCart({
+        productId: productId,
+        productPurchaseOptionId: optionId,
+        quantity: quantity,
+      }),
     );
   };
   console.log("orders", orders);
@@ -118,7 +154,7 @@ export const HomeScreen = ({
           <DeliveryInfoCard />
         </ThemedView>
 
-        <SpecialOffers />
+        <SpecialOffers handleAddToCartPress={handleAddToCartPress}/>
         <Catalog />
       </ScrollView>
 
@@ -128,6 +164,16 @@ export const HomeScreen = ({
         onClose={handleSearchClose}
         onSearch={handleSearchSubmit}
       />
+        <AddToCartModal
+          visible={showAddToCartModal}
+          onClose={() => {
+            setShowAddToCartModal(false);
+            setExistingCartItem(null);
+          }}
+          product={selectedProduct}
+          onAddToCart={handleAddToCart}
+          existingCartItem={existingCartItem}
+        />
     </>
   );
 };

@@ -199,6 +199,9 @@ export const getProductList = createAsyncThunk(
       if (payload.params.offset !== undefined) {
         params.append("offset", payload.params.offset.toString());
       }
+      if (payload.params.isPromo !== undefined) {
+        params.append("isPromo", payload.params.isPromo);
+      }
       if (payload.params.count !== undefined) {
         params.append("count", payload.params.count.toString());
       }

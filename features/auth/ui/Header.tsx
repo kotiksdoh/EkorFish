@@ -99,7 +99,7 @@ export const ModalHeader: React.FC<ModalHeaderProps> = ({
     // Переходим на экран каталога с поиском
     //@ts-ignore
     router.push(
-      `dashboard/${encodeURIComponent("fsfs")}?catalogId=${" "}&catalogName=${encodeURIComponent(`${query}`)}&children=${encodeURIComponent("")}&search=${encodeURIComponent(`${query}`)}`,
+      `dashboard/${encodeURIComponent("fsfs")}?catalogId=${" "}&catalogName=${encodeURIComponent(`${query}`)}&children=${encodeURIComponent("")}&search=${encodeURIComponent(`${query}`)}&isPromo=false`,
     );
   };
   const handleShare = async () => {

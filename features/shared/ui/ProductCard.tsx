@@ -33,6 +33,7 @@ interface ProductCardProps {
   productData?: any;
   onAddToCartPress?: (product: any) => void;
   isDis?: boolean;
+  fullWidth?: boolean;
 }
 
 // Заглушка для изображения
@@ -50,6 +51,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   productData,
   onAddToCartPress,
   isDis = false,
+  fullWidth = false,
 }) => {
   const [isImageLoading, setIsImageLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
@@ -222,7 +224,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       <TouchableOpacity
         onPress={toProductDetail}
         activeOpacity={0.9}
-        style={styles.cardTouchable}
+        style={[styles.cardTouchable, fullWidth && {
+          width: '100%'
+        }]}
       >
         <ThemedView lightColor="#FFFFFF" style={styles.container}>
           <View style={styles.imageContainer}>

@@ -5,12 +5,14 @@ import { ThemedView } from "@/components/themed-view";
 import { ModalHeader } from "@/features/auth/ui/Header";
 import SearchInput from "@/features/auth/ui/components/SearchInput";
 import {
+  AddToCart,
   clearProducts,
   clearSelectedFilters,
   getCategoryFilters,
   getProductList,
   toggleFilterSelection,
 } from "@/features/catalog/catalogSlice";
+import { AddToCartModal } from "@/features/shared/ui/AddToCartModal";
 import { ProductCard } from "@/features/shared/ui/ProductCard";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -60,7 +62,10 @@ export default function HeartScreen() {
   ).current;
   const [isClosingSortModal, setIsClosingSortModal] = useState(false);
   const [isClosingFilterModal, setIsClosingFilterModal] = useState(false);
-
+  const [selectedProduct, setSelectedProduct] = useState<any>(null);
+  const [existingCartItem, setExistingCartItem] = useState<any>(null);
+  const [showAddToCartModal, setShowAddToCartModal] = useState(false);
+  const cartItems = useAppSelector((state) => state.catalog.cart);
   // Получаем состояние из Redux
   const products = useAppSelector((state) => state.catalog.products);
   const isLoading = useAppSelector((state) => state.catalog.isLoading);
@@ -74,7 +79,7 @@ export default function HeartScreen() {
   const selectedFilterIds = useAppSelector(
     (state) => state.catalog.selectedFilterIds,
   );
-
+  
   const dispatch = useAppDispatch();
   const searchInputRef = useRef<TextInput>(null);
   const router = useRouter();
@@ -82,6 +87,34 @@ export default function HeartScreen() {
   const [hasToken, setHasToken] = useState<boolean | null>(null);
   // Ref для предотвращения двойных запросов
   const isFetchingRef = useRef(false);
+
+  const handleAddToCartPress = (product: any) => {
+    const cartItemsForProduct =
+      cartItems?.filter((item: any) => item.productId === product.id) || [];
+
+    setSelectedProduct(product);
+    setExistingCartItem(cartItemsForProduct);
+    setShowAddToCartModal(true);
+  };
+
+  const handleAddToCart = (
+    productId: string,
+    optionId: string,
+    quantity: number,
+  ) => {
+    console.log("Добавлено в корзину:", {
+      productId,
+      optionId,
+      quantity,
+    });
+    dispatch(
+      AddToCart({
+        productId: productId,
+        productPurchaseOptionId: optionId,
+        quantity: quantity,
+      }),
+    );
+  };
 
   // Опции сортировки
   const sortOptions = [
@@ -217,6 +250,7 @@ export default function HeartScreen() {
           offset: isLoadMore ? (currentPage + 1) * pageSize : 0,
           count: pageSize,
           storageId: me?.storageId,
+          isPromo: false,
         };
 
         if (searchText) {
@@ -567,6 +601,8 @@ export default function HeartScreen() {
                       fullPrice={product.price.toLocaleString("ru-RU")}
                       isFrozen={product.isFrozen}
                       isFavorite={product.isFavorite}
+                      productData={product}
+                      onAddToCartPress={handleAddToCartPress}
                     />
                   ))}
                 </View>
@@ -792,6 +828,16 @@ export default function HeartScreen() {
             </View>
           </TouchableWithoutFeedback>
         </Modal>
+        <AddToCartModal
+          visible={showAddToCartModal}
+          onClose={() => {
+            setShowAddToCartModal(false);
+            setExistingCartItem(null);
+          }}
+          product={selectedProduct}
+          onAddToCart={handleAddToCart}
+          existingCartItem={existingCartItem}
+        />
       </ThemedView>
     </SafeAreaProvider>
   );

@@ -45,11 +45,11 @@ export default function CatalogDetailScreen() {
   const colorScheme = useColorScheme();
   //TODO
   const isDarkMode = colorScheme === "dark";
-  const { catalogId, catalogName, search, children } = useLocalSearchParams<{
+  const { catalogId, catalogName, search, isPromo = false, children } = useLocalSearchParams<{
     catalogId: string;
     catalogName: string;
     search?: string;
-    // isPromo?: boolean
+    isPromo: boolean
     children?: string; // Добавляем children
   }>();
 
@@ -239,6 +239,7 @@ export default function CatalogDetailScreen() {
           offset: isLoadMore ? (currentPage + 1) * pageSize : 0,
           count: pageSize,
           search: search,
+          isPromo: isPromo,
           storageId: forceStorageId || me?.storageId,
         };
 
@@ -297,6 +298,7 @@ export default function CatalogDetailScreen() {
       searchQuery,
       selectedSubcategoryId,
       me?.storageId,
+      isPromo
     ],
   );
 

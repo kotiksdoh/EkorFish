@@ -62,7 +62,7 @@ export const CatalogCard: React.FC<CatalogCardProps> = ({
       // Передаем children как параметр
       //@ts-ignore
       router.push(
-        `dashboard/${encodeURIComponent(name)}?catalogId=${id}&catalogName=${encodeURIComponent(name)}&children=${encodeURIComponent(childrenString)}`,
+        `dashboard/${encodeURIComponent(name)}?catalogId=${id}&catalogName=${encodeURIComponent(name)}&children=${encodeURIComponent(childrenString)}&isPromo=false`,
       );
     }
   };
