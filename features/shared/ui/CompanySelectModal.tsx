@@ -1,4 +1,5 @@
 // features/home/components/CompanySelectModal.tsx
+import { ArrowIconRight } from "@/assets/icons/icons";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { compliteCompany, getMyInfo, getMyParams } from "@/features/auth/authSlice";
@@ -30,6 +31,31 @@ export enum CompanyScenario {
   DEFAULT = "choose",
   REG = "register",
 }
+const CreditProgressBar: React.FC<{ usedCredit: number; creditLimit: number }> = ({ 
+  usedCredit, 
+  creditLimit 
+}) => {
+  const percentage = creditLimit > 0 ? (usedCredit / creditLimit) * 100 : 0;
+  
+  const progressColor = percentage < 50 ? "#6FBD15" : "#FF8605";
+  
+  const displayPercentage = Math.min(percentage, 100);
+  
+  return (
+    <View style={styles.progressBarContainer}>
+      <View 
+        style={[
+          styles.progressBarFill, 
+          { 
+            width: `${displayPercentage}%`,
+            backgroundColor: progressColor 
+          }
+        ]} 
+      />
+    </View>
+  );
+};
+
 export const CompanySelectModal: React.FC<CompanySelectModalProps> = ({
   visible,
   onClose,
@@ -40,7 +66,9 @@ export const CompanySelectModal: React.FC<CompanySelectModalProps> = ({
   screenScene = "choose",
 }) => {
   const systemTheme = useColorScheme();
-
+  const colorScheme = useColorScheme();
+  //TODO
+  const isDarkMode = colorScheme === "dark";
   const currentTheme = systemTheme || "light";
   const isDark = currentTheme === "dark";
   const [orgName, setOrgName] = useState("");
@@ -201,7 +229,8 @@ export const CompanySelectModal: React.FC<CompanySelectModalProps> = ({
                         >
                           {company.name}
                         </ThemedText>
-                        <ThemedText>{`>`}</ThemedText>
+                        {/* <ThemedText>{`>`}</ThemedText> */}
+                        <ArrowIconRight color={isDarkMode ? "#FBFCFF" : "#1B1B1C"}/>
                       </View>
 
                       <View style={styles.companyInnRow}>
@@ -212,6 +241,43 @@ export const CompanySelectModal: React.FC<CompanySelectModalProps> = ({
                         >
                           ИНН {company.inn || "-"}
                         </ThemedText>
+                      </View>
+
+                      <View style={styles.companyLimit}>
+                        <ThemedText
+                          style={styles.companyLimitTitle}
+                        >
+                          Лимит организации
+                        </ThemedText>
+
+                        <CreditProgressBar 
+                          usedCredit={company?.usedCredit || 0} 
+                          creditLimit={company?.creditLimit || 0} 
+                        />
+                        <View style={styles.companyInnRow}>
+                        <View style={styles.companyLimitRow}>
+                        <ThemedText
+                          style={styles.companyInn}
+                        >
+                          Использовано {company?.usedCredit || "-"} ₽ / {' '}
+                        </ThemedText>
+                        <ThemedText 
+                          style={styles.companyInn}
+                          lightColor="#80818B"
+                          darkColor="#FBFCFF80"
+                          >
+                         {company?.creditLimit || "-"} ₽
+                        </ThemedText>
+                        </View>
+                        <ThemedText
+                         style={styles.companyPersent}
+                         lightColor="#80818B"
+                         darkColor="#FBFCFF80">
+                          {
+                            company?.creditLimit > 0 ? Math.round((company?.usedCredit / company?.creditLimit) * 100) : 0 
+                          }%
+                        </ThemedText>
+                        </View>
                       </View>
                     </View>
                   </ThemedView>
@@ -398,6 +464,24 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "500",
   },
+  companyLimit: {
+    flexDirection: "column",
+    justifyContent: "space-between",
+  },
+  companyLimitRow: {
+    flexDirection: "row",
+    alignItems: "center",
+
+  },
+  companyLimitTitle: {
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  companyPersent: {
+    fontSize: 12,
+    fontWeight: "500",
+
+  },
   footer: {
     position: "absolute",
     bottom: 0,
@@ -432,5 +516,16 @@ const styles = StyleSheet.create({
   regCompanyBlock: {
     marginTop: 24,
     gap: 16,
+  },
+  progressBarContainer: {
+    height: 8,
+    backgroundColor: "#E9EDF1",
+    borderRadius: 2,
+    marginVertical: 8,
+    overflow: "hidden",
+  },
+  progressBarFill: {
+    height: "100%",
+    borderRadius: 2,
   },
 });

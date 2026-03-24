@@ -24,6 +24,10 @@ interface AuthState {
   isLoadingBonus: boolean;
   hasMoreBonus: boolean;
   currentBonusPage: number;
+
+  managers: any[];
+  onceManager: any;
+  isLoadingManager: boolean;
 }
 interface Town {
   id: string;
@@ -53,6 +57,9 @@ const initialState: AuthState = {
   isLoadingBonus: false,
   hasMoreBonus: true,
   currentBonusPage: 0,
+  managers: [],
+  onceManager: null,
+  isLoadingManager: false
 };
 
 export const getCode = createAsyncThunk(
@@ -226,6 +233,19 @@ export const getBonusHistory = createAsyncThunk(
         offset: params.offset,
         count: params.count
       };
+    } catch (error) {
+      console.log(error);
+      return rejectWithValue(error);
+    }
+  },
+);
+
+export const getMangers = createAsyncThunk(
+  "user/managers",
+  async (_, { rejectWithValue }) => {
+    try {
+      const data = await axdef.get("/api/AdditionalInformation/managers");
+      return data;
     } catch (error) {
       console.log(error);
       return rejectWithValue(error);
@@ -486,6 +506,24 @@ const authSlice = createSlice({
 
     builder.addCase(getTowns.rejected, (state, action) => {
       state.isLoadingTowns = false;
+      state.error = "Ошибка загрузки городов";
+      axiosErrorHandler(action?.payload);
+    });
+
+    
+    builder.addCase(getMangers.pending, (state) => {
+      state.isLoadingManager = true;
+      state.error = null;
+    });
+
+    builder.addCase(getMangers.fulfilled, (state, action) => {
+      state.isLoadingManager = false;
+      state.managers = action.payload.data.data || [];
+      console.log("Towns loaded:", state.towns);
+    });
+
+    builder.addCase(getMangers.rejected, (state, action) => {
+      state.isLoadingManager = false;
       state.error = "Ошибка загрузки городов";
       axiosErrorHandler(action?.payload);
     });

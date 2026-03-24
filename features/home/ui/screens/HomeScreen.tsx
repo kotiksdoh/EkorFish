@@ -18,6 +18,7 @@ import SpecialOffers from "../components/SpecialOffers/SpecialOffers";
 // import { SearchScreenWithHistory } from '@/features/search/ui/SearchScreenWithHistory';
 import { AddToCart } from "@/features/catalog/catalogSlice";
 import { AddToCartModal } from "@/features/shared/ui/AddToCartModal";
+import ManagerSection from "@/features/shared/ui/ManagerSection";
 import { useRouter } from "expo-router";
 import OrdersCard from "../components/Orders/OrdersCard";
 import { SearchScreenWithHistory } from "./SearchScreenWithHistory";
@@ -66,6 +67,8 @@ export const HomeScreen = ({
   const sliderItems = useAppSelector((state) => state.auth.sliders);
   const router = useRouter();
   const orders = useAppSelector((state) => state.catalog.orders);
+
+  const currentCompany = useAppSelector((state) => state.auth.currentCompany);
 
   const handleSearchPress = () => {
     setShowSearch(true);
@@ -151,6 +154,7 @@ export const HomeScreen = ({
               />
             </View>
           )}
+          <ManagerSection />
           <DeliveryInfoCard />
         </ThemedView>
 

@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 // import { loadAppData } from '@/store/slices/appSlice';
 import {
   getCategoryItems,
+  getMangers,
   getMyInfo,
   getMyParams,
   getSliderItems,
@@ -33,6 +34,8 @@ const loadAppResources = async () => {
       await store.dispatch(getMyParams("")).unwrap();
       await store.dispatch(getCart()).unwrap();
       await store.dispatch(getMyOrders()).unwrap();
+      await store.dispatch(getMangers()).unwrap();
+
     }
     // 3. Другие инициализации (если нужны)
     // - Кэширование изображений
