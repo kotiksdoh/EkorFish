@@ -28,6 +28,8 @@ interface AuthState {
   managers: any[];
   onceManager: any;
   isLoadingManager: boolean;
+  isLoadingManagerReviewOption: boolean;
+  reviewOptions: any[];
 }
 interface Town {
   id: string;
@@ -59,7 +61,9 @@ const initialState: AuthState = {
   currentBonusPage: 0,
   managers: [],
   onceManager: null,
-  isLoadingManager: false
+  isLoadingManager: false,
+  isLoadingManagerReviewOption: false,
+  reviewOptions: []
 };
 
 export const getCode = createAsyncThunk(
@@ -252,6 +256,33 @@ export const getMangers = createAsyncThunk(
     }
   },
 );
+
+export const getManagerReviewOptions = createAsyncThunk(
+  "user/getManagerReviewOptions",
+  async (_, { rejectWithValue }) => {
+    try {
+      const data = await axdef.get("/api/AdditionalInformation/manager/review-options");
+      return data;
+    } catch (error) {
+      console.log(error);
+      return rejectWithValue(error);
+    }
+  },
+);
+
+export const createReview = createAsyncThunk(
+  "user/createReview",
+  async (payload: any, { rejectWithValue }) => {
+    try {
+      const data = await axdef.post("/api/AdditionalInformation/manager/reviews", payload);
+      return data;
+    } catch (error) {
+      console.log(error);
+      return rejectWithValue(error);
+    }
+  },
+);
+
 
 const authSlice = createSlice({
   name: "auth",
@@ -524,10 +555,43 @@ const authSlice = createSlice({
 
     builder.addCase(getMangers.rejected, (state, action) => {
       state.isLoadingManager = false;
-      state.error = "Ошибка загрузки городов";
+      state.error = "Ошибка загрузки менеджеров";
+      axiosErrorHandler(action?.payload);
+    });
+    
+    builder.addCase(getManagerReviewOptions.pending, (state) => {
+      state.isLoadingManagerReviewOption = true;
+      state.error = null;
+    });
+
+    builder.addCase(getManagerReviewOptions.fulfilled, (state, action) => {
+      state.isLoadingManagerReviewOption = false;
+      state.reviewOptions = action.payload.data.data || [];
+      console.log("Towns loaded:", state.towns);
+    });
+
+    builder.addCase(getManagerReviewOptions.rejected, (state, action) => {
+      state.isLoadingManagerReviewOption = false;
+      state.error = "Ошибка загрузки опций";
       axiosErrorHandler(action?.payload);
     });
 
+    builder.addCase(createReview.pending, (state) => {
+      state.isLoadingManagerReviewOption = true;
+      state.error = null;
+    });
+
+    builder.addCase(createReview.fulfilled, (state, action) => {
+      state.isLoadingManagerReviewOption = false;
+      console.log("Towns loaded:", state.towns);
+    });
+
+    builder.addCase(createReview.rejected, (state, action) => {
+      state.isLoadingManagerReviewOption = false;
+      state.error = "Ошибка загрузки отзыва";
+      axiosErrorHandler(action?.payload);
+    });
+    
     builder.addCase(updateUserTown.pending, (state) => {
       state.isLoading = true;
     });

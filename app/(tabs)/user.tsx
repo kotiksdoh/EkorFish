@@ -11,6 +11,7 @@ import { clearAuthState, setCompany } from "@/features/auth/authSlice";
 import { LoginModal } from "@/features/auth/ui/components/LoginModal";
 import { clearCatalogState } from "@/features/catalog/catalogSlice";
 import { CompanySelectModal } from "@/features/shared/ui/CompanySelectModal";
+import ManagerSection from "@/features/shared/ui/ManagerSection";
 import { MyOrdersModal } from "@/features/shared/ui/MyOrders";
 import { ProfileEditModal } from "@/features/shared/ui/ProfileEditModal";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -227,7 +228,10 @@ export default function TabTwoScreen() {
             </ThemedView>
           </LinearGradient>
         </View>
-
+        <ThemedView style={styles.managerCard}>
+        <ManagerSection />
+        </ThemedView>
+        
         {/* Информационные блоки */}
         <ThemedView style={styles.infoCard}>
           <View style={styles.infoContainer}>
@@ -352,7 +356,7 @@ const styles = StyleSheet.create({
   gradientWrapper: {
     width: "100%",
     height: 250,
-    marginBottom: 16,
+    marginBottom: 8,
     // Добавляем обработку для Android
     ...Platform.select({
       android: {
@@ -440,6 +444,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#666",
     fontFamily: Fonts.rounded,
+  },
+  managerCard: {
+    borderRadius: 24,
+    marginBottom: 8
   },
   infoCard: {
     borderRadius: 24,

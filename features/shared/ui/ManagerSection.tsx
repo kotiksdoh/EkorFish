@@ -1,5 +1,5 @@
 // features/shared/ui/ManagerSection.tsx
-import { MessageIcon, PhoneIcon, RefreshIcon } from '@/assets/icons/icons';
+import { ArrowIconRight, MessageIcon, PhoneIcon, RefreshIcon } from '@/assets/icons/icons';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { getMangers, getMyInfo, setCompany } from '@/features/auth/authSlice';
@@ -8,13 +8,17 @@ import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import React, { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
+    Alert,
     FlatList,
     Image,
+    Linking,
+    Platform,
     StyleSheet,
     TouchableOpacity,
     View,
     useColorScheme,
 } from 'react-native';
+import ManagerReviewModal from './ManagerReviewModal';
 
 interface Manager {
   id: string;
@@ -29,136 +33,215 @@ interface ManagerCardProps {
   isCurrentManager?: boolean;
   onSelect?: (managerId: string) => void;
   onChangePress?: () => void;
+  onReviewPress?: () => void;
 }
 
 // Карточка для отображения текущего менеджера (с кнопками)
-const CurrentManagerCard = ({ manager, onChangePress }: ManagerCardProps) => {
+const CurrentManagerCard = ({ manager, onChangePress, onReviewPress }: ManagerCardProps) => {
   const systemTheme = useColorScheme();
   const currentTheme = systemTheme || "light";
 
-  const handleMessage = () => {
-    // TODO: Реализовать отправку сообщения
-    console.log('Написать сообщение менеджеру:', manager.id);
+  const handleMessage = async () => {
+    if (!manager.phoneNumber) {
+      Alert.alert('Ошибка', 'Номер телефона не указан');
+      return;
+    }
+
+    const phoneNumber = manager.phoneNumber.replace(/[^0-9+]/g, '');
+    
+    let url = '';
+    
+    if (Platform.OS === 'ios') {
+      url = `sms:${phoneNumber}`;
+    } else {
+      try {
+        const whatsappUrl = `whatsapp://send?phone=${phoneNumber}`;
+        const canOpenWhatsapp = await Linking.canOpenURL(whatsappUrl);
+        
+        if (canOpenWhatsapp) {
+          url = whatsappUrl;
+        } else {
+          url = `sms:${phoneNumber}`;
+        }
+      } catch (error) {
+        url = `sms:${phoneNumber}`;
+      }
+    }
+    
+    try {
+      const canOpen = await Linking.canOpenURL(url);
+      if (canOpen) {
+        await Linking.openURL(url);
+      } else {
+        Alert.alert(
+          'Написать сообщение',
+          `Номер менеджера: ${manager.phoneNumber}`,
+          [{ text: 'OK' }]
+        );
+      }
+    } catch (error) {
+      console.error('Ошибка при открытии сообщений:', error);
+      Alert.alert('Ошибка', 'Не удалось открыть приложение для сообщений');
+    }
   };
 
-  const handleCall = () => {
-    // TODO: Реализовать звонок
-    console.log('Позвонить менеджеру:', manager.phoneNumber);
-  };
+  const handleCall = async () => {
+    if (!manager.phoneNumber) {
+      Alert.alert('Ошибка', 'Номер телефона не указан');
+      return;
+    }
 
+    const phoneNumber = manager.phoneNumber.replace(/[^0-9+]/g, '');
+    const url = `tel:${phoneNumber}`;
+    
+    try {
+      const canOpen = await Linking.canOpenURL(url);
+      if (canOpen) {
+        await Linking.openURL(url);
+      } else {
+        Alert.alert('Ошибка', 'Невозможно совершить звонок на этом устройстве');
+      }
+    } catch (error) {
+      console.error('Ошибка при звонке:', error);
+      Alert.alert('Ошибка', 'Не удалось совершить звонок');
+    }
+  };
+  console.log('manager?.hasReviewed', manager?.hasReviewed)
   return (
     <View style={styles.mainCont}>
-    <ThemedView
-      style={styles.managerContainer}
-      lightColor="#F2F4F7"
-      darkColor="#202022"
-    >
-      <View style={styles.managerRow}>
-        <ThemedText
-          style={styles.yourManagerText}
-          lightColor="#80818B"
-          darkColor="#80818B"
-        >
-          Ваш менеджер
-        </ThemedText>
-
-        <TouchableOpacity
-          style={styles.changeManagerButton}
-          onPress={onChangePress}
-          activeOpacity={0.7}
-        >
-          <RefreshIcon width={20} height={20} />
+      <ThemedView
+        style={styles.managerContainer}
+        lightColor="#F2F4F7"
+        darkColor="#202022"
+      >
+        <View style={styles.managerRow}>
           <ThemedText
-            style={styles.changeManagerText}
-            lightColor="#203686"
-            darkColor="#FBFCFF"
+            style={styles.yourManagerText}
+            lightColor="#80818B"
+            darkColor="#80818B"
           >
-            Сменить менеджера
+            Ваш менеджер
           </ThemedText>
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.managerInfo}>
-        <View style={styles.avatarContainer}>
-          {manager.image ? (
-            <Image
-              source={{ uri: `${baseUrl}/${manager.image}` }}
-              style={styles.avatar}
-              resizeMode="cover"
-            />
-          ) : (
-            <View style={[styles.avatar, styles.avatarPlaceholder]}>
-              <ThemedText style={styles.avatarPlaceholderText}>
-                {manager.name?.charAt(0) || 'М'}
-              </ThemedText>
-            </View>
-          )}
-        </View>
-
-        <View style={styles.nameContainer}>
-          <ThemedText
-            style={styles.managerName}
-            lightColor="#1B1B1C"
-            darkColor="#FBFCFF"
-            numberOfLines={2}
-          >
-            {manager.name}
-          </ThemedText>
-          
-        </View>
-      </View>
-
-      {/* Контейнер для кнопок - теперь будет растягиваться на всю ширину */}
-      <View style={styles.actionsWrapper}>
-        <ThemedView
-          style={styles.buttonsContainer}
-          lightColor="#FFFFFF"
-          darkColor="#2E2E32"
-        >
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={handleMessage}
-            activeOpacity={0.7}
-          >
-            <View style={styles.buttonContent}>
-              <MessageIcon
-                fill={currentTheme === "dark" ? "#FBFCFF" : "#203686"}
-                width={24}
-                height={24}
-              />
-              <ThemedText
-                style={styles.buttonText}
-                lightColor="#203686"
-                darkColor="#FBFCFF"
-              >
-                Написать
-              </ThemedText>
-            </View>
-          </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.actionButton}
-            onPress={handleCall}
+            style={styles.changeManagerButton}
+            onPress={onChangePress}
             activeOpacity={0.7}
           >
-            <View style={styles.buttonContent}>
-              <PhoneIcon
-                fill={currentTheme === "dark" ? "#FBFCFF" : "#203686"}
-                width={24}
-                height={24}
+            <RefreshIcon width={20} height={20} />
+            <ThemedText
+              style={styles.changeManagerText}
+              lightColor="#203686"
+              darkColor="#FBFCFF"
+            >
+              Сменить менеджера
+            </ThemedText>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.managerInfo}>
+          <View style={styles.avatarContainer}>
+            {manager.image ? (
+              <Image
+                source={{ uri: `${baseUrl}/${manager.image}` }}
+                style={styles.avatar}
+                resizeMode="cover"
               />
+            ) : (
+              <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                <ThemedText style={styles.avatarPlaceholderText}>
+                  {manager.name?.charAt(0) || 'М'}
+                </ThemedText>
+              </View>
+            )}
+          </View>
+          <View style={styles.nameNReviewCont}>
+            <View style={styles.nameContainer}>
               <ThemedText
-                style={styles.buttonText}
-                lightColor="#203686"
+                style={styles.managerName}
+                lightColor="#1B1B1C"
                 darkColor="#FBFCFF"
+                numberOfLines={1}
               >
-                Позвонить
+                {manager.name}
               </ThemedText>
             </View>
-          </TouchableOpacity>
-        </ThemedView>
-      </View>
-    </ThemedView>
+            {manager?.hasReviewed ? (
+              <ThemedText
+                style={styles.alreadyReviewed}
+                lightColor="#80818B"
+                darkColor="#FBFCFF80"
+                numberOfLines={1}
+              >
+                Вы поставили оценку
+              </ThemedText>
+            ) : (
+              <TouchableOpacity style={styles.chooseReview} onPress={onReviewPress}>
+                <ThemedText
+                  style={styles.review}
+                  lightColor="#203686"
+                  darkColor="#4C94FF"
+                  numberOfLines={1}
+                >
+                  Поставить оценку
+                </ThemedText>
+                <ArrowIconRight />
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+
+        {/* Контейнер для кнопок */}
+        <View style={styles.actionsWrapper}>
+          <ThemedView
+            style={styles.buttonsContainer}
+            lightColor="#FFFFFF"
+            darkColor="#2E2E32"
+          >
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={handleMessage}
+              activeOpacity={0.7}
+            >
+              <View style={styles.buttonContent}>
+                <MessageIcon
+                  fill={currentTheme === "dark" ? "#FBFCFF" : "#203686"}
+                  width={24}
+                  height={24}
+                />
+                <ThemedText
+                  style={styles.buttonText}
+                  lightColor="#203686"
+                  darkColor="#FBFCFF"
+                >
+                  Написать
+                </ThemedText>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={handleCall}
+              activeOpacity={0.7}
+            >
+              <View style={styles.buttonContent}>
+                <PhoneIcon
+                  fill={currentTheme === "dark" ? "#FBFCFF" : "#203686"}
+                  width={24}
+                  height={24}
+                />
+                <ThemedText
+                  style={styles.buttonText}
+                  lightColor="#203686"
+                  darkColor="#FBFCFF"
+                >
+                  Позвонить
+                </ThemedText>
+              </View>
+            </TouchableOpacity>
+          </ThemedView>
+        </View>
+      </ThemedView>
     </View>
   );
 };
@@ -203,10 +286,11 @@ export const ManagerSection = () => {
   const { currentCompany, me } = useAppSelector((state) => state.auth);
   const { managers, isLoadingManager } = useAppSelector((state) => state.auth);
   const [showManagerList, setShowManagerList] = useState(false);
+  const [showReviewModal, setShowReviewModal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const currentManager = currentCompany?.manager || null;
-
+    console.log('currentManager', currentManager)
   // Загружаем список менеджеров при необходимости
   useEffect(() => {
     if (showManagerList && managers.length === 0 && !isLoadingManager) {
@@ -217,12 +301,10 @@ export const ManagerSection = () => {
   // Обновляем currentCompany, если изменился me
   useEffect(() => {
     if (me && me.companies && currentCompany?.id) {
-      // Находим обновленную компанию в me.companies
       const updatedCompany = me.companies.find(
         (company: any) => company.id === currentCompany.id
       );
       
-      // Если компания найдена и менеджер изменился, обновляем currentCompany
       if (updatedCompany && updatedCompany.manager?.id !== currentCompany?.manager?.id) {
         console.log('Обновляем currentCompany с новым менеджером:', updatedCompany.manager);
         dispatch(setCompany(updatedCompany));
@@ -234,7 +316,6 @@ export const ManagerSection = () => {
   const handleSelectManager = async (managerId: string) => {
     setIsLoading(true);
     try {
-      // Отправляем PUT запрос на выбор менеджера
       await axdef.put('/api/AdditionalInformation/manager', null, {
         params: {
           managerId: managerId,
@@ -242,10 +323,8 @@ export const ManagerSection = () => {
         },
       });
 
-      // После успешного выбора, обновляем данные пользователя
       const result = await dispatch(getMyInfo("")).unwrap();
       
-      // Обновляем currentCompany из полученных данных
       if (result?.data?.data?.companies) {
         const updatedCompany = result.data.data.companies.find(
           (company: any) => company.id === currentCompany?.id
@@ -255,10 +334,10 @@ export const ManagerSection = () => {
         }
       }
 
-      // Закрываем список и показываем выбранного менеджера
       setShowManagerList(false);
     } catch (error) {
       console.error('Ошибка при выборе менеджера:', error);
+      Alert.alert('Ошибка', 'Не удалось выбрать менеджера. Попробуйте позже.');
     } finally {
       setIsLoading(false);
     }
@@ -267,10 +346,20 @@ export const ManagerSection = () => {
   // Если есть текущий менеджер и не показываем список выбора
   if (currentManager && !showManagerList) {
     return (
-      <CurrentManagerCard
-        manager={currentManager}
-        onChangePress={() => setShowManagerList(true)}
-      />
+      <>
+        <CurrentManagerCard
+          manager={currentManager}
+          onChangePress={() => setShowManagerList(true)}
+          onReviewPress={() => setShowReviewModal(true)}
+        />
+        <ManagerReviewModal
+          visible={showReviewModal}
+          onClose={() => setShowReviewModal(false)}
+          managerId={currentManager.id}
+          managerName={currentManager.name}
+          managerImage={currentManager.image}
+        />
+      </>
     );
   }
 
@@ -324,8 +413,6 @@ const styles = StyleSheet.create({
   mainCont: {
     paddingHorizontal: 16,
     paddingBottom: 16,
-
-
   },
   managerContainer: {
     width: '100%',
@@ -370,8 +457,28 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#6B7280',
   },
+  nameNReviewCont: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 3,
+    flex: 1,
+  },
   nameContainer: {
     flex: 1,
+  },
+  alreadyReviewed: {
+    fontWeight: '500',
+    fontSize: 14,
+  },
+  chooseReview: {
+    display: 'flex',
+    flexDirection: 'row',
+    gap: 2,
+    alignItems: 'center',
+  },
+  review: {
+    fontWeight: '500',
+    fontSize: 14,
   },
   managerName: {
     fontFamily: 'Montserrat',
