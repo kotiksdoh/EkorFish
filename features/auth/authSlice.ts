@@ -413,6 +413,7 @@ const authSlice = createSlice({
           deliveryAddresses:
             responseData.individualProfile.deliveryAddresses || [],
           type: "individual" as const, // Добавляем флаг типа
+          manager: responseData.individualProfile?.manager
         };
 
         state.me.companies = [

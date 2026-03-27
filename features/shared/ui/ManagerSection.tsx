@@ -289,7 +289,14 @@ export const ManagerSection = () => {
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const currentManager = currentCompany?.manager || null;
+//   const currentManager = currentCompany?.manager || null;
+  const [currentManager, setCurrentManager] = useState(currentCompany?.manager || null)
+
+//   useEffect(() => {
+//     debugger
+//     setCurrentManager(currentCompany?.manager)
+//     debugger
+//   },[currentCompany?.manager])
     console.log('currentManager', currentManager)
   // Загружаем список менеджеров при необходимости
   useEffect(() => {
@@ -300,14 +307,17 @@ export const ManagerSection = () => {
 
   // Обновляем currentCompany, если изменился me
   useEffect(() => {
+    debugger
     if (me && me.companies && currentCompany?.id) {
       const updatedCompany = me.companies.find(
         (company: any) => company.id === currentCompany.id
       );
-      
+      debugger
       if (updatedCompany && updatedCompany.manager?.id !== currentCompany?.manager?.id) {
         console.log('Обновляем currentCompany с новым менеджером:', updatedCompany.manager);
         dispatch(setCompany(updatedCompany));
+        debugger
+        setCurrentManager(updatedCompany.manager)
       }
     }
   }, [me, currentCompany?.id, dispatch]);
@@ -319,19 +329,23 @@ export const ManagerSection = () => {
       await axdef.put('/api/AdditionalInformation/manager', null, {
         params: {
           managerId: managerId,
-          companyId: currentCompany?.id,
+          companyId: me.userType === 0 ? null : currentCompany?.id,
         },
       });
 
       const result = await dispatch(getMyInfo("")).unwrap();
-      
+      debugger
       if (result?.data?.data?.companies) {
         const updatedCompany = result.data.data.companies.find(
           (company: any) => company.id === currentCompany?.id
         );
+        debugger
         if (updatedCompany) {
+            debugger
           dispatch(setCompany(updatedCompany));
+          setCurrentManager(updatedCompany.manager)
         }
+        debugger
       }
 
       setShowManagerList(false);
