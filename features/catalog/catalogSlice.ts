@@ -57,6 +57,9 @@ interface CategoryState {
   returns: any[];
   return: any;
   isLoadingReturns: boolean;
+  returnsStatuses: any[]
+  returnableOrders: any[],
+  returnableOrdersLoading: boolean,
 
   addresses: DeliveryAddress[];
   recipients: Recipient[];
@@ -78,11 +81,14 @@ const initialState: CategoryState = {
   hasMore: true,
   filters: [],
   selectedFilterIds: [],
-  selectedSubcategoryId: null, // Инициализируем как null
+  selectedSubcategoryId: null, 
   product: null,
   isLoadingProduct: false,
   isLoadingOrders: false,
 
+  returnsStatuses: [],
+  returnableOrders: [],
+  returnableOrdersLoading: false,
   orders: [],
   cart: [],
 
@@ -138,7 +144,6 @@ export const addDeliveryAddress = createAsyncThunk(
   },
 );
 
-// // НОВЫЙ МЕТОД: Получение списка получателей для адреса
 // export const getAddressRecipients = createAsyncThunk(
 //   "catalog/getAddressRecipients",
 //   async (deliveryAddressId: string, { rejectWithValue }) => {
@@ -155,7 +160,6 @@ export const addDeliveryAddress = createAsyncThunk(
 //   }
 // );
 
-// НОВЫЙ МЕТОД: Получение всех адресов компании (если нужен)
 export const getCompanyAddresses = createAsyncThunk(
   "catalog/getCompanyAddresses",
   async (companyId: string, { rejectWithValue }) => {
@@ -227,7 +231,6 @@ export const getProductList = createAsyncThunk(
         params.append("storageId", payload.params.storageId.toString());
       }
 
-      // Добавляем фильтры
       if (selectedFilterIds.length > 0) {
         selectedFilterIds.forEach((filterId) => {
           params.append("ProductFilterIds", filterId);
@@ -314,16 +317,12 @@ export const putUnFavorite = createAsyncThunk(
     } catch (error: any) {
       console.log("Error in thunk:", error);
 
-      // ВАЖНО: Не обрабатываем 401 здесь, просто пробрасываем ошибку
-      // Интерсептор сам её перехватит и обработает
 
-      // Но если это не 401, то возвращаем rejectWithValue
       if (error.response?.status !== 401) {
         return rejectWithValue(error);
       }
 
-      // Для 401 - просто пробрасываем ошибку дальше
-      throw error; // Это заставит интерсептор сработать
+      throw error; 
     }
   },
 );
@@ -379,7 +378,7 @@ export const getMyReturns = createAsyncThunk(
   "catalog/getMyReturns",
   async (_, { rejectWithValue }) => {
     try {
-      const response = await axdef.get("/api/Returns");
+      const response = await axdef.get("/api/ReturnRequest/my-requests");
       return response.data.data;
     } catch (error: any) {
       if (error.response?.status !== 401) {
@@ -389,6 +388,37 @@ export const getMyReturns = createAsyncThunk(
     }
   },
 );
+
+export const getMyReturnsParams = createAsyncThunk(
+  "catalog/getMyReturnsParams",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await axdef.get("/api/ReturnRequest/page-data");
+      return response.data.data;
+    } catch (error: any) {
+      if (error.response?.status !== 401) {
+        return rejectWithValue(error);
+      }
+      throw error;
+    }
+  },
+);
+
+export const getMyReturnableOrders = createAsyncThunk(
+  "catalog/getMyReturnableOrders",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await axdef.get("/api/ReturnRequest/returnable-orders");
+      return response.data.data;
+    } catch (error: any) {
+      if (error.response?.status !== 401) {
+        return rejectWithValue(error);
+      }
+      throw error;
+    }
+  },
+);
+
 
 
 export const removeMultipleFromCart = createAsyncThunk(
@@ -893,6 +923,37 @@ const catalogSlice = createSlice({
       axiosErrorHandler(action?.payload);
     });
 
+    builder.addCase(getMyReturnableOrders.pending, (state) => {
+      state.returnableOrdersLoading = true;
+    });
+
+    builder.addCase(getMyReturnableOrders.fulfilled, (state, action) => {
+      state.returnableOrders = action.payload || [];
+      state.returnableOrdersLoading = false;
+    });
+
+    builder.addCase(getMyReturnableOrders.rejected, (state, action) => {
+      state.isLoadingReturns = false;
+      axiosErrorHandler(action?.payload);
+    });
+    
+
+    builder.addCase(    getMyReturnsParams
+      .pending, (state) => {
+      state.returnableOrdersLoading = true;
+    });
+
+    builder.addCase(    getMyReturnsParams
+      .fulfilled, (state, action) => {
+      state.returnsStatuses = action.payload || [];
+      state.isLoadingReturns = false;
+    });
+
+    builder.addCase(    getMyReturnsParams
+      .rejected, (state, action) => {
+      state.isLoadingReturns = false;
+      axiosErrorHandler(action?.payload);
+    });
     
     builder.addCase(removeMultipleFromCart.fulfilled, (state, action) => {
       const { cartItemIds } = action.payload;

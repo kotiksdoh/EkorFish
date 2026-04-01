@@ -1,33 +1,29 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { ModalHeader } from "@/features/auth/ui/Header";
-import { getMyReturns, getMyReturnsParams } from "@/features/catalog/catalogSlice";
+import { getMyReturnableOrders } from "@/features/catalog/catalogSlice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Image } from "expo-image";
 import { useFocusEffect } from "expo-router";
 import React, { useCallback } from "react";
 import {
-    ActivityIndicator,
-    Dimensions,
-    FlatList,
-    Modal,
-    StyleSheet,
-    TouchableOpacity,
-    View,
-    useColorScheme,
+  ActivityIndicator,
+  Dimensions,
+  Modal,
+  StyleSheet,
+  View,
+  useColorScheme
 } from "react-native";
-import { PrimaryButton } from "./components/PrimartyButton";
-import ReturnsCard from "./components/ReturnsCard";
+import { PrimaryButton } from "../home";
 
 const { width: screenWidth } = Dimensions.get("window");
 
-interface MyReturnsProps {
+interface MyReturnsFirstStepProps {
   visible: boolean;
   onClose: () => void;
 }
 
-export const MyReturnsModal: React.FC<MyReturnsProps> = ({
+export const MyReturnsModal: React.FC<MyReturnsFirstStepProps> = ({
   visible,
   onClose,
 }) => {
@@ -36,9 +32,7 @@ export const MyReturnsModal: React.FC<MyReturnsProps> = ({
   const isDark = currentTheme === "dark";
 
   const loading = useAppSelector((state) => state.catalog.isLoadingReturns);
-  const returns = useAppSelector((state) => state.catalog.returns);
   const returnsStatuses = useAppSelector((state) => state.catalog.returnsStatuses);
-  const currentCompany = useAppSelector((state) => state.auth.currentCompany);
 
   const dispatch = useAppDispatch();
   const onCreateReturn = () => {
@@ -48,8 +42,7 @@ export const MyReturnsModal: React.FC<MyReturnsProps> = ({
     useCallback(() => {
       const checkToken = async () => {
         if (visible) {
-          dispatch(getMyReturns());
-          dispatch(getMyReturnsParams())
+          dispatch(getMyReturnableOrders());
         }
       };
       checkToken();
@@ -80,7 +73,7 @@ export const MyReturnsModal: React.FC<MyReturnsProps> = ({
       </View>
       {onCreateReturn && (
         <PrimaryButton
-            title="+ Создать заявку на возврат"
+            title="Продолжить"
             onPress={onCreateReturn}
             variant="primary"
             size="md"
@@ -104,16 +97,16 @@ export const MyReturnsModal: React.FC<MyReturnsProps> = ({
     </View>
   );
 
-  const renderReturnsList = () => (
-    <FlatList
-      data={returns}
-      keyExtractor={(item) => item.id.toString()}
-      showsVerticalScrollIndicator={false}
-      renderItem={({ item }) => <ReturnsCard returns={item} fullWidth={true} statuses={returnsStatuses} currentCompany={currentCompany}/>}
-      contentContainerStyle={styles.returnsList}
-      ListEmptyComponent={!loading ? renderEmptyState : null}
-    />
-  );
+  // const renderReturnsList = () => (
+  //   <FlatList
+  //     data={returns}
+  //     keyExtractor={(item) => item.id.toString()}
+  //     showsVerticalScrollIndicator={false}
+  //     renderItem={({ item }) => <ReturnsCard returns={item} fullWidth={true} statuses={returnsStatuses} currentCompany={currentCompany}/>}
+  //     contentContainerStyle={styles.returnsList}
+  //     ListEmptyComponent={!loading ? renderEmptyState : null}
+  //   />
+  // );
 
   return (
     <Modal
@@ -141,7 +134,7 @@ export const MyReturnsModal: React.FC<MyReturnsProps> = ({
           darkColor="#151516"
           style={styles.content}
         >
-          {returns.length > 0 ? (
+          {/* {returns.length > 0 ? (
             <>
               <View style={styles.returnsContent}>
                 {loading ? renderLoadingState() : renderReturnsList()}
@@ -161,7 +154,7 @@ export const MyReturnsModal: React.FC<MyReturnsProps> = ({
             </>
           ) : (
             renderEmptyState()
-          )}
+          )} */}
         </ThemedView>
       </ThemedView>
     </Modal>

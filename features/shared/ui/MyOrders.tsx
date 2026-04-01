@@ -283,7 +283,7 @@ const styles = StyleSheet.create({
     width: 36,
   },
   content: {
-    marginTop: 16,
+    marginTop: 8,
     flex: 1,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,

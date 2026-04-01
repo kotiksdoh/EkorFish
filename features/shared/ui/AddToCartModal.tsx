@@ -44,7 +44,7 @@ interface AddToCartModalProps {
   onClose: () => void;
   product: Product | null;
   onAddToCart: (productId: string, optionId: string, quantity: number) => void;
-  existingCartItem?: any[]; // Изменяем на массив
+  existingCartItem?: any[];
 }
 
 // Маппинг иконок по кодам
@@ -66,6 +66,8 @@ const getIconForCode = (
       return <WholesaleIcon fill={fillColor} width={16} height={16} />;
     case "package":
       return <PackageIcon fill={fillColor} width={16} height={16} />;
+    case "promo":
+      return <PackageIcon fill={fillColor} width={16} height={16} />;
     default:
       return null;
   }
@@ -79,7 +81,6 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
   existingCartItem,
 }) => {
   const colorScheme = useColorScheme();
-  //TODO
   const isDarkMode = colorScheme === "dark";
   const [selectedTab, setSelectedTab] = useState<string>("");
   const [quantity, setQuantity] = useState<number>(0);
@@ -114,14 +115,12 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
           setSelectedOption(option);
           setQuantity(firstCartItem.quantity);
         } else {
-          // Если опция не найдена, берем первую
           const firstOption = product.purchaseOptions[0];
           setSelectedTab(firstOption.id);
           setSelectedOption(firstOption);
           setQuantity(firstOption.minQuantity);
         }
       } else {
-        // Если товара нет в корзине, берем первую опцию
         if (product.purchaseOptions.length > 0) {
           const firstOption = product.purchaseOptions[0];
           setSelectedTab(firstOption.id);
@@ -177,7 +176,6 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
       useNativeDriver: true,
     }).start(() => {
       onClose();
-      // Сбрасываем состояния
       setSelectedTab("");
       setQuantity(0);
       setSelectedOption(null);
@@ -218,7 +216,7 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
     const token = await AsyncStorage.getItem("token");
     if (!token) {
       console.log("No token found - skipping favorites loading");
-      return; // Выходим, если нет токена
+      return;
     }
     if (product && selectedOption) {
       onAddToCart(product.id, selectedOption.id, quantity);
@@ -231,10 +229,24 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
   const totalPrice = selectedOption ? selectedOption.price * quantity : 0;
   const optionsCount = product.purchaseOptions.length;
 
-  const tabWidth =
-    optionsCount > 0
-      ? (SCREEN_WIDTH - 32 - 6 - optionsCount * 4) / optionsCount
-      : 0;
+  // Динамический расчет ширины табов с учетом отступов
+  const tabContainerPadding = 6; // padding у tabsContainer (3px с каждой стороны)
+  const tabMargin = 4; // marginHorizontal у tabButton (2px с каждой стороны)
+  const availableWidth = SCREEN_WIDTH - 32 - tabContainerPadding - (optionsCount * tabMargin * 2);
+  let tabWidth = Math.max(70, availableWidth / optionsCount); // Минимальная ширина 70px
+  
+  // Если ширина слишком маленькая для текста, уменьшаем отступы
+  if (tabWidth < 80 && optionsCount >= 3) {
+    tabWidth = 70; // Фиксируем минимальную ширину
+  }
+
+  // Функция для определения размера шрифта в зависимости от длины названия
+  const getTabTextFontSize = (text: string, tabWidth: number) => {
+    if (text.length > 15) return 10;
+    if (text.length > 12) return 11;
+    if (tabWidth < 80) return 10;
+    return 12;
+  };
 
   return (
     <Animated.View
@@ -285,10 +297,10 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
           },
         ]}
       >
-        <ThemedView darkColor="#202022" style={styles.tabsContainer}>
+        <ThemedView lightColor="#F2F4F7" darkColor="#202022" style={styles.tabsContainer}>
           {product.purchaseOptions.map((option) => {
             const isActive = selectedTab === option.id;
-            const quantityInCart = getQuantityForOption(option.id);
+            const fontSize = getTabTextFontSize(option.name, tabWidth);
 
             return (
               <TouchableOpacity
@@ -306,6 +318,7 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
                   <ThemedText
                     style={[
                       styles.tabText,
+                      { fontSize },
                       isActive && styles.activeTabText,
                       isDarkMode &&
                         isActive && {
@@ -314,17 +327,12 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
                     ]}
                     lightColor={isActive ? "#1B1B1C" : "#80818B"}
                     darkColor={isActive ? "#FBFCFF" : "#FBFCFF80"}
-                    numberOfLines={1}
+                    numberOfLines={2}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.8}
                   >
                     {option.name}
                   </ThemedText>
-                  {/* {quantityInCart > 0 && (
-                    <View style={styles.tabBadge}>
-                      <Text style={styles.tabBadgeText}>
-                        {quantityInCart > 10 ? "10+" : quantityInCart}
-                      </Text>
-                    </View>
-                  )} */}
                 </View>
               </TouchableOpacity>
             );
@@ -362,8 +370,6 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
             onPress={handleAddToCart}
           >
             <ThemedText style={styles.addToCartButtonText}>
-              {/* {existingCartItem ? 'Обновить корзину' : 'Добавить в корзину'}
-               */}
               Добавить в корзину
             </ThemedText>
           </TouchableOpacity>
@@ -379,7 +385,6 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
             <TouchableOpacity
               style={[
                 styles.quantityButton,
-                // { backgroundColor },
                 quantity <= selectedOption.minQuantity &&
                   styles.quantityButtonDisabled,
               ]}
@@ -398,7 +403,6 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
             <TouchableOpacity
               style={[
                 styles.quantityButton,
-                // { backgroundColor },
                 quantity >= selectedOption.maxQuantity &&
                   styles.quantityButtonDisabled,
               ]}
@@ -472,10 +476,12 @@ const styles = StyleSheet.create({
     borderColor: "#F0F3F7",
   },
   tabsContainer: {
+    // backgroundColor: '#F2F4F7',
+    justifyContent:'center',
     flexDirection: "row",
     borderRadius: 16,
     padding: 3,
-    height: 54,
+    minHeight: 54,
     ...Platform.select({
       ios: {
         shadowColor: "#000",
@@ -489,9 +495,8 @@ const styles = StyleSheet.create({
     }),
   },
   tabButton: {
-    minWidth: 100,
     paddingVertical: 8,
-    paddingHorizontal: 4,
+    paddingHorizontal: 2,
     borderRadius: 13,
     alignItems: "center",
     justifyContent: "center",
@@ -516,16 +521,17 @@ const styles = StyleSheet.create({
   tabContent: {
     alignItems: "center",
     justifyContent: "center",
-    height: 40,
+    minHeight: 40,
+    width: "100%",
   },
   tabText: {
-    fontSize: 12,
     fontWeight: "500",
     textAlign: "center",
     fontFamily: "Montserrat",
     fontVariant: ["lining-nums", "proportional-nums"],
     lineHeight: 14,
     marginTop: 4,
+    flexWrap: "wrap",
   },
   activeTabText: {
     fontWeight: "500",
@@ -565,6 +571,8 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     justifyContent: "center",
     alignItems: "center",
+    flex: 1,
+    marginRight: 12,
   },
   addToCartButtonText: {
     fontSize: 14,
