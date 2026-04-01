@@ -2,21 +2,21 @@
 import { ArrowIconRight, MessageIcon, PhoneIcon, RefreshIcon } from '@/assets/icons/icons';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { getMangers, getMyInfo, setCompany } from '@/features/auth/authSlice';
+import { getMangers, getMyInfo, loadCompanyFromStorage, setCompany } from '@/features/auth/authSlice';
 import { axdef, baseUrl } from '@/features/shared/services/axios';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import React, { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    FlatList,
-    Image,
-    Linking,
-    Platform,
-    StyleSheet,
-    TouchableOpacity,
-    View,
-    useColorScheme,
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Image,
+  Linking,
+  Platform,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+  useColorScheme,
 } from 'react-native';
 import ManagerReviewModal from './ManagerReviewModal';
 
@@ -288,16 +288,17 @@ export const ManagerSection = () => {
   const [showManagerList, setShowManagerList] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-
+  console.log('currentCompany', currentCompany)
 //   const currentManager = currentCompany?.manager || null;
   const [currentManager, setCurrentManager] = useState(currentCompany?.manager || null)
-
-//   useEffect(() => {
-//     debugger
-//     setCurrentManager(currentCompany?.manager)
-//     debugger
-//   },[currentCompany?.manager])
-    console.log('currentManager', currentManager)
+  useEffect(() => {
+    if (me) {
+      dispatch(loadCompanyFromStorage());
+    }
+  }, []);
+  useEffect(() => {
+    setCurrentManager(currentCompany?.manager)
+  },[])
   // Загружаем список менеджеров при необходимости
   useEffect(() => {
     if (showManagerList && managers.length === 0 && !isLoadingManager) {
@@ -306,8 +307,10 @@ export const ManagerSection = () => {
   }, [showManagerList, managers.length, isLoadingManager, dispatch]);
 
   // Обновляем currentCompany, если изменился me
+  console.log('currentCompany?.manager', currentCompany?.manager)
   useEffect(() => {
     debugger
+    console.log('fddfdf')
     if (me && me.companies && currentCompany?.id) {
       const updatedCompany = me.companies.find(
         (company: any) => company.id === currentCompany.id
@@ -358,6 +361,7 @@ export const ManagerSection = () => {
   };
 
   // Если есть текущий менеджер и не показываем список выбора
+  console.log('currentManager', currentManager)
   if (currentManager && !showManagerList) {
     return (
       <>

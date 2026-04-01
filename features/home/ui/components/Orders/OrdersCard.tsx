@@ -14,7 +14,7 @@ import {
 
 export interface Order {
   id: number;
-  orderStatus: string;
+  orderStatuses: any[];
   productsCount: number;
   totalAmount: number;
   deliveryDate: string;
@@ -109,7 +109,7 @@ export default function OrdersCard({ order, fullWidth }: OrdersCardProps) {
             darkColor="#FBFCFF"
             style={styles.status}
           >
-            {order.orderStatus}
+            {order.orderStatuses[0]?.name}
           </ThemedText>
           <ArrowIconRight />
         </TouchableOpacity>

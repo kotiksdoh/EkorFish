@@ -54,6 +54,10 @@ interface CategoryState {
 
   order: any;
 
+  returns: any[];
+  return: any;
+  isLoadingReturns: boolean;
+
   addresses: DeliveryAddress[];
   recipients: Recipient[];
   isLoadingAddresses: boolean;
@@ -84,6 +88,11 @@ const initialState: CategoryState = {
 
   isLoadingCart: false,
   order: null,
+
+  returns: [],
+  return: null,
+  isLoadingReturns: false,
+
   addresses: [],
   recipients: [],
   isLoadingRecipients: false,
@@ -365,6 +374,22 @@ export const getMyOrders = createAsyncThunk(
     }
   },
 );
+
+export const getMyReturns = createAsyncThunk(
+  "catalog/getMyReturns",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await axdef.get("/api/Returns");
+      return response.data.data;
+    } catch (error: any) {
+      if (error.response?.status !== 401) {
+        return rejectWithValue(error);
+      }
+      throw error;
+    }
+  },
+);
+
 
 export const removeMultipleFromCart = createAsyncThunk(
   "catalog/removeMultipleFromCart",
@@ -854,6 +879,21 @@ const catalogSlice = createSlice({
       axiosErrorHandler(action?.payload);
     });
 
+    builder.addCase(getMyReturns.pending, (state) => {
+      state.isLoadingReturns = true;
+    });
+
+    builder.addCase(getMyReturns.fulfilled, (state, action) => {
+      state.returns = action.payload || [];
+      state.isLoadingReturns = false;
+    });
+
+    builder.addCase(getMyReturns.rejected, (state, action) => {
+      state.isLoadingReturns = false;
+      axiosErrorHandler(action?.payload);
+    });
+
+    
     builder.addCase(removeMultipleFromCart.fulfilled, (state, action) => {
       const { cartItemIds } = action.payload;
       state.cart = state.cart.filter((item) => !cartItemIds.includes(item.id));

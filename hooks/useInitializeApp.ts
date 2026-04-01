@@ -27,8 +27,8 @@ const loadAppResources = async () => {
     // 1. Загружаем шрифты
 
     // 2. Инициализируем данные приложения
-    await store.dispatch(getSliderItems("")).unwrap();
     await store.dispatch(getCategoryItems("")).unwrap();
+    await store.dispatch(getSliderItems("")).unwrap();
     if (token) {
       await store.dispatch(getMyInfo("")).unwrap();
       await store.dispatch(getMyParams("")).unwrap();

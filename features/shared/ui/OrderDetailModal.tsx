@@ -30,8 +30,8 @@ import {
   StyleSheet,
   TouchableOpacity,
   TouchableWithoutFeedback,
-  useColorScheme,
   View,
+  useColorScheme,
 } from "react-native";
 import { PrimaryButton } from "./components/PrimartyButton";
 
@@ -52,6 +52,7 @@ interface OrderProduct {
 interface OrderStatus {
   id: string;
   name: string;
+  date: string;
 }
 
 interface OrderDetails {
@@ -76,6 +77,7 @@ interface OrderDetails {
   paymentType?: string;
   companyName?: string;
   companyAddress?: string;
+  profileFullName?: string;
 }
 
 interface OrderDetailsModalProps {
@@ -90,7 +92,6 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
   orderId,
 }) => {
   const colorScheme = useColorScheme();
-  //TODO
   const isDarkMode = colorScheme === "dark";
   const [orderDetails, setOrderDetails] = useState<OrderDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -137,9 +138,7 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
       }).start();
     }
   }, [statusModalVisible]);
-  useEffect(() => {
-    console.log("productsModalVisible", productsModalVisible);
-  }, [productsModalVisible]);
+
   const closeProductsModal = () => {
     if (isProductsModalClosing) return;
 
@@ -203,27 +202,32 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
     );
   };
 
+  const formatStatusDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("ru-RU", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
   const formatPrice = (price: number) => {
     return price.toLocaleString("ru-RU", {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     });
   };
-
+  
   const getCurrentStatusName = () => {
-    if (!orderDetails?.statuses || !orderDetails?.currentStatusId)
-      return orderDetails?.orderStatus || "";
-    const currentStatus = orderDetails.statuses.find(
-      (status) => status.id === orderDetails.currentStatusId,
-    );
-    return currentStatus?.name || orderDetails.orderStatus || "";
+    return orderDetails?.statuses.at(-1)?.name || ''
   };
 
   const getCurrentStatusIndex = () => {
-    if (!orderDetails?.statuses || !orderDetails?.currentStatusId) return -1;
-    return orderDetails.statuses.findIndex(
-      (status) => status.id === orderDetails.currentStatusId,
-    );
+    if (!orderDetails?.statuses) return -1;
+    // Текущий статус - последний в массиве
+    return orderDetails.statuses.length - 1;
   };
 
   const isStatusCompleted = (index: number) => {
@@ -748,118 +752,129 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                     </ThemedText>
                   </View>
 
-                  {/* Список статусов */}
-                  <ScrollView
-                    style={styles.statusesList}
-                    showsVerticalScrollIndicator={false}
-                  >
-                    {orderDetails?.statuses?.map((status, index) => {
-                      const currentIndex = getCurrentStatusIndex();
-                      const isCurrent = index === currentIndex;
-                      const isNext = index === currentIndex + 1;
-                      const isPast = index < currentIndex;
-                      const isFuture = index > currentIndex + 1;
-                      const isLast = index === orderDetails.statuses.length - 1;
+                  {/* Список статусов - теперь с прокруткой и правильным выравниванием */}
+                  <View style={styles.statusesListWrapper}>
+                    <ScrollView
+                      style={styles.statusesList}
+                      showsVerticalScrollIndicator={true}
+                      contentContainerStyle={styles.statusesListContent}
+                    >
+                      {orderDetails?.statuses?.map((status, index) => {
+                        const currentIndex = getCurrentStatusIndex();
+                        const isCurrent = index === currentIndex;
+                        const isNext = index === currentIndex + 1;
+                        const isPast = index < currentIndex;
+                        const isFuture = index > currentIndex + 1;
+                        const isLast = index === orderDetails.statuses.length - 1;
 
-                      // Определяем цвета линии
-                      let lineColors: [string, string];
-                      if (isPast || isCurrent) {
-                        if (!isDarkMode) {
-                          lineColors = ["#203686", "#203686"]; // Для пройденных и текущего - синяя
+                        // Определяем цвета линии
+                        let lineColors: [string, string];
+                        if (isPast || isCurrent) {
+                          if (!isDarkMode) {
+                            lineColors = ["#203686", "#203686"]; // Для пройденных и текущего - синяя
+                          } else {
+                            lineColors = ["#3881EE", "#3881EE"];
+                          }
+                        } else if (isNext) {
+                          if (!isDarkMode) {
+                            lineColors = ["#203686", "#80818B"]; // Для следующего - градиент синий -> серый
+                          } else {
+                            lineColors = ["#3881EE", "#80818B"];
+                          }
                         } else {
-                          lineColors = ["#3881EE", "#3881EE"];
+                          lineColors = ["#80818B", "#80818B"]; // Для будущих - серая
                         }
-                      } else if (isNext) {
-                        if (!isDarkMode) {
-                          lineColors = ["#203686", "#80818B"]; // Для следующего - градиент синий -> серый
-                        } else {
-                          lineColors = ["#3881EE", "#80818B"];
-                        }
-                      } else {
-                        lineColors = ["#80818B", "#80818B"]; // Для будущих - серая
-                      }
 
-                      return (
-                        <View
-                          key={status.id}
-                          style={styles.statusItemContainer}
-                        >
-                          <View style={styles.statusLeftColumn}>
-                            {/* Кружок статуса */}
-                            <View
-                              style={[
-                                styles.statusCircle,
-                                (isPast || isCurrent) &&
-                                  styles.statusCircleCompleted,
-                                isDarkMode &&
-                                  (isPast || isCurrent) && {
-                                    borderColor: "#3881EE",
-                                    backgroundColor: "#3881EE",
-                                  },
-                                isNext && styles.statusCircleNext,
-                                isDarkMode &&
-                                  isNext && {
-                                    backgroundColor: "#202022",
-                                    borderColor: "#3881EE",
-                                  },
-                                isFuture && styles.statusCirclePending,
-                                isDarkMode &&
-                                  isFuture && {
-                                    backgroundColor: "#202022",
-                                  },
-                              ]}
-                            >
-                              {(isPast || isCurrent) && (
-                                <View style={styles.statusCircleCheckmark}>
-                                  <IconAccept />
-                                  {/* <View style={styles.checkmarkKick} /> */}
-                                </View>
-                              )}
-                              {isNext && (
-                                <View
-                                  style={[
-                                    styles.statusCurrentDot,
-                                    isDarkMode && {
+                        return (
+                          <View
+                            key={status.id}
+                            style={styles.statusItemContainer}
+                          >
+                            <View style={styles.statusLeftColumn}>
+                              {/* Кружок статуса */}
+                              <View
+                                style={[
+                                  styles.statusCircle,
+                                  (isPast || isCurrent) &&
+                                    styles.statusCircleCompleted,
+                                  isDarkMode &&
+                                    (isPast || isCurrent) && {
+                                      borderColor: "#3881EE",
                                       backgroundColor: "#3881EE",
                                     },
-                                  ]}
-                                />
+                                  isNext && styles.statusCircleNext,
+                                  isDarkMode &&
+                                    isNext && {
+                                      backgroundColor: "#202022",
+                                      borderColor: "#3881EE",
+                                    },
+                                  isFuture && styles.statusCirclePending,
+                                  isDarkMode &&
+                                    isFuture && {
+                                      backgroundColor: "#202022",
+                                    },
+                                ]}
+                              >
+                                {(isPast || isCurrent) && (
+                                  <View style={styles.statusCircleCheckmark}>
+                                    <IconAccept />
+                                  </View>
+                                )}
+                                {isNext && (
+                                  <View
+                                    style={[
+                                      styles.statusCurrentDot,
+                                      isDarkMode && {
+                                        backgroundColor: "#3881EE",
+                                      },
+                                    ]}
+                                  />
+                                )}
+                              </View>
+
+                              {/* Линия между статусами (кроме последнего) */}
+                              {!isLast && (
+                                <View style={styles.statusLineContainer}>
+                                  <LinearGradient
+                                    colors={lineColors}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 0, y: 1 }}
+                                    style={styles.statusLine}
+                                  />
+                                </View>
                               )}
                             </View>
 
-                            {/* Линия между статусами (кроме последнего) */}
-                            {!isLast && (
-                              <View style={styles.statusLineContainer}>
-                                <LinearGradient
-                                  colors={lineColors}
-                                  start={{ x: 0, y: 0 }}
-                                  end={{ x: 0, y: 1 }}
-                                  style={styles.statusLine}
-                                />
+                            {/* Название статуса и дата - центрируем по вертикали */}
+                            <View style={styles.statusRightColumn}>
+                              <View style={styles.statusTextContainer}>
+                                <ThemedText
+                                  style={[
+                                    styles.statusName,
+                                    (isPast || isCurrent || isNext) &&
+                                      styles.statusNameCompleted,
+                                    isDarkMode &&
+                                      (isPast || isCurrent || isNext) && {
+                                        color: "#FBFCFF",
+                                      },
+                                  ]}
+                                >
+                                  {status.name}
+                                </ThemedText>
+                                <ThemedText
+                                  lightColor="#80818B"
+                                  darkColor="#80818B"
+                                  style={styles.statusDate}
+                                >
+                                  {formatStatusDate(status.date)}
+                                </ThemedText>
                               </View>
-                            )}
+                            </View>
                           </View>
-
-                          {/* Название статуса */}
-                          <View style={styles.statusRightColumn}>
-                            <ThemedText
-                              style={[
-                                styles.statusName,
-                                (isPast || isCurrent || isNext) &&
-                                  styles.statusNameCompleted,
-                                isDarkMode &&
-                                  (isPast || isCurrent || isNext) && {
-                                    color: "#FBFCFF",
-                                  },
-                              ]}
-                            >
-                              {status.name}
-                            </ThemedText>
-                          </View>
-                        </View>
-                      );
-                    })}
-                  </ScrollView>
+                        );
+                      })}
+                    </ScrollView>
+                  </View>
                 </Animated.View>
               </TouchableWithoutFeedback>
             </View>
@@ -906,7 +921,6 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    // paddingHorizontal: 16,
     marginTop: 8,
   },
   whiteBlock: {
@@ -926,7 +940,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   infoContainer: {
-    // gap: 16,
     marginBottom: 20,
   },
   infoRow: {
@@ -935,9 +948,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   iconPlaceholder: {
-    // width: 24,
     padding: 8,
-    // height: 24,
     borderRadius: 8,
   },
   infoContent: {
@@ -949,7 +960,6 @@ const styles = StyleSheet.create({
   infoLabel: {
     fontSize: 14,
     fontWeight: "500",
-    // marginBottom: 4,
   },
   infoValue: {
     fontSize: 16,
@@ -957,7 +967,6 @@ const styles = StyleSheet.create({
   },
   totalContainer: {
     flexDirection: "column",
-    // paddingTop: 12,
   },
   totalLabel: {
     fontSize: 16,
@@ -1012,7 +1021,6 @@ const styles = StyleSheet.create({
   documentsButton: {
     paddingVertical: 12,
     borderRadius: 12,
-    // backgroundColor: "#F2F4F7",
     alignItems: "center",
   },
   documentsButtonText: {
@@ -1058,11 +1066,10 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: "row",
   },
-  // productInfoMain: {
-  //   display: "flex",
-  //   flex: 1,
-  //   flexDirection: "column",
-  // },
+  productInfoMain: {
+    flex: 1,
+    marginRight: 8,
+  },
   productName: {
     fontSize: 14,
     fontWeight: "500",
@@ -1116,7 +1123,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    minHeight: "80%",
+    maxHeight: "90%", // Ограничиваем максимальную высоту
   },
   swipeHandleContainer: {
     alignItems: "center",
@@ -1142,7 +1149,7 @@ const styles = StyleSheet.create({
   productsList: {
     paddingHorizontal: 20,
     paddingVertical: 16,
-    maxHeight: "50%",
+    maxHeight: "70%",
   },
   modalProductCard: {
     flexDirection: "row",
@@ -1161,41 +1168,42 @@ const styles = StyleSheet.create({
     height: "100%",
   },
   modalProductInfo: {
-    flex: 1, // Важно: занимает оставшееся пространство
+    flex: 1,
     flexDirection: "row",
-    justifyContent: "space-between", // Распределяем пространство между элементами
-    alignItems: "flex-start", // Выравниваем по верхнему краю
-  },
-  productInfoMain: {
-    flex: 1, // Занимает доступное пространство
-    marginRight: 8, // Отступ от цены
+    justifyContent: "space-between",
+    alignItems: "flex-start",
   },
   modalProductName: {
     fontSize: 14,
     fontWeight: "500",
     marginBottom: 4,
-    flexShrink: 1, // Позволяет тексту сжиматься
+    flexShrink: 1,
   },
   modalProductQuantity: {
     fontSize: 12,
     fontWeight: "400",
   },
   productPriceContainer: {
-    // Контейнер для цены
     justifyContent: "flex-start",
     alignItems: "flex-end",
-    minWidth: 70, // Минимальная ширина для цены
+    minWidth: 70,
   },
   modalProductPrice: {
     fontSize: 14,
     fontWeight: "600",
-    textAlign: "right", // Выравнивание текста цены вправо
+    textAlign: "right",
   },
   // Стили для списка статусов
+  statusesListWrapper: {
+    flex: 1,
+    // maxHeight: "70%", // Ограничиваем высоту списка статусов
+  },
   statusesList: {
+    flex: 1,
+  },
+  statusesListContent: {
     paddingHorizontal: 20,
     paddingVertical: 16,
-    // maxHeight: "60%",
   },
   statusItemContainer: {
     flexDirection: "row",
@@ -1207,29 +1215,25 @@ const styles = StyleSheet.create({
     position: "relative",
   },
   statusCircle: {
+    marginTop: 10,
     width: 20,
     height: 20,
     borderRadius: 10,
     borderWidth: 2,
     justifyContent: "center",
     alignItems: "center",
-    // backgroundColor: "#FFFFFF",
     zIndex: 2,
   },
-
   statusCircleCurrent: {
     borderColor: "#203686",
-    // backgroundColor: "#FFFFFF",
     borderWidth: 2,
     padding: 2,
   },
-
   statusRightColumn: {
     flex: 1,
     paddingLeft: 12,
-    paddingBottom: 20,
+    // paddingBottom: 20,
   },
-
   modalFooter: {
     paddingHorizontal: 20,
     paddingVertical: 16,
@@ -1302,10 +1306,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "500",
     color: "#80818B",
-    marginBottom: 4,
+    // marginBottom: 4,
   },
   statusNameCompleted: {
     color: "#1B1B1C",
+  },
+  statusDate: {
+    fontSize: 12,
+    fontWeight: "400",
   },
   statusCurrentLabel: {
     fontSize: 12,
@@ -1318,4 +1326,6 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     opacity: 0.7,
   },
+  statusTextContainer: {
+  }
 });

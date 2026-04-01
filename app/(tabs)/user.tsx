@@ -3,7 +3,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { Image, Platform, ScrollView, StyleSheet, TouchableOpacity, View, useColorScheme } from "react-native";
 
-import { ArrowIconRight, BoxIcon, ExitIcon, IconGeo, PencilIcon } from "@/assets/icons/icons";
+import { ArrowIconRight, BoxIcon, ExitIcon, IconGeo, MenuRefreshIcon, PencilIcon } from "@/assets/icons/icons";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Fonts } from "@/constants/theme";
@@ -16,6 +16,7 @@ import { MyOrdersModal } from "@/features/shared/ui/MyOrders";
 import { ProfileEditModal } from "@/features/shared/ui/ProfileEditModal";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { MyReturnsModal } from "@/features/shared/ui/MyReturns";
 
 export default function TabTwoScreen() {
   const colorScheme = useColorScheme();
@@ -27,6 +28,7 @@ export default function TabTwoScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [myOrderModalVisible, setMyOrderModalVisible] = useState(false);
+  const [returnsModalVisible, setReturnsModalVisible] = useState(false)
   const [profileData, setProfileData] = useState({
     name: '',
     surname: '',
@@ -285,6 +287,31 @@ export default function TabTwoScreen() {
               </View>
             </TouchableOpacity>
 
+            <TouchableOpacity style={styles.infoRow} onPress={() => setReturnsModalVisible(true)}>
+              <ThemedView
+                lightColor="#F2F4F7"
+                darkColor="#202022"
+                style={styles.iconPlaceholder}
+              >
+                <MenuRefreshIcon />
+              </ThemedView>
+              <View
+                style={[
+                  styles.infoContent,
+                  isDarkMode && {
+                    borderColor: "#252527",
+                  },
+                ]}
+              >
+                <ThemedText lightColor="#1B1B1C" style={styles.infoLabel}>
+                  Возвраты
+                </ThemedText>
+                <View style={styles.infoValueContainer}>
+                  <ArrowIconRight />
+                </View>
+              </View>
+            </TouchableOpacity>
+
             <TouchableOpacity style={styles.infoRow} onPress={handleLogout}>
               <ThemedView
                 lightColor="#F2F4F7"
@@ -340,6 +367,11 @@ export default function TabTwoScreen() {
       <MyOrdersModal
           visible={myOrderModalVisible}
           onClose={() => setMyOrderModalVisible(false)}
+      />
+
+      <MyReturnsModal
+          visible={returnsModalVisible}
+          onClose={() => setReturnsModalVisible(false)}
       />
     </>
   );
