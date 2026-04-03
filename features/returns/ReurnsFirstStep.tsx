@@ -46,6 +46,7 @@ export const MyReturnsFirstStep: React.FC<MyReturnsFirstStepProps> = ({
   const totals = useMemo(() => {
     let totalItems = 0;
     let totalPrice = 0;
+    let selectedProductsCount = 0;
 
     // Проходим по всем заказам в returnRequests
     returnRequests.orders.forEach((requestOrder) => {
@@ -64,6 +65,7 @@ export const MyReturnsFirstStep: React.FC<MyReturnsFirstStepProps> = ({
 
           if (originalProduct && selectedItem.returnQuantity > 0) {
             totalItems += selectedItem.returnQuantity;
+            selectedProductsCount += 1;
             // Цена за единицу * количество возврата
             totalPrice += originalProduct.price * selectedItem.returnQuantity;
           }
@@ -74,6 +76,7 @@ export const MyReturnsFirstStep: React.FC<MyReturnsFirstStepProps> = ({
     return {
       totalItems,
       totalPrice,
+      selectedProductsCount,
       hasSelectedItems: totalItems > 0,
     };
   }, [returnRequests, returnableOrders]);
@@ -219,8 +222,8 @@ export const MyReturnsFirstStep: React.FC<MyReturnsFirstStepProps> = ({
                   darkColor="#FBFCFF80" 
                   style={styles.bottomItemsCount}
                 >
-                  {totals.totalItems > 0 ? (
-                    `${totals.totalItems} ${getDeclension(totals.totalItems, ["товар", "товара", "товаров"])}`
+                  {totals.selectedProductsCount > 0 ? (
+                    `${totals.selectedProductsCount} ${getDeclension(totals.selectedProductsCount, ["товар", "товара", "товаров"])}`
                   ) : (
                     "Товары не выбраны"
                   )}

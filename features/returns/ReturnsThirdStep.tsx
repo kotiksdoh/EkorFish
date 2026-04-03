@@ -44,8 +44,8 @@ export const MyReturnsThirdStep: React.FC<MyReturnsThirdStepProps> = ({
   const [selectedRefundMethod, setSelectedRefundMethod] = useState<number | null>(null);
 
   // Получаем методы возврата и возврата денег из статусов
-  const returnMethods = returnsStatuses?.returnMethods || [];
-  const refundMethods = returnsStatuses?.refundMethods || [];
+  const returnMethods = (returnsStatuses as any)?.returnMethods || [];
+  const refundMethods = (returnsStatuses as any)?.refundMethods || [];
 
   // Собираем все выбранные товары
   const selectedProducts = useMemo(() => {
@@ -74,7 +74,7 @@ export const MyReturnsThirdStep: React.FC<MyReturnsThirdStepProps> = ({
           );
 
           if (originalProduct && selectedItem.returnQuantity > 0) {
-            const reasonObj = returnsStatuses?.returnRequestStatuses?.find(
+            const reasonObj = (returnsStatuses as any)?.returnReasons?.find(
               (r: any) => r.reason === selectedItem.reason
             );
             
@@ -259,21 +259,28 @@ export const MyReturnsThirdStep: React.FC<MyReturnsThirdStepProps> = ({
                           ]}
                           onPress={() => setSelectedReturnMethod(method.method)}
                         >
-                          <ThemedText
+                          <View style={styles.optionContent}>
+                            <ThemedText
+                              style={[
+                                styles.optionText,
+                                selectedReturnMethod === method.method && styles.optionTextSelected,
+                              ]}
+                              lightColor="#202022"
+                              darkColor="#F2F4F7"
+                            >
+                              {method.name}
+                            </ThemedText>
+                          </View>
+                          <View
                             style={[
-                              styles.optionText,
-                              selectedReturnMethod === method.method && styles.optionTextSelected,
+                              styles.radioOuter,
+                              selectedReturnMethod === method.method && styles.radioOuterSelected,
                             ]}
-                            lightColor="#202022"
-                            darkColor="#F2F4F7"
                           >
-                            {method.name}
-                          </ThemedText>
-                          {selectedReturnMethod === method.method && (
-                            <View style={styles.radioSelected}>
+                            {selectedReturnMethod === method.method && (
                               <View style={styles.radioInner} />
-                            </View>
-                          )}
+                            )}
+                          </View>
                         </TouchableOpacity>
                       ))}
                     </View>
@@ -299,21 +306,28 @@ export const MyReturnsThirdStep: React.FC<MyReturnsThirdStepProps> = ({
                           ]}
                           onPress={() => setSelectedRefundMethod(method.method)}
                         >
-                          <ThemedText
+                          <View style={styles.optionContent}>
+                            <ThemedText
+                              style={[
+                                styles.optionText,
+                                selectedRefundMethod === method.method && styles.optionTextSelected,
+                              ]}
+                              lightColor="#202022"
+                              darkColor="#F2F4F7"
+                            >
+                              {method.name}
+                            </ThemedText>
+                          </View>
+                          <View
                             style={[
-                              styles.optionText,
-                              selectedRefundMethod === method.method && styles.optionTextSelected,
+                              styles.radioOuter,
+                              selectedRefundMethod === method.method && styles.radioOuterSelected,
                             ]}
-                            lightColor="#202022"
-                            darkColor="#F2F4F7"
                           >
-                            {method.name}
-                          </ThemedText>
-                          {selectedRefundMethod === method.method && (
-                            <View style={styles.radioSelected}>
+                            {selectedRefundMethod === method.method && (
                               <View style={styles.radioInner} />
-                            </View>
-                          )}
+                            )}
+                          </View>
                         </TouchableOpacity>
                       ))}
                     </View>
@@ -452,12 +466,29 @@ const styles = StyleSheet.create({
     borderColor: "#203686",
     backgroundColor: "#E1F0FF",
   },
+  optionContent: {
+    flex: 1,
+  },
   optionText: {
     fontSize: 14,
     fontWeight: "500",
   },
   optionTextSelected: {
     color: "#203686",
+  },
+  radioOuter: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: "#D8DADE",
+    justifyContent: "center",
+    alignItems: "center",
+    marginLeft: 12,
+  },
+  radioOuterSelected: {
+    borderColor: "#203686",
+    borderWidth: 5,
   },
   radioSelected: {
     width: 20,

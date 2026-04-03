@@ -11,7 +11,6 @@ import {
 import { getCart, getMyOrders } from "@/features/catalog/catalogSlice";
 import { store } from "@/store/store";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import axios from "axios";
 
 // Предотвращаем автоматическое скрытие сплеш-скрина
 SplashScreenExpo.preventAutoHideAsync().catch(() => {
@@ -42,16 +41,16 @@ const loadAppResources = async () => {
     // - Загрузка конфигурации
     // - Проверка обновлений
     // - Инициализация аналитики
-    const testHttps = async () => {
-      try {
-        await axios.get("https://google.com", { timeout: 5000 });
-        console.log("HTTPS работает! Проблема именно с HTTP");
-      } catch (error: any) {
-        console.log("HTTPS тоже не работает:", error.message);
-      }
-    };
+    // const testHttps = async () => {
+    //   try {
+    //     await axios.get("https://google.com", { timeout: 5000 });
+    //     console.log("HTTPS работает! Проблема именно с HTTP");
+    //   } catch (error: any) {
+    //     console.log("HTTPS тоже не работает:", error.message);
+    //   }
+    // };
 
-    testHttps();
+    // testHttps();
     // Имитация задержки для демонстрации сплеш-скрина
     await new Promise((resolve) => setTimeout(resolve, 1000));
 

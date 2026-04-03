@@ -39,7 +39,8 @@ interface ReturnRequest {
       items: Array<{
         orderProductId: string;
         returnQuantity: number;
-        reason: number;
+        /** Не задана до шага с причиной; 0 — валидный id с бэкенда */
+        reason?: number;
         comment: string;
       }>;
 }
@@ -738,11 +739,11 @@ const catalogSlice = createSlice({
         // Создаем новый заказ в запросе
         state.returnRequests.orders.push({
           orderId,
-          items: [{ 
-            orderProductId, 
-            returnQuantity: returnQuantity || 0, 
-            reason: reason || 0, 
-            comment: comment || "" 
+          items: [{
+            orderProductId,
+            returnQuantity: returnQuantity || 0,
+            comment: comment || "",
+            ...(reason !== undefined ? { reason } : {}),
           }]
         });
       } else {
@@ -750,18 +751,18 @@ const catalogSlice = createSlice({
           (item) => item.orderProductId === orderProductId
         );
         
-        if (itemIndex === -1 && (returnQuantity > 0 || reason)) {
+        if (itemIndex === -1 && (returnQuantity > 0 || reason !== undefined)) {
           // Добавляем новый товар в существующий заказ
           state.returnRequests.orders[orderIndex].items.push({
             orderProductId,
             returnQuantity: returnQuantity || 0,
-            reason: reason || 0,
-            comment: comment || ""
+            comment: comment || "",
+            ...(reason !== undefined ? { reason } : {}),
           });
         } else if (itemIndex !== -1) {
           const currentItem = state.returnRequests.orders[orderIndex].items[itemIndex];
           
-          if (returnQuantity === 0 && !reason) {
+          if (returnQuantity === 0 && reason === undefined) {
             state.returnRequests.orders[orderIndex].items.splice(itemIndex, 1);
             if (state.returnRequests.orders[orderIndex].items.length === 0) {
               state.returnRequests.orders.splice(orderIndex, 1);

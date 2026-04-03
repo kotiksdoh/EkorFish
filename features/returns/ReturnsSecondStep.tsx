@@ -5,13 +5,13 @@ import { ModalHeader } from "@/features/auth/ui/Header";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import React, { useMemo, useState } from "react";
 import {
-    FlatList,
-    Modal,
-    Platform,
-    StyleSheet,
-    TouchableOpacity,
-    View,
-    useColorScheme,
+  FlatList,
+  Modal,
+  Platform,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+  useColorScheme,
 } from "react-native";
 import { ReasonModal } from "./ReasonModal";
 import { SelectedReturnItem } from "./SelectedReturnItem";
@@ -43,10 +43,15 @@ export const MyReturnsSecondStep: React.FC<MyReturnsSecondStepProps> = ({
     orderProductId: string;
     reason?: number;
     comment?: string;
+    productName?: string;
+    productImage?: string;
+    price?: number;
+    returnQuantity?: number;
+    measureType?: string;
   } | null>(null);
 
   // Получаем причины из returnsStatuses
-  const reasons = returnsStatuses?.returnReasons || [];
+  const reasons = (returnsStatuses as any)?.returnReasons || [];
 
   // Собираем все выбранные товары в один массив
   const selectedProducts = useMemo(() => {
@@ -130,12 +135,17 @@ export const MyReturnsSecondStep: React.FC<MyReturnsSecondStepProps> = ({
     ];
   };
 
-  const handleSelectReason = (orderId: number, orderProductId: string, currentReason?: number, currentComment?: string) => {
+  const handleSelectReason = (orderId: number, orderProductId: string, currentReason?: number, currentComment?: string, product?: typeof selectedProducts[0]) => {
     setCurrentItem({
       orderId,
       orderProductId,
       reason: currentReason,
       comment: currentComment,
+      productName: product?.productName,
+      productImage: product?.productImage,
+      price: product?.price,
+      returnQuantity: product?.returnQuantity,
+      measureType: product?.measureType,
     });
     setReasonModalVisible(true);
   };
@@ -157,7 +167,7 @@ export const MyReturnsSecondStep: React.FC<MyReturnsSecondStepProps> = ({
   };
 
   const handleNext = () => {
-    const allHaveReason = selectedProducts.every((product) => product.reason && product.reason > 0);
+    const allHaveReason = selectedProducts.every((product) => Number.isFinite(product.reason));
     console.log('allHaveReason && onNext', allHaveReason && onNext)
     if (allHaveReason && onNext) {
       onNext();
@@ -168,7 +178,7 @@ export const MyReturnsSecondStep: React.FC<MyReturnsSecondStepProps> = ({
     <SelectedReturnItem
       item={item}
       onSelectReason={() =>
-        handleSelectReason(item.orderId, item.id, item.reason, item.comment)
+        handleSelectReason(item.orderId, item.id, item.reason, item.comment, item)
       }
     />
   );
@@ -252,35 +262,26 @@ export const MyReturnsSecondStep: React.FC<MyReturnsSecondStepProps> = ({
                       : "Товары не выбраны"}
                   </ThemedText>
                 </View>
-
-                <TouchableOpacity
-                  style={[
-                    styles.bottomButton,
-                    (!totals.hasSelectedItems ||
-                      !selectedProducts.every((p) => p.reason && p.reason > 0)) &&
-                      styles.buttonDisabled,
-                  ]}
-                  disabled={
-                    !totals.hasSelectedItems ||
-                    !selectedProducts.every((p) => p.reason && p.reason > 0)
-                  }
-                  onPress={handleNext}
-                >
-                  <ThemedText style={styles.bottomButtonText}>
-                    Продолжить
-                  </ThemedText>
-                </TouchableOpacity>
               </View>
 
-              {!selectedProducts.every((p) => p.reason && p.reason > 0) && (
-                <ThemedText
-                  lightColor="#80818B"
-                  darkColor="#FBFCFF80"
-                  style={styles.bottomHintText}
-                >
-                  Для продолжения выберите причину возврата для всех товаров
+              <TouchableOpacity
+                style={[
+                  styles.bottomButton,
+                  (!totals.hasSelectedItems ||
+                    !selectedProducts.every((p) => Number.isFinite(p.reason))) &&
+                    styles.buttonDisabled,
+                ]}
+                disabled={
+                  !totals.hasSelectedItems ||
+                  !selectedProducts.every((p) => Number.isFinite(p.reason))
+                }
+                onPress={handleNext}
+              >
+                <ThemedText style={styles.bottomButtonText}>
+                  Продолжить
                 </ThemedText>
-              )}
+              </TouchableOpacity>
+
             </ThemedView>
           )}
         </ThemedView>
@@ -296,6 +297,13 @@ export const MyReturnsSecondStep: React.FC<MyReturnsSecondStepProps> = ({
         selectedReasonId={currentItem?.reason}
         selectedComment={currentItem?.comment}
         reasons={reasons}
+        product={currentItem ? {
+          productName: currentItem.productName,
+          productImage: currentItem.productImage,
+          price: currentItem.price,
+          returnQuantity: currentItem.returnQuantity,
+          measureType: currentItem.measureType,
+        } : undefined}
       />
     </>
   );
@@ -308,7 +316,7 @@ const styles = StyleSheet.create({
   content: {
     marginTop: 8,
     flex: 1,
-    paddingHorizontal: 16,
+    // paddingHorizontal: 16,
     paddingTop: 8,
   },
   listContent: {
@@ -350,13 +358,19 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 5,
   },
+  bottomSpacer: {
+    height: 100,
+  },
   bottomPanelContent: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
   bottomLeft: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     flex: 1,
+    marginBottom: 16
   },
   bottomItemsCount: {
     fontSize: 14,

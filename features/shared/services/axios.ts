@@ -37,11 +37,11 @@ ax.interceptors.response.use(
         const { data } = await axios.post(
           `${baseUrl}/api/Account/refresh-token`,
           null,
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("token_refresh")}`,
-            },
-          },
+          // {
+          //   headers: {
+          //     Authorization: `Bearer ${localStorage.getItem("token_refresh")}`,
+          //   },
+          // },
         );
         await AsyncStorage.setItem("token", data.access_token);
         await AsyncStorage.setItem("token_refresh", data.refresh_token);

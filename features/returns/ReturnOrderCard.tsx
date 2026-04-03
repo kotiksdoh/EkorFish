@@ -23,7 +23,8 @@ const CartItemComponent = memo(({
   onToggleSelect,
   onUpdateQuantity,
   onRemove,
-  returnQuantity
+  returnQuantity,
+  isReturnable,
 }: {
   item: any;
   isSelected: boolean;
@@ -31,6 +32,7 @@ const CartItemComponent = memo(({
   onUpdateQuantity: (newQuantity: number) => void;
   onRemove: () => void;
   returnQuantity: number;
+  isReturnable: boolean;
 }) => {
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === "dark";
@@ -81,6 +83,7 @@ const CartItemComponent = memo(({
             onValueChange={onToggleSelect}
             lightColor={"#F2F4F7"}
             darkColor={"#202022"}
+            disabled={!isReturnable}
           />
         </ThemedView>
         <Image
@@ -142,6 +145,7 @@ const CartItemComponent = memo(({
           <TouchableOpacity
             style={styles.favoriteButton}
             onPress={handleToggleFavorite}
+            disabled={!isReturnable}
           >
             <ThemedView
               style={styles.favoriteTheme}
@@ -155,6 +159,7 @@ const CartItemComponent = memo(({
           <TouchableOpacity
             style={styles.deleteButton}
             onPress={onRemove}
+            disabled={!isReturnable}
           >
             <ThemedView
               style={styles.favoriteTheme}
@@ -179,6 +184,7 @@ const CartItemComponent = memo(({
             <TouchableOpacity
               style={styles.quantityButton}
               onPress={handleDecrement}
+              disabled={!isReturnable}
             >
               <ThemedText
                 style={styles.plusMinus}
@@ -200,6 +206,7 @@ const CartItemComponent = memo(({
             <TouchableOpacity
               style={styles.quantityButton}
               onPress={handleIncrement}
+              disabled={!isReturnable}
             >
               <ThemedText
                 style={styles.plusMinus}
@@ -221,7 +228,8 @@ const CartItemComponent = memo(({
     prevProps.returnQuantity === nextProps.returnQuantity &&
     prevProps.item.id === nextProps.item.id &&
     prevProps.item.quantity === nextProps.item.quantity &&
-    prevProps.item.totalPrice === nextProps.item.totalPrice
+    prevProps.item.totalPrice === nextProps.item.totalPrice &&
+    prevProps.isReturnable === nextProps.isReturnable
   );
 });
 
@@ -313,6 +321,7 @@ const ReturnsOrderCard: React.FC<ReturnsOrderCardProps> = ({
           }
           onRemove={() => updateReturnQuantity(item.id, 0, item.quantity)}
           returnQuantity={returnQuantity}
+          isReturnable={returnsOrder.isReturnable}
         />
       );
     });

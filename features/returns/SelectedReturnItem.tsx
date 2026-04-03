@@ -1,4 +1,5 @@
 // components/SelectedReturnItem.tsx
+import { ArrowIconRight } from "@/assets/icons/icons";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Image } from "expo-image";
@@ -36,7 +37,7 @@ export const SelectedReturnItem = memo(({ item, onSelectReason }: SelectedReturn
     ? { uri: `${baseUrl}/${item.productImage}` }
     : require("@/assets/icons/png/noImage.png");
 
-  const hasReason = item.reason && item.reason > 0;
+  const hasReason = Number.isFinite(item.reason);
 
   return (
     <ThemedView
@@ -49,22 +50,14 @@ export const SelectedReturnItem = memo(({ item, onSelectReason }: SelectedReturn
       </View>
 
       <View style={styles.infoContainer}>
-        <ThemedText
-          style={styles.productName}
-          numberOfLines={2}
-          lightColor="#202022"
-          darkColor="#F2F4F7"
-        >
-          {item.productName}
-        </ThemedText>
-
-        <View style={styles.priceRow}>
+        <View style={styles.headerRow}>
           <ThemedText
-            lightColor="#80818B"
-            darkColor="#FBFCFF80"
-            style={styles.priceText}
+            style={styles.productName}
+            numberOfLines={2}
+            lightColor="#202022"
+            darkColor="#F2F4F7"
           >
-            {formatPrice(item.price)} ₽ × {item.returnQuantity} {item.measureType === "килограмм" ? "кг" : "шт"}
+            {item.productName}
           </ThemedText>
           <ThemedText
             style={styles.totalPrice}
@@ -76,35 +69,57 @@ export const SelectedReturnItem = memo(({ item, onSelectReason }: SelectedReturn
         </View>
 
         {hasReason && item.reasonName && (
-          <ThemedText
-            style={styles.selectedReason}
-            lightColor="#203686"
-            darkColor="#4C94FF"
+          <ThemedView
+            style={[
+              styles.reasonSection,
+              !isDark && styles.reasonSectionLight,
+              isDark && styles.reasonSectionDark,
+            ]}
           >
-            Причина: {item.reasonName}
-            {item.comment ? ` (${item.comment})` : ''}
-          </ThemedText>
+            <View style={styles.reasonContent}>
+              <ThemedText
+                style={styles.selectedReason}
+                lightColor="#1B1B1C"
+                darkColor="#F2F4F7"
+              >
+                {item.reasonName}
+                {item.comment ? ` (${item.comment})` : ''}
+              </ThemedText>
+            </View>
+            <TouchableOpacity
+              style={[
+                styles.reasonButton,
+                styles.reasonButtonSelectedActive,
+              ]}
+              onPress={onSelectReason}
+            >
+              <ThemedText
+                style={styles.reasonButtonTextSelectedActive}
+                lightColor="#FBFCFF"
+                darkColor="#FBFCFF"
+              >
+                Редактировать
+              </ThemedText>
+              <ArrowIconRight />
+            </TouchableOpacity>
+          </ThemedView>
         )}
 
-        <TouchableOpacity
-          style={[
-            styles.reasonButton,
-            hasReason && styles.reasonButtonSelected,
-            isDark && styles.reasonButtonDark,
-          ]}
-          onPress={onSelectReason}
-        >
-          <ThemedText
-            style={[
-              styles.reasonButtonText,
-              hasReason && styles.reasonButtonTextSelected,
-            ]}
-            lightColor={hasReason ? "#203686" : "#80818B"}
-            darkColor={hasReason ? "#4C94FF" : "#FBFCFF80"}
+        {!hasReason && (
+          <TouchableOpacity
+            style={styles.reasonButtonEmpty}
+            onPress={onSelectReason}
           >
-            {hasReason ? "Редактировать причину" : "Выбрать причину"}
-          </ThemedText>
-        </TouchableOpacity>
+            <ThemedText
+              style={styles.reasonButtonText}
+              lightColor="#80818B"
+              darkColor="#FBFCFF80"
+            >
+              Выбрать причину
+            </ThemedText>
+            <ArrowIconRight />
+          </TouchableOpacity>
+        )}
       </View>
     </ThemedView>
   );
@@ -118,8 +133,8 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   imageContainer: {
-    width: 80,
-    height: 80,
+    width: 74,
+    height: 55,
     borderRadius: 12,
     overflow: "hidden",
     marginRight: 12,
@@ -130,53 +145,80 @@ const styles = StyleSheet.create({
   },
   infoContainer: {
     flex: 1,
+    display: "flex",
+    flexDirection: "column",
+  },
+  headerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 12,
+    gap: 8,
   },
   productName: {
     fontSize: 14,
     fontWeight: "500",
     lineHeight: 18,
-    marginBottom: 8,
-  },
-  priceRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  priceText: {
-    fontSize: 12,
-    fontWeight: "500",
+    flex: 1,
   },
   totalPrice: {
     fontSize: 14,
     fontWeight: "600",
+    flexShrink: 0,
+  },
+  reasonSection: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 8,
+    padding: 12,
+    gap: 8,
+  },
+  reasonSectionLight: {
+    backgroundColor: "#F2F4F7",
+  },
+  reasonSectionDark: {
+    backgroundColor: "#202022",
+  },
+  reasonContent: {
+    flex: 1,
   },
   selectedReason: {
     fontSize: 12,
     fontWeight: "500",
-    marginBottom: 8,
+    lineHeight: 16,
+  },
+  reasonButtonEmpty: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    paddingVertical: 3,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: "#F2F4F7",
+    gap: 6,
+    minWidth: "50%",
+    alignSelf: "flex-end",
   },
   reasonButton: {
-    backgroundColor: "#F2F4F7",
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    flexDirection: "row",
     alignItems: "center",
-    borderWidth: 1,
-    borderColor: "transparent",
+    justifyContent: "center",
+    paddingVertical: 3,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    gap: 6,
   },
-  reasonButtonDark: {
-    backgroundColor: "#202022",
-  },
-  reasonButtonSelected: {
-    backgroundColor: "#E1F0FF",
-    borderColor: "#203686",
+  reasonButtonSelectedActive: {
+    backgroundColor: "#101013",
+    minWidth: "50%",
   },
   reasonButtonText: {
     fontSize: 12,
     fontWeight: "500",
   },
-  reasonButtonTextSelected: {
-    color: "#203686",
+  reasonButtonTextSelectedActive: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: "#FBFCFF",
   },
 });
