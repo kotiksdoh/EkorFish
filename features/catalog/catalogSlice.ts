@@ -33,6 +33,16 @@ interface Recipient {
   email: string;
   deliveryAddressId?: string;
 }
+
+interface ReturnRequest {
+      orderId: number;
+      items: Array<{
+        orderProductId: string;
+        returnQuantity: number;
+        reason: number;
+        comment: string;
+      }>;
+}
 interface CategoryState {
   isLoading: boolean;
   isLoadingMore: boolean;
@@ -69,6 +79,10 @@ interface CategoryState {
   isCreatingRecipients: boolean;
   isCreatingOrder: boolean;
   orderResponse: any;
+
+  returnRequests: {
+    orders: ReturnRequest[];
+  } 
 }
 
 const initialState: CategoryState = {
@@ -107,6 +121,10 @@ const initialState: CategoryState = {
   orderResponse: null,
   isLoadingAddresses: false,
   isAddingAddress: false,
+
+  returnRequests: {
+    orders: []
+  }
 };
 
 export const addDeliveryAddress = createAsyncThunk(
@@ -615,6 +633,22 @@ export const createOrder = createAsyncThunk(
   },
 );
 
+export const createReturnRequest = createAsyncThunk(
+  "catalog/createReturnRequest",
+  async (payload: any, { rejectWithValue }) => {
+    try {
+      const response = await axdef.post("/api/ReturnRequest", payload);
+      return response.data;
+    } catch (error: any) {
+      console.log("Error creating return request:", error);
+      if (error.response?.status !== 401) {
+        return rejectWithValue(error);
+      }
+      throw error;
+    }
+  },
+);
+
 const catalogSlice = createSlice({
   name: "catalog",
   initialState,
@@ -693,6 +727,82 @@ const catalogSlice = createSlice({
     clearRecipients: (state) => {
       state.recipients = [];
     },
+    updateReturnRequestItem: (state, action) => {
+      const { orderId, orderProductId, returnQuantity, reason, comment } = action.payload;
+      
+      const orderIndex = state.returnRequests.orders.findIndex(
+        (order) => order.orderId === orderId
+      );
+      
+      if (orderIndex === -1) {
+        // Создаем новый заказ в запросе
+        state.returnRequests.orders.push({
+          orderId,
+          items: [{ 
+            orderProductId, 
+            returnQuantity: returnQuantity || 0, 
+            reason: reason || 0, 
+            comment: comment || "" 
+          }]
+        });
+      } else {
+        const itemIndex = state.returnRequests.orders[orderIndex].items.findIndex(
+          (item) => item.orderProductId === orderProductId
+        );
+        
+        if (itemIndex === -1 && (returnQuantity > 0 || reason)) {
+          // Добавляем новый товар в существующий заказ
+          state.returnRequests.orders[orderIndex].items.push({
+            orderProductId,
+            returnQuantity: returnQuantity || 0,
+            reason: reason || 0,
+            comment: comment || ""
+          });
+        } else if (itemIndex !== -1) {
+          const currentItem = state.returnRequests.orders[orderIndex].items[itemIndex];
+          
+          if (returnQuantity === 0 && !reason) {
+            state.returnRequests.orders[orderIndex].items.splice(itemIndex, 1);
+            if (state.returnRequests.orders[orderIndex].items.length === 0) {
+              state.returnRequests.orders.splice(orderIndex, 1);
+            }
+          } else {
+            // Обновляем поля
+            if (returnQuantity !== undefined) {
+              currentItem.returnQuantity = returnQuantity;
+            }
+            if (reason !== undefined) {
+              currentItem.reason = reason;
+            }
+            if (comment !== undefined) {
+              currentItem.comment = comment;
+            }
+          }
+        }
+      }
+    },
+    updateReturnItemReason: (state, action) => {
+      const { orderId, orderProductId, reason, comment } = action.payload;
+      
+      const orderIndex = state.returnRequests.orders.findIndex(
+        (order) => order.orderId === orderId
+      );
+      
+      if (orderIndex !== -1) {
+        const itemIndex = state.returnRequests.orders[orderIndex].items.findIndex(
+          (item) => item.orderProductId === orderProductId
+        );
+        
+        if (itemIndex !== -1) {
+          state.returnRequests.orders[orderIndex].items[itemIndex].reason = reason;
+          state.returnRequests.orders[orderIndex].items[itemIndex].comment = comment || "";
+        }
+      }
+    },
+    clearReturnRequests: (state) => {
+      state.returnRequests = { orders: [] };
+    },
+    
   },
   extraReducers: (builder) => {
     builder.addCase(getRecipients.pending, (state) => {
@@ -1036,6 +1146,9 @@ export const {
   clearCart,
   clearAddresses,
   clearRecipients,
-  clearCatalogState
+  clearCatalogState,
+  updateReturnRequestItem,  
+  clearReturnRequests,
+  updateReturnItemReason
 } = catalogSlice.actions;
 export default catalogSlice.reducer;

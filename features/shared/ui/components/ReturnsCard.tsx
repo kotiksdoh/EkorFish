@@ -69,7 +69,7 @@ const ReturnsCard: React.FC<ReturnsCardProps> = ({
 
       <View style={styles.cardBody}>
         <View style={styles.infoRow}>
-          <ThemedText style={styles.label}>Заказ №{returns.id} · {currentCompany.name}</ThemedText>
+          <ThemedText style={styles.label}>Заказ №{returns.id} · {currentCompany?.name}</ThemedText>
         </View>
       </View>
     </CardWrapper>

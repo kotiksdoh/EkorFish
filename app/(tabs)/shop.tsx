@@ -933,7 +933,6 @@ export default function ShopScreen() {
           {/* Отступ для нижней плашки */}
           <View style={styles.bottomSpacer} />
         </ScrollView>
-
         {/* Фиксированная нижняя плашка */}
         <ThemedView
           darkColor="#151516"
@@ -983,6 +982,7 @@ export default function ShopScreen() {
             </ThemedText>
           )} */}
         </ThemedView>
+
 
         <CheckoutModal
           visible={checkoutModalVisible}

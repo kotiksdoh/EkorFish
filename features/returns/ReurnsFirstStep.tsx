@@ -1,87 +1,124 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { ModalHeader } from "@/features/auth/ui/Header";
-import { getMyReturnableOrders } from "@/features/catalog/catalogSlice";
+import { clearReturnRequests, getMyReturnableOrders } from "@/features/catalog/catalogSlice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { Image } from "expo-image";
 import { useFocusEffect } from "expo-router";
-import React, { useCallback } from "react";
+import React, { useCallback, useMemo } from "react";
 import {
   ActivityIndicator,
   Dimensions,
+  FlatList,
   Modal,
+  Platform,
   StyleSheet,
+  TouchableOpacity,
   View,
   useColorScheme
 } from "react-native";
-import { PrimaryButton } from "../home";
+import ReturnsOrderCard from "./ReturnOrderCard";
 
 const { width: screenWidth } = Dimensions.get("window");
 
 interface MyReturnsFirstStepProps {
   visible: boolean;
   onClose: () => void;
+  onNext?: () => void;
 }
 
-export const MyReturnsModal: React.FC<MyReturnsFirstStepProps> = ({
+export const MyReturnsFirstStep: React.FC<MyReturnsFirstStepProps> = ({
   visible,
   onClose,
+  onNext,
 }) => {
   const systemTheme = useColorScheme();
   const currentTheme = systemTheme || "light";
   const isDark = currentTheme === "dark";
 
-  const loading = useAppSelector((state) => state.catalog.isLoadingReturns);
+  const loading = useAppSelector((state) => state.catalog.returnableOrdersLoading);
   const returnsStatuses = useAppSelector((state) => state.catalog.returnsStatuses);
+  const returnableOrders = useAppSelector((state) => state.catalog.returnableOrders);
+  const returnRequests = useAppSelector((state) => state.catalog.returnRequests);
 
   const dispatch = useAppDispatch();
+
+  // Подсчет итогов выбранных товаров
+  const totals = useMemo(() => {
+    let totalItems = 0;
+    let totalPrice = 0;
+
+    // Проходим по всем заказам в returnRequests
+    returnRequests.orders.forEach((requestOrder) => {
+      // Находим соответствующий заказ в returnableOrders
+      const originalOrder = returnableOrders.find(
+        (order) => order.orderId === requestOrder.orderId
+      );
+
+      if (originalOrder) {
+        // Проходим по выбранным товарам в этом заказе
+        requestOrder.items.forEach((selectedItem) => {
+          // Находим оригинальный товар
+          const originalProduct = originalOrder.products.find(
+            (product: any) => product.id === selectedItem.orderProductId
+          );
+
+          if (originalProduct && selectedItem.returnQuantity > 0) {
+            totalItems += selectedItem.returnQuantity;
+            // Цена за единицу * количество возврата
+            totalPrice += originalProduct.price * selectedItem.returnQuantity;
+          }
+        });
+      }
+    });
+
+    return {
+      totalItems,
+      totalPrice,
+      hasSelectedItems: totalItems > 0,
+    };
+  }, [returnRequests, returnableOrders]);
+
+  // Форматирование цены
+  const formatPrice = (price: number) => {
+    return price.toLocaleString("ru-RU", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  };
+
+  // Получение склонения для слов
+  const getDeclension = (count: number, words: [string, string, string]) => {
+    const cases = [2, 0, 1, 1, 1, 2];
+    return words[
+      count % 100 > 4 && count % 100 < 20 ? 2 : cases[Math.min(count % 10, 5)]
+    ];
+  };
+
   const onCreateReturn = () => {
-    
-  }
+    if (totals.hasSelectedItems && onNext) {
+      onNext();
+    }
+  };
+
+  const handleClose = () => {
+    // Очищаем выбранные товары при закрытии
+    dispatch(clearReturnRequests());
+    onClose();
+  };
+
   useFocusEffect(
     useCallback(() => {
-      const checkToken = async () => {
+      const checkTokenAndLoad = async () => {
         if (visible) {
           dispatch(getMyReturnableOrders());
         }
       };
-      checkToken();
-    }, [])
-  );
+      checkTokenAndLoad();
 
-  const renderEmptyState = () => (
-    <View style={styles.emptyContainer}>
-      <Image
-        source={require("@/assets/icons/png/noReturns.png")}
-        style={styles.emptyImage}
-        contentFit="cover"
-      />
-      <View>
-        <ThemedText
-            style={styles.emptyTextMain}
-            lightColor="#1B1B1C"
-        >
-            У вас еще нет заявок{"\n"}на возврат.
-        </ThemedText>
-        <ThemedText
-            style={styles.emptyText}
-            lightColor="#80818B"
-            darkColor="#FBFCFF80"
-        >
-            Возврат возможен в течение 24 часов{"\n"}с момента получения заказа. 
-        </ThemedText>
-      </View>
-      {onCreateReturn && (
-        <PrimaryButton
-            title="Продолжить"
-            onPress={onCreateReturn}
-            variant="primary"
-            size="md"
-            activeOpacity={0.8}
-            fullWidth
-        />
-      )}
-    </View>
+      return () => {
+        // Не очищаем при потере фокуса, чтобы сохранить выбранные товары
+      };
+    }, [visible])
   );
 
   const renderLoadingState = () => (
@@ -92,28 +129,43 @@ export const MyReturnsModal: React.FC<MyReturnsFirstStepProps> = ({
         lightColor="#80818B"
         darkColor="#FBFCFF80"
       >
-        Загрузка заявок...
+        Загрузка заказов...
       </ThemedText>
     </View>
   );
 
-  // const renderReturnsList = () => (
-  //   <FlatList
-  //     data={returns}
-  //     keyExtractor={(item) => item.id.toString()}
-  //     showsVerticalScrollIndicator={false}
-  //     renderItem={({ item }) => <ReturnsCard returns={item} fullWidth={true} statuses={returnsStatuses} currentCompany={currentCompany}/>}
-  //     contentContainerStyle={styles.returnsList}
-  //     ListEmptyComponent={!loading ? renderEmptyState : null}
-  //   />
-  // );
+  const renderReturnsList = () => (
+    <FlatList
+      data={returnableOrders}
+      keyExtractor={(item) => item.orderId.toString()}
+      showsVerticalScrollIndicator={false}
+      renderItem={({ item }) => (
+        <ReturnsOrderCard 
+          returnsOrder={item} 
+          fullWidth={true} 
+          statuses={returnsStatuses}
+        />
+      )}
+      contentContainerStyle={styles.returnsList}
+      ListEmptyComponent={!loading ? (
+        <View style={styles.emptyContainer}>
+          <ThemedText style={styles.emptyTextMain} lightColor="#1B1B1C" darkColor="#FBFCFF">
+            Нет заказов для возврата
+          </ThemedText>
+          <ThemedText style={styles.emptyText} lightColor="#80818B" darkColor="#FBFCFF80">
+            У вас нет заказов, которые можно вернуть
+          </ThemedText>
+        </View>
+      ) : null}
+    />
+  );
 
   return (
     <Modal
       animationType="slide"
       transparent={true}
       visible={visible}
-      onRequestClose={onClose}
+      onRequestClose={handleClose}
       statusBarTranslucent={true}
     >
       <ThemedView
@@ -122,40 +174,78 @@ export const MyReturnsModal: React.FC<MyReturnsFirstStepProps> = ({
         style={styles.modalContainer}
       >
         <ModalHeader
-          title="Возвраты"
-          showBackButton={true}
-          onBackPress={() => {
-            onClose();
-          }}
+          title="Заявка на возврат"
+          subTitle="Шаг 1 из 3"
+          showBackButton={false}
+          showCloseButton={true}
+          onBackPress={handleClose}
         />
 
-        <ThemedView
-          lightColor="#FFFFFF"
-          darkColor="#151516"
-          style={styles.content}
-        >
-          {/* {returns.length > 0 ? (
+        <View style={styles.content}>
+          {returnableOrders.length > 0 ? (
             <>
               <View style={styles.returnsContent}>
                 {loading ? renderLoadingState() : renderReturnsList()}
               </View>
-
-              <View style={styles.headerButtons}>
-                <TouchableOpacity
-                  style={styles.createReturnButton}
-                  onPress={onCreateReturn}
-                  activeOpacity={0.7}
-                >
-                  <ThemedText style={styles.createReturnButtonText}>
-                    + Создать заявку на возврат
-                  </ThemedText>
-                </TouchableOpacity>
-              </View>
             </>
           ) : (
-            renderEmptyState()
-          )} */}
-        </ThemedView>
+            !loading && (
+              <View style={styles.emptyContainer}>
+                <ThemedText style={styles.emptyTextMain} lightColor="#1B1B1C" darkColor="#FBFCFF">
+                  Нет заказов для возврата
+                </ThemedText>
+                <ThemedText style={styles.emptyText} lightColor="#80818B" darkColor="#FBFCFF80">
+                  У вас нет заказов, которые можно вернуть
+                </ThemedText>
+              </View>
+            )
+          )}
+        </View>
+
+        {/* Фиксированная нижняя плашка */}
+        {returnableOrders.length > 0 && !loading && (
+          <ThemedView
+            darkColor="#151516"
+            lightColor="#FFFFFF"
+            style={styles.bottomPanel}
+          >
+            <View style={styles.bottomPanelContent}>
+              <View style={styles.bottomLeft}>
+                <ThemedText darkColor="#FBFCFF" lightColor="#1B1B1C" style={styles.bottomTotalPrice}>
+                  {formatPrice(totals.totalPrice)} ₽
+                </ThemedText>
+                <ThemedText 
+                  lightColor="#80818B" 
+                  darkColor="#FBFCFF80" 
+                  style={styles.bottomItemsCount}
+                >
+                  {totals.totalItems > 0 ? (
+                    `${totals.totalItems} ${getDeclension(totals.totalItems, ["товар", "товара", "товаров"])}`
+                  ) : (
+                    "Товары не выбраны"
+                  )}
+                </ThemedText>
+              </View>
+
+
+            </View>
+            <TouchableOpacity
+                style={[
+                  styles.bottomCheckoutButton,
+                  isDark && {
+                    backgroundColor: "#3881EE",
+                  },
+                  !totals.hasSelectedItems && styles.checkoutButtonDisabled,
+                ]}
+                disabled={!totals.hasSelectedItems}
+                onPress={onCreateReturn}
+              >
+                <ThemedText style={styles.bottomCheckoutButtonText}>
+                  Продолжить
+                </ThemedText>
+              </TouchableOpacity>
+          </ThemedView>
+        )}
       </ThemedView>
     </Modal>
   );
@@ -171,11 +261,11 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingHorizontal: 16,
-    paddingTop: 24,
+    paddingTop: 8,
   },
   returnsList: {
     gap: 8,
-    paddingBottom: 20,
+    paddingBottom: 120, // Добавляем отступ для нижней панели
   },
   headerButtons: {
     marginBottom: 16,
@@ -241,4 +331,67 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 
+  bottomPanel: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: Platform.OS === "ios" ? 34 : 16,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: -2,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  bottomSpacer: {
+    height: 100,
+  },
+  bottomPanelContent: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  bottomLeft: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    flex: 1,
+    marginBottom: 16
+  },
+  bottomItemsCount: {
+    fontSize: 14,
+    marginBottom: 4,
+  },
+  bottomTotalPrice: {
+    fontSize: 20,
+    fontWeight: "700",
+    marginBottom: 4,
+  },
+  bottomCheckoutButton: {
+    backgroundColor: "#203686",
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
+    minWidth: 150,
+    alignItems: "center",
+  },
+  bottomCheckoutButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  bottomHintText: {
+    fontSize: 12,
+    textAlign: "center",
+    marginTop: 8,
+  },
+  checkoutButtonDisabled: {
+    opacity: 0.5,
+  },
 });

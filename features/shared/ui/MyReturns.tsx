@@ -1,12 +1,15 @@
+// MyReturnsModal.tsx
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { ModalHeader } from "@/features/auth/ui/Header";
-import { getMyReturns, getMyReturnsParams } from "@/features/catalog/catalogSlice";
+import { clearReturnRequests, getMyReturns, getMyReturnsParams } from "@/features/catalog/catalogSlice";
+import { MyReturnsSecondStep } from "@/features/returns/ReturnsSecondStep";
+import { MyReturnsThirdStep } from "@/features/returns/ReturnsThirdStep";
+import { MyReturnsFirstStep } from "@/features/returns/ReurnsFirstStep";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Image } from "expo-image";
 import { useFocusEffect } from "expo-router";
-import React, { useCallback } from "react";
+import React, { useCallback, useState } from "react";
 import {
     ActivityIndicator,
     Dimensions,
@@ -40,10 +43,29 @@ export const MyReturnsModal: React.FC<MyReturnsProps> = ({
   const returnsStatuses = useAppSelector((state) => state.catalog.returnsStatuses);
   const currentCompany = useAppSelector((state) => state.auth.currentCompany);
 
+  const [visibleFirstStep, setVisibleFirstStep] = useState<boolean>(false)
+  const [visibleSecondStep, setVisibleSecondStep] = useState<boolean>(false)
+  const [visibleThirdStep, setVisibleThirdStep] = useState<boolean>(false)
+
   const dispatch = useAppDispatch();
+
   const onCreateReturn = () => {
-    
+    setVisibleFirstStep(true)
   }
+
+  const handleCloseAll = () => {
+    setVisibleFirstStep(false);
+    setVisibleSecondStep(false);
+    setVisibleThirdStep(false);
+    dispatch(clearReturnRequests());
+    onClose();
+  };
+
+  const handleSuccess = () => {
+    handleCloseAll();
+    dispatch(getMyReturns()); // Обновляем список заявок
+  };
+
   useFocusEffect(
     useCallback(() => {
       const checkToken = async () => {
@@ -53,7 +75,7 @@ export const MyReturnsModal: React.FC<MyReturnsProps> = ({
         }
       };
       checkToken();
-    }, [])
+    }, [visible])
   );
 
   const renderEmptyState = () => (
@@ -116,55 +138,87 @@ export const MyReturnsModal: React.FC<MyReturnsProps> = ({
   );
 
   return (
-    <Modal
-      animationType="slide"
-      transparent={true}
-      visible={visible}
-      onRequestClose={onClose}
-      statusBarTranslucent={true}
-    >
-      <ThemedView
-        lightColor="#EBEDF0"
-        darkColor="#040508"
-        style={styles.modalContainer}
+    <>
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={visible}
+        onRequestClose={handleCloseAll}
+        statusBarTranslucent={true}
       >
-        <ModalHeader
-          title="Возвраты"
-          showBackButton={true}
-          onBackPress={() => {
-            onClose();
-          }}
-        />
-
         <ThemedView
-          lightColor="#FFFFFF"
-          darkColor="#151516"
-          style={styles.content}
+          lightColor="#EBEDF0"
+          darkColor="#040508"
+          style={styles.modalContainer}
         >
-          {returns.length > 0 ? (
-            <>
-              <View style={styles.returnsContent}>
-                {loading ? renderLoadingState() : renderReturnsList()}
-              </View>
+          <ModalHeader
+            title="Возвраты"
+            showBackButton={true}
+            onBackPress={handleCloseAll}
+          />
 
-              <View style={styles.headerButtons}>
-                <TouchableOpacity
-                  style={styles.createReturnButton}
-                  onPress={onCreateReturn}
-                  activeOpacity={0.7}
-                >
-                  <ThemedText style={styles.createReturnButtonText}>
-                    + Создать заявку на возврат
-                  </ThemedText>
-                </TouchableOpacity>
-              </View>
-            </>
-          ) : (
-            renderEmptyState()
-          )}
+          <ThemedView
+            lightColor="#FFFFFF"
+            darkColor="#151516"
+            style={styles.content}
+          >
+            {returns.length > 0 ? (
+              <>
+                <View style={styles.returnsContent}>
+                  {loading ? renderLoadingState() : renderReturnsList()}
+                </View>
+
+                <View style={styles.headerButtons}>
+                  <TouchableOpacity
+                    style={styles.createReturnButton}
+                    onPress={onCreateReturn}
+                    activeOpacity={0.7}
+                  >
+                    <ThemedText style={styles.createReturnButtonText}>
+                      + Создать заявку на возврат
+                    </ThemedText>
+                  </TouchableOpacity>
+                </View>
+              </>
+            ) : (
+              renderEmptyState()
+            )}
+          </ThemedView>
         </ThemedView>
-      </ThemedView>
-    </Modal>
+      </Modal>
+
+      <MyReturnsFirstStep 
+        visible={visibleFirstStep} 
+        onClose={() => setVisibleFirstStep(false)} 
+        onNext={() => {
+          setVisibleFirstStep(false);
+          setVisibleSecondStep(true);
+        }}
+      />
+      
+      <MyReturnsSecondStep 
+        visible={visibleSecondStep} 
+        onBack={() => {
+          setVisibleSecondStep(false);
+          setVisibleFirstStep(true);
+        }} 
+        onClose={() => setVisibleSecondStep(false)} 
+        onNext={() => {
+          setVisibleSecondStep(false);
+          setVisibleThirdStep(true);
+        }}
+      />
+      
+      <MyReturnsThirdStep  
+        visible={visibleThirdStep} 
+        onBack={() => {
+          setVisibleThirdStep(false);
+          setVisibleSecondStep(true);
+        }} 
+        onClose={() => setVisibleThirdStep(false)}
+        onSuccess={handleSuccess}
+      />
+    </>
   );
 };
 
@@ -247,5 +301,4 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: "center",
   },
-
 });

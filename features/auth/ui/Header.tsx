@@ -24,6 +24,7 @@ import {
 import { LoginModal } from "./components/LoginModal";
 interface ModalHeaderProps {
   title?: string;
+  subTitle?: string;
   onBackPress?: () => void;
   showBackButton?: boolean;
   content?: any;
@@ -35,6 +36,7 @@ interface ModalHeaderProps {
 
 export const ModalHeader: React.FC<ModalHeaderProps> = ({
   title,
+  subTitle,
   onBackPress,
   showBackButton = true,
   content,
@@ -155,6 +157,14 @@ export const ModalHeader: React.FC<ModalHeaderProps> = ({
               numberOfLines={1}
             >
               {truncateTitle(title)}
+            </ThemedText>
+            <ThemedText
+              style={headerStyles.subTitle}
+              lightColor={"#80818B"}
+              darkColor={"#FBFCFF80"}
+              numberOfLines={1}
+            >
+              {subTitle}
             </ThemedText>
             {isProduct && (
               <TouchableOpacity
@@ -308,4 +318,8 @@ const headerStyles = StyleSheet.create({
     textAlign: "center",
     flexShrink: 1,
   },
+  subTitle:{
+    fontSize: 12,
+    fontWeight: '500',
+  }
 });
