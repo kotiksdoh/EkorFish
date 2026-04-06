@@ -2,9 +2,12 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { ModalHeader } from "@/features/auth/ui/Header";
+import { setCompany } from "@/features/auth/authSlice";
+import { AddressSelectionModal } from "@/features/shared/ui/AddressSelectionModal";
+import { TownSelectionModal } from "@/features/shared/ui/TownSelectionModal";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { Image } from "expo-image";
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
     ActivityIndicator,
     FlatList,
@@ -17,6 +20,18 @@ import {
 } from "react-native";
 import { createReturnRequest } from "../catalog/catalogSlice";
 import { baseUrl } from "../shared/services/axios";
+
+function classifyReturnMethodByName(name: string | undefined): "address" | "storage" | "other" {
+  if (!name) return "other";
+  const n = name.toLowerCase();
+  if (n.includes("склад") || (n.includes("привез") && n.includes("склад"))) {
+    return "storage";
+  }
+  if (n.includes("следующ") || n.includes("забер")) {
+    return "address";
+  }
+  return "other";
+}
 
 interface MyReturnsThirdStepProps {
   visible: boolean;
@@ -38,10 +53,17 @@ export const MyReturnsThirdStep: React.FC<MyReturnsThirdStepProps> = ({
   const returnableOrders = useAppSelector((state) => state.catalog.returnableOrders);
   const returnRequests = useAppSelector((state) => state.catalog.returnRequests);
   const returnsStatuses = useAppSelector((state) => state.catalog.returnsStatuses);
+  const currentCompany = useAppSelector((state) => state.auth.currentCompany);
+  const me = useAppSelector((state) => state.auth.me);
   const [loading, setLoading] = useState(false);
 
   const [selectedReturnMethod, setSelectedReturnMethod] = useState<number | null>(null);
   const [selectedRefundMethod, setSelectedRefundMethod] = useState<number | null>(null);
+  const [deliveryAddressId, setDeliveryAddressId] = useState<string | null>(null);
+  const [storageIdForReturn, setStorageIdForReturn] = useState<string | null>(null);
+  const [selectedAddressForReturn, setSelectedAddressForReturn] = useState<any | null>(null);
+  const [showAddressModal, setShowAddressModal] = useState(false);
+  const [showTownModal, setShowTownModal] = useState(false);
 
   // Получаем методы возврата и возврата денег из статусов
   const returnMethods = (returnsStatuses as any)?.returnMethods || [];
@@ -57,7 +79,7 @@ export const MyReturnsThirdStep: React.FC<MyReturnsThirdStepProps> = ({
       price: number;
       returnQuantity: number;
       measureType: string;
-      reason: number;
+      reason?: number;
       reasonName?: string;
       comment: string;
     }> = [];
@@ -129,27 +151,92 @@ export const MyReturnsThirdStep: React.FC<MyReturnsThirdStepProps> = ({
     ];
   };
 
+  const selectedReturnMethodMeta = useMemo(() => {
+    return returnMethods.find((m: any) => m.method === selectedReturnMethod);
+  }, [returnMethods, selectedReturnMethod]);
+
+  const returnMethodKind = useMemo(() => {
+    return classifyReturnMethodByName(selectedReturnMethodMeta?.name);
+  }, [selectedReturnMethodMeta]);
+
+  const handleReturnMethodSelect = useCallback(
+    (method: any) => {
+      setSelectedReturnMethod(method.method);
+      const kind = classifyReturnMethodByName(method.name);
+      if (kind === "address") {
+        setStorageIdForReturn(null);
+        setShowAddressModal(true);
+      } else if (kind === "storage") {
+        setDeliveryAddressId(null);
+        setSelectedAddressForReturn(null);
+        setShowTownModal(true);
+      } else {
+        setDeliveryAddressId(null);
+        setStorageIdForReturn(null);
+        setSelectedAddressForReturn(null);
+      }
+    },
+    []
+  );
+
+  const handleSelectAddressForReturn = useCallback((address: any) => {
+    setSelectedAddressForReturn(address);
+    setDeliveryAddressId(address?.id ? String(address.id) : null);
+  }, []);
+
+  const handleTownSelectedForReturn = useCallback((selectedStorageId: string) => {
+    setStorageIdForReturn(selectedStorageId);
+  }, []);
+
+  const handleSelectCompanyForReturn = useCallback(
+    (company: any) => {
+      dispatch(setCompany(company));
+      setSelectedAddressForReturn(null);
+      setDeliveryAddressId(null);
+    },
+    [dispatch]
+  );
+
+  const handleAddCompanyForReturn = useCallback(() => {
+    setShowAddressModal(false);
+  }, []);
+
+  const hasRequiredReturnLocation = useMemo(() => {
+    if (returnMethodKind === "address") {
+      return !!deliveryAddressId;
+    }
+    if (returnMethodKind === "storage") {
+      return !!storageIdForReturn;
+    }
+    return true;
+  }, [returnMethodKind, deliveryAddressId, storageIdForReturn]);
+
   const handleCreateReturn = async () => {
-    debugger
-    // if (!selectedReturnMethod || !selectedRefundMethod) return;
-    debugger
+    if (
+      selectedReturnMethod === null ||
+      selectedRefundMethod === null ||
+      !hasRequiredReturnLocation
+    ) {
+      return;
+    }
     setLoading(true);
-    debugger
     try {
-      // Формируем тело запроса
-      const payload = {
+      const payload: Record<string, unknown> = {
         refundMethod: selectedRefundMethod,
         returnMethod: selectedReturnMethod,
-        // deliveryAddressId: "3fa85f64-5717-4562-b3fc-2c963f66afa6", // Временно зашито
-        storageId: "019d48e5-6e7e-7f11-b6cf-da3fd8100b12", // Временно зашито
         orders: returnRequests.orders,
       };
-      debugger
+      if (returnMethodKind === "address" && deliveryAddressId) {
+        payload.deliveryAddressId = deliveryAddressId;
+      }
+      if (returnMethodKind === "storage" && storageIdForReturn) {
+        payload.storageId = storageIdForReturn;
+      }
+
       await dispatch(createReturnRequest(payload)).unwrap();
       if (onSuccess) {
         onSuccess();
       }
-      debugger
       onClose();
     } catch (error) {
       console.error("Error creating return request:", error);
@@ -157,6 +244,25 @@ export const MyReturnsThirdStep: React.FC<MyReturnsThirdStepProps> = ({
       setLoading(false);
     }
   };
+
+  const bottomHintMessage = useMemo(() => {
+    if (selectedReturnMethod === null || selectedRefundMethod === null) {
+      return "Выберите способ возврата и способ возврата денег";
+    }
+    if (returnMethodKind === "address" && !deliveryAddressId) {
+      return "Выберите адрес доставки для возврата";
+    }
+    if (returnMethodKind === "storage" && !storageIdForReturn) {
+      return "Выберите склад для возврата";
+    }
+    return "Выберите способ возврата и способ возврата денег";
+  }, [
+    selectedReturnMethod,
+    selectedRefundMethod,
+    returnMethodKind,
+    deliveryAddressId,
+    storageIdForReturn,
+  ]);
 
   const renderProductItem = ({ item }: { item: typeof selectedProducts[0] }) => {
     const imageSource = item.productImage
@@ -207,9 +313,56 @@ export const MyReturnsThirdStep: React.FC<MyReturnsThirdStepProps> = ({
     );
   };
 
-  const canSubmit = selectedReturnMethod !== null && selectedRefundMethod !== null;
+  const canSubmit =
+    selectedReturnMethod !== null &&
+    selectedRefundMethod !== null &&
+    hasRequiredReturnLocation;
+
+  const showBottomHint =
+    selectedProducts.length > 0 &&
+    (selectedReturnMethod === null ||
+      selectedRefundMethod === null ||
+      !hasRequiredReturnLocation);
+
+  const renderMethodOption = (
+    method: any,
+    selectedId: number | null,
+    onSelect: (m: any) => void
+  ) => {
+    const selected = selectedId === method.method;
+    return (
+      <TouchableOpacity
+        key={method.method}
+        style={styles.methodRow}
+        onPress={() => onSelect(method)}
+        activeOpacity={0.7}
+      >
+        <View
+          style={[
+            styles.radioOuter,
+            selected && styles.radioOuterSelected,
+            isDark && selected && styles.radioOuterSelectedDark,
+          ]}
+        >
+          {selected && <View style={styles.radioInner} />}
+        </View>
+        <ThemedText
+          style={[
+            styles.methodRowText,
+            selected && styles.methodRowTextSelected,
+            isDark && styles.methodRowTextDark,
+          ]}
+          lightColor="#202022"
+          darkColor="#F2F4F7"
+        >
+          {method.name}
+        </ThemedText>
+      </TouchableOpacity>
+    );
+  };
 
   return (
+    <>
     <Modal
       animationType="slide"
       transparent={true}
@@ -239,104 +392,53 @@ export const MyReturnsThirdStep: React.FC<MyReturnsThirdStepProps> = ({
             if (item.id === "methods") {
               return (
                 <View style={styles.methodsContainer}>
-                  {/* Способ возврата */}
-                  <View style={styles.section}>
+                  <ThemedView
+                    darkColor="#151516"
+                    lightColor="#FFFFFF"
+                    style={styles.methodBlock}
+                  >
                     <ThemedText
-                      style={styles.sectionTitle}
+                      style={styles.blockTitle}
                       lightColor="#202022"
                       darkColor="#F2F4F7"
                     >
                       Способ возврата
                     </ThemedText>
-                    <View style={styles.optionsList}>
-                      {returnMethods.map((method: any) => (
-                        <TouchableOpacity
-                          key={method.method}
-                          style={[
-                            styles.optionItem,
-                            selectedReturnMethod === method.method && styles.optionSelected,
-                            isDark && styles.optionDark,
-                          ]}
-                          onPress={() => setSelectedReturnMethod(method.method)}
-                        >
-                          <View style={styles.optionContent}>
-                            <ThemedText
-                              style={[
-                                styles.optionText,
-                                selectedReturnMethod === method.method && styles.optionTextSelected,
-                              ]}
-                              lightColor="#202022"
-                              darkColor="#F2F4F7"
-                            >
-                              {method.name}
-                            </ThemedText>
-                          </View>
-                          <View
-                            style={[
-                              styles.radioOuter,
-                              selectedReturnMethod === method.method && styles.radioOuterSelected,
-                            ]}
-                          >
-                            {selectedReturnMethod === method.method && (
-                              <View style={styles.radioInner} />
-                            )}
-                          </View>
-                        </TouchableOpacity>
-                      ))}
+                    <View style={styles.methodOptionsList}>
+                      {returnMethods.map((method: any) =>
+                        renderMethodOption(
+                          method,
+                          selectedReturnMethod,
+                          handleReturnMethodSelect
+                        )
+                      )}
                     </View>
-                  </View>
+                  </ThemedView>
 
-                  {/* Способ возврата денег */}
-                  <View style={styles.section}>
+                  <ThemedView
+                    darkColor="#151516"
+                    lightColor="#FFFFFF"
+                    style={styles.methodBlock}
+                  >
                     <ThemedText
-                      style={styles.sectionTitle}
+                      style={styles.blockTitle}
                       lightColor="#202022"
                       darkColor="#F2F4F7"
                     >
                       Способ возврата денег
                     </ThemedText>
-                    <View style={styles.optionsList}>
-                      {refundMethods.map((method: any) => (
-                        <TouchableOpacity
-                          key={method.method}
-                          style={[
-                            styles.optionItem,
-                            selectedRefundMethod === method.method && styles.optionSelected,
-                            isDark && styles.optionDark,
-                          ]}
-                          onPress={() => setSelectedRefundMethod(method.method)}
-                        >
-                          <View style={styles.optionContent}>
-                            <ThemedText
-                              style={[
-                                styles.optionText,
-                                selectedRefundMethod === method.method && styles.optionTextSelected,
-                              ]}
-                              lightColor="#202022"
-                              darkColor="#F2F4F7"
-                            >
-                              {method.name}
-                            </ThemedText>
-                          </View>
-                          <View
-                            style={[
-                              styles.radioOuter,
-                              selectedRefundMethod === method.method && styles.radioOuterSelected,
-                            ]}
-                          >
-                            {selectedRefundMethod === method.method && (
-                              <View style={styles.radioInner} />
-                            )}
-                          </View>
-                        </TouchableOpacity>
-                      ))}
+                    <View style={styles.methodOptionsList}>
+                      {refundMethods.map((method: any) =>
+                        renderMethodOption(method, selectedRefundMethod, (m) =>
+                          setSelectedRefundMethod(m.method)
+                        )
+                      )}
                     </View>
-                  </View>
+                  </ThemedView>
 
-                  {/* Товары к возврату */}
-                  <View style={styles.section}>
+                  <View style={styles.productsHeading}>
                     <ThemedText
-                      style={styles.sectionTitle}
+                      style={styles.sectionTitleMuted}
                       lightColor="#202022"
                       darkColor="#F2F4F7"
                     >
@@ -358,7 +460,6 @@ export const MyReturnsThirdStep: React.FC<MyReturnsThirdStepProps> = ({
           }}
         />
 
-        {/* Фиксированная нижняя плашка */}
         {selectedProducts.length > 0 && (
           <ThemedView
             darkColor="#151516"
@@ -388,41 +489,58 @@ export const MyReturnsThirdStep: React.FC<MyReturnsThirdStepProps> = ({
                     : "Товары не выбраны"}
                 </ThemedText>
               </View>
-
-              <TouchableOpacity
-                style={[
-                  styles.bottomButton,
-                  isDark && {
-                    backgroundColor: "#3881EE",
-                  },
-                  (!canSubmit || loading) && styles.buttonDisabled,
-                ]}
-                disabled={!canSubmit || loading}
-                onPress={handleCreateReturn}
-              >
-                {loading ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                ) : (
-                  <ThemedText style={styles.bottomButtonText}>
-                    Создать заявку
-                  </ThemedText>
-                )}
-              </TouchableOpacity>
             </View>
 
-            {!canSubmit && (
+            <TouchableOpacity
+              style={[
+                styles.bottomButton,
+                (!canSubmit || loading) && styles.buttonDisabled,
+              ]}
+              disabled={!canSubmit || loading}
+              onPress={handleCreateReturn}
+            >
+              {loading ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <ThemedText style={styles.bottomButtonText}>
+                  Создать заявку
+                </ThemedText>
+              )}
+            </TouchableOpacity>
+
+            {showBottomHint && (
               <ThemedText
                 lightColor="#80818B"
                 darkColor="#FBFCFF80"
                 style={styles.bottomHintText}
               >
-                Выберите способ возврата и способ возврата денег
+                {bottomHintMessage}
               </ThemedText>
             )}
           </ThemedView>
         )}
       </ThemedView>
     </Modal>
+
+    <AddressSelectionModal
+      visible={visible && showAddressModal}
+      onClose={() => setShowAddressModal(false)}
+      currentCompany={currentCompany}
+      companies={me?.companies || []}
+      selectedCompanyId={currentCompany?.id}
+      selectedAddressId={selectedAddressForReturn?.id}
+      onSelectCompany={handleSelectCompanyForReturn}
+      onSelectAddress={handleSelectAddressForReturn}
+      onAddCompany={handleAddCompanyForReturn}
+    />
+
+    <TownSelectionModal
+      visible={visible && showTownModal}
+      onClose={() => setShowTownModal(false)}
+      storageId={storageIdForReturn || (me as any)?.storageId || ""}
+      onTownSelected={handleTownSelectedForReturn}
+    />
+    </>
   );
 };
 
@@ -435,46 +553,48 @@ const styles = StyleSheet.create({
   },
   methodsContainer: {
     paddingHorizontal: 16,
-    paddingTop: 16,
+    paddingTop: 8,
   },
-  section: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 12,
-  },
-  optionsList: {
-    gap: 8,
-  },
-  optionItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 16,
+  methodBlock: {
     borderRadius: 12,
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#E5E5E5",
+    padding: 16,
+    marginBottom: 8,
   },
-  optionDark: {
-    backgroundColor: "#151516",
-    borderColor: "#252527",
+  blockTitle: {
+    fontSize: 20,
+    fontWeight: "600",
+    marginBottom: 16,
   },
-  optionSelected: {
-    borderColor: "#203686",
-    backgroundColor: "#E1F0FF",
+  methodOptionsList: {
+    gap: 0,
   },
-  optionContent: {
+  methodRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  methodRowText: {
     flex: 1,
-  },
-  optionText: {
     fontSize: 14,
     fontWeight: "500",
+    borderBottomWidth: 1,
+    borderBottomColor: "#F0F0F0",
+    paddingBottom: 10,
+    marginBottom: 10,
   },
-  optionTextSelected: {
+  methodRowTextSelected: {
     color: "#203686",
+  },
+  methodRowTextDark: {
+    borderBottomColor: "#323235",
+  },
+  productsHeading: {
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  sectionTitleMuted: {
+    fontSize: 16,
+    fontWeight: "600",
   },
   radioOuter: {
     width: 24,
@@ -484,26 +604,21 @@ const styles = StyleSheet.create({
     borderColor: "#D8DADE",
     justifyContent: "center",
     alignItems: "center",
-    marginLeft: 12,
+    backgroundColor: "#FBFCFF",
+    marginBottom: 10,
   },
   radioOuterSelected: {
     borderColor: "#203686",
     borderWidth: 5,
   },
-  radioSelected: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: "#203686",
-    justifyContent: "center",
-    alignItems: "center",
+  radioOuterSelectedDark: {
+    borderColor: "#4C94FF",
   },
   radioInner: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: "#203686",
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: "#FFFFFF",
   },
   productsList: {
     paddingHorizontal: 16,
@@ -565,7 +680,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   bottomLeft: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     flex: 1,
+    marginBottom: 16,
   },
   bottomItemsCount: {
     fontSize: 14,
