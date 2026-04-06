@@ -56,7 +56,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const [isImageLoading, setIsImageLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
   const [isLiked, setIsLiked] = useState(isFavorite);
-  const imageLoadTimeoutRef = useRef<NodeJS.Timeout>();
+  const imageLoadTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const dispatch = useAppDispatch();
   const router = useRouter();
@@ -119,20 +119,22 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
   const handleImageLoadStart = useCallback(() => {
     setIsImageLoading(true);
-    setImageError(false);
+    // Не сбрасываем imageError здесь: иначе после 404 снова подставляется тот же uri → бесконечные запросы / мигание.
 
-    // Устанавливаем таймаут на случай, если изображение загружается слишком долго
     if (imageLoadTimeoutRef.current) {
       clearTimeout(imageLoadTimeoutRef.current);
     }
 
     imageLoadTimeoutRef.current = setTimeout(() => {
-      if (isImageLoading) {
-        setIsImageLoading(false);
-        setImageError(true);
-      }
-    }, 10000); // 10 секунд таймаут
-  }, [img, isImageLoading]);
+      setIsImageLoading((loading) => {
+        if (loading) {
+          setImageError(true);
+          return false;
+        }
+        return loading;
+      });
+    }, 10000);
+  }, [img]);
 
   const handleImageLoadEnd = useCallback(() => {
     setIsImageLoading(false);
@@ -191,30 +193,27 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
     // Если это строка с URL
     if (typeof img === "string") {
-      return {
-        uri: img,
-        cache: "force-cache",
-      };
+      return { uri: img };
     }
 
     // Если это уже объект изображения (require)
     return img;
   }, [img, isValidImageUrl]);
 
-  // Проверяем, нужно ли показывать заглушку
   const showPlaceholder =
-    !img || imageError || (typeof img === "string" && !isValidImageUrl(img));
+    !img ||
+    imageError ||
+    (typeof img === "string" && !isValidImageUrl(img));
 
-  // Сбрасываем состояние при изменении img
+  // Только смена img сбрасывает загрузку/ошибку (не showPlaceholder — иначе петля с imageError).
   useEffect(() => {
-    if (showPlaceholder) {
+    setImageError(false);
+    if (!img || (typeof img === "string" && !isValidImageUrl(img as string))) {
       setIsImageLoading(false);
-      setImageError(true);
     } else {
       setIsImageLoading(true);
-      setImageError(false);
     }
-  }, [img, showPlaceholder]);
+  }, [img, isValidImageUrl]);
 
   const stockInfo = productData?.originalProduct?.stocks?.[0]?.stockInfo;
   const isOutOfStock = stockInfo === "Нет в наличии" || false;
@@ -232,6 +231,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           <View style={styles.imageContainer}>
             {/* Всегда показываем изображение, но с правильным источником */}
             <Image
+              key={
+                showPlaceholder || typeof img !== "string"
+                  ? "placeholder-or-local"
+                  : img
+              }
               source={showPlaceholder ? PLACEHOLDER_IMAGE : imageSource}
               style={styles.image}
               resizeMode="cover"

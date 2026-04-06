@@ -8,17 +8,17 @@ import { MyReturnsThirdStep } from "@/features/returns/ReturnsThirdStep";
 import { MyReturnsFirstStep } from "@/features/returns/ReurnsFirstStep";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { Image } from "expo-image";
-import { useFocusEffect } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
 import {
-    ActivityIndicator,
-    Dimensions,
-    FlatList,
-    Modal,
-    StyleSheet,
-    TouchableOpacity,
-    View,
-    useColorScheme,
+  ActivityIndicator,
+  Dimensions,
+  FlatList,
+  Modal,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+  useColorScheme,
 } from "react-native";
 import { PrimaryButton } from "./components/PrimartyButton";
 import ReturnsCard from "./components/ReturnsCard";
@@ -48,6 +48,7 @@ export const MyReturnsModal: React.FC<MyReturnsProps> = ({
   const [visibleThirdStep, setVisibleThirdStep] = useState<boolean>(false)
 
   const dispatch = useAppDispatch();
+  const router = useRouter();
 
   const onCreateReturn = () => {
     setVisibleFirstStep(true)
@@ -61,10 +62,19 @@ export const MyReturnsModal: React.FC<MyReturnsProps> = ({
     onClose();
   };
 
-  const handleSuccess = () => {
+  const handleNavigateHomeFromReturn = useCallback(() => {
     handleCloseAll();
-    dispatch(getMyReturns()); // Обновляем список заявок
-  };
+    dispatch(getMyReturns());
+    router.navigate("/dashboard");
+  }, [dispatch, onClose]);
+
+  const handleViewReturnDetails = useCallback(() => {
+    setVisibleThirdStep(false);
+    setVisibleSecondStep(false);
+    setVisibleFirstStep(false);
+    dispatch(clearReturnRequests());
+    dispatch(getMyReturns());
+  }, [dispatch]);
 
   useFocusEffect(
     useCallback(() => {
@@ -202,7 +212,10 @@ export const MyReturnsModal: React.FC<MyReturnsProps> = ({
           setVisibleSecondStep(false);
           setVisibleFirstStep(true);
         }} 
-        onClose={() => setVisibleSecondStep(false)} 
+        onClose={() => {setVisibleSecondStep(false);
+            setVisibleSecondStep(false);
+
+        }} 
         onNext={() => {
           setVisibleSecondStep(false);
           setVisibleThirdStep(true);
@@ -215,8 +228,12 @@ export const MyReturnsModal: React.FC<MyReturnsProps> = ({
           setVisibleThirdStep(false);
           setVisibleSecondStep(true);
         }} 
-        onClose={() => setVisibleThirdStep(false)}
-        onSuccess={handleSuccess}
+        onClose={() => {setVisibleThirdStep(false);
+                        setVisibleSecondStep(false);
+                          setVisibleSecondStep(false);
+        }}
+        onNavigateHome={handleNavigateHomeFromReturn}
+        onViewReturnDetails={handleViewReturnDetails}
       />
     </>
   );

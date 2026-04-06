@@ -1,22 +1,24 @@
 // MyReturnsThirdStep.tsx
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { ModalHeader } from "@/features/auth/ui/Header";
 import { setCompany } from "@/features/auth/authSlice";
+import { ModalHeader } from "@/features/auth/ui/Header";
 import { AddressSelectionModal } from "@/features/shared/ui/AddressSelectionModal";
+import { PrimaryButton } from "@/features/shared/ui/components/PrimartyButton";
 import { TownSelectionModal } from "@/features/shared/ui/TownSelectionModal";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { Image } from "expo-image";
-import React, { useCallback, useMemo, useState } from "react";
+import { Image as ExpoImage } from "expo-image";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
-    ActivityIndicator,
-    FlatList,
-    Modal,
-    Platform,
-    StyleSheet,
-    TouchableOpacity,
-    View,
-    useColorScheme,
+  ActivityIndicator,
+  FlatList,
+  Image,
+  Modal,
+  Platform,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+  useColorScheme,
 } from "react-native";
 import { createReturnRequest } from "../catalog/catalogSlice";
 import { baseUrl } from "../shared/services/axios";
@@ -37,14 +39,18 @@ interface MyReturnsThirdStepProps {
   visible: boolean;
   onClose: () => void;
   onBack?: () => void;
-  onSuccess?: () => void;
+  /** Закрыть всё и перейти на главную (каталог). */
+  onNavigateHome?: () => void;
+  /** Остаться в возвратах: закрыть шаги мастера, обновить список. */
+  onViewReturnDetails?: () => void;
 }
 
 export const MyReturnsThirdStep: React.FC<MyReturnsThirdStepProps> = ({
   visible,
   onClose,
   onBack,
-  onSuccess,
+  onNavigateHome,
+  onViewReturnDetails,
 }) => {
   const systemTheme = useColorScheme();
   const isDark = systemTheme === "dark";
@@ -64,6 +70,13 @@ export const MyReturnsThirdStep: React.FC<MyReturnsThirdStepProps> = ({
   const [selectedAddressForReturn, setSelectedAddressForReturn] = useState<any | null>(null);
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [showTownModal, setShowTownModal] = useState(false);
+  const [showSuccessContent, setShowSuccessContent] = useState(false);
+
+  useEffect(() => {
+    if (!visible) {
+      setShowSuccessContent(false);
+    }
+  }, [visible]);
 
   // Получаем методы возврата и возврата денег из статусов
   const returnMethods = (returnsStatuses as any)?.returnMethods || [];
@@ -234,10 +247,7 @@ export const MyReturnsThirdStep: React.FC<MyReturnsThirdStepProps> = ({
       }
 
       await dispatch(createReturnRequest(payload)).unwrap();
-      if (onSuccess) {
-        onSuccess();
-      }
-      onClose();
+      setShowSuccessContent(true);
     } catch (error) {
       console.error("Error creating return request:", error);
     } finally {
@@ -275,7 +285,7 @@ export const MyReturnsThirdStep: React.FC<MyReturnsThirdStepProps> = ({
         lightColor="#FFFFFF"
         style={styles.productItem}
       >
-        <Image source={imageSource} style={styles.productImage} contentFit="cover" />
+        <ExpoImage source={imageSource} style={styles.productImage} contentFit="cover" />
         <View style={styles.productInfo}>
           <ThemedText
             style={styles.productName}
@@ -367,7 +377,14 @@ export const MyReturnsThirdStep: React.FC<MyReturnsThirdStepProps> = ({
       animationType="slide"
       transparent={true}
       visible={visible}
-      onRequestClose={onClose}
+      onRequestClose={() => {
+        if (showSuccessContent) {
+          setShowSuccessContent(false);
+          onViewReturnDetails?.();
+        } else {
+          onClose();
+        }
+      }}
       statusBarTranslucent={true}
     >
       <ThemedView
@@ -377,147 +394,202 @@ export const MyReturnsThirdStep: React.FC<MyReturnsThirdStepProps> = ({
       >
         <ModalHeader
           title="Заявка на возврат"
-          subTitle="Шаг 3 из 3"
-          showBackButton={true}
+          subTitle={showSuccessContent ? undefined : "Шаг 3 из 3"}
+          showBackButton={!showSuccessContent}
           showCloseButton={true}
-          onBackPress={onBack}
-        />
-
-        <FlatList
-          data={[{ id: "methods" }, { id: "products" }]}
-          keyExtractor={(item) => item.id}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.listContent}
-          renderItem={({ item }) => {
-            if (item.id === "methods") {
-              return (
-                <View style={styles.methodsContainer}>
-                  <ThemedView
-                    darkColor="#151516"
-                    lightColor="#FFFFFF"
-                    style={styles.methodBlock}
-                  >
-                    <ThemedText
-                      style={styles.blockTitle}
-                      lightColor="#202022"
-                      darkColor="#F2F4F7"
-                    >
-                      Способ возврата
-                    </ThemedText>
-                    <View style={styles.methodOptionsList}>
-                      {returnMethods.map((method: any) =>
-                        renderMethodOption(
-                          method,
-                          selectedReturnMethod,
-                          handleReturnMethodSelect
-                        )
-                      )}
-                    </View>
-                  </ThemedView>
-
-                  <ThemedView
-                    darkColor="#151516"
-                    lightColor="#FFFFFF"
-                    style={styles.methodBlock}
-                  >
-                    <ThemedText
-                      style={styles.blockTitle}
-                      lightColor="#202022"
-                      darkColor="#F2F4F7"
-                    >
-                      Способ возврата денег
-                    </ThemedText>
-                    <View style={styles.methodOptionsList}>
-                      {refundMethods.map((method: any) =>
-                        renderMethodOption(method, selectedRefundMethod, (m) =>
-                          setSelectedRefundMethod(m.method)
-                        )
-                      )}
-                    </View>
-                  </ThemedView>
-
-                  <View style={styles.productsHeading}>
-                    <ThemedText
-                      style={styles.sectionTitleMuted}
-                      lightColor="#202022"
-                      darkColor="#F2F4F7"
-                    >
-                      Товары к возврату ({selectedProducts.length})
-                    </ThemedText>
-                  </View>
-                </View>
-              );
+          onBackPress={() => {
+            if (showSuccessContent) {
+              setShowSuccessContent(false);
+              onViewReturnDetails?.();
+            } else {
+              onBack?.();
             }
-            return (
-              <View style={styles.productsList}>
-                {selectedProducts.map((product) => (
-                  <View key={`${product.orderId}-${product.id}`}>
-                    {renderProductItem({ item: product })}
-                  </View>
-                ))}
-              </View>
-            );
           }}
         />
 
-        {selectedProducts.length > 0 && (
-          <ThemedView
-            darkColor="#151516"
-            lightColor="#FFFFFF"
-            style={styles.bottomPanel}
-          >
-            <View style={styles.bottomPanelContent}>
-              <View style={styles.bottomLeft}>
-                <ThemedText
-                  darkColor="#FBFCFF"
-                  lightColor="#1B1B1C"
-                  style={styles.bottomTotalPrice}
-                >
-                  {formatPrice(totals.totalPrice)} ₽
-                </ThemedText>
-                <ThemedText
-                  lightColor="#80818B"
-                  darkColor="#FBFCFF80"
-                  style={styles.bottomItemsCount}
-                >
-                  {totals.totalItems > 0
-                    ? `${totals.totalItems} ${getDeclension(totals.totalItems, [
-                        "товар",
-                        "товара",
-                        "товаров",
-                      ])}`
-                    : "Товары не выбраны"}
-                </ThemedText>
-              </View>
-            </View>
-
-            <TouchableOpacity
-              style={[
-                styles.bottomButton,
-                (!canSubmit || loading) && styles.buttonDisabled,
-              ]}
-              disabled={!canSubmit || loading}
-              onPress={handleCreateReturn}
+        {showSuccessContent ? (
+          <ThemedView style={styles.successContainer}>
+            <Image
+              source={require("@/assets/icons/png/Icon.png")}
+              resizeMode="contain"
+            />
+            <ThemedText
+              style={styles.successTitle}
+              lightColor="#1B1B1C"
+              darkColor="#FBFCFF"
             >
-              {loading ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
-              ) : (
-                <ThemedText style={styles.bottomButtonText}>
-                  Создать заявку
-                </ThemedText>
-              )}
-            </TouchableOpacity>
+              Заявка на возврат создана
+            </ThemedText>
+            <ThemedText
+              style={styles.successText}
+              lightColor="#80818B"
+              darkColor="#FBFCFF80"
+            >
+              Менеджер проверит заявку и свяжется с вами в течение 2 часов.
+            </ThemedText>
 
-            {showBottomHint && (
-              <ThemedText
-                lightColor="#80818B"
-                darkColor="#FBFCFF80"
-                style={styles.bottomHintText}
-              >
-                {bottomHintMessage}
-              </ThemedText>
-            )}
+            <View style={styles.successButtons}>
+              <PrimaryButton
+                title="Детали возврата"
+                onPress={() => {
+                  setShowSuccessContent(false);
+                  onViewReturnDetails?.();
+                }}
+                variant="third"
+                size="md"
+                style={styles.successButton}
+              />
+              <PrimaryButton
+                title="На главную"
+                onPress={() => {
+                  setShowSuccessContent(false);
+                  onNavigateHome?.();
+                }}
+                variant="primary"
+                size="md"
+                style={styles.successButton}
+              />
+            </View>
           </ThemedView>
+        ) : (
+          <>
+            <FlatList
+              data={[{ id: "methods" }, { id: "products" }]}
+              keyExtractor={(item) => item.id}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.listContent}
+              renderItem={({ item }) => {
+                if (item.id === "methods") {
+                  return (
+                    <View style={styles.methodsContainer}>
+                      <ThemedView
+                        darkColor="#151516"
+                        lightColor="#FFFFFF"
+                        style={styles.methodBlock}
+                      >
+                        <ThemedText
+                          style={styles.blockTitle}
+                          lightColor="#202022"
+                          darkColor="#F2F4F7"
+                        >
+                          Способ возврата
+                        </ThemedText>
+                        <View style={styles.methodOptionsList}>
+                          {returnMethods.map((method: any) =>
+                            renderMethodOption(
+                              method,
+                              selectedReturnMethod,
+                              handleReturnMethodSelect
+                            )
+                          )}
+                        </View>
+                      </ThemedView>
+
+                      <ThemedView
+                        darkColor="#151516"
+                        lightColor="#FFFFFF"
+                        style={styles.methodBlock}
+                      >
+                        <ThemedText
+                          style={styles.blockTitle}
+                          lightColor="#202022"
+                          darkColor="#F2F4F7"
+                        >
+                          Способ возврата денег
+                        </ThemedText>
+                        <View style={styles.methodOptionsList}>
+                          {refundMethods.map((method: any) =>
+                            renderMethodOption(method, selectedRefundMethod, (m) =>
+                              setSelectedRefundMethod(m.method)
+                            )
+                          )}
+                        </View>
+                      </ThemedView>
+
+                      <View style={styles.productsHeading}>
+                        <ThemedText
+                          style={styles.sectionTitleMuted}
+                          lightColor="#202022"
+                          darkColor="#F2F4F7"
+                        >
+                          Товары к возврату ({selectedProducts.length})
+                        </ThemedText>
+                      </View>
+                    </View>
+                  );
+                }
+                return (
+                  <View style={styles.productsList}>
+                    {selectedProducts.map((product) => (
+                      <View key={`${product.orderId}-${product.id}`}>
+                        {renderProductItem({ item: product })}
+                      </View>
+                    ))}
+                  </View>
+                );
+              }}
+            />
+
+            {selectedProducts.length > 0 && (
+              <ThemedView
+                darkColor="#151516"
+                lightColor="#FFFFFF"
+                style={styles.bottomPanel}
+              >
+                <View style={styles.bottomPanelContent}>
+                  <View style={styles.bottomLeft}>
+                    <ThemedText
+                      darkColor="#FBFCFF"
+                      lightColor="#1B1B1C"
+                      style={styles.bottomTotalPrice}
+                    >
+                      {formatPrice(totals.totalPrice)} ₽
+                    </ThemedText>
+                    <ThemedText
+                      lightColor="#80818B"
+                      darkColor="#FBFCFF80"
+                      style={styles.bottomItemsCount}
+                    >
+                      {totals.totalItems > 0
+                        ? `${totals.totalItems} ${getDeclension(totals.totalItems, [
+                            "товар",
+                            "товара",
+                            "товаров",
+                          ])}`
+                        : "Товары не выбраны"}
+                    </ThemedText>
+                  </View>
+                </View>
+
+                <TouchableOpacity
+                  style={[
+                    styles.bottomButton,
+                    (!canSubmit || loading) && styles.buttonDisabled,
+                  ]}
+                  disabled={!canSubmit || loading}
+                  onPress={handleCreateReturn}
+                >
+                  {loading ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <ThemedText style={styles.bottomButtonText}>
+                      Создать заявку
+                    </ThemedText>
+                  )}
+                </TouchableOpacity>
+
+                {showBottomHint && (
+                  <ThemedText
+                    lightColor="#80818B"
+                    darkColor="#FBFCFF80"
+                    style={styles.bottomHintText}
+                  >
+                    {bottomHintMessage}
+                  </ThemedText>
+                )}
+              </ThemedView>
+            )}
+          </>
         )}
       </ThemedView>
     </Modal>
@@ -711,6 +783,35 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlign: "center",
     marginTop: 8,
+  },
+  successContainer: {
+    marginTop: 8,
+    padding: 24,
+    alignItems: "center",
+    borderRadius: 24,
+    flex: 1,
+  },
+  successTitle: {
+    fontSize: 24,
+    fontWeight: "600",
+    marginBottom: 16,
+    marginTop: 24,
+    textAlign: "center",
+  },
+  successText: {
+    fontSize: 16,
+    fontWeight: "500",
+    textAlign: "center",
+    marginBottom: 32,
+    lineHeight: 22,
+  },
+  successButtons: {
+    flexDirection: "row",
+    gap: 12,
+    width: "100%",
+  },
+  successButton: {
+    flex: 1,
   },
   buttonDisabled: {
     opacity: 0.5,

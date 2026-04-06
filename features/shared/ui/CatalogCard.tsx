@@ -4,7 +4,7 @@ import { getProductList } from "@/features/catalog/catalogSlice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { useRouter } from "expo-router";
 
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Dimensions,
@@ -30,6 +30,8 @@ const cardWidth =
   (screenWidth - PADDING_HORIZONTAL * 2 - GAP * (NUM_COLUMNS - 1)) /
   NUM_COLUMNS;
 
+const PLACEHOLDER_IMAGE = require("@/assets/icons/png/noImage.png");
+
 export const CatalogCard: React.FC<CatalogCardProps> = ({
   id,
   img,
@@ -38,6 +40,7 @@ export const CatalogCard: React.FC<CatalogCardProps> = ({
 }) => {
   const [isImageLoading, setIsImageLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
+  const imageLoadTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const router = useRouter();
   const dispatch = useAppDispatch();
   const me = useAppSelector((state) => state.auth.me);
@@ -66,18 +69,76 @@ export const CatalogCard: React.FC<CatalogCardProps> = ({
       );
     }
   };
-  const imageSource = useMemo(() => {
-    if (!img) return require("@/assets/icons/png/noImage.png");
 
-    // Если img - строка, используем как URI
+  useEffect(() => {
+    return () => {
+      if (imageLoadTimeoutRef.current) {
+        clearTimeout(imageLoadTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const isValidImageUrl = useCallback((url: string): boolean => {
+    if (!url || typeof url !== "string") return false;
+    return url.length > 10 && !url.endsWith("/") && url.startsWith("http");
+  }, []);
+
+  const imageSource = useMemo(() => {
+    if (!img || (typeof img === "string" && !isValidImageUrl(img))) {
+      return PLACEHOLDER_IMAGE;
+    }
     if (typeof img === "string") {
       return { uri: img };
     }
-
-    // Если img - объект (например, от require), используем как есть
     return img;
+  }, [img, isValidImageUrl]);
+
+  const showPlaceholder =
+    !img ||
+    imageError ||
+    (typeof img === "string" && !isValidImageUrl(img));
+
+  useEffect(() => {
+    setImageError(false);
+    if (!img || (typeof img === "string" && !isValidImageUrl(img as string))) {
+      setIsImageLoading(false);
+    } else {
+      setIsImageLoading(true);
+    }
+  }, [img, isValidImageUrl]);
+
+  const handleImageLoadStart = useCallback(() => {
+    setIsImageLoading(true);
+    if (imageLoadTimeoutRef.current) {
+      clearTimeout(imageLoadTimeoutRef.current);
+    }
+    imageLoadTimeoutRef.current = setTimeout(() => {
+      setIsImageLoading((loading) => {
+        if (loading) {
+          setImageError(true);
+          return false;
+        }
+        return loading;
+      });
+    }, 10000);
   }, [img]);
-  ///dashboard/${encodeURIComponent(name)}?catalogId=${id}&catalogName=${encodeURIComponent(name)}
+
+  const handleImageLoadEnd = useCallback(() => {
+    setIsImageLoading(false);
+    setImageError(false);
+    if (imageLoadTimeoutRef.current) {
+      clearTimeout(imageLoadTimeoutRef.current);
+    }
+  }, []);
+
+  const handleImageError = useCallback(() => {
+    setIsImageLoading(false);
+    setImageError(true);
+    if (imageLoadTimeoutRef.current) {
+      clearTimeout(imageLoadTimeoutRef.current);
+    }
+  }, [img]);
+
   return (
     // <Link
     //   href={`/dashboard/${encodeURIComponent(name)}?catalogId=${id}&catalogName=${encodeURIComponent(name)}`}
@@ -105,47 +166,31 @@ export const CatalogCard: React.FC<CatalogCardProps> = ({
         </View>
 
         <View style={styles.imageWrapper}>
-          {/* Индикатор загрузки */}
-          {isImageLoading && (
-            <View style={[styles.imageContainer, styles.loadingContainer]}>
-              <ActivityIndicator
-                size="small"
-                color="#CCCCCC"
-                style={styles.loader}
-              />
-            </View>
-          )}
-
-          {/* Сообщение об ошибке */}
-          {imageError && (
-            <View style={[styles.imageContainer, styles.errorContainer]}>
-              <ThemedText style={styles.errorText}>
-                Не удалось загрузить изображение
-              </ThemedText>
-            </View>
-          )}
-
-          {/* Изображение */}
-          {/*  */}
-          {img && !imageError && (
-            <View style={styles.imageContainer}>
-              <Image
-                // source={{ uri: img }}
-                source={imageSource}
-                style={[styles.image, isImageLoading && styles.imageHidden]}
-                resizeMode="cover"
-                onLoadStart={() => {
-                  setIsImageLoading(true);
-                  setImageError(false);
-                }}
-                onLoadEnd={() => setIsImageLoading(false)}
-                onError={() => {
-                  setIsImageLoading(false);
-                  setImageError(true);
-                }}
-              />
-            </View>
-          )}
+          <View style={styles.imageContainer}>
+            <Image
+              key={
+                showPlaceholder || typeof img !== "string"
+                  ? "placeholder-or-local"
+                  : img
+              }
+              source={showPlaceholder ? PLACEHOLDER_IMAGE : imageSource}
+              style={styles.image}
+              resizeMode="cover"
+              onLoadStart={!showPlaceholder ? handleImageLoadStart : undefined}
+              onLoadEnd={!showPlaceholder ? handleImageLoadEnd : undefined}
+              onError={!showPlaceholder ? handleImageError : undefined}
+            />
+            {!showPlaceholder && isImageLoading && (
+              <View
+                style={[
+                  StyleSheet.absoluteFillObject,
+                  styles.loadingOverlay,
+                ]}
+              >
+                <ActivityIndicator size="small" color="#CCCCCC" />
+              </View>
+            )}
+          </View>
         </View>
       </ThemedView>
     </TouchableOpacity>
@@ -205,32 +250,15 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "120%",
     marginTop: 30,
+    position: "relative",
   },
   image: {
     width: "100%",
     height: "100%",
   },
-  imageHidden: {
-    opacity: 0,
-    position: "absolute",
-  },
-  loadingContainer: {
+  loadingOverlay: {
     justifyContent: "center",
     alignItems: "center",
-    // backgroundColor: '#F0F0F0',
-  },
-  errorContainer: {
-    justifyContent: "center",
-    alignItems: "center",
-    // backgroundColor: '#F8D7DA',
-  },
-  errorText: {
-    fontSize: 10,
-    color: "#721C24",
-    textAlign: "center",
-    paddingHorizontal: 4,
-  },
-  loader: {
-    position: "absolute",
+    backgroundColor: "rgba(245, 245, 245, 0.85)",
   },
 });
