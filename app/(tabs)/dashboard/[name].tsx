@@ -18,6 +18,9 @@ import { AddToCartModal } from "@/features/shared/ui/AddToCartModal";
 import { ProductCard } from "@/features/shared/ui/ProductCard";
 import { TownSelectionModal } from "@/features/shared/ui/TownSelectionModal";
 import AnimatedTextInput from "@/features/shared/ui/components/CustomInput";
+import { TemplatePickerBanner } from "@/features/templates/TemplatePickerBanner";
+import { useTemplatePicker } from "@/features/templates/TemplatePickerContext";
+import { buildTemplateLineFromProduct } from "@/features/templates/buildTemplateLine";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -59,6 +62,7 @@ export default function CatalogDetailScreen() {
     : [];
   const cartItems = useAppSelector((state) => state.catalog.cart);
   const me = useAppSelector((state) => state.auth.me);
+  const templatePicker = useTemplatePicker();
 
   // Преобразуем в массив подкатегорий
   const subcategoriesFromProps = parsedChildren.map((child: any) => ({
@@ -353,9 +357,14 @@ export default function CatalogDetailScreen() {
   const handleAddToCartPress = (product: any) => {
     const cartItemsForProduct =
       cartItems?.filter((item: any) => item.productId === product.id) || [];
+    const templateLines = templatePicker.pickingForTemplateId
+      ? templatePicker.getExistingTemplateLinesForProduct(String(product.id))
+      : [];
 
     setSelectedProduct(product);
-    setExistingCartItem(cartItemsForProduct);
+    setExistingCartItem(
+      templatePicker.pickingForTemplateId ? templateLines : cartItemsForProduct,
+    );
     setShowAddToCartModal(true);
   };
 
@@ -364,6 +373,12 @@ export default function CatalogDetailScreen() {
     optionId: string,
     quantity: number,
   ) => {
+    if (templatePicker.pickingForTemplateId && selectedProduct) {
+      void templatePicker.addLineFromProduct(
+        buildTemplateLineFromProduct(selectedProduct, optionId, quantity),
+      );
+      return;
+    }
     console.log("Добавлено в корзину:", {
       productId,
       optionId,
@@ -517,6 +532,7 @@ export default function CatalogDetailScreen() {
           title={catalogName !== "undefined" ? catalogName : "Каталог"}
           showBackButton={true}
           onBackPress={handleBack}
+          // belowTitleRow={<TemplatePickerBanner />}
           content={
             <SearchInput
               value={searchQuery}
@@ -528,7 +544,6 @@ export default function CatalogDetailScreen() {
             />
           }
         />
-
         <View style={styles.mainContainer}>
           <ScrollView
             ref={scrollViewRef}
@@ -538,6 +553,8 @@ export default function CatalogDetailScreen() {
             scrollEventThrottle={100}
             contentContainerStyle={styles.scrollContent}
           >
+        <TemplatePickerBanner />
+            
             <ThemedView
               style={styles.themeContainer}
               lightColor={"#FFFFFF"}
@@ -933,6 +950,9 @@ export default function CatalogDetailScreen() {
           product={selectedProduct}
           onAddToCart={handleAddToCart}
           existingCartItem={existingCartItem}
+          variant={
+            templatePicker.pickingForTemplateId ? "template" : "cart"
+          }
         />
         <Modal
           visible={showSortModal}

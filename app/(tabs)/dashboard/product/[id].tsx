@@ -4,6 +4,9 @@ import { ThemedView } from "@/components/themed-view";
 import { ModalHeader } from "@/features/auth/ui/Header";
 import { AddToCart, getProduct } from "@/features/catalog/catalogSlice"; // Импортируем AddToCart
 import { AutoSlider } from "@/features/home";
+import { buildTemplateLineFromProduct } from "@/features/templates/buildTemplateLine";
+import { TemplatePickerBanner } from "@/features/templates/TemplatePickerBanner";
+import { useTemplatePicker } from "@/features/templates/TemplatePickerContext";
 import { AddToCartModal } from "@/features/shared/ui/AddToCartModal";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { Ionicons } from "@expo/vector-icons";
@@ -61,6 +64,7 @@ export default function ProductDetailScreen() {
   const dispatch = useAppDispatch();
   const product = useAppSelector((state) => state.catalog.product);
   const cartItems = useAppSelector((state) => state.catalog.cart);
+  const templatePicker = useTemplatePicker();
   const selectedPurchaseOption =
     product?.purchaseOptions?.[selectedPurchaseOptionIndex];
   const totalPrice = selectedPurchaseOption
@@ -94,6 +98,31 @@ export default function ProductDetailScreen() {
   };
 
   const handleOpenCartModal = () => {
+    if (templatePicker.pickingForTemplateId && product?.purchaseOptions) {
+      let existingLine: any = null;
+      for (const option of product.purchaseOptions) {
+        const match = templatePicker
+          .getExistingTemplateLinesForProduct(String(productId))
+          .find(
+            (l) =>
+              String(l.productPurchaseOptionId) === String(option.id),
+          );
+        if (match) {
+          existingLine = match;
+          const optionIndex = product.purchaseOptions.findIndex(
+            (opt: any) => String(opt.id) === String(option.id),
+          );
+          if (optionIndex !== -1) {
+            setSelectedPurchaseOptionIndex(optionIndex);
+          }
+          break;
+        }
+      }
+      setExistingCartItem(existingLine ? [existingLine] : null);
+      setIsCartModalVisible(true);
+      return;
+    }
+
     // Ищем товар в корзине по ВСЕМ опциям, а не только первой
     let existingItem = null;
 
@@ -127,6 +156,13 @@ export default function ProductDetailScreen() {
     optionId: string,
     quantity: number,
   ) => {
+    if (templatePicker.pickingForTemplateId && product) {
+      void templatePicker.addLineFromProduct(
+        buildTemplateLineFromProduct(product, optionId, quantity),
+      );
+      setIsCartModalVisible(false);
+      return;
+    }
     console.log("Add to cart:", { productId, optionId, quantity });
     // ИСПРАВЛЕНО: Добавляем dispatch
     dispatch(
@@ -190,10 +226,24 @@ export default function ProductDetailScreen() {
     );
   }, [cartItems, product]);
 
+  const templateLinesForProduct = useMemo(() => {
+    if (!templatePicker.pickingForTemplateId || !product?.id) return [];
+    return templatePicker.getExistingTemplateLinesForProduct(String(product.id));
+  }, [
+    templatePicker.pickingForTemplateId,
+    templatePicker.liveTemplateItems,
+    product?.id,
+    templatePicker.getExistingTemplateLinesForProduct,
+  ]);
+
+  const linesForBottomBar = templatePicker.pickingForTemplateId
+    ? templateLinesForProduct
+    : cartItemsForProduct;
+
   const totalCartQuantity = useMemo(() => {
-    if (!cartItemsForProduct.length) return null;
-    return cartItemsForProduct.reduce((sum, item) => sum + item.quantity, 0);
-  }, [cartItemsForProduct]);
+    if (!linesForBottomBar.length) return null;
+    return linesForBottomBar.reduce((sum, item) => sum + item.quantity, 0);
+  }, [linesForBottomBar]);
   console.log("product?.images", product?.images);
   return (
     <SafeAreaProvider>
@@ -208,6 +258,7 @@ export default function ProductDetailScreen() {
           isProduct={true}
           productId={productId}
           isFavorite={product?.isFavorite}
+          belowTitleRow={<TemplatePickerBanner />}
         />
 
         <View style={styles.mainContainer}>
@@ -509,8 +560,12 @@ export default function ProductDetailScreen() {
             >
               <View style={styles.addToCartContent}>
                 <View style={styles.cartIconContainer}>
-                  <Ionicons name="cart-outline" size={24} color="#FFFFFF" />
-                  {totalCartQuantity > 0 && (
+                  {templatePicker.pickingForTemplateId ? (
+                    <ThemedText style={styles.templatePlusIcon}>+</ThemedText>
+                  ) : (
+                    <Ionicons name="cart-outline" size={24} color="#FFFFFF" />
+                  )}
+                  {totalCartQuantity != null && totalCartQuantity > 0 && (
                     <View style={styles.cartBadge}>
                       <ThemedText style={styles.cartBadgeText}>
                         {totalCartQuantity > 10 ? "10+" : totalCartQuantity}
@@ -519,9 +574,13 @@ export default function ProductDetailScreen() {
                   )}
                 </View>
                 <ThemedText style={styles.addToCartText}>
-                  {cartItemsForProduct.length > 0
-                    ? `${cartItemsForProduct.length} товар(а) в корзине`
-                    : "Добавить в корзину"}
+                  {templatePicker.pickingForTemplateId
+                    ? linesForBottomBar.length > 0
+                      ? `${linesForBottomBar.length} поз. в шаблоне`
+                      : "Добавить в шаблон"
+                    : cartItemsForProduct.length > 0
+                      ? `${cartItemsForProduct.length} товар(а) в корзине`
+                      : "Добавить в корзину"}
                 </ThemedText>
               </View>
             </TouchableOpacity>
@@ -537,6 +596,9 @@ export default function ProductDetailScreen() {
             product={product}
             onAddToCart={handleAddToCart}
             existingCartItem={existingCartItem}
+            variant={
+              templatePicker.pickingForTemplateId ? "template" : "cart"
+            }
           />
         </View>
       </ThemedView>
@@ -741,6 +803,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 12,
     paddingBottom: Platform.OS === "ios" ? 34 : 20,
+  },
+  templatePlusIcon: {
+    fontSize: 28,
+    fontWeight: "700",
+    color: "#FFFFFF",
+    lineHeight: 30,
   },
   addToCartButton: {
     backgroundColor: "#203686",

@@ -2,13 +2,29 @@ import { ThemedView } from "@/components/themed-view";
 import SearchInput from "@/features/auth/ui/components/SearchInput";
 import { SearchScreenWithHistory } from "@/features/home/ui/screens/SearchScreenWithHistory";
 import { CatalogCard } from "@/features/shared/ui/CatalogCard";
+import { TemplatePickerBanner } from "@/features/templates/TemplatePickerBanner";
+import { useTemplatePicker } from "@/features/templates/TemplatePickerContext";
 import { useAppSelector } from "@/store/hooks";
-import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import React, { useCallback, useState } from "react";
 import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 
 export const CatalogScreen = () => {
   const [showSearch, setShowSearch] = useState(false);
+  const {
+    openSearchAfterNavigate,
+    consumeOpenSearchFlag,
+    pickingForTemplateId,
+  } = useTemplatePicker();
+
+  useFocusEffect(
+    useCallback(() => {
+      if (openSearchAfterNavigate && pickingForTemplateId) {
+        setShowSearch(true);
+        consumeOpenSearchFlag();
+      }
+    }, [openSearchAfterNavigate, pickingForTemplateId, consumeOpenSearchFlag]),
+  );
 
   const handleButtonPress = () => {
     console.log("Button pressed!");
@@ -117,7 +133,6 @@ export const CatalogScreen = () => {
   return (
     <>
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-        {/* <SafeAreaView> */}
         <ThemedView lightColor={"#FFFFFF"} style={styles.container}>
           <TouchableOpacity onPress={handleSearchPress} activeOpacity={1}>
             <View pointerEvents="none">
@@ -129,7 +144,7 @@ export const CatalogScreen = () => {
             </View>
           </TouchableOpacity>
         </ThemedView>
-        {/* <ThemedView lightColor={'#FFFFFF'} style={styles.container}> */}
+        <TemplatePickerBanner />
         <View style={styles.catalog}>
           {catalog.map((item) => (
             <CatalogCard

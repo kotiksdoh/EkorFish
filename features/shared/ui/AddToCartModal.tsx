@@ -45,6 +45,8 @@ interface AddToCartModalProps {
   product: Product | null;
   onAddToCart: (productId: string, optionId: string, quantity: number) => void;
   existingCartItem?: any[];
+  /** Режим добавления в шаблон заказа вместо корзины */
+  variant?: "cart" | "template";
 }
 
 // Маппинг иконок по кодам
@@ -79,6 +81,7 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
   product,
   onAddToCart,
   existingCartItem,
+  variant = "cart",
 }) => {
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === "dark";
@@ -213,16 +216,18 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
   }, [quantity, selectedOption]);
 
   const handleAddToCart = useCallback(async () => {
-    const token = await AsyncStorage.getItem("token");
-    if (!token) {
-      console.log("No token found - skipping favorites loading");
-      return;
+    if (variant === "cart") {
+      const token = await AsyncStorage.getItem("token");
+      if (!token) {
+        console.log("No token found - skipping favorites loading");
+        return;
+      }
     }
     if (product && selectedOption) {
       onAddToCart(product.id, selectedOption.id, quantity);
       closeModal();
     }
-  }, [product, selectedOption, quantity, onAddToCart, closeModal]);
+  }, [product, selectedOption, quantity, onAddToCart, closeModal, variant]);
 
   if (!product || !visible) return null;
 
@@ -370,7 +375,9 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
             onPress={handleAddToCart}
           >
             <ThemedText style={styles.addToCartButtonText}>
-              Добавить в корзину
+              {variant === "template"
+                ? "Добавить в шаблон"
+                : "Добавить в корзину"}
             </ThemedText>
           </TouchableOpacity>
 

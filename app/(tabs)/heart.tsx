@@ -12,6 +12,9 @@ import {
   getProductList,
   toggleFilterSelection,
 } from "@/features/catalog/catalogSlice";
+import { buildTemplateLineFromProduct } from "@/features/templates/buildTemplateLine";
+import { TemplatePickerBanner } from "@/features/templates/TemplatePickerBanner";
+import { useTemplatePicker } from "@/features/templates/TemplatePickerContext";
 import { AddToCartModal } from "@/features/shared/ui/AddToCartModal";
 import { ProductCard } from "@/features/shared/ui/ProductCard";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -81,6 +84,7 @@ export default function HeartScreen() {
   );
   
   const dispatch = useAppDispatch();
+  const templatePicker = useTemplatePicker();
   const searchInputRef = useRef<TextInput>(null);
   const router = useRouter();
   const scrollViewRef = useRef<ScrollView>(null);
@@ -91,9 +95,14 @@ export default function HeartScreen() {
   const handleAddToCartPress = (product: any) => {
     const cartItemsForProduct =
       cartItems?.filter((item: any) => item.productId === product.id) || [];
+    const templateLines = templatePicker.pickingForTemplateId
+      ? templatePicker.getExistingTemplateLinesForProduct(String(product.id))
+      : [];
 
     setSelectedProduct(product);
-    setExistingCartItem(cartItemsForProduct);
+    setExistingCartItem(
+      templatePicker.pickingForTemplateId ? templateLines : cartItemsForProduct,
+    );
     setShowAddToCartModal(true);
   };
 
@@ -102,6 +111,12 @@ export default function HeartScreen() {
     optionId: string,
     quantity: number,
   ) => {
+    if (templatePicker.pickingForTemplateId && selectedProduct) {
+      void templatePicker.addLineFromProduct(
+        buildTemplateLineFromProduct(selectedProduct, optionId, quantity),
+      );
+      return;
+    }
     console.log("Добавлено в корзину:", {
       productId,
       optionId,
@@ -514,6 +529,7 @@ export default function HeartScreen() {
       >
         <ModalHeader
           showBackButton={false}
+          belowTitleRow={<TemplatePickerBanner />}
           content={
             <SearchInput
               value={searchQuery}
@@ -837,6 +853,9 @@ export default function HeartScreen() {
           product={selectedProduct}
           onAddToCart={handleAddToCart}
           existingCartItem={existingCartItem}
+          variant={
+            templatePicker.pickingForTemplateId ? "template" : "cart"
+          }
         />
       </ThemedView>
     </SafeAreaProvider>

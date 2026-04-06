@@ -76,7 +76,13 @@ import {
       if (statusCode) {
         notificationText = `Код ошибки: ${statusCode}. ${errorMessage}`;
       }
-      Toast.error(notificationText)
+      Toast.show({
+        type: "error",
+        text1: notificationText,
+        position: "bottom",
+        useModal: false,
+        visibilityTime: 4500,
+      });
       // Открываем уведомление
     //   openNotification({
     //     type: "error",
@@ -85,7 +91,13 @@ import {
       
     } catch (error) {
       console.error('Error in axiosErrorHandler:', error);
-      Toast.error('Произошла непредвиденная ошибка')
+      Toast.show({
+        type: "error",
+        text1: "Произошла непредвиденная ошибка",
+        position: "bottom",
+        useModal: false,
+        visibilityTime: 4500,
+      });
       
       // Фолбэк на случай ошибки в обработчике ошибок
     //   openNotification({

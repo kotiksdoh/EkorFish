@@ -3,7 +3,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { Image, Platform, ScrollView, StyleSheet, TouchableOpacity, View, useColorScheme } from "react-native";
 
-import { ArrowIconRight, BoxIcon, ExitIcon, IconGeo, MenuRefreshIcon, PencilIcon } from "@/assets/icons/icons";
+import { ArrowIconRight, BoxIcon, ExitIcon, IconDocument, IconGeo, MenuRefreshIcon, PencilIcon } from "@/assets/icons/icons";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Fonts } from "@/constants/theme";
@@ -17,6 +17,8 @@ import { ProfileEditModal } from "@/features/shared/ui/ProfileEditModal";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { MyReturnsModal } from "@/features/shared/ui/MyReturns";
+import { MyTemplatesModal } from "@/features/templates/MyTemplatesModal";
+import { useTemplatePicker } from "@/features/templates/TemplatePickerContext";
 
 export default function TabTwoScreen() {
   const colorScheme = useColorScheme();
@@ -28,7 +30,9 @@ export default function TabTwoScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [myOrderModalVisible, setMyOrderModalVisible] = useState(false);
-  const [returnsModalVisible, setReturnsModalVisible] = useState(false)
+  const [returnsModalVisible, setReturnsModalVisible] = useState(false);
+  const [templatesModalVisible, setTemplatesModalVisible] = useState(false);
+  const { resumeDetailTemplateId } = useTemplatePicker();
   const [profileData, setProfileData] = useState({
     name: '',
     surname: '',
@@ -149,6 +153,14 @@ export default function TabTwoScreen() {
       };
       checkTokenAndLoad();
     }, []),
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      if (resumeDetailTemplateId) {
+        setTemplatesModalVisible(true);
+      }
+    }, [resumeDetailTemplateId]),
   );
 
   const handleLogout = async () => {
@@ -312,6 +324,31 @@ export default function TabTwoScreen() {
               </View>
             </TouchableOpacity>
 
+            <TouchableOpacity style={styles.infoRow} onPress={() => setTemplatesModalVisible(true)}>
+              <ThemedView
+                lightColor="#F2F4F7"
+                darkColor="#202022"
+                style={styles.iconPlaceholder}
+              >
+                <IconDocument width={22} height={22} color={isDarkMode ? "#FBFCFF" : "#1B1B1C"} />
+              </ThemedView>
+              <View
+                style={[
+                  styles.infoContent,
+                  isDarkMode && {
+                    borderColor: "#252527",
+                  },
+                ]}
+              >
+                <ThemedText lightColor="#1B1B1C" style={styles.infoLabel}>
+                  Шаблоны
+                </ThemedText>
+                <View style={styles.infoValueContainer}>
+                  <ArrowIconRight />
+                </View>
+              </View>
+            </TouchableOpacity>
+
             <TouchableOpacity style={styles.infoRow} onPress={handleLogout}>
               <ThemedView
                 lightColor="#F2F4F7"
@@ -372,6 +409,11 @@ export default function TabTwoScreen() {
       <MyReturnsModal
           visible={returnsModalVisible}
           onClose={() => setReturnsModalVisible(false)}
+      />
+
+      <MyTemplatesModal
+        visible={templatesModalVisible}
+        onClose={() => setTemplatesModalVisible(false)}
       />
     </>
   );

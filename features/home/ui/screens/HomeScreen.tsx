@@ -17,6 +17,9 @@ import { HomeHeader } from "../components/HomeHeader";
 import SpecialOffers from "../components/SpecialOffers/SpecialOffers";
 // import { SearchScreenWithHistory } from '@/features/search/ui/SearchScreenWithHistory';
 import { AddToCart } from "@/features/catalog/catalogSlice";
+import { buildTemplateLineFromProduct } from "@/features/templates/buildTemplateLine";
+import { TemplatePickerBanner } from "@/features/templates/TemplatePickerBanner";
+import { useTemplatePicker } from "@/features/templates/TemplatePickerContext";
 import { AddToCartModal } from "@/features/shared/ui/AddToCartModal";
 import ManagerSection from "@/features/shared/ui/ManagerSection";
 import { useRouter } from "expo-router";
@@ -69,6 +72,7 @@ export const HomeScreen = ({
   const orders = useAppSelector((state) => state.catalog.orders);
 
   const currentCompany = useAppSelector((state) => state.auth.currentCompany);
+  const templatePicker = useTemplatePicker();
 
   const handleSearchPress = () => {
     setShowSearch(true);
@@ -89,9 +93,14 @@ export const HomeScreen = ({
   const handleAddToCartPress = (product: any) => {
     const cartItemsForProduct =
       cartItems?.filter((item: any) => item.productId === product.id) || [];
+    const templateLines = templatePicker.pickingForTemplateId
+      ? templatePicker.getExistingTemplateLinesForProduct(String(product.id))
+      : [];
 
     setSelectedProduct(product);
-    setExistingCartItem(cartItemsForProduct);
+    setExistingCartItem(
+      templatePicker.pickingForTemplateId ? templateLines : cartItemsForProduct,
+    );
     setShowAddToCartModal(true);
   };
 
@@ -100,6 +109,12 @@ export const HomeScreen = ({
     optionId: string,
     quantity: number,
   ) => {
+    if (templatePicker.pickingForTemplateId && selectedProduct) {
+      void templatePicker.addLineFromProduct(
+        buildTemplateLineFromProduct(selectedProduct, optionId, quantity),
+      );
+      return;
+    }
     console.log("Добавлено в корзину:", {
       productId,
       optionId,
@@ -122,6 +137,7 @@ export const HomeScreen = ({
           transparent={true}
           onLoginPress={handleLoginPress}
         />
+        <TemplatePickerBanner />
 
         {/* Слайдер */}
         <ThemedView lightColor={"#FFFFFF"} style={styles.container}>
@@ -177,6 +193,9 @@ export const HomeScreen = ({
           product={selectedProduct}
           onAddToCart={handleAddToCart}
           existingCartItem={existingCartItem}
+          variant={
+            templatePicker.pickingForTemplateId ? "template" : "cart"
+          }
         />
     </>
   );

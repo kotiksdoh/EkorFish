@@ -2,6 +2,7 @@ import { Tabs } from 'expo-router';
 import React, { useEffect } from 'react';
 import '../../global.css';
 
+import { TemplatePickerProvider } from '@/features/templates/TemplatePickerContext';
 import { HapticTab } from '@/components/haptic-tab';
 import { SvgIcon } from '@/components/ui/custom-icon';
 import { Colors } from '@/constants/theme';
@@ -18,6 +19,7 @@ export default function TabLayout() {
   }, [cart])
 
   return (
+    <TemplatePickerProvider>
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
@@ -104,6 +106,7 @@ export default function TabLayout() {
         }}
       />
     </Tabs>
+    </TemplatePickerProvider>
   );
 }
 

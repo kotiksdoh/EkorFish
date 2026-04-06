@@ -1,4 +1,5 @@
 import { CartIcon, LikeIcon, SnowflakeIcon } from "@/assets/icons/icons.js";
+import { useTemplatePicker } from "@/features/templates/TemplatePickerContext";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { LoginModal } from "@/features/auth/ui/components/LoginModal";
@@ -61,6 +62,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const dispatch = useAppDispatch();
   const router = useRouter();
   const cartItems = useAppSelector((state) => state.catalog.cart);
+  const { pickingForTemplateId, getExistingTemplateLinesForProduct, liveTemplateItems } =
+    useTemplatePicker();
+  const isTemplatePick = !!pickingForTemplateId;
 
   const cartItem = useMemo(() => {
     if (!productData?.purchaseOptions?.[0]?.id) return null;
@@ -168,6 +172,26 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     if (total > 10) return "10+";
     return total.toString();
   }, [cartItemsForProduct]);
+
+  const templateLinesForProduct = useMemo(() => {
+    if (!isTemplatePick || !productData?.id) return [];
+    return getExistingTemplateLinesForProduct(String(productData.id));
+  }, [
+    isTemplatePick,
+    productData?.id,
+    getExistingTemplateLinesForProduct,
+    liveTemplateItems,
+  ]);
+
+  const totalTemplateQuantity = useMemo(() => {
+    if (!templateLinesForProduct.length) return null;
+    const total = templateLinesForProduct.reduce(
+      (sum, item) => sum + item.quantity,
+      0,
+    );
+    if (total > 10) return "10+";
+    return total.toString();
+  }, [templateLinesForProduct]);
 
   const toProductDetail = () => {
     if (!isDis) {
@@ -331,20 +355,37 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 </ThemedText>
               </View>
 
-              {totalCartQuantity && (
+              {(isTemplatePick ? totalTemplateQuantity : totalCartQuantity) ? (
                 <View style={styles.cartBadge}>
                   <ThemedText style={styles.cartBadgeText}>
-                    {totalCartQuantity}
+                    {isTemplatePick
+                      ? totalTemplateQuantity
+                      : totalCartQuantity}
                   </ThemedText>
                 </View>
-              )}
+              ) : null}
 
               <TouchableOpacity
-                style={[styles.cartButton, cartItem && styles.cartButtonActive]}
+                style={[
+                  styles.cartButton,
+                  (isTemplatePick
+                    ? !!totalTemplateQuantity
+                    : !!cartItem) && styles.cartButtonActive,
+                ]}
                 onPress={handleCartPress}
                 activeOpacity={0.7}
               >
-                <CartIcon />
+                {isTemplatePick ? (
+                  <ThemedText
+                    lightColor="#203686"
+                    darkColor="#4C94FF"
+                    style={styles.plusGlyph}
+                  >
+                    +
+                  </ThemedText>
+                ) : (
+                  <CartIcon />
+                )}
               </TouchableOpacity>
             </View>
           </View>
@@ -499,6 +540,11 @@ const styles = StyleSheet.create({
     lineHeight: 14.4,
     letterSpacing: -0.02,
     fontVariant: ["lining-nums", "proportional-nums"],
+  },
+  plusGlyph: {
+    fontSize: 22,
+    fontWeight: "700",
+    lineHeight: 24,
   },
   cartButton: {
     width: 40,

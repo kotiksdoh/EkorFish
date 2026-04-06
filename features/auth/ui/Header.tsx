@@ -13,7 +13,7 @@ import { useAppDispatch } from "@/store/hooks";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Linking from "expo-linking";
 import { useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { ReactNode, useEffect, useState } from "react";
 import {
   Share,
   StyleSheet,
@@ -32,6 +32,10 @@ interface ModalHeaderProps {
   isProduct?: boolean;
   productId?: string;
   isFavorite?: boolean;
+  /** Произвольная кнопка справа (например, карандаш редактирования) */
+  headerRight?: ReactNode;
+  /** Контент под строкой заголовка, но над `content` (например баннер режима шаблона) */
+  belowTitleRow?: ReactNode;
 }
 
 export const ModalHeader: React.FC<ModalHeaderProps> = ({
@@ -44,6 +48,8 @@ export const ModalHeader: React.FC<ModalHeaderProps> = ({
   isProduct = false,
   productId,
   isFavorite: initialIsFavorite,
+  headerRight,
+  belowTitleRow,
 }) => {
   const colorScheme = useColorScheme();
   //TODO
@@ -129,6 +135,12 @@ export const ModalHeader: React.FC<ModalHeaderProps> = ({
   console.log("showCloseButton", showCloseButton);
   console.log("isProduct", isProduct);
   console.log("!showCloseButton || !isProduct", !showCloseButton || !isProduct);
+  const showHeaderTitleRow = !!(
+    title ||
+    showBackButton ||
+    showCloseButton ||
+    isProduct
+  );
   return (
     <>
       <ThemedView
@@ -136,7 +148,7 @@ export const ModalHeader: React.FC<ModalHeaderProps> = ({
         darkColor="#151516"
         style={headerStyles.allCont}
       >
-        {title || showBackButton || showCloseButton || isProduct ? (
+        {showHeaderTitleRow ? (
           <ThemedView
             lightColor={"#FFFFFF"}
             darkColor="#151516"
@@ -158,14 +170,16 @@ export const ModalHeader: React.FC<ModalHeaderProps> = ({
             >
               {truncateTitle(title)}
             </ThemedText>
-            <ThemedText
-              style={headerStyles.subTitle}
-              lightColor={"#80818B"}
-              darkColor={"#FBFCFF80"}
-              numberOfLines={1}
-            >
-              {subTitle}
-            </ThemedText>
+            {subTitle ? (
+              <ThemedText
+                style={headerStyles.subTitle}
+                lightColor={"#80818B"}
+                darkColor={"#FBFCFF80"}
+                numberOfLines={1}
+              >
+                {subTitle}
+              </ThemedText>
+            ) : null}
             {isProduct && (
               <TouchableOpacity
                 style={headerStyles.likeIcon}
@@ -210,7 +224,23 @@ export const ModalHeader: React.FC<ModalHeaderProps> = ({
                 <CloseIcon />
               </TouchableOpacity>
             )}
+            {headerRight ? (
+              <View style={headerStyles.headerRight}>{headerRight}</View>
+            ) : null}
+            {belowTitleRow ? (
+              <View
+                style={[
+                  headerStyles.belowTitleSlot,
+                  headerStyles.belowTitleBleed,
+                ]}
+              >
+                {belowTitleRow}
+              </View>
+            ) : null}
           </ThemedView>
+        ) : null}
+        {belowTitleRow && !showHeaderTitleRow ? (
+          <View style={headerStyles.belowTitleSlot}>{belowTitleRow}</View>
         ) : null}
         {!showCloseButton || isProduct ? (
           <View
@@ -307,6 +337,23 @@ const headerStyles = StyleSheet.create({
     height: 40,
     justifyContent: "center",
     alignItems: "center",
+  },
+  headerRight: {
+    position: "absolute",
+    right: 20,
+    bottom: 10,
+    minWidth: 40,
+    minHeight: 40,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  belowTitleSlot: {
+    width: "100%",
+    alignSelf: "stretch",
+  },
+  /** Компенсирует paddingHorizontal у container, чтобы баннер был на всю ширину шапки */
+  belowTitleBleed: {
+    marginHorizontal: -20,
   },
   backButtonText: {
     fontSize: 32,
