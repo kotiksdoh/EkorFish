@@ -6,6 +6,7 @@ import { clearReturnRequests, getMyReturns, getMyReturnsParams } from "@/feature
 import { MyReturnsSecondStep } from "@/features/returns/ReturnsSecondStep";
 import { MyReturnsThirdStep } from "@/features/returns/ReturnsThirdStep";
 import { MyReturnsFirstStep } from "@/features/returns/ReurnsFirstStep";
+import { ReturnDetailModal } from "@/features/shared/ui/ReturnDetailModal";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { Image } from "expo-image";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -46,6 +47,8 @@ export const MyReturnsModal: React.FC<MyReturnsProps> = ({
   const [visibleFirstStep, setVisibleFirstStep] = useState<boolean>(false)
   const [visibleSecondStep, setVisibleSecondStep] = useState<boolean>(false)
   const [visibleThirdStep, setVisibleThirdStep] = useState<boolean>(false)
+  const [visibleReturnDetail, setVisibleReturnDetail] = useState<boolean>(false)
+  const [selectedReturnId, setSelectedReturnId] = useState<number | null>(null)
 
   const dispatch = useAppDispatch();
   const router = useRouter();
@@ -141,7 +144,18 @@ export const MyReturnsModal: React.FC<MyReturnsProps> = ({
       data={returns}
       keyExtractor={(item) => item.id.toString()}
       showsVerticalScrollIndicator={false}
-      renderItem={({ item }) => <ReturnsCard returns={item} fullWidth={true} statuses={returnsStatuses} currentCompany={currentCompany}/>}
+      renderItem={({ item }) => (
+        <ReturnsCard
+          returns={item}
+          fullWidth={true}
+          statuses={returnsStatuses}
+          currentCompany={currentCompany}
+          onPress={() => {
+            setSelectedReturnId(item.id);
+            setVisibleReturnDetail(true);
+          }}
+        />
+      )}
       contentContainerStyle={styles.returnsList}
       ListEmptyComponent={!loading ? renderEmptyState : null}
     />
@@ -234,6 +248,12 @@ export const MyReturnsModal: React.FC<MyReturnsProps> = ({
         }}
         onNavigateHome={handleNavigateHomeFromReturn}
         onViewReturnDetails={handleViewReturnDetails}
+      />
+
+      <ReturnDetailModal
+        visible={visibleReturnDetail}
+        onClose={() => setVisibleReturnDetail(false)}
+        returnRequestId={selectedReturnId}
       />
     </>
   );

@@ -44,6 +44,37 @@ interface ReturnRequest {
         comment: string;
       }>;
 }
+
+interface ReturnRequestDetailItem {
+  id: string;
+  orderProductId: string;
+  productName: string;
+  productImage?: string;
+  returnQuantity: number;
+  measureType: string;
+  unitPrice: number;
+  reason: number;
+  comment: string;
+}
+
+interface ReturnRequestDetailOrder {
+  orderId: number;
+  orderCreatedAt: string;
+  items: ReturnRequestDetailItem[];
+}
+
+interface ReturnRequestDetail {
+  id: number;
+  createdAt: string;
+  status: number;
+  refundMethod: number;
+  returnMethod: number;
+  deliveryAddress?: string | null;
+  storageName?: string | null;
+  orders: ReturnRequestDetailOrder[];
+  totalAmount: number;
+  totalWeight: number;
+}
 interface CategoryState {
   isLoading: boolean;
   isLoadingMore: boolean;
@@ -66,8 +97,9 @@ interface CategoryState {
   order: any;
 
   returns: any[];
-  return: any;
+  return: ReturnRequestDetail | null;
   isLoadingReturns: boolean;
+  isLoadingReturnDetail: boolean;
   returnsStatuses: any[]
   returnableOrders: any[],
   returnableOrdersLoading: boolean,
@@ -113,6 +145,7 @@ const initialState: CategoryState = {
   returns: [],
   return: null,
   isLoadingReturns: false,
+  isLoadingReturnDetail: false,
 
   addresses: [],
   recipients: [],
@@ -399,6 +432,21 @@ export const getMyReturns = createAsyncThunk(
     try {
       const response = await axdef.get("/api/ReturnRequest/my-requests");
       return response.data.data;
+    } catch (error: any) {
+      if (error.response?.status !== 401) {
+        return rejectWithValue(error);
+      }
+      throw error;
+    }
+  },
+);
+
+export const getReturnRequestDetail = createAsyncThunk(
+  "catalog/getReturnRequestDetail",
+  async (returnRequestId: number | string, { rejectWithValue }) => {
+    try {
+      const response = await axdef.get(`/api/ReturnRequest/${returnRequestId}`);
+      return response.data.data as ReturnRequestDetail;
     } catch (error: any) {
       if (error.response?.status !== 401) {
         return rejectWithValue(error);
@@ -1031,6 +1079,21 @@ const catalogSlice = createSlice({
 
     builder.addCase(getMyReturns.rejected, (state, action) => {
       state.isLoadingReturns = false;
+      axiosErrorHandler(action?.payload);
+    });
+
+    builder.addCase(getReturnRequestDetail.pending, (state) => {
+      state.isLoadingReturnDetail = true;
+      state.return = null;
+    });
+
+    builder.addCase(getReturnRequestDetail.fulfilled, (state, action) => {
+      state.return = action.payload || null;
+      state.isLoadingReturnDetail = false;
+    });
+
+    builder.addCase(getReturnRequestDetail.rejected, (state, action) => {
+      state.isLoadingReturnDetail = false;
       axiosErrorHandler(action?.payload);
     });
 

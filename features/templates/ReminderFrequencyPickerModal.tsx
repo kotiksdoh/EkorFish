@@ -1,114 +1,76 @@
 import { ThemedText } from "@/components/themed-text";
-import { ThemedView } from "@/components/themed-view";
 import { CustomCheckbox } from "@/features/shared/ui/components/CustomCheckBox";
+import { SnapBottomSheet } from "@/features/shared/ui/SnapBottomSheet";
 import React from "react";
 import {
-  Modal,
-  Pressable,
   StyleSheet,
   TouchableOpacity,
   View,
 } from "react-native";
 
-import type { ReminderFrequency } from "./types";
-import { REMINDER_LABELS } from "./types";
-
-const OPTIONS: ReminderFrequency[] = ["daily", "weekly", "monthly", "off"];
+export type ReminderFrequencyOption = { frequency: number; name: string };
 
 type Props = {
   visible: boolean;
-  value: ReminderFrequency;
+  options: ReminderFrequencyOption[];
+  value: number | null;
   onClose: () => void;
-  onSelect: (v: ReminderFrequency) => void;
+  onSelect: (v: number) => void;
 };
 
 export function ReminderFrequencyPickerModal({
   visible,
   value,
+  options,
   onClose,
   onSelect,
 }: Props) {
   return (
-    <Modal
+    <SnapBottomSheet
       visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onClose}
-      statusBarTranslucent
+      title="Частота напоминаний"
+      titleAlign="left"
+      onClose={onClose}
     >
-      <View style={styles.backdrop}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
-        <ThemedView
-          style={styles.sheet}
-          lightColor="#FFFFFF"
-          darkColor="#151516"
-        >
-          <ThemedText
-            style={styles.title}
-            lightColor="#1B1B1C"
-            darkColor="#FBFCFF"
-          >
-            Частота напоминаний
-          </ThemedText>
-          <View style={styles.list}>
-            {OPTIONS.map((opt) => {
-              const selected = value === opt;
-              return (
-                <TouchableOpacity
-                  key={opt}
-                  style={styles.row}
-                  onPress={() => {
-                    onSelect(opt);
-                    onClose();
-                  }}
-                  activeOpacity={0.75}
-                >
-                  <CustomCheckbox
-                    value={selected}
-                    onValueChange={() => {
-                      onSelect(opt);
-                      onClose();
-                    }}
-                    lightColor="#F2F4F7"
-                    darkColor="#202022"
-                  />
-                  <ThemedText
-                    style={styles.rowLabel}
-                    lightColor="#1B1B1C"
-                    darkColor="#FBFCFF"
-                  >
-                    {REMINDER_LABELS[opt]}
-                  </ThemedText>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </ThemedView>
+      <View style={styles.list}>
+        {options.map((opt) => {
+          const selected = value === opt.frequency;
+          return (
+            <TouchableOpacity
+              key={opt.frequency}
+              style={styles.row}
+              onPress={() => {
+                onSelect(opt.frequency);
+                onClose();
+              }}
+              activeOpacity={0.75}
+            >
+              <CustomCheckbox
+                value={selected}
+                onValueChange={() => {
+                  onSelect(opt.frequency);
+                  onClose();
+                }}
+                lightColor="#F2F4F7"
+                darkColor="#202022"
+              />
+              <ThemedText
+                style={styles.rowLabel}
+                lightColor="#1B1B1C"
+                darkColor="#FBFCFF"
+              >
+                {opt.name}
+              </ThemedText>
+            </TouchableOpacity>
+          );
+        })}
       </View>
-    </Modal>
+    </SnapBottomSheet>
   );
 }
 
 const styles = StyleSheet.create({
-  backdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.45)",
-    justifyContent: "center",
-    paddingHorizontal: 24,
-  },
-  sheet: {
-    borderRadius: 16,
-    padding: 20,
-    maxWidth: 400,
-    width: "100%",
-    alignSelf: "center",
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: "600",
-    marginBottom: 16,
-  },
-  list: { gap: 4 },
+  list: { gap: 4, paddingBottom: 12 },
   row: {
     flexDirection: "row",
     alignItems: "center",

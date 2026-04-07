@@ -8,9 +8,10 @@ import React, {
 } from "react";
 
 import {
-  addOrMergeTemplateLine,
-  getTemplateById,
-} from "./templateStorage";
+  addOrderPresetItem,
+  fetchOrderPresetDetails,
+} from "@/features/templates/orderPresetsSlice";
+import { useAppDispatch } from "@/store/hooks";
 import type { TemplateLineItem } from "./types";
 
 type TemplatePickerContextValue = {
@@ -31,12 +32,34 @@ const TemplatePickerContext = createContext<TemplatePickerContextValue | null>(
   null,
 );
 
+function adaptPresetItemsToLines(items: any[]): TemplateLineItem[] {
+  return (items || []).map((it) => {
+    const step =
+      typeof it.purchaseOptionStep === "number" && it.purchaseOptionStep > 0
+        ? it.purchaseOptionStep
+        : 1;
+    return {
+      productId: String(it.productId),
+      productPurchaseOptionId: String(it.productPurchaseOptionId),
+      quantity: typeof it.quantity === "number" ? it.quantity : 0,
+      productName: it.productName ?? "",
+      productImage: typeof it.productImage === "string" ? it.productImage : undefined,
+      measureType: it.measureType,
+      pricePerUnit: typeof it.price === "number" ? it.price : 0,
+      step,
+      minQuantity: step,
+      isFavorite: !!it.isFavorite,
+    } as TemplateLineItem;
+  });
+}
+
 export function TemplatePickerProvider({
   children,
 }: {
   children: React.ReactNode;
 }) {
   const router = useRouter();
+  const dispatch = useAppDispatch();
   const [pickingForTemplateId, setPickingForTemplateId] = useState<
     string | null
   >(null);
@@ -49,20 +72,28 @@ export function TemplatePickerProvider({
   >(null);
 
   const startPickingCatalog = useCallback(async (templateId: string) => {
-    const t = await getTemplateById(templateId);
-    setLiveTemplateItems(t?.items ? [...t.items] : []);
+    try {
+      const details = await dispatch(fetchOrderPresetDetails(templateId)).unwrap();
+      setLiveTemplateItems(adaptPresetItemsToLines((details as any)?.items || []));
+    } catch {
+      setLiveTemplateItems([]);
+    }
     setPickingForTemplateId(templateId);
     setOpenSearchAfterNavigate(false);
     router.navigate("/dashboard");
-  }, [router]);
+  }, [router, dispatch]);
 
   const startPickingSearch = useCallback(async (templateId: string) => {
-    const t = await getTemplateById(templateId);
-    setLiveTemplateItems(t?.items ? [...t.items] : []);
+    try {
+      const details = await dispatch(fetchOrderPresetDetails(templateId)).unwrap();
+      setLiveTemplateItems(adaptPresetItemsToLines((details as any)?.items || []));
+    } catch {
+      setLiveTemplateItems([]);
+    }
     setPickingForTemplateId(templateId);
     setOpenSearchAfterNavigate(true);
     router.navigate("/dashboard");
-  }, [router]);
+  }, [router, dispatch]);
 
   const consumeOpenSearchFlag = useCallback(() => {
     setOpenSearchAfterNavigate(false);
@@ -70,9 +101,21 @@ export function TemplatePickerProvider({
 
   const addLineFromProduct = useCallback(async (line: TemplateLineItem) => {
     if (!pickingForTemplateId) return;
-    const updated = await addOrMergeTemplateLine(pickingForTemplateId, line);
-    if (updated) {
-      setLiveTemplateItems(updated.items);
+    try {
+      await dispatch(
+        addOrderPresetItem({
+          presetId: pickingForTemplateId,
+          productId: line.productId,
+          productPurchaseOptionId: line.productPurchaseOptionId,
+          quantity: line.quantity,
+        }),
+      ).unwrap();
+      const details = await dispatch(
+        fetchOrderPresetDetails(pickingForTemplateId),
+      ).unwrap();
+      setLiveTemplateItems(adaptPresetItemsToLines((details as any)?.items || []));
+    } catch {
+      // ignore
     }
   }, [pickingForTemplateId]);
 

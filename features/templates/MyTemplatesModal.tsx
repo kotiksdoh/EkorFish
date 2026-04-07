@@ -2,42 +2,45 @@ import {
   ArrowIconRight,
   CalendarFilledIcon,
   CartIcon,
-  IconCompanyNew,
-  PencilIcon,
+  PencilIcon
 } from "@/assets/icons/icons";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { ModalHeader } from "@/features/auth/ui/Header";
-import { CompanySelectModal } from "@/features/shared/ui/CompanySelectModal";
 import AnimatedTextInput from "@/features/shared/ui/components/CustomInput";
 import { PrimaryButton } from "@/features/shared/ui/components/PrimartyButton";
+import { CustomCheckbox } from "@/features/shared/ui/components/CustomCheckBox";
 import { SnapBottomSheet } from "@/features/shared/ui/SnapBottomSheet";
-import { useAppSelector } from "@/store/hooks";
-import { Image } from "expo-image";
-import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
+  createOrderPreset,
+  deleteOrderPresetItem,
+  deleteOrderPresetItemsBulk,
+  fetchOrderPresetDetails,
+  fetchOrderPresetPageData,
+  fetchOrderPresets,
+  updateOrderPreset,
+  updateOrderPresetItemQuantity
+} from "@/features/templates/orderPresetsSlice";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { Image } from "expo-image";
+import React, { useEffect, useRef, useState } from "react";
+import {
+  ActivityIndicator,
   FlatList,
   Modal,
   Platform,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  View,
   useColorScheme,
+  View,
 } from "react-native";
 
 import { OrderFromTemplateConfirmModal } from "./OrderFromTemplateConfirmModal";
 import { ReminderFrequencyPickerModal } from "./ReminderFrequencyPickerModal";
 import { TemplateOrderLineCard } from "./TemplateOrderLineCard";
 import { useTemplatePicker } from "./TemplatePickerContext";
-import {
-  createTemplateId,
-  getTemplateById,
-  loadTemplates,
-  upsertTemplate,
-} from "./templateStorage";
-import type { OrderTemplate, ReminderFrequency } from "./types";
-import { REMINDER_LABELS } from "./types";
+import type { TemplateLineItem } from "./types";
 
 type Props = {
   visible: boolean;
@@ -68,11 +71,46 @@ function formatCreatedDate(ts: number): string {
   return `${dd}.${mm}.${yyyy}`;
 }
 
+function formatCreatedDateIso(iso: string): string {
+  const d = new Date(iso);
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const yyyy = d.getFullYear();
+  return `${dd}.${mm}.${yyyy}`;
+}
+
+function adaptPresetItemToLine(item: any): TemplateLineItem {
+  const step = typeof item.purchaseOptionStep === "number" && item.purchaseOptionStep > 0
+    ? item.purchaseOptionStep
+    : 1;
+  return {
+    productId: String(item.productId),
+    productPurchaseOptionId: String(item.productPurchaseOptionId),
+    quantity: typeof item.quantity === "number" ? item.quantity : 0,
+    productName: item.productName ?? "",
+    productImage: typeof item.productImage === "string" ? item.productImage : undefined,
+    measureType: item.measureType,
+    pricePerUnit: typeof item.price === "number" ? item.price : 0,
+    step,
+    minQuantity: step,
+    isFavorite: !!item.isFavorite,
+  };
+}
+
 export function MyTemplatesModal({ visible, onClose }: Props) {
   const systemTheme = useColorScheme();
   const isDark = (systemTheme || "light") === "dark";
-  const me = useAppSelector((s) => s.auth.me);
   const currentCompany = useAppSelector((s) => s.auth.currentCompany);
+  const dispatch = useAppDispatch();
+
+  const templates = useAppSelector((s) => s.orderPresets.list);
+  const pageData = useAppSelector((s) => s.orderPresets.pageData);
+  const isLoadingList = useAppSelector((s) => s.orderPresets.isLoadingList);
+  const isLoadingDetails = useAppSelector((s) => s.orderPresets.isLoadingDetails);
+  const isCreating = useAppSelector((s) => s.orderPresets.isCreating);
+  const isLoadingPageData = useAppSelector((s) => s.orderPresets.isLoadingPageData);
+  const isUpdating = useAppSelector((s) => s.orderPresets.isUpdating);
+  const isDeletingBulk = useAppSelector((s) => s.orderPresets.isDeletingBulk);
 
   const {
     resumeDetailTemplateId,
@@ -81,54 +119,46 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
     startPickingSearch,
   } = useTemplatePicker();
 
-  const [templates, setTemplates] = useState<OrderTemplate[]>([]);
   const [detailId, setDetailId] = useState<string | null>(null);
-  const [detailTemplate, setDetailTemplate] = useState<OrderTemplate | null>(
+  const detailPreset = useAppSelector((s) =>
+    detailId ? s.orderPresets.details[detailId] : undefined,
+  );
+  const [detailEditing, setDetailEditing] = useState(false); // UI режим оставляем, но сохранение полей пока не поддержано API
+  const [createOpen, setCreateOpen] = useState(false);
+  const [orderConfirmOpen, setOrderConfirmOpen] = useState(false);
+  const [orderConfirmTemplate, setOrderConfirmTemplate] = useState<any | null>(
     null,
   );
-  const [detailEditing, setDetailEditing] = useState(false);
-  const [createOpen, setCreateOpen] = useState(false);
-  const [companyModalVisible, setCompanyModalVisible] = useState(false);
-  const [companyForScene, setCompanyForScene] = useState<"create" | "edit">(
-    "create",
-  );
-  const [orderConfirmOpen, setOrderConfirmOpen] = useState(false);
-  const [orderConfirmTemplate, setOrderConfirmTemplate] =
-    useState<OrderTemplate | null>(null);
   const [reminderPickerFor, setReminderPickerFor] = useState<
     "create" | "edit" | null
   >(null);
 
+  // Раньше открывали детали сразу в edit-режиме по кнопке карандаша в карточке.
+  // Теперь по требованиям всегда открываем сначала просмотр.
   const pendingEditAfterDetailLoadRef = useRef(false);
 
   const [cName, setCName] = useState("");
   const [cDesc, setCDesc] = useState("");
-  const [cCompanyId, setCCompanyId] = useState<string | null>(
-    currentCompany?.id ?? null,
-  );
-  const [cCompanyName, setCCompanyName] = useState<string | null>(
-    currentCompany?.name ?? null,
-  );
-  const [cReminder, setCReminder] = useState<ReminderFrequency>("weekly");
+  const [cReminder, setCReminder] = useState<number | null>(null);
 
-  const refreshList = useCallback(async () => {
-    setTemplates(await loadTemplates());
-  }, []);
+  const [eName, setEName] = useState("");
+  const [eDesc, setEDesc] = useState("");
+  const [eReminder, setEReminder] = useState<number | null>(null);
+  const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (visible) {
-      refreshList();
+      dispatch(fetchOrderPresets());
+      dispatch(fetchOrderPresetPageData());
     } else {
       setDetailId(null);
-      setDetailTemplate(null);
       setDetailEditing(false);
       setCreateOpen(false);
-      setCompanyModalVisible(false);
       setOrderConfirmOpen(false);
       setOrderConfirmTemplate(null);
       setReminderPickerFor(null);
     }
-  }, [visible, refreshList]);
+  }, [visible, dispatch]);
 
   useEffect(() => {
     if (visible && resumeDetailTemplateId) {
@@ -139,31 +169,39 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
   }, [visible, resumeDetailTemplateId, clearResumeDetail]);
 
   useEffect(() => {
-    let cancelled = false;
-    if (!detailId) {
-      setDetailTemplate(null);
-      return;
-    }
-    (async () => {
-      const t = await getTemplateById(detailId);
-      if (!cancelled) {
-        setDetailTemplate(t);
-        if (pendingEditAfterDetailLoadRef.current) {
-          pendingEditAfterDetailLoadRef.current = false;
-          setDetailEditing(!!t);
-        } else {
-          setDetailEditing(false);
-        }
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
+    if (!visible || !detailId) return;
+    dispatch(fetchOrderPresetDetails(detailId));
+    pendingEditAfterDetailLoadRef.current = false;
+    setDetailEditing(false);
   }, [detailId]);
+
+  useEffect(() => {
+    if (!detailPreset) return;
+    setEName(detailPreset.name || "");
+    setEDesc((detailPreset as any)?.description || "");
+    setEReminder((detailPreset as any)?.reminderFrequency ?? 0);
+    setSelectedItemIds(new Set());
+  }, [detailPreset?.id]);
+
+  const toggleSelectItem = (itemId: string) => {
+    setSelectedItemIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(itemId)) next.delete(itemId);
+      else next.add(itemId);
+      return next;
+    });
+  };
+
+  const deleteSelected = async () => {
+    if (!detailId) return;
+    const ids = Array.from(selectedItemIds);
+    if (ids.length === 0) return;
+    await dispatch(deleteOrderPresetItemsBulk({ presetId: detailId, itemIds: ids }));
+    setSelectedItemIds(new Set());
+  };
 
   const handleCloseAll = () => {
     setDetailId(null);
-    setDetailTemplate(null);
     setCreateOpen(false);
     setDetailEditing(false);
     onClose();
@@ -171,135 +209,114 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
 
   const handleCloseDetail = () => {
     setDetailId(null);
-    setDetailTemplate(null);
     setDetailEditing(false);
-    refreshList();
+    dispatch(fetchOrderPresets());
   };
 
   const openCreate = () => {
     setCName("");
     setCDesc("");
-    setCCompanyId(currentCompany?.id ?? me?.companies?.[0]?.id ?? null);
-    setCCompanyName(
-      currentCompany?.name ?? me?.companies?.[0]?.name ?? null,
-    );
-    setCReminder("weekly");
+    const first = pageData?.reminderFrequencies?.[0]?.frequency;
+    setCReminder(typeof first === "number" ? first : 0);
     setCreateOpen(true);
   };
 
   const submitCreate = async () => {
-    const now = Date.now();
-    const t: OrderTemplate = {
-      id: createTemplateId(),
-      name: cName.trim() || "Без названия",
-      description: cDesc.trim(),
-      companyId: cCompanyId,
-      companyName: cCompanyName,
-      reminderFrequency: cReminder,
-      items: [],
-      createdAt: now,
-      updatedAt: now,
-    };
-    await upsertTemplate(t);
-    await refreshList();
+    const name = cName.trim() || "Без названия";
+    const description = cDesc.trim();
+    const reminderFrequency = cReminder ?? 0;
+    const res = await dispatch(
+      createOrderPreset({
+        name,
+        description,
+        reminderFrequency,
+      }),
+    ).unwrap();
+    const createdId = (res as any)?.id;
     setCreateOpen(false);
-    setDetailId(t.id);
-  };
-
-  const persistDetail = async (t: OrderTemplate) => {
-    await upsertTemplate(t);
-    setDetailTemplate(t);
-    await refreshList();
+    if (createdId) {
+      setDetailId(String(createdId));
+    } else {
+      dispatch(fetchOrderPresets());
+    }
   };
 
   const toggleEditPencil = async () => {
-    if (!detailTemplate) return;
+    if (!detailId || !detailPreset) return;
     if (detailEditing) {
-      await persistDetail(detailTemplate);
-      setDetailEditing(false);
+      await handleSaveEdit();
     } else {
       setDetailEditing(true);
     }
   };
 
-  const updateDetailField = <K extends keyof OrderTemplate>(
-    key: K,
-    value: OrderTemplate[K],
-  ) => {
-    if (!detailTemplate) return;
-    setDetailTemplate({ ...detailTemplate, [key]: value });
+  const handleSaveEdit = async () => {
+    if (!detailId || !detailPreset) return;
+    await dispatch(
+      updateOrderPreset({
+        presetId: detailId,
+        name: (eName || "").trim() || "Без названия",
+        description: (eDesc || "").trim(),
+        reminderFrequency: eReminder ?? 0,
+      }),
+    );
+    setDetailEditing(false);
   };
 
-  const selectCompanyCreate = (co: any) => {
-    setCCompanyId(co?.id ?? null);
-    setCCompanyName(co?.name ?? null);
-    setCompanyModalVisible(false);
-  };
-
-  const selectCompanyEdit = (co: any) => {
-    if (!detailTemplate) return;
-    setDetailTemplate({
-      ...detailTemplate,
-      companyId: co?.id ?? null,
-      companyName: co?.name ?? null,
-    });
-    setCompanyModalVisible(false);
-  };
+  const updateDetailField = (_key: string, _value: any) => {};
 
   /** Уходит в каталог/поиск: закрываем обе модалки — полноэкранный Modal «Шаблоны» иначе остаётся поверх табов. */
   const leaveToPickCatalog = async () => {
-    if (!detailTemplate) return;
-    const id = detailTemplate.id;
+    if (!detailId) return;
+    const id = detailId;
     await startPickingCatalog(id);
     setDetailId(null);
-    setDetailTemplate(null);
     setDetailEditing(false);
     setOrderConfirmOpen(false);
     onClose();
   };
 
   const leaveToPickSearch = async () => {
-    if (!detailTemplate) return;
-    const id = detailTemplate.id;
+    if (!detailId) return;
+    const id = detailId;
     await startPickingSearch(id);
     setDetailId(null);
-    setDetailTemplate(null);
     setDetailEditing(false);
     setOrderConfirmOpen(false);
     onClose();
   };
 
-  const removeItemAt = (index: number) => {
-    if (!detailTemplate) return;
-    const items = detailTemplate.items.filter((_, i) => i !== index);
-    const next = { ...detailTemplate, items };
-    setDetailTemplate(next);
-    upsertTemplate(next);
+  const removeItemById = (itemId: string) => {
+    if (!detailId) return;
+    dispatch(deleteOrderPresetItem({ presetId: detailId, itemId }));
   };
 
-  const bumpLineQuantity = (index: number, delta: number) => {
-    if (!detailTemplate) return;
-    const line = detailTemplate.items[index];
-    const step = line.step ?? 0.5;
-    const minQ = line.minQuantity ?? step;
-    let nextQty = line.quantity + delta * step;
+  const bumpLineQuantity = (item: any, delta: number) => {
+    if (!detailId) return;
+    const step =
+      typeof item.purchaseOptionStep === "number" && item.purchaseOptionStep > 0
+        ? item.purchaseOptionStep
+        : 1;
+    const minQ = step;
+    let nextQty = (item.quantity || 0) + delta * step;
     if (delta < 0 && nextQty < minQ - 1e-6) {
-      removeItemAt(index);
+      removeItemById(item.id);
       return;
     }
     nextQty = Math.max(minQ, nextQty);
-    const items = detailTemplate.items.map((it, i) =>
-      i === index ? { ...it, quantity: parseFloat(nextQty.toFixed(3)) } : it,
+    dispatch(
+      updateOrderPresetItemQuantity({
+        presetId: detailId,
+        itemId: item.id,
+        quantity: parseFloat(nextQty.toFixed(3)),
+      }),
     );
-    const next = { ...detailTemplate, items };
-    setDetailTemplate(next);
-    upsertTemplate(next);
   };
 
   const emptyList = (
     <View style={styles.emptyBox}>
       <Image
-        source={require("@/assets/icons/png/noOrders.png")}
+        source={require("@/assets/icons/png/templates.png")}
         style={styles.emptyImg}
         contentFit="contain"
       />
@@ -329,18 +346,15 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
   };
 
   const openDetailEditFromCard = (id: string) => {
-    pendingEditAfterDetailLoadRef.current = true;
     setDetailId(id);
   };
 
-  const openOrderConfirmFromList = (item: OrderTemplate) => {
+  const openOrderConfirmFromList = (item: any) => {
     setOrderConfirmTemplate(item);
     setOrderConfirmOpen(true);
   };
 
-  const renderCard = ({ item }: { item: OrderTemplate }) => {
-    const createdAt =
-      typeof item.createdAt === "number" ? item.createdAt : item.updatedAt;
+  const renderCard = ({ item }: { item: any }) => {
     return (
       <View style={[styles.card, isDark && styles.cardDark]}>
         <TouchableOpacity
@@ -355,15 +369,14 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
             lightColor="#80818B"
             darkColor="#FBFCFF80"
           >
-            {item.items.length}{" "}
-            {item.items.length === 1 ? "товар" : "товара(ов)"}
+            {item.productsCount} {countGoodsWord(item.productsCount)}
           </ThemedText>
           <ThemedText
             style={styles.cardCreated}
             lightColor="#80818B"
             darkColor="#FBFCFF80"
           >
-            Создан: {formatCreatedDate(createdAt)}
+            Создан: {formatCreatedDateIso(item.createdAt)}
           </ThemedText>
         </TouchableOpacity>
         <View style={styles.cardActionsRow}>
@@ -407,9 +420,11 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
     );
   };
 
-  const detailEmpty = !detailTemplate?.items?.length;
+  const detailEmpty = !(detailPreset?.items?.length);
   const showTemplateBottomPanel =
-    !!detailTemplate && !detailEmpty && !detailEditing;
+    !!detailPreset && !detailEmpty && !detailEditing;
+  const showEditBottomPanel = !!detailPreset && detailEditing;
+  const showEditBulkActions = !!detailPreset && detailEditing && !detailEmpty;
 
   const detailContent = (
     <Modal
@@ -424,13 +439,13 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
         darkColor="#040508"
       >
         <ModalHeader
-          title={detailTemplate?.name ?? "Шаблон"}
+          title={detailPreset?.name ?? "Шаблон"}
           showBackButton
           onBackPress={handleCloseDetail}
           headerRight={
             <TouchableOpacity
               onPress={toggleEditPencil}
-              disabled={!detailTemplate}
+              disabled={!detailPreset}
               hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             >
               <PencilIcon
@@ -447,18 +462,44 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
           lightColor="#FFFFFF"
           darkColor="#151516"
         >
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            style={styles.detailScrollView}
-            contentContainerStyle={[
-              styles.detailScroll,
-              showTemplateBottomPanel && styles.detailScrollWithBottomPanel,
-            ]}
-            keyboardShouldPersistTaps="handled"
-          >
-            {detailTemplate && !detailEditing ? (
+          {isLoadingDetails && !detailPreset ? (
+            <View style={styles.loadingBox}>
+              <ActivityIndicator size="large" color={isDark ? "#FBFCFF" : "#203686"} />
+              <ThemedText
+                style={styles.loadingText}
+                lightColor="#80818B"
+                darkColor="#FBFCFF80"
+              >
+                Загрузка шаблона...
+              </ThemedText>
+            </View>
+          ) : !detailPreset ? (
+            <View style={styles.loadingBox}>
+              <ThemedText
+                style={styles.loadingText}
+                lightColor="#80818B"
+                darkColor="#FBFCFF80"
+              >
+                Не удалось загрузить шаблон
+              </ThemedText>
+            </View>
+          ) : (
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              style={styles.detailScrollView}
+              contentContainerStyle={[
+                styles.detailScroll,
+                showTemplateBottomPanel && styles.detailScrollWithBottomPanel,
+                showEditBottomPanel &&
+                  (showEditBulkActions
+                    ? styles.detailScrollWithEditBottomPanelAndBulk
+                    : styles.detailScrollWithEditBottomPanel),
+              ]}
+              keyboardShouldPersistTaps="handled"
+            >
+              {detailPreset && !detailEditing ? (
               <>
-                <View style={styles.metaRow}>
+                {/* <View style={styles.metaRow}>
                   <View style={styles.metaIcon}>
                     <IconCompanyNew
                       width={22}
@@ -472,10 +513,9 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
                     darkColor="#FBFCFF"
                     numberOfLines={3}
                   >
-                    {detailTemplate.companyName?.trim() ||
-                      "Компания не выбрана"}
+                    {currentCompany?.name?.trim() || "Компания не выбрана"}
                   </ThemedText>
-                </View>
+                </View> */}
                 <View style={[styles.metaRow, styles.metaRowSecond]}>
                   <View style={styles.metaIcon}>
                     <CalendarFilledIcon
@@ -490,7 +530,9 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
                     lightColor="#1B1B1C"
                     darkColor="#FBFCFF"
                   >
-                    {REMINDER_LABELS[detailTemplate.reminderFrequency]}
+                    {(pageData?.reminderFrequencies || []).find(
+                      (x: any) => x.frequency === (detailPreset as any)?.reminderFrequency,
+                    )?.name || "—"}
                   </ThemedText>
                 </View>
                 <View
@@ -502,57 +544,24 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
               </>
             ) : null}
 
-            {detailEditing && detailTemplate ? (
+            {detailEditing && detailPreset ? (
               <>
                 <AnimatedTextInput
                   placeholder="Название"
-                  value={detailTemplate.name}
-                  onChangeText={(t) => updateDetailField("name", t)}
+                  value={eName}
+                  onChangeText={setEName}
                   multiline={false}
                 />
                 <View style={{ height: 12 }} />
                 <AnimatedTextInput
                   placeholder="Описание"
-                  value={detailTemplate.description}
-                  onChangeText={(t) => updateDetailField("description", t)}
+                  value={eDesc}
+                  onChangeText={setEDesc}
                   multiline
                   textAlignVertical="top"
                   style={styles.descInputWrap}
                   inputStyle={styles.descInput}
                 />
-                <TouchableOpacity
-                  style={styles.sheetSelectRow}
-                  onPress={() => {
-                    setCompanyForScene("edit");
-                    setCompanyModalVisible(true);
-                  }}
-                >
-                  <View style={styles.sheetRowIcon}>
-                    <IconCompanyNew
-                      width={22}
-                      height={22}
-                      color={isDark ? "#FBFCFF" : "#80818B"}
-                    />
-                  </View>
-                  <ThemedText
-                    style={styles.sheetRowFieldLabel}
-                    lightColor="#1B1B1C"
-                    darkColor="#FBFCFF"
-                  >
-                    Компания
-                  </ThemedText>
-                  <View style={styles.sheetRowRight}>
-                    <ThemedText
-                      style={styles.rowValue}
-                      numberOfLines={1}
-                      lightColor="#80818B"
-                      darkColor="#FBFCFF80"
-                    >
-                      {detailTemplate.companyName || "Выберите"}
-                    </ThemedText>
-                    <ArrowIconRight />
-                  </View>
-                </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.sheetSelectRow}
                   onPress={() => setReminderPickerFor("edit")}
@@ -579,7 +588,9 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
                       lightColor="#80818B"
                       darkColor="#FBFCFF80"
                     >
-                      {REMINDER_LABELS[detailTemplate.reminderFrequency]}
+                      {(pageData?.reminderFrequencies || []).find(
+                        (x: any) => x.frequency === (eReminder ?? 0),
+                      )?.name || "—"}
                     </ThemedText>
                     <ArrowIconRight />
                   </View>
@@ -589,6 +600,11 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
 
             {detailEmpty && !detailEditing ? (
               <View style={styles.detailEmpty}>
+                <Image
+                  source={require("@/assets/icons/png/templates.png")}
+                  style={styles.emptyImg}
+                  contentFit="contain"
+                />
                 <ThemedText style={styles.detailEmptyTitle}>
                   Шаблон пуст
                 </ThemedText>
@@ -604,15 +620,56 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
 
             {!detailEmpty ? (
               <View style={{ marginTop: detailEditing ? 16 : 12 }}>
-                {detailTemplate?.items.map((line, index) => (
-                  <TemplateOrderLineCard
-                    key={`${line.productId}-${line.productPurchaseOptionId}-${index}`}
-                    line={line}
-                    editMode={detailEditing}
-                    onDecrease={() => bumpLineQuantity(index, -1)}
-                    onIncrease={() => bumpLineQuantity(index, 1)}
-                    onRemove={() => removeItemAt(index)}
-                  />
+                <View style={styles.itemsHeaderRow}>
+                  <ThemedText
+                    style={styles.itemsTitle}
+                    lightColor="#1B1B1C"
+                    darkColor="#FBFCFF"
+                  >
+                    Товары
+                  </ThemedText>
+                  {showEditBulkActions ? (
+                    <TouchableOpacity
+                      onPress={() => void deleteSelected()}
+                      disabled={selectedItemIds.size === 0 || isDeletingBulk}
+                      activeOpacity={0.8}
+                      style={[
+                        styles.deleteSelectedBtn,
+                        (selectedItemIds.size === 0 || isDeletingBulk) &&
+                          styles.deleteSelectedBtnDisabled,
+                      ]}
+                    >
+                      <ThemedText style={styles.deleteSelectedText}>
+                        {isDeletingBulk ? "Удаление..." : "Удалить выбранное"}
+                      </ThemedText>
+                    </TouchableOpacity>
+                  ) : null}
+                </View>
+
+                {(detailPreset?.items || []).map((it: any) => (
+                  <View key={it.id} style={styles.itemRowWrap}>
+                    {detailEditing ? (
+                      <View style={styles.checkboxCol}>
+                        <CustomCheckbox
+                          style={undefined}
+                          value={selectedItemIds.has(it.id)}
+                          onValueChange={() => toggleSelectItem(it.id)}
+                          lightColor="#F2F4F7"
+                          darkColor="#202022"
+                          disabled={false}
+                        />
+                      </View>
+                    ) : null}
+                    <View style={{ flex: 1 }}>
+                      <TemplateOrderLineCard
+                        line={adaptPresetItemToLine(it)}
+                        editMode={detailEditing}
+                        onDecrease={() => bumpLineQuantity(it, -1)}
+                        onIncrease={() => bumpLineQuantity(it, 1)}
+                        onRemove={() => removeItemById(it.id)}
+                      />
+                    </View>
+                  </View>
                 ))}
               </View>
             ) : null}
@@ -634,9 +691,10 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
                 />
               </View>
             ) : null}
-          </ScrollView>
+            </ScrollView>
+          )}
 
-          {showTemplateBottomPanel && detailTemplate ? (
+          {showTemplateBottomPanel && detailPreset ? (
             <ThemedView
               lightColor="#FFFFFF"
               darkColor="#151516"
@@ -654,11 +712,11 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
                   <View style={styles.totalRightCol}>
                     <ThemedText
                       style={styles.totalCounts}
-                      lightColor="#1B1B1C"
-                      darkColor="#FBFCFF"
+                      lightColor="#80818B"
+                      darkColor="#FBFCFF80"
                     >
-                      {detailTemplate.items.length}{" "}
-                      {countGoodsWord(detailTemplate.items.length)}
+                      {(detailPreset?.productsCount || 0)}{" "}
+                      {countGoodsWord(detailPreset?.productsCount || 0)} • 
                     </ThemedText>
                     <ThemedText
                       style={styles.totalQtyLine}
@@ -666,8 +724,8 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
                       darkColor="#FBFCFF80"
                     >
                       Кол-во:{" "}
-                      {detailTemplate.items
-                        .reduce((s, i) => s + i.quantity, 0)
+                      {(detailPreset?.items || [])
+                        .reduce((s: number, i: any) => s + (i.quantity || 0), 0)
                         .toLocaleString("ru-RU", {
                           maximumFractionDigits: 3,
                         })}
@@ -676,22 +734,16 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
                 </View>
                 <ThemedText
                   style={styles.totalPrice}
-                  lightColor="#203686"
-                  darkColor="#4C94FF"
+                  lightColor="#1B1B1C"
+                  darkColor="#FBFCFF"
                 >
-                  {formatMoney(
-                    detailTemplate.items.reduce(
-                      (s, i) => s + (i.pricePerUnit ?? 0) * i.quantity,
-                      0,
-                    ),
-                  )}{" "}
-                  ₽
+                  {formatMoney(detailPreset?.totalProductsPrice ?? 0)} ₽
                 </ThemedText>
               </View>
               <PrimaryButton
                 title="Сделать заказ по шаблону"
                 onPress={() => {
-                  setOrderConfirmTemplate(detailTemplate);
+                  setOrderConfirmTemplate(detailPreset);
                   setOrderConfirmOpen(true);
                 }}
                 variant="primary"
@@ -701,8 +753,24 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
               <PrimaryButton
                 title="Добавить товары"
                 onPress={() => void leaveToPickCatalog()}
+                variant="third"
+                fullWidth
+              />
+            </ThemedView>
+          ) : null}
+
+          {showEditBottomPanel ? (
+            <ThemedView
+              lightColor="#FFFFFF"
+              darkColor="#151516"
+              style={styles.bottomPanel}
+            >
+              <PrimaryButton
+                title={isUpdating ? "Сохранение..." : "Сохранить"}
+                onPress={() => void handleSaveEdit()}
                 variant="primary"
                 fullWidth
+                disabled={isUpdating}
               />
             </ThemedView>
           ) : null}
@@ -720,13 +788,13 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
   const reminderPickerValue =
     reminderPickerFor === "create"
       ? cReminder
-      : detailTemplate?.reminderFrequency ?? "weekly";
+      : (detailPreset as any)?.reminderFrequency ?? 0;
 
-  const onReminderPicked = (v: ReminderFrequency) => {
+  const onReminderPicked = (v: number) => {
     if (reminderPickerFor === "create") {
       setCReminder(v);
-    } else if (detailTemplate) {
-      updateDetailField("reminderFrequency", v);
+    } else if (detailPreset) {
+      setEReminder(v);
     }
   };
 
@@ -754,26 +822,46 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
             lightColor="#FFFFFF"
             darkColor="#151516"
           >
-            {templates.length === 0 ? (
-              emptyList
+            {isLoadingList && templates.length === 0 ? (
+              <View style={styles.loadingBox}>
+                <ActivityIndicator size="large" color={isDark ? "#FBFCFF" : "#203686"} />
+                <ThemedText
+                  style={styles.loadingText}
+                  lightColor="#80818B"
+                  darkColor="#FBFCFF80"
+                >
+                  Загрузка шаблонов...
+                </ThemedText>
+              </View>
+            ) : templates.length === 0 ? (
+              <ScrollView
+                showsVerticalScrollIndicator={false}
+                style={{ flex: 1 }}
+                contentContainerStyle={styles.emptyScrollContent}
+              >
+                {emptyList}
+              </ScrollView>
             ) : (
-              <>
-                <FlatList
-                  data={templates}
-                  keyExtractor={(it) => it.id}
-                  renderItem={renderCard}
-                  contentContainerStyle={styles.listPad}
-                  showsVerticalScrollIndicator={false}
+              <FlatList
+                data={templates}
+                keyExtractor={(it) => it.id}
+                renderItem={renderCard}
+                style={{ flex: 1 }}
+                contentContainerStyle={styles.listPad}
+                showsVerticalScrollIndicator={false}
+              />
+            )}
+
+            {/* BottomPanel кнопки — всегда поверх, прозрачная подложка */}
+            {!isLoadingList && (
+              <View pointerEvents="box-none" style={styles.templatesBottomPanel}>
+                <PrimaryButton
+                  title="+ Создать шаблон"
+                  onPress={openCreate}
+                  variant="primary"
+                  fullWidth
                 />
-                <View style={styles.listFooter}>
-                  <PrimaryButton
-                    title="+ Создать шаблон"
-                    onPress={openCreate}
-                    variant="primary"
-                    fullWidth
-                  />
-                </View>
-              </>
+              </View>
             )}
           </ThemedView>
         </ThemedView>
@@ -785,13 +873,7 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
         visible={orderConfirmOpen}
         template={orderConfirmTemplate}
         onClose={closeOrderConfirm}
-      />
-
-      <ReminderFrequencyPickerModal
-        visible={reminderPickerFor !== null}
-        value={reminderPickerValue}
-        onClose={() => setReminderPickerFor(null)}
-        onSelect={onReminderPicked}
+        onCloseTemplates={handleCloseAll}
       />
 
       <SnapBottomSheet
@@ -826,40 +908,8 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
           />
           <TouchableOpacity
             style={styles.sheetSelectRow}
-            onPress={() => {
-              setCompanyForScene("create");
-              setCompanyModalVisible(true);
-            }}
-          >
-            <View style={styles.sheetRowIcon}>
-              <IconCompanyNew
-                width={22}
-                height={22}
-                color={isDark ? "#FBFCFF" : "#80818B"}
-              />
-            </View>
-            <ThemedText
-              style={styles.sheetRowFieldLabel}
-              lightColor="#1B1B1C"
-              darkColor="#FBFCFF"
-            >
-              Компания
-            </ThemedText>
-            <View style={styles.sheetRowRight}>
-              <ThemedText
-                style={styles.rowValue}
-                numberOfLines={1}
-                lightColor="#80818B"
-                darkColor="#FBFCFF80"
-              >
-                {cCompanyName || "Выберите"}
-              </ThemedText>
-              <ArrowIconRight />
-            </View>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.sheetSelectRow}
             onPress={() => setReminderPickerFor("create")}
+            disabled={isLoadingPageData || !(pageData?.reminderFrequencies?.length)}
           >
             <View style={styles.sheetRowIcon}>
               <CalendarFilledIcon
@@ -883,7 +933,11 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
                 lightColor="#80818B"
                 darkColor="#FBFCFF80"
               >
-                {REMINDER_LABELS[cReminder]}
+                {isLoadingPageData
+                  ? "Загрузка..."
+                  : (pageData?.reminderFrequencies || []).find(
+                      (x: any) => x.frequency === (cReminder ?? 0),
+                    )?.name || "—"}
               </ThemedText>
               <ArrowIconRight />
             </View>
@@ -895,25 +949,18 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
           onPress={submitCreate}
           variant="primary"
           fullWidth
+          disabled={isCreating}
         />
       </SnapBottomSheet>
 
-      <CompanySelectModal
-        visible={companyModalVisible}
-        onClose={() => setCompanyModalVisible(false)}
-        companies={me?.companies || []}
-        selectedCompanyId={
-          companyForScene === "create"
-            ? cCompanyId ?? undefined
-           : detailTemplate?.companyId ?? undefined
-        }
-        onSelectCompany={(co) =>
-          companyForScene === "create"
-            ? selectCompanyCreate(co)
-            : selectCompanyEdit(co)
-        }
-        onAddCompany={() => setCompanyModalVisible(false)}
+      <ReminderFrequencyPickerModal
+        visible={reminderPickerFor !== null}
+        value={reminderPickerValue}
+        onClose={() => setReminderPickerFor(null)}
+        onSelect={onReminderPicked}
+        options={pageData?.reminderFrequencies || []}
       />
+
     </>
   );
 }
@@ -927,10 +974,28 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 24,
     paddingTop: 8,
   },
-  listPad: { padding: 16, paddingBottom: 100, gap: 10 },
-  listFooter: {
-    padding: 16,
+  listPad: { padding: 16, paddingBottom: 120, gap: 10 },
+  templatesBottomPanel: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: 16,
     paddingBottom: 28,
+    paddingTop: 12,
+    backgroundColor: "transparent",
+  },
+  loadingBox: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 40,
+    gap: 12,
+  },
+  loadingText: {
+    fontSize: 14,
+    fontWeight: "500",
+    textAlign: "center",
   },
   card: {
     padding: 16,
@@ -974,7 +1039,6 @@ const styles = StyleSheet.create({
     borderColor: "#323235",
   },
   emptyBox: {
-    flex: 1,
     padding: 24,
     alignItems: "center",
     gap: 16,
@@ -983,6 +1047,12 @@ const styles = StyleSheet.create({
   emptyImg: { width: 120, height: 120 },
   emptyTitle: { fontSize: 22, fontWeight: "600", textAlign: "center" },
   emptySub: { fontSize: 15, textAlign: "center", lineHeight: 22 },
+  emptyScrollContent: {
+    flexGrow: 1,
+    paddingVertical: 24,
+    paddingBottom: 120,
+    justifyContent: "center",
+  },
   detailRoot: { flex: 1 },
   detailBody: {
     flex: 1,
@@ -993,8 +1063,15 @@ const styles = StyleSheet.create({
   },
   detailScrollView: { flex: 1 },
   detailScroll: { padding: 16, paddingBottom: 40 },
+  // Отступ под нижнюю панель в режиме просмотра (высокая) и редактирования (низкая)
   detailScrollWithBottomPanel: {
     paddingBottom: Platform.OS === "ios" ? 280 : 260,
+  },
+  detailScrollWithEditBottomPanel: {
+    paddingBottom: Platform.OS === "ios" ? 160 : 140,
+  },
+  detailScrollWithEditBottomPanelAndBulk: {
+    paddingBottom: Platform.OS === "ios" ? 210 : 190,
   },
   bottomPanel: {
     position: "absolute",
@@ -1016,6 +1093,39 @@ const styles = StyleSheet.create({
   templateBottomSummary: {
     marginBottom: 8,
     gap: 8,
+  },
+  itemsHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 10,
+    gap: 12,
+  },
+  itemsTitle: {
+    fontSize: 20,
+    fontWeight: "600",
+  },
+  deleteSelectedBtn: {
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    backgroundColor: "#F2F4F7",
+  },
+  deleteSelectedBtnDisabled: {
+    opacity: 0.5,
+  },
+  deleteSelectedText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#1B1B1C",
+  },
+  itemRowWrap: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+  },
+  checkboxCol: {
+    paddingTop: 22,
   },
   metaRow: {
     flexDirection: "row",
@@ -1055,21 +1165,22 @@ const styles = StyleSheet.create({
   },
   totalRightCol: {
     alignItems: "flex-end",
+    flexDirection: "row",
     gap: 4,
   },
   totalCounts: {
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: "500",
     textAlign: "right",
   },
   totalQtyLine: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: "500",
     textAlign: "right",
   },
   totalPrice: {
     fontSize: 20,
-    fontWeight: "700",
+    fontWeight: "600",
   },
   footerInScroll: {
     marginTop: 16,
