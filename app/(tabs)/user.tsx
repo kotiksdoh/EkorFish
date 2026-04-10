@@ -1,9 +1,27 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { Image, Platform, ScrollView, StyleSheet, TouchableOpacity, View, useColorScheme } from "react-native";
+import {
+  Image,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+  useColorScheme,
+} from "react-native";
 
-import { ArrowIconRight, BoxIcon, ExitIcon, IconDocument, IconGeo, MenuRefreshIcon, PencilIcon } from "@/assets/icons/icons";
+import {
+  ArrowIconRight,
+  BoxIcon,
+  ExitIcon,
+  FinanceAndDocksIcon,
+  IconDocument,
+  IconGeo,
+  MenuRefreshIcon,
+  PencilIcon,
+  SettingsIcon,
+} from "@/assets/icons/icons";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Fonts } from "@/constants/theme";
@@ -12,13 +30,15 @@ import { LoginModal } from "@/features/auth/ui/components/LoginModal";
 import { clearCatalogState } from "@/features/catalog/catalogSlice";
 import { CompanySelectModal } from "@/features/shared/ui/CompanySelectModal";
 import ManagerSection from "@/features/shared/ui/ManagerSection";
+import { MyFinanceModal } from "@/features/shared/ui/MyFInance";
 import { MyOrdersModal } from "@/features/shared/ui/MyOrders";
-import { ProfileEditModal } from "@/features/shared/ui/ProfileEditModal";
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { MyReturnsModal } from "@/features/shared/ui/MyReturns";
+import { MySettingsModal } from "@/features/shared/ui/MySettings";
+import { ProfileEditModal } from "@/features/shared/ui/ProfileEditModal";
 import { MyTemplatesModal } from "@/features/templates/MyTemplatesModal";
 import { useTemplatePicker } from "@/features/templates/TemplatePickerContext";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function TabTwoScreen() {
   const colorScheme = useColorScheme();
@@ -32,14 +52,16 @@ export default function TabTwoScreen() {
   const [myOrderModalVisible, setMyOrderModalVisible] = useState(false);
   const [returnsModalVisible, setReturnsModalVisible] = useState(false);
   const [templatesModalVisible, setTemplatesModalVisible] = useState(false);
+  const [financeModalVisible, setFinanceModalVisible] = useState(false);
+  const [settingsModalVisible, setSettingsModalVisible] = useState(false);
   const { resumeDetailTemplateId } = useTemplatePicker();
   const [profileData, setProfileData] = useState({
-    name: '',
-    surname: '',
-    email: '',
-    phone: '',
+    name: "",
+    surname: "",
+    email: "",
+    phone: "",
     avatar: null as string | null,
-    coverColor: '#ACCBEE',
+    coverColor: "#ACCBEE",
   });
   const currentCompany = useAppSelector((state) => state.auth.currentCompany);
 
@@ -47,35 +69,39 @@ export default function TabTwoScreen() {
   useEffect(() => {
     const loadProfileData = async () => {
       try {
-        const savedColorId = await AsyncStorage.getItem('profileCoverColorId');
-        const savedAvatar = await AsyncStorage.getItem('profileAvatar');
-        
+        const savedColorId = await AsyncStorage.getItem("profileCoverColorId");
+        const savedAvatar = await AsyncStorage.getItem("profileAvatar");
+
         // Маппинг ID цветов в первый цвет градиента для фона
         const colorToGradientFirst = {
-          'light1': '#ACCBEE',
-          'light2': '#EEACCF',
-          'light3': '#ACEECC',
-          'light4': '#EEE2AC',
-          'light5': '#CED0D4',
-          'dark1': '#697D93',
-          'dark2': '#865F74',
-          'dark3': '#5A7165',
-          'dark4': '#8B8670',
-          'dark5': '#515257',
+          light1: "#ACCBEE",
+          light2: "#EEACCF",
+          light3: "#ACEECC",
+          light4: "#EEE2AC",
+          light5: "#CED0D4",
+          dark1: "#697D93",
+          dark2: "#865F74",
+          dark3: "#5A7165",
+          dark4: "#8B8670",
+          dark5: "#515257",
         };
-        
-        const coverColor = savedColorId ? (colorToGradientFirst[savedColorId as keyof typeof colorToGradientFirst] || '#ACCBEE') : '#ACCBEE';
-        
-        setProfileData(prev => ({
+
+        const coverColor = savedColorId
+          ? colorToGradientFirst[
+              savedColorId as keyof typeof colorToGradientFirst
+            ] || "#ACCBEE"
+          : "#ACCBEE";
+
+        setProfileData((prev) => ({
           ...prev,
           coverColor: coverColor,
           avatar: savedAvatar || null,
         }));
       } catch (error) {
-        console.error('Error loading profile data:', error);
+        console.error("Error loading profile data:", error);
       }
     };
-    
+
     loadProfileData();
   }, []);
 
@@ -83,51 +109,54 @@ export default function TabTwoScreen() {
     try {
       // Сохраняем в AsyncStorage
       if (data.avatar) {
-        await AsyncStorage.setItem('profileAvatar', data.avatar);
+        await AsyncStorage.setItem("profileAvatar", data.avatar);
       }
-      await AsyncStorage.setItem('profileCoverColorId', data.coverColor);
-      
+      await AsyncStorage.setItem("profileCoverColorId", data.coverColor);
+
       // Маппинг ID цветов в первый цвет градиента для фона
       const colorToGradientFirst = {
-        'light1': '#ACCBEE',
-        'light2': '#EEACCF',
-        'light3': '#ACEECC',
-        'light4': '#EEE2AC',
-        'light5': '#CED0D4',
-        'dark1': '#697D93',
-        'dark2': '#865F74',
-        'dark3': '#5A7165',
-        'dark4': '#8B8670',
-        'dark5': '#515257',
+        light1: "#ACCBEE",
+        light2: "#EEACCF",
+        light3: "#ACEECC",
+        light4: "#EEE2AC",
+        light5: "#CED0D4",
+        dark1: "#697D93",
+        dark2: "#865F74",
+        dark3: "#5A7165",
+        dark4: "#8B8670",
+        dark5: "#515257",
       };
-      
-      const coverColor = colorToGradientFirst[data.coverColor as keyof typeof colorToGradientFirst] || '#ACCBEE';
-      
+
+      const coverColor =
+        colorToGradientFirst[
+          data.coverColor as keyof typeof colorToGradientFirst
+        ] || "#ACCBEE";
+
       // Обновляем локальное состояние
-      setProfileData(prev => ({
+      setProfileData((prev) => ({
         ...prev,
         name: data.name,
         surname: data.surname,
         avatar: data.avatar,
         coverColor: coverColor,
       }));
-      
+
       setEditModalVisible(false);
     } catch (error) {
-      console.error('Error saving profile:', error);
+      console.error("Error saving profile:", error);
     }
   };
 
   // Обновляем данные когда меняется me
   useEffect(() => {
     if (me) {
-      const nameParts = getDisplayName().split(' ');
-      setProfileData(prev => ({
+      const nameParts = getDisplayName().split(" ");
+      setProfileData((prev) => ({
         ...prev,
-        name: nameParts[1] || '',
-        surname: nameParts[0] || '',
-        email: me?.email || '',
-        phone: me?.phoneNumber || '',
+        name: nameParts[1] || "",
+        surname: nameParts[0] || "",
+        email: me?.email || "",
+        phone: me?.phoneNumber || "",
       }));
     }
   }, [me]);
@@ -168,7 +197,7 @@ export default function TabTwoScreen() {
       dispatch(clearAuthState());
       dispatch(clearCatalogState());
       await AsyncStorage.clear();
-      setEditModalVisible(false)
+      setEditModalVisible(false);
       router.replace("/");
     } catch (error) {
       console.error("Ошибка при очистке AsyncStorage:", error);
@@ -193,7 +222,6 @@ export default function TabTwoScreen() {
     return "";
   };
 
-
   return (
     <>
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
@@ -208,8 +236,8 @@ export default function TabTwoScreen() {
             locations={[0, 1]}
           >
             {/* Иконка карандаша */}
-            <TouchableOpacity 
-              style={styles.pencilIconContainer} 
+            <TouchableOpacity
+              style={styles.pencilIconContainer}
               onPress={() => setEditModalVisible(true)}
             >
               <PencilIcon width={24} height={24} fill="#1B1B1C" />
@@ -219,22 +247,26 @@ export default function TabTwoScreen() {
             <ThemedView style={styles.whiteProfileCard}>
               <View style={styles.profileImageContainer}>
                 {profileData.avatar ? (
-                  <Image 
-                    source={{ uri: profileData.avatar }} 
-                    style={styles.profileImage} 
+                  <Image
+                    source={{ uri: profileData.avatar }}
+                    style={styles.profileImage}
                   />
                 ) : (
-                  <View style={[styles.profileImagePlaceholder, { backgroundColor: profileData.coverColor }]}>
+                  <View
+                    style={[
+                      styles.profileImagePlaceholder,
+                      { backgroundColor: profileData.coverColor },
+                    ]}
+                  >
                     <ThemedText style={styles.profileImagePlaceholderText}>
-                      {profileData.name?.charAt(0) || ''}{profileData.surname?.charAt(0) || ''}
+                      {profileData.name?.charAt(0) || ""}
+                      {profileData.surname?.charAt(0) || ""}
                     </ThemedText>
                   </View>
                 )}
               </View>
               <ThemedView style={styles.profileInfo}>
-                <ThemedText style={styles.profileName}>
-                  TODO
-                </ThemedText>
+                <ThemedText style={styles.profileName}>TODO</ThemedText>
                 <ThemedText style={styles.profileEmail}>
                   в разработке
                 </ThemedText>
@@ -243,13 +275,16 @@ export default function TabTwoScreen() {
           </LinearGradient>
         </View>
         <ThemedView style={styles.managerCard}>
-        <ManagerSection />
+          <ManagerSection />
         </ThemedView>
-        
+
         {/* Информационные блоки */}
         <ThemedView style={styles.infoCard}>
           <View style={styles.infoContainer}>
-            <TouchableOpacity style={styles.infoRow} onPress={() => setModalVisible(true)}>
+            <TouchableOpacity
+              style={styles.infoRow}
+              onPress={() => setModalVisible(true)}
+            >
               <ThemedView
                 lightColor="#F2F4F7"
                 darkColor="#202022"
@@ -274,7 +309,10 @@ export default function TabTwoScreen() {
               </View>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.infoRow} onPress={() => setMyOrderModalVisible(true)}>
+            <TouchableOpacity
+              style={styles.infoRow}
+              onPress={() => setMyOrderModalVisible(true)}
+            >
               <ThemedView
                 lightColor="#F2F4F7"
                 darkColor="#202022"
@@ -299,7 +337,10 @@ export default function TabTwoScreen() {
               </View>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.infoRow} onPress={() => setReturnsModalVisible(true)}>
+            <TouchableOpacity
+              style={styles.infoRow}
+              onPress={() => setReturnsModalVisible(true)}
+            >
               <ThemedView
                 lightColor="#F2F4F7"
                 darkColor="#202022"
@@ -324,13 +365,20 @@ export default function TabTwoScreen() {
               </View>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.infoRow} onPress={() => setTemplatesModalVisible(true)}>
+            <TouchableOpacity
+              style={styles.infoRow}
+              onPress={() => setTemplatesModalVisible(true)}
+            >
               <ThemedView
                 lightColor="#F2F4F7"
                 darkColor="#202022"
                 style={styles.iconPlaceholder}
               >
-                <IconDocument width={22} height={22} color={isDarkMode ? "#FBFCFF" : "#1B1B1C"} />
+                <IconDocument
+                  width={22}
+                  height={22}
+                  color={isDarkMode ? "#FBFCFF" : "#1B1B1C"}
+                />
               </ThemedView>
               <View
                 style={[
@@ -342,6 +390,70 @@ export default function TabTwoScreen() {
               >
                 <ThemedText lightColor="#1B1B1C" style={styles.infoLabel}>
                   Шаблоны
+                </ThemedText>
+                <View style={styles.infoValueContainer}>
+                  <ArrowIconRight />
+                </View>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.infoRow}
+              onPress={() => setFinanceModalVisible(true)}
+            >
+              <ThemedView
+                lightColor="#F2F4F7"
+                darkColor="#202022"
+                style={styles.iconPlaceholder}
+              >
+                <FinanceAndDocksIcon
+                  width={22}
+                  height={22}
+                  color={isDarkMode ? "#FBFCFF" : "#1B1B1C"}
+                />
+              </ThemedView>
+              <View
+                style={[
+                  styles.infoContent,
+                  isDarkMode && {
+                    borderColor: "#252527",
+                  },
+                ]}
+              >
+                <ThemedText lightColor="#1B1B1C" style={styles.infoLabel}>
+                  Финансы и докумкеты
+                </ThemedText>
+                <View style={styles.infoValueContainer}>
+                  <ArrowIconRight />
+                </View>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.infoRow}
+              onPress={() => setSettingsModalVisible(true)}
+            >
+              <ThemedView
+                lightColor="#F2F4F7"
+                darkColor="#202022"
+                style={styles.iconPlaceholder}
+              >
+                <SettingsIcon
+                  width={22}
+                  height={22}
+                  color={isDarkMode ? "#FBFCFF" : "#1B1B1C"}
+                />
+              </ThemedView>
+              <View
+                style={[
+                  styles.infoContent,
+                  isDarkMode && {
+                    borderColor: "#252527",
+                  },
+                ]}
+              >
+                <ThemedText lightColor="#1B1B1C" style={styles.infoLabel}>
+                  Настройки
                 </ThemedText>
                 <View style={styles.infoValueContainer}>
                   <ArrowIconRight />
@@ -402,18 +514,28 @@ export default function TabTwoScreen() {
       />
 
       <MyOrdersModal
-          visible={myOrderModalVisible}
-          onClose={() => setMyOrderModalVisible(false)}
+        visible={myOrderModalVisible}
+        onClose={() => setMyOrderModalVisible(false)}
       />
 
       <MyReturnsModal
-          visible={returnsModalVisible}
-          onClose={() => setReturnsModalVisible(false)}
+        visible={returnsModalVisible}
+        onClose={() => setReturnsModalVisible(false)}
       />
 
       <MyTemplatesModal
         visible={templatesModalVisible}
         onClose={() => setTemplatesModalVisible(false)}
+      />
+
+      <MyFinanceModal
+        visible={financeModalVisible}
+        onClose={() => setFinanceModalVisible(false)}
+      />
+
+      <MySettingsModal
+        visible={settingsModalVisible}
+        onClose={() => setSettingsModalVisible(false)}
       />
     </>
   );
@@ -425,7 +547,6 @@ const styles = StyleSheet.create({
     bottom: -90,
     left: -35,
     position: "absolute",
-    
   },
   gradientWrapper: {
     width: "100%",
@@ -434,7 +555,7 @@ const styles = StyleSheet.create({
     // Добавляем обработку для Android
     ...Platform.select({
       android: {
-        overflow: 'hidden',
+        overflow: "hidden",
         borderBottomLeftRadius: 24,
         borderBottomRightRadius: 24,
         // Добавляем аппаратное ускорение для Android
@@ -469,7 +590,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     justifyContent: "center",
     alignItems: "center",
-
   },
   whiteProfileCard: {
     width: "100%",
@@ -521,7 +641,7 @@ const styles = StyleSheet.create({
   },
   managerCard: {
     borderRadius: 24,
-    marginBottom: 8
+    marginBottom: 8,
   },
   infoCard: {
     borderRadius: 24,
@@ -600,14 +720,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   profileImagePlaceholder: {
-    width: '100%',
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: "100%",
+    height: "100%",
+    justifyContent: "center",
+    alignItems: "center",
   },
   profileImagePlaceholderText: {
     fontSize: 32,
-    color: '#FFFFFF',
-    fontWeight: '600',
+    color: "#FFFFFF",
+    fontWeight: "600",
   },
 });

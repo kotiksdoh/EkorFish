@@ -1387,7 +1387,7 @@ export const ArrowIconRight = ({
 export const ArrowIconLeft = ({
   width = 20,
   height = 20,
-  color = '#1B1B1C',
+  color = "#1B1B1C",
   ...props
 }) => (
   <Svg width={width} height={height} viewBox="0 0 20 20" fill="none" {...props}>
@@ -1418,7 +1418,7 @@ export const Copy = ({
 export const IconNumber = ({
   width = 24,
   height = 24,
-  color = '#80818B',
+  color = "#80818B",
   ...props
 }) => (
   <Svg width={width} height={height} viewBox="0 0 24 24" fill="none" {...props}>
@@ -1428,15 +1428,30 @@ export const IconNumber = ({
       stroke={color}
       strokeWidth="0.3"
     />
-    <Rect x="16.3574" y="12.3999" width="5.14287" height="2.56" rx="1.28" fill={color} />
-    <Rect x="17.1074" y="6.75" width="3.64287" height="3.62" rx="1.81" stroke={color} strokeWidth="1.5" />
+    <Rect
+      x="16.3574"
+      y="12.3999"
+      width="5.14287"
+      height="2.56"
+      rx="1.28"
+      fill={color}
+    />
+    <Rect
+      x="17.1074"
+      y="6.75"
+      width="3.64287"
+      height="3.62"
+      rx="1.81"
+      stroke={color}
+      strokeWidth="1.5"
+    />
   </Svg>
 );
 
 export const IconGeo = ({
   width = 24,
   height = 24,
-  color = '#80818B',
+  color = "#80818B",
   ...props
 }) => (
   <Svg width={width} height={height} viewBox="0 0 24 24" fill="none" {...props}>
@@ -1450,7 +1465,7 @@ export const IconGeo = ({
 export const IconUser = ({
   width = 24,
   height = 24,
-  color = '#80818B',
+  color = "#80818B",
   ...props
 }) => (
   <Svg width={width} height={height} viewBox="0 0 24 24" fill="none" {...props}>
@@ -1470,17 +1485,39 @@ export const IconUser = ({
 export const IconCard = ({
   width = 24,
   height = 24,
-  color = '#80818B',
+  color = "#80818B",
   ...props
 }) => (
   <Svg width={width} height={height} viewBox="0 0 24 24" fill="none" {...props}>
-    <Mask id="mask0_9581_5268" maskType="luminance" maskUnits="userSpaceOnUse" x="2" y="3" width="20" height="20">
+    <Mask
+      id="mask0_9581_5268"
+      maskType="luminance"
+      maskUnits="userSpaceOnUse"
+      x="2"
+      y="3"
+      width="20"
+      height="20"
+    >
       <Path d="M22 3H2V23H22V3Z" fill="white" />
-      <Path d="M19.2656 16.3203C19.2656 16.8596 18.8284 17.2969 18.2891 17.2969C17.7497 17.2969 17.3125 16.8596 17.3125 16.3203C17.3125 15.781 17.7497 15.3438 18.2891 15.3438C18.8284 15.3438 19.2656 15.781 19.2656 16.3203Z" fill="white" />
-      <Path d="M16.5312 16.3203C16.5312 16.8596 16.094 17.2969 15.5547 17.2969C15.0154 17.2969 14.5781 16.8596 14.5781 16.3203C14.5781 15.781 15.0154 15.3438 15.5547 15.3438C16.094 15.3438 16.5312 15.781 16.5312 16.3203Z" fill="white" />
+      <Path
+        d="M19.2656 16.3203C19.2656 16.8596 18.8284 17.2969 18.2891 17.2969C17.7497 17.2969 17.3125 16.8596 17.3125 16.3203C17.3125 15.781 17.7497 15.3438 18.2891 15.3438C18.8284 15.3438 19.2656 15.781 19.2656 16.3203Z"
+        fill="white"
+      />
+      <Path
+        d="M16.5312 16.3203C16.5312 16.8596 16.094 17.2969 15.5547 17.2969C15.0154 17.2969 14.5781 16.8596 14.5781 16.3203C14.5781 15.781 15.0154 15.3438 15.5547 15.3438C16.094 15.3438 16.5312 15.781 16.5312 16.3203Z"
+        fill="white"
+      />
     </Mask>
     <G mask="url(#mask0_9581_5268)">
-      <Mask id="mask1_9581_5268" maskType="luminance" maskUnits="userSpaceOnUse" x="2" y="3" width="20" height="20">
+      <Mask
+        id="mask1_9581_5268"
+        maskType="luminance"
+        maskUnits="userSpaceOnUse"
+        x="2"
+        y="3"
+        width="20"
+        height="20"
+      >
         <Path d="M2 3H22V23H2V3Z" fill="white" />
       </Mask>
       <G mask="url(#mask1_9581_5268)">
@@ -1516,7 +1553,7 @@ export const IconCard = ({
 export const IconCompanyNew = ({
   width = 24,
   height = 24,
-  color = '#80818B',
+  color = "#80818B",
   ...props
 }) => (
   <Svg width={width} height={height} viewBox="0 0 24 24" fill="none" {...props}>
@@ -1598,7 +1635,7 @@ export const IconCompanyNew = ({
 export const IconCloseNew = ({
   width = 24,
   height = 24,
-  color = '#1B1B1C',
+  color = "#1B1B1C",
   ...props
 }) => (
   <Svg width={width} height={height} viewBox="0 0 24 24" fill="none" {...props}>
@@ -1612,7 +1649,7 @@ export const IconCloseNew = ({
 export const IconMessage = ({
   width = 24,
   height = 24,
-  color = '#1B1B1C',
+  color = "#1B1B1C",
   ...props
 }) => (
   <Svg width={width} height={height} viewBox="0 0 24 24" fill="none" {...props}>
@@ -1626,7 +1663,7 @@ export const IconMessage = ({
 export const IconDocument = ({
   width = 24,
   height = 24,
-  color = '#000000',
+  color = "#000000",
   ...props
 }) => (
   <Svg width={width} height={height} viewBox="0 0 24 24" fill="none" {...props}>
@@ -1676,21 +1713,21 @@ export const IconDocument = ({
 export const IconAccept = ({
   width = 10,
   height = 8,
-  color = '#1B1B1C',
+  color = "#1B1B1C",
   ...props
 }) => (
   <Svg width="10" height="8" viewBox="0 0 8 6" fill="none">
-  <Path 
-    d="M7.67541 1.73746C8.08269 1.36444 8.11047 0.731887 7.73746 0.324605C7.36444 -0.082678 6.73189 -0.110458 6.3246 0.262555L2.63253 3.64398L1.67541 2.76739C1.26813 2.39438 0.635571 2.42216 0.262557 2.82944C-0.110458 3.23672 -0.0826786 3.86928 0.324603 4.24229L1.95712 5.73746C2.33935 6.08752 2.9257 6.08752 3.30793 5.73746L7.67541 1.73746Z" 
-    fill="#FBFCFF"
-  />
-</Svg>
+    <Path
+      d="M7.67541 1.73746C8.08269 1.36444 8.11047 0.731887 7.73746 0.324605C7.36444 -0.082678 6.73189 -0.110458 6.3246 0.262555L2.63253 3.64398L1.67541 2.76739C1.26813 2.39438 0.635571 2.42216 0.262557 2.82944C-0.110458 3.23672 -0.0826786 3.86928 0.324603 4.24229L1.95712 5.73746C2.33935 6.08752 2.9257 6.08752 3.30793 5.73746L7.67541 1.73746Z"
+      fill="#FBFCFF"
+    />
+  </Svg>
 );
 
 export const IconSearchNew = ({
   width = 20,
   height = 20,
-  color = '#1B1B1C',
+  color = "#1B1B1C",
   ...props
 }) => (
   <Svg width={width} height={height} viewBox="0 0 20 20" fill="none" {...props}>
@@ -1714,11 +1751,10 @@ export const IconSearchNew = ({
   </Svg>
 );
 
-
 export const IconShare = ({
   width = 20,
   height = 20,
-  color = '#1B1B1C',
+  color = "#1B1B1C",
   ...props
 }) => (
   <Svg width={width} height={height} viewBox="0 0 20 20" fill="none" {...props}>
@@ -1758,7 +1794,7 @@ export const ExitIcon = ({
   <Svg width={width} height={height} viewBox="0 0 24 24" fill="none" {...props}>
     <Mask
       id="mask0_9674_31828"
-      style={{ maskType: 'luminance' }}
+      style={{ maskType: "luminance" }}
       maskUnits="userSpaceOnUse"
       x={2}
       y={3}
@@ -1770,7 +1806,7 @@ export const ExitIcon = ({
     <G mask="url(#mask0_9674_31828)">
       <Mask
         id="mask1_9674_31828"
-        style={{ maskType: 'luminance' }}
+        style={{ maskType: "luminance" }}
         maskUnits="userSpaceOnUse"
         x={2}
         y={3}
@@ -1817,16 +1853,16 @@ export const BoxIcon = ({
   <Svg width={width} height={height} viewBox="0 0 24 24" fill="none" {...props}>
     <Mask
       id="mask0_9701_31681"
-      style={{ maskType: 'luminance' }}
+      style={{ maskType: "luminance" }}
       maskUnits="userSpaceOnUse"
       x={2}
       y={2}
       width={20}
       height={20}
     >
-      <Path 
-        d="M2 4C2 2.89543 2.89543 2 4 2H20C21.1046 2 22 2.89543 22 4V20C22 21.1046 21.1046 22 20 22H4C2.89543 22 2 21.1046 2 20V4Z" 
-        fill="white" 
+      <Path
+        d="M2 4C2 2.89543 2.89543 2 4 2H20C21.1046 2 22 2.89543 22 4V20C22 21.1046 21.1046 22 20 22H4C2.89543 22 2 21.1046 2 20V4Z"
+        fill="white"
       />
     </Mask>
     <G mask="url(#mask0_9701_31681)">
@@ -1891,5 +1927,63 @@ export const MenuRefreshIcon = ({
       d="M22.4995 5.25013V9.75013C22.4995 9.94905 22.4205 10.1398 22.2799 10.2805C22.1392 10.4211 21.9484 10.5001 21.7495 10.5001H17.2495C17.0506 10.5001 16.8598 10.4211 16.7192 10.2805C16.5785 10.1398 16.4995 9.94905 16.4995 9.75013C16.4995 9.55122 16.5785 9.36046 16.7192 9.2198C16.8598 9.07915 17.0506 9.00013 17.2495 9.00013H19.8183L17.3255 6.71638L17.302 6.69388C16.2596 5.65184 14.9332 4.94006 13.4886 4.64746C12.044 4.35485 10.5452 4.4944 9.17942 5.04866C7.81365 5.60293 6.64148 6.54734 5.80934 7.76391C4.97719 8.98048 4.52196 10.4153 4.50052 11.8891C4.47907 13.3629 4.89237 14.8103 5.68877 16.0506C6.48517 17.2908 7.62937 18.269 8.97843 18.8627C10.3275 19.4565 11.8216 19.6396 13.2741 19.3891C14.7266 19.1387 16.0731 18.4658 17.1455 17.4545C17.29 17.3178 17.483 17.244 17.682 17.2496C17.8809 17.2551 18.0695 17.3395 18.2062 17.484C18.343 17.6286 18.4167 17.8216 18.4112 18.0205C18.4056 18.2195 18.3213 18.4081 18.1767 18.5448C16.5093 20.1261 14.2975 21.0053 11.9995 21.0001H11.8758C10.4018 20.9799 8.9553 20.598 7.66349 19.8879C6.37167 19.1777 5.27406 18.1612 4.46714 16.9275C3.66021 15.6938 3.16866 14.2808 3.03571 12.8127C2.90275 11.3446 3.13245 9.86628 3.70462 8.50772C4.27679 7.14916 5.17391 5.95194 6.31714 5.02128C7.46036 4.09063 8.81468 3.45504 10.2611 3.17038C11.7075 2.88571 13.2016 2.96069 14.6122 3.38871C16.0229 3.81674 17.3068 4.58471 18.3511 5.62513L20.9995 8.04388V5.25013C20.9995 5.05122 21.0785 4.86046 21.2192 4.7198C21.3598 4.57915 21.5506 4.50013 21.7495 4.50013C21.9484 4.50013 22.1392 4.57915 22.2799 4.7198C22.4205 4.86046 22.4995 5.05122 22.4995 5.25013Z"
       fill={fill}
     />
+  </Svg>
+);
+
+export const FinanceAndDocksIcon = ({
+  width = 24,
+  height = 24,
+  fill = "#80818B",
+  ...props
+}) => (
+  <Svg width={width} height={height} viewBox="0 0 24 24" fill="none" {...props}>
+    <Path
+      d="M1.94999 16.75C1.63174 16.75 1.32649 16.6203 1.10145 16.3895C0.876411 16.1587 0.75 15.8456 0.75 15.5192V1.98076C0.75 1.30101 1.28724 0.749999 1.94999 0.749999H5.05295C5.3712 0.749999 5.67642 0.879651 5.90149 1.11046C6.21825 1.43541 6.68173 1.91071 6.99849 2.23566C7.22357 2.46647 7.52878 2.59612 7.84703 2.59612H17.55C17.8683 2.59612 18.1735 2.72582 18.3985 2.95662C18.6236 3.18743 18.75 3.50048 18.75 3.82693V15.5192C18.75 15.8456 18.6236 16.1587 18.3985 16.3895C18.1735 16.6203 17.8683 16.75 17.55 16.75H1.94999Z"
+      stroke={fill}
+      stroke-width="1.5"
+      stroke-miterlimit="10"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+    <Path
+      d="M18.75 6.97222C18.75 6.64807 18.6236 6.33717 18.3985 6.10796C18.1735 5.87875 17.8683 5.75 17.55 5.75H1.94999C1.63174 5.75 1.32649 5.87875 1.10149 6.10796C0.876411 6.33717 0.75 6.64807 0.75 6.97222V15.5278C0.75 15.852 0.876411 16.1628 1.10149 16.392C1.32649 16.6212 1.63174 16.75 1.94999 16.75H17.55C17.8683 16.75 18.1735 16.6212 18.3985 16.392C18.6236 16.1628 18.75 15.852 18.75 15.5278V6.97222Z"
+      stroke={fill}
+      stroke-width="1.5"
+      stroke-miterlimit="10"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+  </Svg>
+);
+
+export const SettingsIcon = ({
+  width = 24,
+  height = 24,
+  fill = "#80818B",
+  ...props
+}) => (
+  <Svg width={width} height={height} viewBox="0 0 24 24" fill="none" {...props}>
+    <Mask
+      id="mask0_10106_38412"
+      style="mask-type:luminance"
+      maskUnits="userSpaceOnUse"
+      x="0"
+      y="0"
+      width="20"
+      height="20"
+    >
+      <Path d="M0 -1.90735e-06H20V20H0V-1.90735e-06Z" fill="currentColor" />
+    </Mask>
+    <G mask="url(#mask0_10106_38412)">
+      <Path
+        d="M9.99967 6.92707C8.30256 6.92707 6.92674 8.30285 6.92674 10C6.92674 11.6971 8.30256 13.0729 9.99967 13.0729C11.6968 13.0729 13.0726 11.6971 13.0726 10C13.0726 8.30285 11.6968 6.92707 9.99967 6.92707ZM18.6247 7.80715L17.7928 8.49207C16.8437 9.27336 16.8437 10.7266 17.7928 11.5079L18.6247 12.1928C18.9196 12.4355 18.9957 12.8559 18.8048 13.1866L17.1619 16.0321C16.971 16.3629 16.5689 16.5071 16.2113 16.3731L15.2021 15.995C14.051 15.5638 12.7924 16.2904 12.5903 17.5029L12.4131 18.5659C12.3504 18.9426 12.0244 19.2188 11.6426 19.2188H8.35678C7.9749 19.2188 7.64896 18.9426 7.58619 18.5659L7.409 17.5029C7.20693 16.2904 5.94838 15.5638 4.79724 15.995L3.7881 16.3731C3.43045 16.5071 3.02838 16.3629 2.8374 16.0321L1.19455 13.1866C1.00361 12.8559 1.07974 12.4355 1.37459 12.1928L2.20662 11.5079C3.15564 10.7266 3.15564 9.27336 2.20662 8.49207L1.37459 7.80715C1.07974 7.56441 1.00361 7.1441 1.19455 6.81336L2.8374 3.96785C3.02838 3.63711 3.43045 3.49289 3.7881 3.62687L4.79724 4.00492C5.94838 4.43617 7.20693 3.70957 7.409 2.49703L7.58619 1.43402C7.64896 1.05734 7.9749 0.781248 8.35678 0.781248H11.6426C12.0244 0.781248 12.3504 1.05734 12.4131 1.43402L12.5903 2.49703C12.7924 3.70957 14.051 4.43617 15.2021 4.00492L16.2113 3.62687C16.5689 3.49289 16.971 3.63711 17.1619 3.96785L18.8048 6.81336C18.9957 7.1441 18.9196 7.56441 18.6247 7.80715Z"
+        stroke="currentColor"
+        stroke-opacity="0.5"
+        stroke-width="1.5"
+        stroke-miterlimit="10"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      />
+    </G>
   </Svg>
 );

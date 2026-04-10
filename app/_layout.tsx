@@ -1,11 +1,14 @@
+// app/_layout.tsx
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { SplashScreen } from '@/features/shared/ui/components/splash-screen';
 import { buildAppToastConfig } from '@/features/shared/ui/appToastConfig';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useInitializeApp } from '@/hooks/useInitializeApp';
+import { ThemeProvider as AppThemeProvider } from '@/contexts/ThemeContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { store } from '@/store/store';
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { DarkTheme, DefaultTheme, ThemeProvider as NavigationThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useMemo, useState } from 'react';
@@ -21,9 +24,9 @@ export const unstable_settings = {
 };
 
 function AppToastHost() {
-  const colorScheme = useColorScheme();
   const insets = useSafeAreaInsets();
-  const isDark = colorScheme === 'dark';
+  const { currentTheme } = useTheme();
+  const isDark = currentTheme === 'dark';
   const toastConfig = useMemo(() => buildAppToastConfig(isDark), [isDark]);
 
   return (
@@ -44,8 +47,27 @@ function AppToastHost() {
   );
 }
 
-export default function RootLayout() {
-  const colorScheme = useColorScheme();
+function RootLayoutContent() {
+  const { currentTheme } = useTheme();
+  const navigationTheme = currentTheme === 'dark' ? DarkTheme : DefaultTheme;
+  
+  return (
+    <NavigationThemeProvider value={navigationTheme}>
+      <SafeAreaProvider>
+        <Provider store={store}>
+          <Stack>
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+          </Stack>
+          <StatusBar style={currentTheme === 'dark' ? 'light' : 'dark'} />
+          <AppToastHost />
+        </Provider>
+      </SafeAreaProvider>
+    </NavigationThemeProvider>
+  );
+}
+
+function AppContent() {
   const { isReady, error } = useInitializeApp();
   const [isSplashVisible, setIsSplashVisible] = useState(true);
 
@@ -65,6 +87,7 @@ export default function RootLayout() {
       </ThemedView>
     );
   }
+  
   if (error) {
     return (
       <ThemedView style={stylesLoad.errorContainer}>
@@ -77,19 +100,14 @@ export default function RootLayout() {
     );
   }
 
+  return <RootLayoutContent />;
+}
+
+export default function RootLayout() {
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <SafeAreaProvider>
-        <Provider store={store}>
-          <Stack>
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-          </Stack>
-          <StatusBar style="auto" />
-          <AppToastHost />
-        </Provider>
-      </SafeAreaProvider>
-    </ThemeProvider>
+    <AppThemeProvider>
+      <AppContent />
+    </AppThemeProvider>
   );
 }
 
