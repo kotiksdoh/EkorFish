@@ -1,21 +1,33 @@
-import { ArrowIconRight, FilterXsIcon, SortIcon } from "@/assets/icons/icons";
+import { ArrowIconRight, FilterXsIcon } from "@/assets/icons/icons";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import {
+  getUserPaymentsFilterThunk,
+  getUserPaymentsThunk,
+  postPriceListThunk,
+  postReconciliationActThunk,
+} from "@/features/auth/authSlice";
 import { ModalHeader } from "@/features/auth/ui/Header";
 import {
-  clearReturnRequests,
   getMyReturns,
   getMyReturnsParams,
 } from "@/features/catalog/catalogSlice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { Image } from "expo-image";
 import { useFocusEffect, useRouter } from "expo-router";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   ActivityIndicator,
   Animated,
   Dimensions,
   Modal,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
@@ -23,6 +35,10 @@ import {
   View,
   useColorScheme,
 } from "react-native";
+import DateTimePickerModal from "react-native-modal-datetime-picker";
+import { formatDate } from "../services/utils";
+import { CompanySelectionModal } from "./CompanySelectionModalSmall";
+import { CompanySelectModal } from "./CompanySelectModal";
 import AnimatedTextInput from "./components/CustomInput";
 import { PrimaryButton } from "./components/PrimartyButton";
 
@@ -32,33 +48,6 @@ interface MyFinanceProps {
   visible: boolean;
   onClose: () => void;
 }
-
-interface FilterState {
-  dateRange: {
-    startDate: string;
-    endDate: string;
-  };
-  amountRange: {
-    min: string;
-    max: string;
-  };
-  status: string[];
-  paymentMethod: string[];
-}
-
-const PAYMENT_STATUSES = [
-  { id: "completed", label: "Оплачено" },
-  { id: "pending", label: "Ожидает оплаты" },
-  { id: "failed", label: "Ошибка" },
-  { id: "refunded", label: "Возврат" },
-];
-
-const PAYMENT_METHODS = [
-  { id: "card", label: "Банковская карта" },
-  { id: "transfer", label: "Банковский перевод" },
-  { id: "cash", label: "Наличные" },
-  { id: "sbp", label: "СБП" },
-];
 
 const CreditProgressBar: React.FC<{
   usedCredit: number;
@@ -83,32 +72,35 @@ const CreditProgressBar: React.FC<{
   );
 };
 
-// Компонент фильтров
 const PaymentFiltersModal: React.FC<{
   visible: boolean;
   onClose: () => void;
-  onApplyFilters: (filters: FilterState) => void;
-}> = ({ visible, onClose, onApplyFilters }) => {
+  onApplyFilters: (filters: Record<string, string>) => void;
+  filters: Record<string, string>;
+  paymentFilters: {
+    id: string;
+    name: string;
+    paramName: string;
+    filterOptions: {
+      code: string;
+      id: string;
+      value: string;
+    }[];
+  }[];
+}> = ({ visible, onClose, onApplyFilters, filters, paymentFilters }) => {
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === "dark";
-
-  const [filters, setFilters] = useState<FilterState>({
-    dateRange: { startDate: "", endDate: "" },
-    amountRange: { min: "", max: "" },
-    status: [],
-    paymentMethod: [],
-  });
+  const [localFilters, setLocalFilters] =
+    useState<Record<string, string>>(filters);
 
   const [isClosing, setIsClosing] = useState(false);
   const modalTranslateY = useRef(new Animated.Value(screenHeight)).current;
 
-  const appliedFiltersCount =
-    (filters.dateRange.startDate ? 1 : 0) +
-    (filters.dateRange.endDate ? 1 : 0) +
-    (filters.amountRange.min ? 1 : 0) +
-    (filters.amountRange.max ? 1 : 0) +
-    filters.status.length +
-    filters.paymentMethod.length;
+  useEffect(() => {
+    if (visible) {
+      setLocalFilters(filters);
+    }
+  }, [visible, filters]);
 
   const closeModalWithAnimation = useCallback(() => {
     if (isClosing) return;
@@ -140,37 +132,38 @@ const PaymentFiltersModal: React.FC<{
     if (!isClosing) closeModalWithAnimation();
   }, [isClosing, closeModalWithAnimation]);
 
-  const toggleStatus = (statusId: string) => {
-    setFilters((prev) => ({
+  const updateFilter = (paramName: string, code: string) => {
+    setLocalFilters((prev) => ({
       ...prev,
-      status: prev.status.includes(statusId)
-        ? prev.status.filter((s) => s !== statusId)
-        : [...prev.status, statusId],
-    }));
-  };
-
-  const togglePaymentMethod = (methodId: string) => {
-    setFilters((prev) => ({
-      ...prev,
-      paymentMethod: prev.paymentMethod.includes(methodId)
-        ? prev.paymentMethod.filter((m) => m !== methodId)
-        : [...prev.paymentMethod, methodId],
+      [paramName]: prev[paramName] === code ? "" : code,
     }));
   };
 
   const resetFilters = () => {
-    setFilters({
-      dateRange: { startDate: "", endDate: "" },
-      amountRange: { min: "", max: "" },
-      status: [],
-      paymentMethod: [],
+    const resetFiltersObj: Record<string, string> = {};
+    paymentFilters.forEach((filter) => {
+      resetFiltersObj[filter.paramName] = "";
     });
+    setLocalFilters(resetFiltersObj);
   };
 
   const applyFilters = () => {
-    onApplyFilters(filters);
+    onApplyFilters(localFilters);
     closeModalWithAnimation();
   };
+
+  const appliedFiltersCount = Object.values(localFilters).filter(
+    (value) => value !== "",
+  ).length;
+
+  // Группируем фильтры по первому слову в name
+  const uniqueFilters = paymentFilters.filter((filter, index, self) => {
+    const firstWord = filter.name.split(" ")[0];
+    const firstIndex = self.findIndex(
+      (f) => f.name.split(" ")[0] === firstWord,
+    );
+    return index === firstIndex;
+  });
 
   return (
     <Modal
@@ -212,121 +205,49 @@ const PaymentFiltersModal: React.FC<{
               </View>
 
               <ScrollView style={styles.modalContent}>
-                <View style={styles.filterSection}>
-                  <ThemedText style={styles.filterSectionTitle}>
-                    Период
-                  </ThemedText>
-                  <View style={styles.dateInputs}>
-                    <View style={styles.dateInputContainer}>
-                      <ThemedText
-                        style={styles.dateInputPlaceholder}
-                        lightColor="#80818B"
-                      >
-                        Дата от
-                      </ThemedText>
-                    </View>
-                    <View style={styles.dateSeparator} />
-                    <View style={styles.dateInputContainer}>
-                      <ThemedText
-                        style={styles.dateInputPlaceholder}
-                        lightColor="#80818B"
-                      >
-                        Дата до
-                      </ThemedText>
-                    </View>
-                  </View>
-                </View>
+                {uniqueFilters.map((filterGroup) => {
+                  // Пропускаем PaymentDateYear и PaymentDateMonth
+                  if (filterGroup.paramName === "PaymentDateYear") return null;
+                  if (filterGroup.paramName === "PaymentDateMonth") return null;
 
-                <View style={styles.filterSection}>
-                  <ThemedText style={styles.filterSectionTitle}>
-                    Сумма
-                  </ThemedText>
-                  <View style={styles.priceInputs}>
-                    <View style={styles.priceInputContainer}>
-                      <ThemedText
-                        style={styles.priceInputPlaceholder}
-                        lightColor="#80818B"
-                      >
-                        От
+                  return (
+                    <View key={filterGroup.id} style={styles.filterSection}>
+                      <ThemedText style={styles.filterSectionTitle}>
+                        {filterGroup.name.split(" (")[0]}
                       </ThemedText>
+                      <View style={styles.filterChipsContainer}>
+                        {filterGroup.filterOptions.map((option) => (
+                          <TouchableOpacity
+                            key={option.id}
+                            style={[
+                              styles.filterChip,
+                              isDarkMode && {
+                                backgroundColor: "#202022",
+                                borderColor: "#323235",
+                              },
+                              localFilters[filterGroup.paramName] ===
+                                option.code && styles.filterChipSelected,
+                            ]}
+                            onPress={() =>
+                              updateFilter(filterGroup.paramName, option.code)
+                            }
+                          >
+                            <ThemedText
+                              style={[
+                                styles.filterChipText,
+                                localFilters[filterGroup.paramName] ===
+                                  option.code && styles.filterChipTextSelected,
+                              ]}
+                            >
+                              {option.value}{" "}
+                              {/* Отображаем value для пользователя */}
+                            </ThemedText>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
                     </View>
-                    <View style={styles.priceSeparator} />
-                    <View style={styles.priceInputContainer}>
-                      <ThemedText
-                        style={styles.priceInputPlaceholder}
-                        lightColor="#80818B"
-                      >
-                        До
-                      </ThemedText>
-                    </View>
-                  </View>
-                </View>
-
-                <View style={styles.filterSection}>
-                  <ThemedText style={styles.filterSectionTitle}>
-                    Статус оплаты
-                  </ThemedText>
-                  <View style={styles.filterChipsContainer}>
-                    {PAYMENT_STATUSES.map((status) => (
-                      <TouchableOpacity
-                        key={status.id}
-                        style={[
-                          styles.filterChip,
-                          isDarkMode && {
-                            backgroundColor: "#202022",
-                            borderColor: "#323235",
-                          },
-                          filters.status.includes(status.id) &&
-                            styles.filterChipSelected,
-                        ]}
-                        onPress={() => toggleStatus(status.id)}
-                      >
-                        <ThemedText
-                          style={[
-                            styles.filterChipText,
-                            filters.status.includes(status.id) &&
-                              styles.filterChipTextSelected,
-                          ]}
-                        >
-                          {status.label}
-                        </ThemedText>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </View>
-
-                <View style={styles.filterSection}>
-                  <ThemedText style={styles.filterSectionTitle}>
-                    Способ оплаты
-                  </ThemedText>
-                  <View style={styles.filterChipsContainer}>
-                    {PAYMENT_METHODS.map((method) => (
-                      <TouchableOpacity
-                        key={method.id}
-                        style={[
-                          styles.filterChip,
-                          isDarkMode && {
-                            backgroundColor: "#202022",
-                            borderColor: "#323235",
-                          },
-                          filters.paymentMethod.includes(method.id) &&
-                            styles.filterChipSelected,
-                        ]}
-                        onPress={() => togglePaymentMethod(method.id)}
-                      >
-                        <ThemedText
-                          style={[
-                            styles.filterChipText,
-                            filters.paymentMethod.includes(method.id) &&
-                              styles.filterChipTextSelected,
-                          ]}
-                        >
-                          {method.label}
-                        </ThemedText>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </View>
+                  );
+                })}
 
                 <View style={styles.modalBottomSpacer} />
               </ScrollView>
@@ -355,105 +276,204 @@ const PaymentFiltersModal: React.FC<{
 const PaymentsHistoryScreen: React.FC<{ onBack: () => void }> = ({
   onBack,
 }) => {
+  const dispatch = useAppDispatch();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const [showFiltersModal, setShowFiltersModal] = useState(false);
-  const [sortBy, setSortBy] = useState("dateDesc");
-  const [showSortModal, setShowSortModal] = useState(false);
-  const [filters, setFilters] = useState<FilterState>({
-    dateRange: { startDate: "", endDate: "" },
-    amountRange: { min: "", max: "" },
-    status: [],
-    paymentMethod: [],
-  });
+  const paymentFilters = useAppSelector((state) => state.auth.paymentsFillter);
+  const currentCompany = useAppSelector((state) => state.auth.currentCompany);
+  const paymentsList = useAppSelector((state) => state.auth.payments);
+  const isLoading = useAppSelector((state) => state.auth.isLoadingPayments);
+  const [filters, setFilters] = useState<Record<string, string>>({});
+  const [count, setCount] = useState(10);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const scrollEndRef = useRef(false);
 
-  const sortOptions = [
-    { id: "dateDesc", label: "Сначала новые" },
-    { id: "dateAsc", label: "Сначала старые" },
-    { id: "amountDesc", label: "Сначала дороже" },
-    { id: "amountAsc", label: "Сначала дешевле" },
-  ];
+  useEffect(() => {
+    if (currentCompany) {
+      dispatch(getUserPaymentsFilterThunk({ companyId: currentCompany.id }));
+    }
+  }, [currentCompany]);
 
-  const getCurrentSortLabel = () => {
-    const option = sortOptions.find((opt) => opt.id === sortBy);
-    return option ? option.label : "Сначала новые";
-  };
+  useEffect(() => {
+    if (paymentFilters && paymentFilters.length > 0) {
+      const initialFilters: Record<string, string> = {};
+      paymentFilters.forEach((filter) => {
+        initialFilters[filter.paramName] = "";
+      });
+      setFilters(initialFilters);
+    }
+  }, [paymentFilters]);
 
-  const appliedFiltersCount =
-    (filters.dateRange.startDate ? 1 : 0) +
-    (filters.dateRange.endDate ? 1 : 0) +
-    (filters.amountRange.min ? 1 : 0) +
-    (filters.amountRange.max ? 1 : 0) +
-    filters.status.length +
-    filters.paymentMethod.length;
-
-  const paymentsData = [
-    {
-      date: "23 ноября, воскресенье",
-      payments: [
-        {
-          id: 1,
-          method: "Банковский перевод",
-          amount: 21606,
-          invoiceNumber: "12456",
-          invoiceDate: "28.11.2024",
-          date: "23.11.2025",
-          time: "14:45",
-          status: "completed",
-        },
-        {
-          id: 2,
-          method: "Банковский перевод",
-          amount: 21606,
-          invoiceNumber: "12456",
-          invoiceDate: "28.11.2024",
-          date: "23.11.2025",
-          time: "14:45",
-          status: "completed",
-        },
-      ],
+  // Функция для получения value (для отображения) по code
+  const getDisplayValue = useCallback(
+    (paramName: string, code: string) => {
+      if (!code) return "";
+      const filter = paymentFilters.find((f) => f.paramName === paramName);
+      const option = filter?.filterOptions.find((opt) => opt.code === code);
+      return option?.value || code;
     },
-    {
-      date: "22 ноября, суббота",
-      payments: [
-        {
-          id: 3,
-          method: "Банковская карта",
-          amount: 15600,
-          invoiceNumber: "12457",
-          invoiceDate: "27.11.2024",
-          date: "22.11.2025",
-          time: "10:30",
-          status: "pending",
-        },
-        {
-          id: 4,
-          method: "СБП",
-          amount: 32100,
-          invoiceNumber: "12458",
-          invoiceDate: "27.11.2024",
-          date: "22.11.2025",
-          time: "09:15",
-          status: "completed",
-        },
-      ],
+    [paymentFilters],
+  );
+
+  // Функция для получения сгруппированных фильтров (мемоизированная)
+  const groupedFilters = useMemo(() => {
+    if (!paymentFilters || paymentFilters.length === 0) return [];
+
+    const groupedFilters = new Map();
+
+    paymentFilters.forEach((filter) => {
+      const firstWord = filter.name.split(" ")[0];
+      if (!groupedFilters.has(firstWord)) {
+        groupedFilters.set(firstWord, []);
+      }
+      groupedFilters.get(firstWord).push(filter);
+    });
+
+    const uniqueGroups = Array.from(groupedFilters.entries()).map(
+      ([groupName, filtersInGroup]) => {
+        const hasYearFilter = filtersInGroup.some(
+          (f: any) => f.paramName === "PaymentDateYear",
+        );
+        const hasMonthFilter = filtersInGroup.some(
+          (f: any) => f.paramName === "PaymentDateMonth",
+        );
+
+        if (hasYearFilter && hasMonthFilter) {
+          const yearFilter = filtersInGroup.find(
+            (f: any) => f.paramName === "PaymentDateYear",
+          );
+          const monthFilter = filtersInGroup.find(
+            (f: any) => f.paramName === "PaymentDateMonth",
+          );
+
+          const selectedYearCode = filters[yearFilter?.paramName || ""];
+          const selectedMonthCode = filters[monthFilter?.paramName || ""];
+
+          const yearValue = getDisplayValue(
+            yearFilter?.paramName,
+            selectedYearCode,
+          );
+          const monthValue = getDisplayValue(
+            monthFilter?.paramName,
+            selectedMonthCode,
+          );
+
+          let displayValue = "";
+          if (selectedYearCode && selectedMonthCode) {
+            displayValue = `${monthValue} ${yearValue}`;
+          } else if (selectedYearCode) {
+            displayValue = yearValue;
+          } else if (selectedMonthCode) {
+            displayValue = monthValue;
+          }
+
+          return {
+            id: "year-month-group",
+            name: groupName,
+            paramName: "year-month-group",
+            displayValue,
+            isActive: !!(selectedYearCode || selectedMonthCode),
+          };
+        }
+
+        const mainFilter = filtersInGroup[0];
+        const selectedCode = filters[mainFilter.paramName] || "";
+        const displayValue = getDisplayValue(
+          mainFilter.paramName,
+          selectedCode,
+        );
+
+        return {
+          id: mainFilter.id,
+          name: groupName,
+          paramName: mainFilter.paramName,
+          displayValue,
+          isActive: !!selectedCode,
+        };
+      },
+    );
+
+    return uniqueGroups;
+  }, [paymentFilters, filters, getDisplayValue]);
+
+  // Мемоизированные и сгруппированные платежи
+  const groupedPayments = useMemo(() => {
+    if (paymentsList.length === 0) return [];
+
+    // Сортируем платежи от новых к старым
+    const sortedPayments = [...paymentsList].sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+    );
+
+    // Группируем по датам
+    const grouped: { [key: string]: any[] } = {};
+    sortedPayments.forEach((payment) => {
+      if (!grouped[payment.date]) grouped[payment.date] = [];
+      grouped[payment.date].push(payment);
+    });
+
+    let remaining = count;
+    const result = [];
+
+    for (const date of Object.keys(grouped)) {
+      if (remaining <= 0) break;
+      const take = Math.min(grouped[date].length, remaining);
+      result.push({ date, payments: grouped[date].slice(0, take) });
+      remaining -= take;
+    }
+
+    return result;
+  }, [paymentsList, count]);
+
+  const handleScroll = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const { layoutMeasurement, contentOffset, contentSize } =
+        event.nativeEvent;
+      const isEnd =
+        layoutMeasurement.height + contentOffset.y >= contentSize.height - 50;
+
+      // Добавляем флаг, чтобы не вызывать много раз
+      if (isEnd && !isLoading && !isLoadingMore && !scrollEndRef.current) {
+        scrollEndRef.current = true;
+        setIsLoadingMore(true);
+
+        const newCount = count + 10;
+        setCount(newCount);
+
+        dispatch(
+          getUserPaymentsThunk({
+            ...filters,
+            count: newCount,
+            companyId: currentCompany?.id,
+          }),
+        ).finally(() => {
+          setIsLoadingMore(false);
+          setTimeout(() => {
+            scrollEndRef.current = false;
+          }, 500);
+        });
+      } else if (!isEnd) {
+        scrollEndRef.current = false;
+      }
     },
-    {
-      date: "21 ноября, пятница",
-      payments: [
-        {
-          id: 5,
-          method: "Банковский перевод",
-          amount: 8900,
-          invoiceNumber: "12459",
-          invoiceDate: "26.11.2024",
-          date: "21.11.2025",
-          time: "16:20",
-          status: "failed",
-        },
-      ],
+    [isLoading, isLoadingMore, count, filters, currentCompany, dispatch],
+  );
+
+  const handleApplyFilters = useCallback(
+    (newFilters: Record<string, string>) => {
+      setFilters(newFilters);
+      setCount(10); // Сбрасываем count при применении фильтров
+      dispatch(
+        getUserPaymentsThunk({
+          ...newFilters,
+          count: 10,
+          companyId: currentCompany?.id,
+        }),
+      );
     },
-  ];
+    [currentCompany, dispatch],
+  );
 
   return (
     <View style={styles.fullScreenContent}>
@@ -470,24 +490,13 @@ const PaymentsHistoryScreen: React.FC<{ onBack: () => void }> = ({
       >
         <View style={styles.sortFilterRow}>
           <TouchableOpacity
-            style={styles.sortButton}
-            onPress={() => setShowSortModal(true)}
-          >
-            <SortIcon
-              stroke={isDark ? "#FBFCFF" : "#1B1B1C"}
-              fill={isDark ? "#FBFCFF" : "#1B1B1C"}
-            />
-            <ThemedText style={styles.sortButtonText}>
-              {getCurrentSortLabel()}
-            </ThemedText>
-          </TouchableOpacity>
-
-          <TouchableOpacity
             style={styles.filterButton}
             onPress={() => setShowFiltersModal(true)}
           >
             <View>
-              {appliedFiltersCount > 0 && <View style={styles.filterBadge} />}
+              {Object.values(filters).some((v) => v !== "") && (
+                <View style={styles.filterBadge} />
+              )}
               <FilterXsIcon
                 stroke={isDark ? "#FBFCFF" : "#1B1B1C"}
                 fill={isDark ? "#FBFCFF" : "#1B1B1C"}
@@ -498,121 +507,150 @@ const PaymentsHistoryScreen: React.FC<{ onBack: () => void }> = ({
         </View>
 
         <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.subcategoriesContainer}
+          contentContainerStyle={styles.subcategoriesContent}
+        >
+          {groupedFilters.map((group) => {
+            if (group.paramName === "PaymentDateYear") return null;
+            if (group.paramName === "PaymentDateMonth") return null;
+
+            return (
+              <TouchableOpacity
+                key={group.id}
+                style={[
+                  styles.subcategoryButton,
+                  group.isActive && styles.subcategoryButtonActive,
+                  isDark &&
+                    !group.isActive && {
+                      backgroundColor: "#202022",
+                    },
+                  isDark &&
+                    group.isActive && {
+                      backgroundColor: "#3881EE",
+                    },
+                ]}
+                onPress={() => setShowFiltersModal(true)}
+              >
+                <ThemedText
+                  style={[
+                    styles.subcategoryText,
+                    group.isActive && styles.subcategoryTextActive,
+                    isDark && {
+                      color: "#FBFCFF",
+                    },
+                  ]}
+                >
+                  {group.displayValue || group.name}
+                </ThemedText>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+
+        <ScrollView
           style={styles.paymentsScrollViewFull}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.paymentsContentContainer}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
         >
-          {paymentsData.map((group, groupIndex) => (
-            <View key={groupIndex}>
+          {isLoading && groupedPayments.length === 0 && (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator
+                size="large"
+                color={isDark ? "#FBFCFF" : "#203686"}
+              />
               <ThemedText
-                style={{
-                  fontSize: 12,
-                  textTransform: "uppercase",
-                  marginVertical: 24,
-                }}
+                style={styles.loadingText}
+                lightColor="#80818B"
                 darkColor="#FBFCFF80"
               >
-                {group.date}
+                Загрузка платежей...
               </ThemedText>
-
-              <View style={{ gap: 8 }}>
-                {group.payments.map((payment) => (
-                  <View key={payment.id}>
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                      }}
-                    >
-                      <ThemedText darkColor="#4C94FF" weight="medium">
-                        {payment.method}
-                      </ThemedText>
-                      <ThemedText darkColor="#FBFCFF" weight="semiBold">
-                        {payment.amount.toLocaleString()} ₽
-                      </ThemedText>
-                    </View>
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                      }}
-                    >
-                      <ThemedText
-                        style={{ fontSize: 12 }}
-                        darkColor="#FBFCFF80"
-                      >
-                        Счет №{payment.invoiceNumber} от {payment.invoiceDate}
-                      </ThemedText>
-                      <ThemedText
-                        style={{ fontSize: 12 }}
-                        darkColor="#FBFCFF80"
-                      >
-                        {payment.date} {payment.time}
-                      </ThemedText>
-                    </View>
-                  </View>
-                ))}
-              </View>
             </View>
-          ))}
+          )}
+
+          {groupedPayments.length > 0 && (
+            <>
+              {groupedPayments.map((group) => (
+                <View key={group.date}>
+                  <ThemedText
+                    style={{
+                      fontSize: 12,
+                      textTransform: "uppercase",
+                      marginVertical: 24,
+                    }}
+                    darkColor="#FBFCFF80"
+                  >
+                    {formatDate(group.date)}
+                  </ThemedText>
+                  <View style={{ gap: 16 }}>
+                    {group.payments.map((payment) => (
+                      <View key={payment.id}>
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                          }}
+                        >
+                          <ThemedText darkColor="#4C94FF" weight="medium">
+                            {payment.paymentType || "Оплата"}
+                          </ThemedText>
+                          <ThemedText darkColor="#FBFCFF" weight="semiBold">
+                            {payment.amount.toLocaleString()} ₽
+                          </ThemedText>
+                        </View>
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            marginTop: 4,
+                          }}
+                        >
+                          <ThemedText
+                            style={{ fontSize: 12 }}
+                            darkColor="#FBFCFF80"
+                          >
+                            Счет №{payment.invoiceNumber} от{" "}
+                            {formatDate(payment.invoiceDate)}
+                          </ThemedText>
+                          <ThemedText
+                            style={{ fontSize: 12 }}
+                            darkColor="#FBFCFF80"
+                          >
+                            {formatDate(payment.date)}
+                          </ThemedText>
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              ))}
+
+              {(isLoadingMore || isLoading) && (
+                <View style={{ paddingVertical: 20 }}>
+                  <ActivityIndicator
+                    size="small"
+                    color={isDark ? "#FBFCFF" : "#203686"}
+                  />
+                </View>
+              )}
+            </>
+          )}
         </ScrollView>
       </ThemedView>
 
       <PaymentFiltersModal
         visible={showFiltersModal}
         onClose={() => setShowFiltersModal(false)}
-        onApplyFilters={(newFilters) => {
-          setFilters(newFilters);
-          console.log("Применены фильтры:", newFilters);
-        }}
+        onApplyFilters={handleApplyFilters}
+        filters={filters}
+        paymentFilters={paymentFilters}
       />
-
-      <Modal
-        visible={showSortModal}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setShowSortModal(false)}
-      >
-        <TouchableWithoutFeedback onPress={() => setShowSortModal(false)}>
-          <View style={styles.modalOverlay}>
-            <TouchableWithoutFeedback>
-              <View
-                style={[
-                  styles.sortModalContainer,
-                  isDark && { backgroundColor: "#202022" },
-                ]}
-              >
-                <View style={styles.sortModalHeader}>
-                  <ThemedText style={styles.sortModalTitle}>
-                    Сортировка
-                  </ThemedText>
-                </View>
-                {sortOptions.map((option) => (
-                  <TouchableOpacity
-                    key={option.id}
-                    style={styles.sortOption}
-                    onPress={() => {
-                      setSortBy(option.id);
-                      setShowSortModal(false);
-                    }}
-                  >
-                    <View style={styles.sortOptionRadio}>
-                      {sortBy === option.id && (
-                        <View style={styles.sortOptionRadioInner} />
-                      )}
-                    </View>
-                    <ThemedText style={styles.sortOptionText}>
-                      {option.label}
-                    </ThemedText>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </TouchableWithoutFeedback>
-          </View>
-        </TouchableWithoutFeedback>
-      </Modal>
     </View>
   );
 };
@@ -621,266 +659,542 @@ const PaymentsHistoryScreen: React.FC<{ onBack: () => void }> = ({
 const ReconciliationActScreen: React.FC<{ onBack: () => void }> = ({
   onBack,
 }) => {
+  const dispatch = useAppDispatch();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const [company, setCompany] = useState("");
+
+  const companies = useAppSelector((state) => state.auth.me.companies) || [];
+
+  const [startDate, setStartDate] = useState<Date | null>(null);
+  const [endDate, setEndDate] = useState<Date | null>(null);
+  const [selectedCompany, setSelectedCompany] = useState<any>(null);
   const [email, setEmail] = useState("");
   const [comment, setComment] = useState("");
-  const [selectedFormat, setSelectedFormat] = useState("PDF");
+  const [companyModalVisible, setCompanyModalVisible] = useState(false);
+  const [registerModalVisible, setRegisterModalVisible] = useState(false);
+
+  // Состояния для дата-пикеров
+  const [showStartDatePicker, setShowStartDatePicker] = useState(false);
+  const [showEndDatePicker, setShowEndDatePicker] = useState(false);
+
+  // Состояния для ошибок валидации
+  const [errors, setErrors] = useState<{
+    startDate?: string;
+    endDate?: string;
+    company?: string;
+    email?: string;
+  }>({});
+
+  const formatDateForDisplay = (date: Date | null): string => {
+    if (!date) return "";
+    return date.toLocaleDateString("ru-RU", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+  };
+
+  const formatDateForBackend = (date: Date | null): string => {
+    if (!date) return "";
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  const validateForm = (): boolean => {
+    const newErrors: {
+      startDate?: string;
+      endDate?: string;
+      company?: string;
+      email?: string;
+    } = {};
+
+    if (!startDate) {
+      newErrors.startDate = "Укажите начало периода";
+    }
+    if (!endDate) {
+      newErrors.endDate = "Укажите конец периода";
+    }
+    if (startDate && endDate && startDate > endDate) {
+      newErrors.endDate = "Дата окончания не может быть раньше даты начала";
+    }
+    if (!selectedCompany) {
+      newErrors.company = "Выберите компанию";
+    }
+    const emailRegex = /^[^\s@]+@([^\s@.,]+\.)+[^\s@.,]{2,}$/;
+    if (!email) {
+      newErrors.email = "Введите email";
+    } else if (!emailRegex.test(email)) {
+      newErrors.email = "Введите корректный email";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSelectCompany = (company: any) => {
+    setSelectedCompany(company);
+    setCompanyModalVisible(false);
+    if (errors.company) {
+      setErrors((prev) => ({ ...prev, company: undefined }));
+    }
+  };
+
+  const handleOpenRegisterModal = () => {
+    setRegisterModalVisible(true);
+  };
+
+  // Функции для дата-пикеров
+  const showStartPicker = () => {
+    setShowStartDatePicker(true);
+  };
+
+  const hideStartPicker = () => {
+    setShowStartDatePicker(false);
+  };
+
+  const handleStartDateConfirm = (date: Date) => {
+    setStartDate(date);
+    hideStartPicker();
+    if (errors.startDate) {
+      setErrors((prev) => ({ ...prev, startDate: undefined }));
+    }
+  };
+
+  const showEndPicker = () => {
+    setShowEndDatePicker(true);
+  };
+
+  const hideEndPicker = () => {
+    setShowEndDatePicker(false);
+  };
+
+  const handleEndDateConfirm = (date: Date) => {
+    setEndDate(date);
+    hideEndPicker();
+    if (errors.endDate) {
+      setErrors((prev) => ({ ...prev, endDate: undefined }));
+    }
+  };
+
+  const handleSendReconciliationAct = () => {
+    if (validateForm()) {
+      dispatch(
+        postReconciliationActThunk({
+          dateFrom: formatDateForBackend(startDate),
+          dateTo: formatDateForBackend(endDate),
+          companyId: selectedCompany.id,
+          comment,
+          email,
+        }),
+      );
+    }
+  };
 
   return (
-    <View style={styles.fullScreenContent}>
-      <ModalHeader
-        title="Запросить акт-сверки"
-        showBackButton={true}
-        onBackPress={onBack}
-      />
+    <>
+      <View style={styles.fullScreenContent}>
+        <ModalHeader
+          title="Запросить акт-сверки"
+          showBackButton={true}
+          onBackPress={onBack}
+        />
 
-      <ThemedView
-        lightColor="#FFFFFF"
-        darkColor="#151516"
-        style={styles.paymentsMainContainer}
-      >
-        <ThemedText
-          style={styles.formSubtitle}
-          type="subtitle"
-          darkColor="#FBFCFF"
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
         >
-          Заполните форму
-        </ThemedText>
+          <ThemedView
+            lightColor="#FFFFFF"
+            darkColor="#151516"
+            style={styles.formContainer}
+          >
+            <ThemedText
+              style={styles.formSubtitle}
+              type="subtitle"
+              darkColor="#FBFCFF"
+            >
+              Заполните форму
+            </ThemedText>
 
-        <View style={styles.formGroup}>
-          <View style={styles.dateInputWrapper}>
-            <AnimatedTextInput
-              placeholder="Начало периода"
-              placeholderTextColor="#80818B"
-              value={startDate}
-              onChangeText={setStartDate}
-            />
-          </View>
-          <View style={styles.dateInputWrapper}>
-            <AnimatedTextInput
-              placeholder="Конец периода"
-              placeholderTextColor="#80818B"
-              value={endDate}
-              onChangeText={setEndDate}
-            />
-          </View>
-        </View>
+            {/* Даты в одной строке */}
+            <View style={styles.dateRow}>
+              <View style={styles.dateWrapper}>
+                <TouchableOpacity
+                  onPress={showStartPicker}
+                  style={[
+                    styles.datePickerButton,
+                    isDark && styles.datePickerButtonDark,
+                    errors.startDate && styles.datePickerButtonError,
+                  ]}
+                >
+                  <ThemedText
+                    style={[
+                      styles.datePickerText,
+                      !startDate && styles.datePickerPlaceholder,
+                    ]}
+                    darkColor="#FBFCFF"
+                    lightColor="#1B1B1C"
+                  >
+                    {startDate
+                      ? formatDateForDisplay(startDate)
+                      : "Начало периода"}
+                  </ThemedText>
+                </TouchableOpacity>
+                {errors.startDate && (
+                  <ThemedText style={styles.errorText} darkColor="#FF6B6B">
+                    {errors.startDate}
+                  </ThemedText>
+                )}
+              </View>
 
-        <View style={styles.formGroup}>
-          <AnimatedTextInput
-            placeholder="Компания"
-            placeholderTextColor="#80818B"
-            value={company}
-            onChangeText={setCompany}
-          />
-        </View>
+              <View style={styles.dateWrapper}>
+                <TouchableOpacity
+                  onPress={showEndPicker}
+                  style={[
+                    styles.datePickerButton,
+                    isDark && styles.datePickerButtonDark,
+                    errors.endDate && styles.datePickerButtonError,
+                  ]}
+                >
+                  <ThemedText
+                    style={[
+                      styles.datePickerText,
+                      !endDate && styles.datePickerPlaceholder,
+                    ]}
+                    darkColor="#FBFCFF"
+                    lightColor="#1B1B1C"
+                  >
+                    {endDate ? formatDateForDisplay(endDate) : "Конец периода"}
+                  </ThemedText>
+                </TouchableOpacity>
+                {errors.endDate && (
+                  <ThemedText style={styles.errorText} darkColor="#FF6B6B">
+                    {errors.endDate}
+                  </ThemedText>
+                )}
+              </View>
+            </View>
 
-        <View style={styles.formGroup}>
-          <AnimatedTextInput
-            placeholder="Email"
-            placeholderTextColor="#80818B"
-            keyboardType="email-address"
-            value={email}
-            onChangeText={setEmail}
-          />
-        </View>
+            {/* Выбор компании */}
+            <View style={styles.fieldWrapper}>
+              <TouchableOpacity
+                onPress={() => setCompanyModalVisible(true)}
+                style={[
+                  styles.companySelector,
+                  isDark && styles.companySelectorDark,
+                  errors.company && styles.companySelectorError,
+                ]}
+              >
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 8,
+                    flex: 1,
+                  }}
+                >
+                  <ThemedText
+                    darkColor="#FBFCFF"
+                    lightColor="#1B1B1C"
+                    numberOfLines={1}
+                    style={[
+                      styles.companySelectorText,
+                      !selectedCompany && styles.companySelectorPlaceholder,
+                    ]}
+                  >
+                    {selectedCompany?.name || "Выберите компанию"}
+                  </ThemedText>
+                </View>
+                <ArrowIconRight stroke={isDark ? "#FBFCFF" : "#1B1B1C"} />
+              </TouchableOpacity>
+              {errors.company && (
+                <ThemedText style={styles.errorText} darkColor="#FF6B6B">
+                  {errors.company}
+                </ThemedText>
+              )}
+            </View>
 
-        <View style={styles.formGroup}>
-          <AnimatedTextInput
-            placeholder="Комментарий"
-            placeholderTextColor="#80818B"
-            multiline
-            numberOfLines={4}
-            textAlignVertical="top"
-            value={comment}
-            onChangeText={setComment}
-          />
-        </View>
+            {/* Email */}
+            <View style={styles.fieldWrapper}>
+              <AnimatedTextInput
+                placeholder="Email"
+                placeholderTextColor="#80818B"
+                keyboardType="email-address"
+                value={email}
+                onChangeText={(text) => {
+                  setEmail(text);
+                  if (errors.email) {
+                    setErrors((prev) => ({ ...prev, email: undefined }));
+                  }
+                }}
+                style={errors.email && styles.inputError}
+              />
+              {errors.email && (
+                <ThemedText style={styles.errorText} darkColor="#FF6B6B">
+                  {errors.email}
+                </ThemedText>
+              )}
+            </View>
 
-        <ThemedText
-          style={styles.formSubtitle}
-          type="subtitle"
-          darkColor="#FBFCFF"
-        >
-          Выберите формат
-        </ThemedText>
+            {/* Комментарий */}
+            <View style={styles.fieldWrapper}>
+              <AnimatedTextInput
+                placeholder="Комментарий"
+                placeholderTextColor="#80818B"
+                multiline
+                numberOfLines={4}
+                textAlignVertical="top"
+                value={comment}
+                onChangeText={setComment}
+              />
+            </View>
+          </ThemedView>
+        </ScrollView>
 
-        <TouchableOpacity
-          style={styles.radioOption}
-          onPress={() => setSelectedFormat("PDF")}
-        >
-          <View style={styles.radioCircle}>
-            {selectedFormat === "PDF" && <View style={styles.radioSelected} />}
-          </View>
-          <ThemedText style={styles.radioLabel}>PDF</ThemedText>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.radioOption}
-          onPress={() => setSelectedFormat("Excel")}
-        >
-          <View style={styles.radioCircle}>
-            {selectedFormat === "Excel" && (
-              <View style={styles.radioSelected} />
-            )}
-          </View>
-          <ThemedText style={styles.radioLabel}>Excel</ThemedText>
-        </TouchableOpacity>
-        <View
-          style={{
-            position: "absolute",
-            bottom: 30,
-            right: 16,
-            left: 16,
-            width: "100%",
-          }}
-        >
-          <ThemedText style={styles.infoText} darkColor="#FBFCFF">
+        {/* Нижняя панель с кнопкой */}
+        <View style={styles.bottomPanel}>
+          <ThemedText style={styles.infoText} darkColor="#FBFCFF80">
             Акт будет сформирован в 1С и отправлен в течение 24 часов
           </ThemedText>
 
           <PrimaryButton
             title="Отправить запрос"
-            onPress={() => console.log("Отправка запроса акта-сверки")}
+            onPress={handleSendReconciliationAct}
             variant="primary"
             size="lg"
             fullWidth
           />
         </View>
-      </ThemedView>
-    </View>
+      </View>
+
+      {/* Дата-пикеры - размещаем за пределами ScrollView */}
+      <DateTimePickerModal
+        isVisible={showStartDatePicker}
+        mode="date"
+        onConfirm={handleStartDateConfirm}
+        onCancel={hideStartPicker}
+        date={startDate || new Date()}
+        maximumDate={endDate || undefined}
+        locale="ru"
+      />
+
+      <DateTimePickerModal
+        isVisible={showEndDatePicker}
+        mode="date"
+        onConfirm={handleEndDateConfirm}
+        onCancel={hideEndPicker}
+        date={endDate || new Date()}
+        minimumDate={startDate || undefined}
+        locale="ru"
+      />
+
+      <CompanySelectionModal
+        visible={companyModalVisible}
+        onClose={() => setCompanyModalVisible(false)}
+        companies={companies}
+        selectedCompanyId={selectedCompany?.id}
+        onSelectCompany={handleSelectCompany}
+        onAddCompany={handleOpenRegisterModal}
+      />
+
+      <CompanySelectModal
+        visible={registerModalVisible}
+        onClose={() => setRegisterModalVisible(false)}
+        companies={companies}
+        selectedCompanyId={selectedCompany?.id}
+        onSelectCompany={handleSelectCompany}
+        screenScene={"register"}
+        onAddCompany={() => {}}
+      />
+    </>
   );
 };
 
 // Компонент формы запроса прайс-листа
 const PriceListScreen: React.FC<{ onBack: () => void }> = ({ onBack }) => {
+  const dispatch = useAppDispatch();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
-  const [company, setCompany] = useState("");
+
+  const companies = useAppSelector((state) => state.auth.me.companies) || [];
+
+  const [selectedCompany, setSelectedCompany] = useState<any>(null);
   const [email, setEmail] = useState("");
-  const [selectedFormat, setSelectedFormat] = useState("app");
-  const [onlyMyPrices, setOnlyMyPrices] = useState(false);
+  const [companyModalVisible, setCompanyModalVisible] = useState(false);
+  const [registerModalVisible, setRegisterModalVisible] = useState(false);
+
+  // Состояния для ошибок валидации
+  const [errors, setErrors] = useState<{
+    company?: string;
+    email?: string;
+  }>({});
+
+  const validateForm = (): boolean => {
+    const newErrors: {
+      email?: string;
+    } = {};
+
+    // Валидация email
+    const emailRegex = /^[^\s@]+@([^\s@.,]+\.)+[^\s@.,]{2,}$/;
+    if (!email) {
+      newErrors.email = "Введите email";
+    } else if (!emailRegex.test(email)) {
+      newErrors.email = "Введите корректный email";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSelectCompany = (company: any) => {
+    setSelectedCompany(company);
+    setCompanyModalVisible(false);
+    if (errors.company) {
+      setErrors((prev) => ({ ...prev, company: undefined }));
+    }
+  };
+
+  const handleOpenRegisterModal = () => {
+    setRegisterModalVisible(true);
+  };
+
+  const handleSendPriceList = () => {
+    if (validateForm()) {
+      dispatch(
+        postPriceListThunk({
+          companyId: selectedCompany.id,
+          email,
+        }),
+      );
+    }
+  };
 
   return (
-    <View style={styles.fullScreenContent}>
-      <ModalHeader
-        title="Запросить прайс-лист"
-        showBackButton={true}
-        onBackPress={onBack}
-      />
+    <>
+      <View style={styles.fullScreenContent}>
+        <ModalHeader
+          title="Запросить прайс-лист"
+          showBackButton={true}
+          onBackPress={onBack}
+        />
 
-      <ThemedView
-        lightColor="#FFFFFF"
-        darkColor="#151516"
-        style={styles.paymentsMainContainer}
-      >
-        <ThemedText
-          style={styles.formSubtitle}
-          type="subtitle"
-          darkColor="#FBFCFF"
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
         >
-          Заполните форму
-        </ThemedText>
-
-        <View style={styles.formGroup}>
-          <AnimatedTextInput
-            placeholder="Компания"
-            placeholderTextColor="#80818B"
-            value={company}
-            onChangeText={setCompany}
-          />
-        </View>
-
-        <View style={styles.formGroup}>
-          <AnimatedTextInput
-            placeholder="Email"
-            placeholderTextColor="#80818B"
-            keyboardType="email-address"
-            value={email}
-            onChangeText={setEmail}
-          />
-        </View>
-
-        <ThemedText
-          style={styles.formSubtitle}
-          type="subtitle"
-          darkColor="#FBFCFF"
-        >
-          Выберите формат
-        </ThemedText>
-
-        <TouchableOpacity
-          style={styles.radioOption}
-          onPress={() => setSelectedFormat("app")}
-        >
-          <View style={styles.radioCircle}>
-            {selectedFormat === "app" && <View style={styles.radioSelected} />}
-          </View>
-          <ThemedText style={styles.radioLabel}>
-            Обновить в приложении
-          </ThemedText>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.radioOption}
-          onPress={() => setSelectedFormat("PDF")}
-        >
-          <View style={styles.radioCircle}>
-            {selectedFormat === "PDF" && <View style={styles.radioSelected} />}
-          </View>
-          <ThemedText style={styles.radioLabel}>PDF</ThemedText>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.radioOption}
-          onPress={() => setSelectedFormat("Excel")}
-        >
-          <View style={styles.radioCircle}>
-            {selectedFormat === "Excel" && (
-              <View style={styles.radioSelected} />
-            )}
-          </View>
-          <ThemedText style={styles.radioLabel}>Excel</ThemedText>
-        </TouchableOpacity>
-        <View
-          style={{
-            position: "absolute",
-            bottom: 30,
-            right: 16,
-            left: 16,
-            width: "100%",
-          }}
-        >
-          <ThemedText style={styles.infoText} darkColor="#FBFCFF">
-            Прайс будет отправлен в течение 2 часов
-          </ThemedText>
-
-          <TouchableOpacity
-            style={styles.checkboxOption}
-            onPress={() => setOnlyMyPrices(!onlyMyPrices)}
+          <ThemedView
+            lightColor="#FFFFFF"
+            darkColor="#151516"
+            style={styles.formContainer}
           >
-            <View style={styles.checkbox}>
-              {onlyMyPrices && <View style={styles.checkboxSelected} />}
-            </View>
-            <ThemedText style={styles.checkboxLabel}>
-              Только мои цены (с моими скидками)
+            <ThemedText
+              style={styles.formSubtitle}
+              type="subtitle"
+              darkColor="#FBFCFF"
+            >
+              Заполните форму
             </ThemedText>
-          </TouchableOpacity>
+
+            {/* Выбор компании */}
+            <View style={styles.fieldWrapper}>
+              <TouchableOpacity
+                onPress={() => setCompanyModalVisible(true)}
+                style={[
+                  styles.companySelector,
+                  isDark && styles.companySelectorDark,
+                  errors.company && styles.companySelectorError,
+                ]}
+              >
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 8,
+                    flex: 1,
+                  }}
+                >
+                  <ThemedText
+                    darkColor="#FBFCFF"
+                    lightColor="#1B1B1C"
+                    numberOfLines={1}
+                    style={[
+                      styles.companySelectorText,
+                      !selectedCompany && styles.companySelectorPlaceholder,
+                    ]}
+                  >
+                    {selectedCompany?.name || "Выберите компанию"}
+                  </ThemedText>
+                </View>
+                <ArrowIconRight stroke={isDark ? "#FBFCFF" : "#1B1B1C"} />
+              </TouchableOpacity>
+              {errors.company && (
+                <ThemedText style={styles.errorText} darkColor="#FF6B6B">
+                  {errors.company}
+                </ThemedText>
+              )}
+            </View>
+
+            {/* Email */}
+            <View style={styles.fieldWrapper}>
+              <AnimatedTextInput
+                placeholder="Email"
+                placeholderTextColor="#80818B"
+                keyboardType="email-address"
+                value={email}
+                onChangeText={(text) => {
+                  setEmail(text);
+                  if (errors.email) {
+                    setErrors((prev) => ({ ...prev, email: undefined }));
+                  }
+                }}
+                style={errors.email && styles.inputError}
+              />
+              {errors.email && (
+                <ThemedText style={styles.errorText} darkColor="#FF6B6B">
+                  {errors.email}
+                </ThemedText>
+              )}
+            </View>
+          </ThemedView>
+        </ScrollView>
+
+        {/* Нижняя панель с кнопкой */}
+        <View style={styles.bottomPanel}>
+          <ThemedText style={styles.infoText} darkColor="#FBFCFF80">
+            Прайс-лист будет отправлен в течение 2 часов
+          </ThemedText>
 
           <PrimaryButton
             title="Отправить запрос"
-            onPress={() => console.log("Отправка запроса прайс-листа")}
+            onPress={handleSendPriceList}
             variant="primary"
             size="lg"
             fullWidth
           />
         </View>
-      </ThemedView>
-    </View>
+      </View>
+
+      <CompanySelectionModal
+        visible={companyModalVisible}
+        onClose={() => setCompanyModalVisible(false)}
+        companies={companies}
+        selectedCompanyId={selectedCompany?.id}
+        onSelectCompany={handleSelectCompany}
+        onAddCompany={handleOpenRegisterModal}
+      />
+
+      <CompanySelectModal
+        visible={registerModalVisible}
+        onClose={() => setRegisterModalVisible(false)}
+        companies={companies}
+        selectedCompanyId={selectedCompany?.id}
+        onSelectCompany={handleSelectCompany}
+        screenScene={"register"}
+        onAddCompany={() => {}}
+      />
+    </>
   );
 };
 
@@ -892,11 +1206,10 @@ export const MyFinanceModal: React.FC<MyFinanceProps> = ({
   const currentTheme = systemTheme || "light";
   const isDark = currentTheme === "dark";
 
-  const loading = useAppSelector((state) => state.auth.isLoading);
+  const loading = useAppSelector((state) => state.auth.isLoadingPayments);
   const currentCompany = useAppSelector((state) => state.auth.currentCompany);
-  const [visibleFirstStep, setVisibleFirstStep] = useState<boolean>(false);
-  const [visibleSecondStep, setVisibleSecondStep] = useState<boolean>(false);
-  const [visibleThirdStep, setVisibleThirdStep] = useState<boolean>(false);
+  const payments = useAppSelector((state) => state.auth.payments);
+
   const [showPaymentsHistory, setShowPaymentsHistory] =
     useState<boolean>(false);
   const [showReconciliationAct, setShowReconciliationAct] =
@@ -906,34 +1219,22 @@ export const MyFinanceModal: React.FC<MyFinanceProps> = ({
   const dispatch = useAppDispatch();
   const router = useRouter();
 
-  const onCreateReturn = () => {
-    setVisibleFirstStep(true);
-  };
+  useEffect(() => {
+    if (currentCompany) {
+      dispatch(
+        getUserPaymentsThunk({
+          companyId: currentCompany.id,
+        }),
+      );
+    }
+  }, [currentCompany]);
 
   const handleCloseAll = () => {
-    setVisibleFirstStep(false);
-    setVisibleSecondStep(false);
-    setVisibleThirdStep(false);
     setShowPaymentsHistory(false);
     setShowReconciliationAct(false);
     setShowPriceList(false);
-    dispatch(clearReturnRequests());
     onClose();
   };
-
-  const handleNavigateHomeFromReturn = useCallback(() => {
-    handleCloseAll();
-    dispatch(getMyReturns());
-    router.navigate("/dashboard");
-  }, [dispatch, onClose]);
-
-  const handleViewReturnDetails = useCallback(() => {
-    setVisibleThirdStep(false);
-    setVisibleSecondStep(false);
-    setVisibleFirstStep(false);
-    dispatch(clearReturnRequests());
-    dispatch(getMyReturns());
-  }, [dispatch]);
 
   useFocusEffect(
     useCallback(() => {
@@ -945,38 +1246,6 @@ export const MyFinanceModal: React.FC<MyFinanceProps> = ({
       };
       checkToken();
     }, [visible]),
-  );
-
-  const renderEmptyState = () => (
-    <View style={styles.emptyContainer}>
-      <Image
-        source={require("@/assets/icons/png/noReturns.png")}
-        style={styles.emptyImage}
-        contentFit="cover"
-      />
-      <View>
-        <ThemedText style={styles.emptyTextMain} lightColor="#1B1B1C">
-          У вас еще нет заявок{"\n"}на возврат.
-        </ThemedText>
-        <ThemedText
-          style={styles.emptyText}
-          lightColor="#80818B"
-          darkColor="#FBFCFF80"
-        >
-          Возврат возможен в течение 24 часов{"\n"}с момента получения заказа.
-        </ThemedText>
-      </View>
-      {onCreateReturn && (
-        <PrimaryButton
-          title="+ Создать заявку на возврат"
-          onPress={onCreateReturn}
-          variant="primary"
-          size="md"
-          activeOpacity={0.8}
-          fullWidth
-        />
-      )}
-    </View>
   );
 
   const renderLoadingState = () => (
@@ -991,6 +1260,12 @@ export const MyFinanceModal: React.FC<MyFinanceProps> = ({
       </ThemedText>
     </View>
   );
+
+  if (loading) {
+    {
+      renderLoadingState();
+    }
+  }
 
   if (showPaymentsHistory) {
     return (
@@ -1076,6 +1351,7 @@ export const MyFinanceModal: React.FC<MyFinanceProps> = ({
         <ScrollView
           style={styles.mainScrollView}
           showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollViewContent}
         >
           {currentCompany && (
             <ThemedView
@@ -1166,94 +1442,89 @@ export const MyFinanceModal: React.FC<MyFinanceProps> = ({
                 </ThemedText>
               </TouchableOpacity>
             </View>
+            {payments.length > 0 &&
+              (() => {
+                // Сортируем платежи от новых к старым
+                const sortedPayments = [...payments].sort(
+                  (a, b) =>
+                    new Date(b.date).getTime() - new Date(a.date).getTime(),
+                );
 
-            <ThemedText
-              style={{
-                fontSize: 12,
-                textTransform: "uppercase",
-                marginVertical: 24,
-              }}
-              darkColor="#FBFCFF80"
-            >
-              23 ноября, воскресенье
-            </ThemedText>
+                // Группируем по датам
+                const grouped: { [key: string]: any[] } = {};
+                sortedPayments.forEach((payment) => {
+                  if (!grouped[payment.date]) grouped[payment.date] = [];
+                  grouped[payment.date].push(payment);
+                });
 
-            <View style={{ gap: 8 }}>
-              <View>
-                <View
-                  style={{
-                    flexDirection: "row",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  }}
-                >
-                  <ThemedText darkColor="#4C94FF" weight="medium">
-                    Банковский перевод
-                  </ThemedText>
-                  <ThemedText darkColor="#FBFCFF" weight="semiBold">
-                    21 606 ₽
-                  </ThemedText>
-                </View>
-                <View
-                  style={{
-                    flexDirection: "row",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  }}
-                >
-                  <ThemedText style={{ fontSize: 12 }} darkColor="#FBFCFF80">
-                    Счет №12456 от 28.11.2024
-                  </ThemedText>
-                  <ThemedText style={{ fontSize: 12 }} darkColor="#FBFCFF80">
-                    23.11.2025 14:45
-                  </ThemedText>
-                </View>
-              </View>
-            </View>
+                // Берем первые 4 платежа с учетом группировки
+                let remaining = 4;
+                const result = [];
 
-            <ThemedText
-              style={{
-                fontSize: 12,
-                textTransform: "uppercase",
-                marginVertical: 24,
-              }}
-              darkColor="#FBFCFF80"
-            >
-              22 ноября, суббота
-            </ThemedText>
+                for (const date of Object.keys(grouped)) {
+                  if (remaining <= 0) break;
+                  const take = Math.min(grouped[date].length, remaining);
+                  result.push({ date, payments: grouped[date].slice(0, take) });
+                  remaining -= take;
+                }
 
-            <View style={{ gap: 8 }}>
-              <View>
-                <View
-                  style={{
-                    flexDirection: "row",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  }}
-                >
-                  <ThemedText darkColor="#4C94FF" weight="medium">
-                    Банковская карта
-                  </ThemedText>
-                  <ThemedText darkColor="#FBFCFF" weight="semiBold">
-                    15 600 ₽
-                  </ThemedText>
-                </View>
-                <View
-                  style={{
-                    flexDirection: "row",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  }}
-                >
-                  <ThemedText style={{ fontSize: 12 }} darkColor="#FBFCFF80">
-                    Счет №12457 от 27.11.2024
-                  </ThemedText>
-                  <ThemedText style={{ fontSize: 12 }} darkColor="#FBFCFF80">
-                    22.11.2025 10:30
-                  </ThemedText>
-                </View>
-              </View>
-            </View>
+                return result.map((group) => (
+                  <View key={group.date}>
+                    <ThemedText
+                      style={{
+                        fontSize: 12,
+                        textTransform: "uppercase",
+                        marginVertical: 24,
+                      }}
+                      darkColor="#FBFCFF80"
+                    >
+                      {formatDate(group.date)}
+                    </ThemedText>
+                    <View style={{ gap: 16 }}>
+                      {group.payments.map((payment) => (
+                        <View key={payment.id}>
+                          <View
+                            style={{
+                              flexDirection: "row",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                            }}
+                          >
+                            <ThemedText darkColor="#4C94FF" weight="medium">
+                              {payment.paymentType || "Оплата"}
+                            </ThemedText>
+                            <ThemedText darkColor="#FBFCFF" weight="semiBold">
+                              {payment.amount.toLocaleString()} ₽
+                            </ThemedText>
+                          </View>
+                          <View
+                            style={{
+                              flexDirection: "row",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                              marginTop: 4,
+                            }}
+                          >
+                            <ThemedText
+                              style={{ fontSize: 12 }}
+                              darkColor="#FBFCFF80"
+                            >
+                              Счет №{payment.invoiceNumber} от{" "}
+                              {formatDate(payment.invoiceDate)}
+                            </ThemedText>
+                            <ThemedText
+                              style={{ fontSize: 12 }}
+                              darkColor="#FBFCFF80"
+                            >
+                              {formatDate(payment.date)}
+                            </ThemedText>
+                          </View>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                ));
+              })()}
           </ThemedView>
 
           <ThemedView
@@ -1296,6 +1567,7 @@ export const MyFinanceModal: React.FC<MyFinanceProps> = ({
 };
 
 const styles = StyleSheet.create({
+  // Основные контейнеры
   modalContainer: {
     flex: 1,
   },
@@ -1305,19 +1577,14 @@ const styles = StyleSheet.create({
   mainScrollView: {
     flex: 1,
   },
-  paymentsMainContainer: {
-    flex: 1,
-    paddingHorizontal: 16,
-    borderRadius: 16,
-    marginBlock: 8,
-    position: "relative",
+  scrollViewContent: {
+    flexGrow: 1,
   },
-  paymentsScrollViewFull: {
-    flex: 1,
+  scrollContent: {
+    flexGrow: 1,
   },
-  paymentsContentContainer: {
-    paddingBottom: 30,
-  },
+
+  // Модалка фильтров
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.5)",
@@ -1369,81 +1636,6 @@ const styles = StyleSheet.create({
   modalBottomSpacer: {
     height: 100,
   },
-  filterSection: {
-    marginTop: 24,
-  },
-  filterSectionTitle: {
-    fontFamily: "Montserrat",
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 12,
-  },
-  dateInputs: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  dateInputContainer: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: "#E0E0E0",
-    borderRadius: 8,
-    padding: 12,
-    overflow: "hidden",
-  },
-  dateInputPlaceholder: {
-    fontFamily: "Montserrat",
-    fontSize: 16,
-  },
-  dateSeparator: {
-    width: 16,
-  },
-  priceInputs: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  priceInputContainer: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: "#E0E0E0",
-    borderRadius: 8,
-    padding: 12,
-    overflow: "hidden",
-  },
-  priceInputPlaceholder: {
-    fontFamily: "Montserrat",
-    fontSize: 16,
-  },
-  priceSeparator: {
-    width: 16,
-  },
-  filterChipsContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-  },
-  filterChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    backgroundColor: "#ffffff",
-    borderRadius: 6,
-    marginRight: 8,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: "#D8DADE",
-  },
-  filterChipSelected: {
-    backgroundColor: "#ffffff",
-    borderColor: "#203686",
-  },
-  filterChipText: {
-    fontFamily: "Montserrat",
-    fontSize: 14,
-  },
-  filterChipTextSelected: {
-    color: "#203686",
-    fontWeight: "500",
-  },
   applyButton: {
     backgroundColor: "#203686",
     marginHorizontal: 20,
@@ -1462,11 +1654,67 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
   },
+
+  // Фильтры
+  filterSection: {
+    marginTop: 24,
+  },
+  filterSectionTitle: {
+    fontFamily: "Montserrat",
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 12,
+  },
+  filterChipsContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+  },
+  filterChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 6,
+    marginRight: 8,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: "#D8DADE",
+  },
+  filterChipSelected: {
+    backgroundColor: "#FFFFFF",
+    borderColor: "#203686",
+  },
+  filterChipText: {
+    fontFamily: "Montserrat",
+    fontSize: 14,
+  },
+  filterChipTextSelected: {
+    color: "#203686",
+    fontWeight: "500",
+  },
+
+  // Основные контейнеры страниц
+  paymentsMainContainer: {
+    flex: 1,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+    marginBlock: 8,
+    position: "relative",
+  },
   paymentsPreviewContainer: {
     borderRadius: 16,
     padding: 16,
     marginTop: 8,
   },
+  paymentsScrollViewFull: {
+    flex: 1,
+  },
+  paymentsContentContainer: {
+    paddingBottom: 30,
+  },
+
+  // Шапки и строки
   previewHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -1474,7 +1722,7 @@ const styles = StyleSheet.create({
   },
   sortFilterRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "flex-end",
     paddingVertical: 16,
     marginBottom: 8,
   },
@@ -1513,53 +1761,8 @@ const styles = StyleSheet.create({
     height: 6,
     zIndex: 1,
   },
-  documentsContainer: {
-    borderStartStartRadius: 16,
-    padding: 16,
-    marginTop: 8,
-    marginBottom: 30,
-  },
-  documentRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 18,
-  },
-  returnsContent: {
-    flex: 1,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingVertical: 40,
-    gap: 24,
-  },
-  emptyImage: {
-    width: 86,
-    height: 86,
-  },
-  emptyText: {
-    fontSize: 16,
-    textAlign: "center",
-  },
-  emptyTextMain: {
-    fontSize: 24,
-    fontWeight: "600",
-    textAlign: "center",
-    marginBottom: 8,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingVertical: 40,
-    gap: 16,
-  },
-  loadingText: {
-    fontSize: 14,
-    textAlign: "center",
-  },
+
+  // Компания и документы
   companyCardInner: {
     borderRadius: 16,
     padding: 16,
@@ -1609,6 +1812,54 @@ const styles = StyleSheet.create({
     height: "100%",
     borderRadius: 2,
   },
+  documentsContainer: {
+    borderStartStartRadius: 16,
+    padding: 16,
+    marginTop: 8,
+    flex: 1,
+  },
+  documentRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 18,
+  },
+
+  // Пустые и загрузочные состояния
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 40,
+    gap: 24,
+  },
+  emptyImage: {
+    width: 86,
+    height: 86,
+  },
+  emptyText: {
+    fontSize: 16,
+    textAlign: "center",
+  },
+  emptyTextMain: {
+    fontSize: 24,
+    fontWeight: "600",
+    textAlign: "center",
+    marginBottom: 8,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 40,
+    gap: 16,
+  },
+  loadingText: {
+    fontSize: 14,
+    textAlign: "center",
+  },
+
+  // Сортировка модалка
   sortModalContainer: {
     backgroundColor: "#FFFFFF",
     borderTopLeftRadius: 24,
@@ -1650,13 +1901,20 @@ const styles = StyleSheet.create({
   sortOptionText: {
     fontSize: 16,
   },
-  // Form styles
+
+  // Формы
   formContainer: {
     flex: 1,
+    padding: 16,
+    paddingBottom: 120,
+    marginBlockStart: 8,
+    borderTopStartRadius: 12,
+    borderTopEndRadius: 12,
   },
   formSubtitle: {
-    marginTop: 24,
-    marginBottom: 16,
+    marginBottom: 24,
+    fontSize: 18,
+    fontWeight: "600",
   },
   formGroup: {
     display: "flex",
@@ -1685,10 +1943,148 @@ const styles = StyleSheet.create({
     minHeight: 100,
     textAlignVertical: "top",
   },
+  fieldWrapper: {
+    marginBottom: 20,
+  },
+  inputError: {
+    borderColor: "#FF6B6B",
+    borderWidth: 1,
+  },
+  errorText: {
+    fontSize: 12,
+    marginTop: 4,
+    marginLeft: 4,
+    color: "#FF6B6B",
+  },
+  infoText: {
+    fontSize: 12,
+    textAlign: "center",
+    marginBottom: 12,
+  },
+
+  // Даты
+  dateRow: {
+    flexDirection: "row",
+    gap: 12,
+    marginBottom: 20,
+  },
+  dateWrapper: {
+    flex: 1,
+  },
+  datePickerButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: 14,
+    backgroundColor: "#F5F5F5",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "transparent",
+  },
+  datePickerButtonDark: {
+    backgroundColor: "#202022",
+  },
+  datePickerButtonError: {
+    borderColor: "#FF6B6B",
+  },
+  datePickerText: {
+    fontSize: 16,
+  },
+  datePickerPlaceholder: {
+    color: "#80818B",
+  },
+  dateInputs: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  dateInputContainer: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+    borderRadius: 8,
+    padding: 12,
+    overflow: "hidden",
+  },
+  dateInputPlaceholder: {
+    fontFamily: "Montserrat",
+    fontSize: 16,
+  },
+  dateSeparator: {
+    width: 16,
+  },
   dateInputWrapper: {
     width: "46%",
     position: "relative",
   },
+
+  // Выбор компании
+  companySelector: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: 14,
+    backgroundColor: "#F5F5F5",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "transparent",
+  },
+  companySelectorDark: {
+    backgroundColor: "#202022",
+  },
+  companySelectorError: {
+    borderColor: "#FF6B6B",
+  },
+  companySelectorText: {
+    fontSize: 16,
+  },
+  companySelectorPlaceholder: {
+    color: "#80818B",
+  },
+
+  // Нижняя панель
+  bottomPanel: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 16,
+    paddingBottom: 30,
+    backgroundColor: "transparent",
+  },
+  submitButton: {
+    marginTop: 24,
+    marginBottom: 30,
+  },
+
+  // Категории
+  subcategoryButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: "#F5F5F5",
+    borderRadius: 6,
+    marginRight: 8,
+  },
+  subcategoryButtonActive: {
+    backgroundColor: "#203686",
+  },
+  subcategoryText: {
+    fontFamily: "Montserrat",
+    fontSize: 14,
+    color: "#1B1B1C",
+  },
+  subcategoryTextActive: {
+    color: "#FFFFFF",
+    fontWeight: "600",
+  },
+  subcategoriesContainer: {
+    flexGrow: 0,
+  },
+  subcategoriesContent: {
+    flexDirection: "row",
+    paddingRight: 16,
+  },
+
+  // Дополнительные элементы форм
   selectWrapper: {
     position: "relative",
   },
@@ -1741,8 +2137,26 @@ const styles = StyleSheet.create({
     fontSize: 14,
     flex: 1,
   },
-  infoText: {
-    fontSize: 12,
-    marginVertical: 24,
+  priceInputs: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  priceInputContainer: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+    borderRadius: 8,
+    padding: 12,
+    overflow: "hidden",
+  },
+  priceInputPlaceholder: {
+    fontFamily: "Montserrat",
+    fontSize: 16,
+  },
+  priceSeparator: {
+    width: 16,
+  },
+  returnsContent: {
+    flex: 1,
   },
 });

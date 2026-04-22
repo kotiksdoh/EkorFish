@@ -30,6 +30,37 @@ interface AuthState {
   isLoadingManager: boolean;
   isLoadingManagerReviewOption: boolean;
   reviewOptions: any[];
+
+  payments: {
+    id: string;
+    amount: number;
+    date: string;
+    paymentType: string;
+    invoiceNumber: string;
+    invoiceDate: string;
+    processed: boolean;
+    companyName: string;
+  }[];
+  paymentsFillter: {
+    id: string;
+    name: string;
+    paramName: string;
+    filterOptions: {
+      code: string;
+      id: string;
+      value: string;
+    }[];
+  }[];
+  isLoadingPayments: boolean;
+
+  helpList: {
+    type: string;
+    items: {
+      title: string;
+      htmlText: string;
+    }[];
+  }[];
+  isLoadingHelp: boolean;
 }
 interface Town {
   id: string;
@@ -63,7 +94,14 @@ const initialState: AuthState = {
   onceManager: null,
   isLoadingManager: false,
   isLoadingManagerReviewOption: false,
-  reviewOptions: []
+  reviewOptions: [],
+
+  payments: [],
+  paymentsFillter: [],
+  isLoadingPayments: false,
+
+  helpList: [],
+  isLoadingHelp: false,
 };
 
 export const getCode = createAsyncThunk(
@@ -229,13 +267,13 @@ export const getBonusHistory = createAsyncThunk(
       const data = await axdef.get("/api/Account/bonus/list", {
         params: {
           offset: params.offset,
-          count: params.count
-        }
+          count: params.count,
+        },
       });
       return {
         data: data.data,
         offset: params.offset,
-        count: params.count
+        count: params.count,
       };
     } catch (error) {
       console.log(error);
@@ -261,7 +299,9 @@ export const getManagerReviewOptions = createAsyncThunk(
   "user/getManagerReviewOptions",
   async (_, { rejectWithValue }) => {
     try {
-      const data = await axdef.get("/api/AdditionalInformation/manager/review-options");
+      const data = await axdef.get(
+        "/api/AdditionalInformation/manager/review-options",
+      );
       return data;
     } catch (error) {
       console.log(error);
@@ -274,7 +314,10 @@ export const createReview = createAsyncThunk(
   "user/createReview",
   async (payload: any, { rejectWithValue }) => {
     try {
-      const data = await axdef.post("/api/AdditionalInformation/manager/reviews", payload);
+      const data = await axdef.post(
+        "/api/AdditionalInformation/manager/reviews",
+        payload,
+      );
       return data;
     } catch (error) {
       console.log(error);
@@ -283,6 +326,112 @@ export const createReview = createAsyncThunk(
   },
 );
 
+export const getUserPaymentsThunk = createAsyncThunk(
+  "user/getUserPaymentsThunk",
+  async (
+    payload: {
+      companyId?: string;
+      processed?: boolean;
+      paymentType?: number;
+      paymentDateMonth?: string;
+      paymentDateYear?: string;
+      invoiceDateMonth?: string;
+      InvoiceDateYear?: string;
+      count?: number;
+      offSet?: number;
+    },
+    { rejectWithValue },
+  ) => {
+    try {
+      const queryString = new URLSearchParams(payload as any).toString();
+      const data = await axdef.get(`/api/PaymentHistory/list?${queryString}`);
+      return data;
+    } catch (error) {
+      console.log(error);
+      return rejectWithValue(error);
+    }
+  },
+);
+
+export const getUserPaymentsFilterThunk = createAsyncThunk(
+  "user/getUserPaymentsFilterThunk",
+  async (
+    payload: {
+      companyId?: string;
+    },
+    { rejectWithValue },
+  ) => {
+    try {
+      const filterData = await axdef.get(
+        `/api/PaymentHistory/filters?companyId=${payload.companyId}`,
+      );
+      return filterData;
+    } catch (error) {
+      console.log(error);
+      return rejectWithValue(error);
+    }
+  },
+);
+
+export const postReconciliationActThunk = createAsyncThunk(
+  "user/postReconciliationActThunk",
+  async (
+    payload: {
+      dateFrom: string;
+      dateTo: string;
+      companyId: string;
+      comment: string;
+      email: string;
+    },
+    { rejectWithValue },
+  ) => {
+    try {
+      const queryString = new URLSearchParams(payload as any).toString();
+      const filterData = await axdef.get(
+        `/api/PaymentHistory/reconciliation-act?${queryString}`,
+      );
+      return filterData;
+    } catch (error) {
+      console.log(error);
+      return rejectWithValue(error);
+    }
+  },
+);
+
+export const postPriceListThunk = createAsyncThunk(
+  "user/postPriceListThunk",
+  async (
+    payload: {
+      companyId: string;
+      email: string;
+    },
+    { rejectWithValue },
+  ) => {
+    try {
+      const queryString = new URLSearchParams(payload as any).toString();
+      const filterData = await axdef.get(
+        `/api/PaymentHistory/price-list?${queryString}`,
+      );
+      return filterData;
+    } catch (error) {
+      console.log(error);
+      return rejectWithValue(error);
+    }
+  },
+);
+
+export const getHeplListThunk = createAsyncThunk(
+  "user/getHeplListThunk",
+  async (payload, { rejectWithValue }) => {
+    try {
+      const res = await axdef.get(`/api/AdditionalInformation/help`);
+      return res;
+    } catch (error) {
+      console.log(error);
+      return rejectWithValue(error);
+    }
+  },
+);
 
 const authSlice = createSlice({
   name: "auth",
@@ -413,7 +562,7 @@ const authSlice = createSlice({
           deliveryAddresses:
             responseData.individualProfile.deliveryAddresses || [],
           type: "individual" as const, // Добавляем флаг типа
-          manager: responseData.individualProfile?.manager
+          manager: responseData.individualProfile?.manager,
         };
 
         state.me.companies = [
@@ -444,7 +593,7 @@ const authSlice = createSlice({
     });
     builder.addCase(getMyParams.fulfilled, (state, action) => {
       state.isLoading = false;
-      console.log('params', action.payload)
+      console.log("params", action.payload);
       state.params = action.payload.data.data;
     });
     builder.addCase(getMyParams.rejected, (state, action) => {
@@ -542,7 +691,6 @@ const authSlice = createSlice({
       axiosErrorHandler(action?.payload);
     });
 
-    
     builder.addCase(getMangers.pending, (state) => {
       state.isLoadingManager = true;
       state.error = null;
@@ -559,7 +707,7 @@ const authSlice = createSlice({
       state.error = "Ошибка загрузки менеджеров";
       axiosErrorHandler(action?.payload);
     });
-    
+
     builder.addCase(getManagerReviewOptions.pending, (state) => {
       state.isLoadingManagerReviewOption = true;
       state.error = null;
@@ -592,7 +740,83 @@ const authSlice = createSlice({
       state.error = "Ошибка загрузки отзыва";
       axiosErrorHandler(action?.payload);
     });
-    
+
+    builder.addCase(getUserPaymentsThunk.pending, (state) => {
+      state.isLoadingPayments = true;
+      state.error = null;
+    });
+
+    builder.addCase(getUserPaymentsThunk.fulfilled, (state, action) => {
+      state.isLoadingPayments = false;
+      state.payments = action.payload.data.data;
+      console.log("Payments LOaded:", state.payments);
+    });
+
+    builder.addCase(getUserPaymentsFilterThunk.pending, (state) => {
+      state.isLoadingPayments = true;
+      state.error = null;
+    });
+
+    builder.addCase(getUserPaymentsFilterThunk.fulfilled, (state, action) => {
+      state.isLoadingPayments = false;
+      state.paymentsFillter = action.payload.data.data;
+      console.log("Payments LOaded:", state.payments);
+    });
+
+    builder.addCase(getUserPaymentsFilterThunk.rejected, (state, action) => {
+      state.isLoadingPayments = false;
+      state.error = "Ошибка загрузки фильтров";
+      axiosErrorHandler(action?.payload);
+    });
+
+    builder.addCase(postReconciliationActThunk.pending, (state) => {
+      state.isLoadingPayments = true;
+      state.error = null;
+    });
+
+    builder.addCase(postReconciliationActThunk.fulfilled, (state, action) => {
+      state.isLoadingPayments = false;
+      console.log("Payments LOaded:", state.payments);
+    });
+
+    builder.addCase(postReconciliationActThunk.rejected, (state, action) => {
+      state.isLoadingPayments = false;
+      state.error = "Ошибка отправки";
+      axiosErrorHandler(action?.payload);
+    });
+
+    builder.addCase(postPriceListThunk.pending, (state) => {
+      state.isLoadingPayments = true;
+      state.error = null;
+    });
+
+    builder.addCase(postPriceListThunk.fulfilled, (state, action) => {
+      state.isLoadingPayments = false;
+      console.log("Payments LOaded:", state.payments);
+    });
+
+    builder.addCase(postPriceListThunk.rejected, (state, action) => {
+      state.isLoadingPayments = false;
+      state.error = "Ошибка отправки";
+      axiosErrorHandler(action?.payload);
+    });
+
+    builder.addCase(getHeplListThunk.pending, (state) => {
+      state.isLoadingHelp = true;
+      state.error = null;
+    });
+
+    builder.addCase(getHeplListThunk.fulfilled, (state, action) => {
+      state.isLoadingHelp = false;
+      state.helpList = action.payload.data.data;
+    });
+
+    builder.addCase(getHeplListThunk.rejected, (state, action) => {
+      state.isLoadingHelp = false;
+      state.error = "Ошибка отправки";
+      axiosErrorHandler(action?.payload);
+    });
+
     builder.addCase(updateUserTown.pending, (state) => {
       state.isLoading = true;
     });
@@ -621,18 +845,18 @@ const authSlice = createSlice({
       // Если это первая загрузка (offset = 0), можно показать индикатор загрузки
       // Но историю не очищаем, чтобы не было пустого экрана при подгрузке
     });
-    
+
     builder.addCase(getBonusHistory.fulfilled, (state, action) => {
       state.isLoadingBonus = false;
-      
+
       // Получаем данные из ответа
       // Предполагаем, что API возвращает массив в data.data
       const responseData = action.payload.data?.data || [];
       const newItems = responseData;
       const offset = action.payload.offset;
-      
+
       console.log(`Loaded ${newItems.length} items at offset ${offset}`);
-      
+
       if (offset === 0) {
         // При первой загрузке или обновлении - заменяем историю
         state.bonusHistory = newItems;
@@ -642,27 +866,25 @@ const authSlice = createSlice({
         state.bonusHistory = [...state.bonusHistory, ...newItems];
         state.currentBonusPage += 1;
       }
-      
+
       // Проверяем, есть ли еще данные
       // Если получили меньше элементов, чем запрашивали, значит данных больше нет
       const pageSize = action.payload.count || 10;
       state.hasMoreBonus = newItems.length === pageSize;
-      
-      console.log('Bonus history updated:', {
+
+      console.log("Bonus history updated:", {
         total: state.bonusHistory.length,
         hasMore: state.hasMoreBonus,
-        currentPage: state.currentBonusPage
+        currentPage: state.currentBonusPage,
       });
     });
-    
+
     builder.addCase(getBonusHistory.rejected, (state, action) => {
       state.isLoadingBonus = false;
       state.hasMoreBonus = false;
       axiosErrorHandler(action?.payload);
     });
   },
-
-  
 });
 
 export const {
@@ -673,6 +895,6 @@ export const {
   selectCompany,
   setCompany,
   clearAuthState,
-  clearBonusHistory
+  clearBonusHistory,
 } = authSlice.actions;
 export default authSlice.reducer;

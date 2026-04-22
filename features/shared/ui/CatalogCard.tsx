@@ -138,7 +138,7 @@ export const CatalogCard: React.FC<CatalogCardProps> = ({
       clearTimeout(imageLoadTimeoutRef.current);
     }
   }, [img]);
-
+  
   return (
     // <Link
     //   href={`/dashboard/${encodeURIComponent(name)}?catalogId=${id}&catalogName=${encodeURIComponent(name)}`}

@@ -7,8 +7,8 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  View,
   useColorScheme,
+  View,
 } from "react-native";
 
 import {
@@ -18,6 +18,7 @@ import {
   FinanceAndDocksIcon,
   IconDocument,
   IconGeo,
+  ICricleIcon,
   MenuRefreshIcon,
   PencilIcon,
   SettingsIcon,
@@ -29,6 +30,7 @@ import { clearAuthState, setCompany } from "@/features/auth/authSlice";
 import { LoginModal } from "@/features/auth/ui/components/LoginModal";
 import { clearCatalogState } from "@/features/catalog/catalogSlice";
 import { CompanySelectModal } from "@/features/shared/ui/CompanySelectModal";
+import { HelpModal } from "@/features/shared/ui/HelpModal";
 import ManagerSection from "@/features/shared/ui/ManagerSection";
 import { MyFinanceModal } from "@/features/shared/ui/MyFInance";
 import { MyOrdersModal } from "@/features/shared/ui/MyOrders";
@@ -54,6 +56,8 @@ export default function TabTwoScreen() {
   const [templatesModalVisible, setTemplatesModalVisible] = useState(false);
   const [financeModalVisible, setFinanceModalVisible] = useState(false);
   const [settingsModalVisible, setSettingsModalVisible] = useState(false);
+  const [helpModalVisible, setHelpModalVisible] = useState(false);
+
   const { resumeDetailTemplateId } = useTemplatePicker();
   const [profileData, setProfileData] = useState({
     name: "",
@@ -377,7 +381,6 @@ export default function TabTwoScreen() {
                 <IconDocument
                   width={22}
                   height={22}
-                  color={isDarkMode ? "#FBFCFF" : "#1B1B1C"}
                 />
               </ThemedView>
               <View
@@ -409,7 +412,6 @@ export default function TabTwoScreen() {
                 <FinanceAndDocksIcon
                   width={22}
                   height={22}
-                  color={isDarkMode ? "#FBFCFF" : "#1B1B1C"}
                 />
               </ThemedView>
               <View
@@ -441,7 +443,6 @@ export default function TabTwoScreen() {
                 <SettingsIcon
                   width={22}
                   height={22}
-                  color={isDarkMode ? "#FBFCFF" : "#1B1B1C"}
                 />
               </ThemedView>
               <View
@@ -454,6 +455,37 @@ export default function TabTwoScreen() {
               >
                 <ThemedText lightColor="#1B1B1C" style={styles.infoLabel}>
                   Настройки
+                </ThemedText>
+                <View style={styles.infoValueContainer}>
+                  <ArrowIconRight />
+                </View>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.infoRow}
+              onPress={() => setHelpModalVisible(true)}
+            >
+              <ThemedView
+                lightColor="#F2F4F7"
+                darkColor="#202022"
+                style={styles.iconPlaceholder}
+              >
+                <ICricleIcon
+                  width={22}
+                  height={22}
+                />
+              </ThemedView>
+              <View
+                style={[
+                  styles.infoContent,
+                  isDarkMode && {
+                    borderColor: "#252527",
+                  },
+                ]}
+              >
+                <ThemedText lightColor="#1B1B1C" style={styles.infoLabel}>
+                  Помощь и приложение
                 </ThemedText>
                 <View style={styles.infoValueContainer}>
                   <ArrowIconRight />
@@ -536,6 +568,11 @@ export default function TabTwoScreen() {
       <MySettingsModal
         visible={settingsModalVisible}
         onClose={() => setSettingsModalVisible(false)}
+      />
+
+      <HelpModal
+        visible={helpModalVisible}
+        onClose={() => setHelpModalVisible(false)}
       />
     </>
   );
