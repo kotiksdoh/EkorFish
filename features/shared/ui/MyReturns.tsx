@@ -7,6 +7,7 @@ import { MyReturnsSecondStep } from "@/features/returns/ReturnsSecondStep";
 import { MyReturnsThirdStep } from "@/features/returns/ReturnsThirdStep";
 import { MyReturnsFirstStep } from "@/features/returns/ReurnsFirstStep";
 import { ReturnDetailModal } from "@/features/shared/ui/ReturnDetailModal";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { Image } from "expo-image";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -19,7 +20,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   View,
-  useColorScheme,
 } from "react-native";
 import { PrimaryButton } from "./components/PrimartyButton";
 import ReturnsCard from "./components/ReturnsCard";

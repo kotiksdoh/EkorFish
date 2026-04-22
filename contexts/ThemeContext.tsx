@@ -1,6 +1,6 @@
 // contexts/ThemeContext.tsx
 import * as React from 'react';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Appearance, useColorScheme } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type ThemeMode = 'light' | 'dark' | 'system';
@@ -12,6 +12,8 @@ type ThemeContextType = {
 };
 
 const ThemeContext = React.createContext<ThemeContextType | undefined>(undefined);
+const canOverrideAppearance =
+  typeof (Appearance as { setColorScheme?: (scheme: 'light' | 'dark' | null) => void }).setColorScheme === 'function';
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [themeMode, setThemeModeState] = React.useState<ThemeMode>('system');
@@ -42,6 +44,20 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   };
 
   const currentTheme = themeMode === 'system' ? deviceTheme : themeMode;
+
+  React.useEffect(() => {
+    if (!canOverrideAppearance) {
+      return;
+    }
+
+    // Keep React Native color scheme in sync with app-level override.
+    if (themeMode === 'system') {
+      Appearance.setColorScheme(null);
+      return;
+    }
+
+    Appearance.setColorScheme(themeMode);
+  }, [themeMode]);
 
   return (
     <ThemeContext.Provider value={{ themeMode, setThemeMode, currentTheme }}>

@@ -6,13 +6,13 @@ import {
   setCompany
 } from "@/features/auth/authSlice";
 import { CompanySelectModal } from "@/features/shared/ui/CompanySelectModal";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import React, { useEffect, useState } from "react";
 import {
   StyleSheet,
   TouchableOpacity,
   View,
-  useColorScheme,
 } from "react-native";
 import { BonusPage } from "../screens/BonusScreen";
 

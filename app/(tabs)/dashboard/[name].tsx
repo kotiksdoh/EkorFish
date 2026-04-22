@@ -24,6 +24,7 @@ import { buildTemplateLineFromProduct } from "@/features/templates/buildTemplate
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
   ActivityIndicator,
   Animated,
@@ -38,7 +39,6 @@ import {
   TouchableOpacity,
   TouchableWithoutFeedback,
   View,
-  useColorScheme,
 } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 

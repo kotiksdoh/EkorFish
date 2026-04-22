@@ -16,7 +16,8 @@ import {
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { getReturnRequestDetail } from "@/features/catalog/catalogSlice";
-import { axdef, baseUrl } from "@/features/shared/services/axios";
+import { baseUrl } from "@/features/shared/services/axios";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import * as Clipboard from "expo-clipboard";
 import { Image } from "expo-image";
@@ -33,7 +34,6 @@ import {
   TouchableOpacity,
   TouchableWithoutFeedback,
   View,
-  useColorScheme,
 } from "react-native";
 import { PrimaryButton } from "./components/PrimartyButton";
 

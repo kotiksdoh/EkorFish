@@ -1,5 +1,6 @@
 import { useThemeColor } from '@/hooks/use-theme-color';
-import { StyleSheet, TouchableOpacity, View, useColorScheme } from 'react-native';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
 export const CustomCheckbox = ({ style, value, onValueChange, lightColor, darkColor, disabled }) => {
 

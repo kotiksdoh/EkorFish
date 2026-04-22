@@ -16,6 +16,7 @@ import { PrimaryButton } from "@/features/home";
 import { DatePickerWithIcon } from "@/features/shared/ui/components/DatePickerCustom";
 // import SmartInput from '@/features/shared/ui/components/SmartInput';
 import SmartInput from "@/features/shared/ui/components/SmartInput";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { useEffect, useRef, useState } from "react";
 import {
@@ -27,7 +28,6 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-  useColorScheme,
 } from "react-native";
 import {
   SafeAreaProvider,

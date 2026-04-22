@@ -778,6 +778,14 @@ const catalogSlice = createSlice({
     },
     updateReturnRequestItem: (state, action) => {
       const { orderId, orderProductId, returnQuantity, reason, comment } = action.payload;
+      const hasItemsFromAnotherOrder = state.returnRequests.orders.some(
+        (order) => order.orderId !== orderId && order.items.some((item) => item.returnQuantity > 0)
+      );
+      const shouldSelectItem = (returnQuantity ?? 0) > 0;
+
+      if (shouldSelectItem && hasItemsFromAnotherOrder) {
+        state.returnRequests.orders = [];
+      }
       
       const orderIndex = state.returnRequests.orders.findIndex(
         (order) => order.orderId === orderId

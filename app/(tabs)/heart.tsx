@@ -2,8 +2,8 @@
 import { SortIcon } from "@/assets/icons/icons";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { ModalHeader } from "@/features/auth/ui/Header";
 import SearchInput from "@/features/auth/ui/components/SearchInput";
+import { ModalHeader } from "@/features/auth/ui/Header";
 import {
   AddToCart,
   clearProducts,
@@ -12,11 +12,12 @@ import {
   getProductList,
   toggleFilterSelection,
 } from "@/features/catalog/catalogSlice";
+import { AddToCartModal } from "@/features/shared/ui/AddToCartModal";
+import { ProductCard } from "@/features/shared/ui/ProductCard";
 import { buildTemplateLineFromProduct } from "@/features/templates/buildTemplateLine";
 import { TemplatePickerBanner } from "@/features/templates/TemplatePickerBanner";
 import { useTemplatePicker } from "@/features/templates/TemplatePickerContext";
-import { AddToCartModal } from "@/features/shared/ui/AddToCartModal";
-import { ProductCard } from "@/features/shared/ui/ProductCard";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -35,7 +36,6 @@ import {
   TouchableOpacity,
   TouchableWithoutFeedback,
   View,
-  useColorScheme,
 } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 

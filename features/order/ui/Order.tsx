@@ -28,6 +28,7 @@ import { CompanySelectionModal } from "@/features/shared/ui/CompanySelectionModa
 import { OrderDetailsModal } from "@/features/shared/ui/OrderDetailModal";
 import { CustomCheckbox } from "@/features/shared/ui/components/CustomCheckBox";
 import AnimatedTextInput from "@/features/shared/ui/components/CustomInput";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
@@ -45,7 +46,6 @@ import {
   TouchableOpacity,
   TouchableWithoutFeedback,
   View,
-  useColorScheme,
 } from "react-native";
 
 const { height: screenHeight } = Dimensions.get("window");

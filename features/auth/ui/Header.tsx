@@ -14,12 +14,12 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Linking from "expo-linking";
 import { useRouter } from "expo-router";
 import React, { ReactNode, useEffect, useState } from "react";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
   Share,
   StyleSheet,
   TouchableOpacity,
   View,
-  useColorScheme,
 } from "react-native";
 import { LoginModal } from "./components/LoginModal";
 interface ModalHeaderProps {

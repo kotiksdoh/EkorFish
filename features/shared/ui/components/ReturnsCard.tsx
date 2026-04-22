@@ -1,6 +1,7 @@
 import { ThemedText } from "@/components/themed-text";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import React from "react";
-import { StyleSheet, TouchableOpacity, View, useColorScheme } from "react-native";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 import { formatDate } from "../../services/utils";
 
 interface ReturnsCardProps {

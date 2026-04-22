@@ -4,6 +4,7 @@ import { ThemedView } from "@/components/themed-view";
 import { ModalHeader } from "@/features/auth/ui/Header";
 import { getMyOrders } from "@/features/catalog/catalogSlice";
 import OrdersCard from "@/features/home/ui/components/Orders/OrdersCard";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Image } from "expo-image";
@@ -19,9 +20,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   View,
-  useColorScheme,
 } from "react-native";
-
 const { width: screenWidth } = Dimensions.get("window");
 
 interface MyOrdersProps {

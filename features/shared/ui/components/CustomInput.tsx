@@ -1,4 +1,5 @@
 import { ThemedView } from '@/components/themed-view';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useThemeColor } from '@/hooks/use-theme-color';
 import React, { useRef, useState } from 'react';
 import {
@@ -37,6 +38,8 @@ const AnimatedTextInput: React.FC<AnimatedTextInputProps> = ({
   disabled = false,
   ...props
 }) => {
+  const colorScheme = useColorScheme();
+  const isDarkMode = colorScheme === 'dark';
   const color = useThemeColor({ light: lightColor, dark: darkColor }, 'text');
   const [isFocused, setIsFocused] = useState(false);
   const animatedValue = useState(new Animated.Value(value ? 1 : 0))[0];
@@ -97,9 +100,11 @@ const AnimatedTextInput: React.FC<AnimatedTextInputProps> = ({
   return (
     <TouchableWithoutFeedback onPress={() => inputRef.current?.focus()}>
       <ThemedView 
-        style={[styles.container, style]}
-        lightColor='#03051E08'
-        darkColor='#ECEFFA0D'
+        style={[
+          styles.container,
+          style,
+          { backgroundColor: isDarkMode ? '#ECEFFA0D' : '#03051E08' },
+        ]}
       >
         <Animated.Text style={[styles.placeholder, animatedStyle]}>
           {placeholder}

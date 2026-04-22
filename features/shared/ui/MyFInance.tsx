@@ -12,6 +12,7 @@ import {
   getMyReturns,
   getMyReturnsParams,
 } from "@/features/catalog/catalogSlice";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, {
@@ -33,7 +34,6 @@ import {
   TouchableOpacity,
   TouchableWithoutFeedback,
   View,
-  useColorScheme,
 } from "react-native";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { formatDate } from "../services/utils";

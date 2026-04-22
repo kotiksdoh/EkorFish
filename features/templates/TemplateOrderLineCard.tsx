@@ -6,6 +6,7 @@ import {
   putUnFavorite,
 } from "@/features/catalog/catalogSlice";
 import { baseUrl } from "@/features/shared/services/axios";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAppDispatch } from "@/store/hooks";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Image } from "expo-image";
@@ -14,7 +15,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   View,
-  useColorScheme,
 } from "react-native";
 
 import { LoginModal } from "@/features/auth/ui/components/LoginModal";

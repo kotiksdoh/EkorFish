@@ -1,4 +1,5 @@
 import { ThemedText } from "@/components/themed-text";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import React, { useCallback, useEffect, useRef } from "react";
 import {
@@ -9,9 +10,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   View,
-  useColorScheme,
 } from "react-native";
-
 const SCREEN_HEIGHT = Dimensions.get("window").height;
 const MAX_SHEET_HEIGHT = SCREEN_HEIGHT * 0.92;
 

@@ -2,9 +2,10 @@
 import { ArrowIconRight } from "@/assets/icons/icons";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Image } from "expo-image";
 import React, { memo } from "react";
-import { StyleSheet, TouchableOpacity, View, useColorScheme } from "react-native";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 import { baseUrl } from "../shared/services/axios";
 
 interface SelectedReturnItemProps {

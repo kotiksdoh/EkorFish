@@ -1,11 +1,11 @@
 import { MenuIcon, ScannerIcon, SearchIcon } from "@/assets/icons/icons";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import React from "react";
 import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
   View,
-  useColorScheme,
 } from "react-native";
 
 interface SearchInputProps {

@@ -2,6 +2,7 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { ModalHeader } from "@/features/auth/ui/Header";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import React, { useMemo, useState } from "react";
 import {
@@ -11,7 +12,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   View,
-  useColorScheme,
 } from "react-native";
 import { ReasonModal } from "./ReasonModal";
 import { SelectedReturnItem } from "./SelectedReturnItem";

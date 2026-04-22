@@ -7,7 +7,6 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  useColorScheme,
   View,
 } from "react-native";
 
@@ -39,12 +38,13 @@ import { MySettingsModal } from "@/features/shared/ui/MySettings";
 import { ProfileEditModal } from "@/features/shared/ui/ProfileEditModal";
 import { MyTemplatesModal } from "@/features/templates/MyTemplatesModal";
 import { useTemplatePicker } from "@/features/templates/TemplatePickerContext";
+import { useAppTheme } from "@/hooks/use-theme-color";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function TabTwoScreen() {
-  const colorScheme = useColorScheme();
-  const isDarkMode = colorScheme === "dark";
+  const { currentTheme, isDark: isDarkMode } = useAppTheme();
+  console.log("colorScheme", currentTheme);
   const me = useAppSelector((state) => state.auth.me);
   const dispatch = useAppDispatch();
   const router = useRouter();

@@ -3,8 +3,9 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { Image } from "expo-image";
-import React, { memo, useCallback, useState } from "react";
-import { StyleSheet, TouchableOpacity, View, useColorScheme } from "react-native";
+import React, { memo, useCallback, useMemo, useState } from "react";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { baseUrl } from "../shared/services/axios";
 import { formatDate } from "../shared/services/utils";
 import { CustomCheckbox } from "../shared/ui/components/CustomCheckBox";
@@ -245,6 +246,10 @@ const ReturnsOrderCard: React.FC<ReturnsOrderCardProps> = ({
   const dispatch = useAppDispatch();
   
   const returnRequests = useAppSelector((state) => state.catalog.returnRequests);
+  const selectedOrderId = useMemo(() => {
+    return returnRequests.orders.find((order) => order.items.some((item) => item.returnQuantity > 0))?.orderId;
+  }, [returnRequests.orders]);
+  const isAnotherOrderLocked = selectedOrderId !== undefined && selectedOrderId !== returnsOrder.orderId;
   
   // Мемоизируем получение количества возврата для конкретного товара
   const getReturnQuantity = useCallback((orderProductId: string): number => {
@@ -321,11 +326,11 @@ const ReturnsOrderCard: React.FC<ReturnsOrderCardProps> = ({
           }
           onRemove={() => updateReturnQuantity(item.id, 0, item.quantity)}
           returnQuantity={returnQuantity}
-          isReturnable={returnsOrder.isReturnable}
+          isReturnable={returnsOrder.isReturnable && !isAnotherOrderLocked}
         />
       );
     });
-  }, [returnsOrder.products, getReturnQuantity, toggleSelectItem, updateReturnQuantity]);
+  }, [returnsOrder.products, returnsOrder.isReturnable, getReturnQuantity, toggleSelectItem, updateReturnQuantity, isAnotherOrderLocked]);
 
   return (
     <CardWrapper

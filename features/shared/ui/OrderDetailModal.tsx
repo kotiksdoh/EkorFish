@@ -16,6 +16,7 @@ import {
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { axdef, baseUrl } from "@/features/shared/services/axios";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import * as Clipboard from "expo-clipboard";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
@@ -31,7 +32,6 @@ import {
   TouchableOpacity,
   TouchableWithoutFeedback,
   View,
-  useColorScheme,
 } from "react-native";
 import { PrimaryButton } from "./components/PrimartyButton";
 

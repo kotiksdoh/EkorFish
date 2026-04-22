@@ -2,6 +2,7 @@ import { ArrowIconRight, Copy } from "@/assets/icons/icons";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { OrderDetailsModal } from "@/features/shared/ui/OrderDetailModal";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import * as Clipboard from "expo-clipboard";
 import React, { useState } from "react";
 import {
@@ -9,7 +10,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   View,
-  useColorScheme,
 } from "react-native";
 
 export interface Order {

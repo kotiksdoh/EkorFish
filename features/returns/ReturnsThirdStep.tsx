@@ -6,6 +6,7 @@ import { ModalHeader } from "@/features/auth/ui/Header";
 import { AddressSelectionModal } from "@/features/shared/ui/AddressSelectionModal";
 import { PrimaryButton } from "@/features/shared/ui/components/PrimartyButton";
 import { TownSelectionModal } from "@/features/shared/ui/TownSelectionModal";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { Image as ExpoImage } from "expo-image";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
@@ -18,7 +19,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   View,
-  useColorScheme,
 } from "react-native";
 import { createReturnRequest } from "../catalog/catalogSlice";
 import { baseUrl } from "../shared/services/axios";
@@ -234,10 +234,25 @@ export const MyReturnsThirdStep: React.FC<MyReturnsThirdStepProps> = ({
     }
     setLoading(true);
     try {
+      const selectedOrder = returnRequests.orders.find((order) =>
+        order.items.some((item) => item.returnQuantity > 0)
+      );
+      if (!selectedOrder) {
+        return;
+      }
+
       const payload: Record<string, unknown> = {
         refundMethod: selectedRefundMethod,
         returnMethod: selectedReturnMethod,
-        orders: returnRequests.orders,
+        orderId: selectedOrder.orderId,
+        items: selectedOrder.items
+          .filter((item) => item.returnQuantity > 0)
+          .map((item) => ({
+            orderProductId: item.orderProductId,
+            returnQuantity: item.returnQuantity,
+            reason: item.reason ?? 0,
+            comment: item.comment || "",
+          })),
       };
       if (returnMethodKind === "address" && deliveryAddressId) {
         payload.deliveryAddressId = deliveryAddressId;

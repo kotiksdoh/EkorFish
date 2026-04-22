@@ -1,6 +1,7 @@
 // features/shared/ui/CompanySelectionModal.tsx
 import { ArrowIconRight } from "@/assets/icons/icons";
 import { ThemedText } from "@/components/themed-text";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import React, { useEffect, useState } from "react";
 import {
   Animated,
@@ -11,7 +12,6 @@ import {
   TouchableOpacity,
   TouchableWithoutFeedback,
   View,
-  useColorScheme,
 } from "react-native";
 import { PrimaryButton } from "./components/PrimartyButton";
 

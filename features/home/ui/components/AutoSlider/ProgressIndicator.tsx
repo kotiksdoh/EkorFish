@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Animated, Easing, StyleSheet, useColorScheme } from 'react-native';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { View, Animated, Easing, StyleSheet } from 'react-native';
 
 interface ProgressIndicatorProps {
   index: number;
