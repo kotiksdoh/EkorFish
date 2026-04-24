@@ -5,6 +5,7 @@ import { SplashScreen } from '@/features/shared/ui/components/splash-screen';
 import { buildAppToastConfig } from '@/features/shared/ui/appToastConfig';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useInitializeApp } from '@/hooks/useInitializeApp';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { ThemeProvider as AppThemeProvider } from '@/contexts/ThemeContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { store } from '@/store/store';
@@ -70,6 +71,7 @@ function RootLayoutContent() {
 function AppContent() {
   const { isReady, error } = useInitializeApp();
   const [isSplashVisible, setIsSplashVisible] = useState(true);
+  usePushNotifications();
 
   const handleSplashComplete = () => {
     setIsSplashVisible(false);

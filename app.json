@@ -28,7 +28,8 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.kotiksdoh.EkorFish"
+      "package": "com.kotiksdoh.EkorFish",
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "output": "static",
@@ -59,7 +60,8 @@
             "usesCleartextTraffic": true
           }
         }
-      ]
+      ],
+      "expo-notifications"
     ],
     "experiments": {
       "typedRoutes": true,
