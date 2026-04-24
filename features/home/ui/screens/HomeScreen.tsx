@@ -115,11 +115,6 @@ export const HomeScreen = ({
       );
       return;
     }
-    console.log("Добавлено в корзину:", {
-      productId,
-      optionId,
-      quantity,
-    });
     dispatch(
       AddToCart({
         productId: productId,
@@ -128,7 +123,6 @@ export const HomeScreen = ({
       }),
     );
   };
-  console.log("orders", orders);
   return (
     <>
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>

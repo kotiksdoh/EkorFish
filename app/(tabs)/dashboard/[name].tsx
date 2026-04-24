@@ -418,7 +418,6 @@ export default function CatalogDetailScreen() {
         contentSize.height - layoutMeasurement.height - contentOffset.y;
 
       if (distanceFromBottom < paddingToBottom) {
-        console.log("Loading more...");
         loadProducts(true, searchQuery);
       }
     },
@@ -495,7 +494,6 @@ export default function CatalogDetailScreen() {
   }, [products, sortBy]);
 
   const sortedProducts = getSortedProducts();
-  console.log("me.storageId", me?.storageId);
   // Рендер элемента фильтра
   const renderFilterItem = (filterOption: any, filterGroupId: string) => (
     <TouchableOpacity
@@ -520,7 +518,6 @@ export default function CatalogDetailScreen() {
       </ThemedText>
     </TouchableOpacity>
   );
-  console.log("catalogName", catalogName);
   return (
     <SafeAreaProvider>
       <ThemedView

@@ -5,7 +5,6 @@ import {
   Copy,
   IconAccept,
   IconCard,
-  IconCloseNew,
   IconCompanyNew,
   IconDocument,
   IconGeo,
@@ -15,11 +14,19 @@ import {
 } from "@/assets/icons/icons";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import {
+  checkForReorder,
+  getCart,
+  reorderOrder,
+} from "@/features/catalog/catalogSlice";
 import { axdef, baseUrl } from "@/features/shared/services/axios";
+import { SnapBottomSheet } from "@/features/shared/ui/SnapBottomSheet";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useAppDispatch } from "@/store/hooks";
 import * as Clipboard from "expo-clipboard";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -41,6 +48,7 @@ interface OrderProduct {
   id: string;
   productId: string;
   productName: string;
+  image?: string;
   productImage?: string;
   price: number;
   quantity: number;
@@ -84,17 +92,25 @@ interface OrderDetailsModalProps {
   visible: boolean;
   onClose: () => void;
   orderId: any;
+  onReorderSuccess?: () => void;
 }
 
 export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
   visible,
   onClose,
   orderId,
+  onReorderSuccess,
 }) => {
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === "dark";
+  const dispatch = useAppDispatch();
+  const router = useRouter();
   const [orderDetails, setOrderDetails] = useState<OrderDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isCheckingReorder, setIsCheckingReorder] = useState(false);
+  const [isReordering, setIsReordering] = useState(false);
+  const [reorderModalVisible, setReorderModalVisible] = useState(false);
+  const [canReorderFully, setCanReorderFully] = useState<boolean | null>(null);
   const [productsModalVisible, setProductsModalVisible] = useState(false);
   const [statusModalVisible, setStatusModalVisible] = useState(false);
   const [productsModalTranslateY] = useState(new Animated.Value(screenHeight));
@@ -219,6 +235,10 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
       maximumFractionDigits: 2,
     });
   };
+
+  const formatMoneyNoFraction = (price: number) => {
+    return price.toLocaleString("ru-RU");
+  };
   
   const getCurrentStatusName = () => {
     return orderDetails?.statuses.at(-1)?.name || ''
@@ -238,6 +258,37 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
   const isStatusCurrent = (index: number) => {
     const currentIndex = getCurrentStatusIndex();
     return index === currentIndex;
+  };
+
+  const openReorderModal = async () => {
+    if (!orderDetails || isCheckingReorder) return;
+    setIsCheckingReorder(true);
+    try {
+      const result = await dispatch(checkForReorder(orderDetails.orderId)).unwrap();
+      setCanReorderFully(Boolean(result));
+      setReorderModalVisible(true);
+    } catch (error) {
+      Alert.alert("Ошибка", "Не удалось проверить возможность повторного заказа");
+    } finally {
+      setIsCheckingReorder(false);
+    }
+  };
+
+  const handleReorder = async () => {
+    if (!orderDetails || isReordering) return;
+    setIsReordering(true);
+    try {
+      await dispatch(reorderOrder(orderDetails.orderId)).unwrap();
+      await dispatch(getCart()).unwrap();
+      setReorderModalVisible(false);
+      onClose();
+      onReorderSuccess?.();
+      router.navigate("/shop");
+    } catch (error) {
+      Alert.alert("Ошибка", "Не удалось повторить заказ. Попробуйте позже.");
+    } finally {
+      setIsReordering(false);
+    }
   };
 
   if (!visible) return null;
@@ -502,18 +553,14 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                 {/* Кнопки */}
                 <View style={styles.buttonsRow}>
                   <PrimaryButton
-                    title="Отменить"
-                    onPress={() => console.log("Отменить заказ")}
+                    title={isCheckingReorder ? "Проверяем..." : "Повторить"}
+                    onPress={openReorderModal}
                     variant="third"
                     size="md"
                     activeOpacity={0.8}
                     fullWidth
                     style={styles.cancelButton}
-                    customIcon={
-                      <IconCloseNew
-                        color={isDarkMode ? "#FBFCFF" : "#1B1B1C"}
-                      />
-                    }
+                    disabled={isCheckingReorder}
                   />
                   <PrimaryButton
                     title="Написать"
@@ -881,6 +928,93 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
           </TouchableWithoutFeedback>
         </Modal>
       </Modal>
+      <SnapBottomSheet
+        visible={reorderModalVisible}
+        title={
+          canReorderFully
+            ? `Повторить заказ №${orderDetails?.orderId}`
+            : `Повторить заказ №${orderDetails?.orderId}?`
+        }
+        titleAlign="left"
+        onClose={() => setReorderModalVisible(false)}
+      >
+        {canReorderFully ? (
+          <>
+            <ThemedText
+              style={styles.reorderSubTitle}
+              lightColor="#80818B"
+              darkColor="#FBFCFF80"
+            >
+              В корзину будет добавлено:
+            </ThemedText>
+            <View style={styles.reorderList}>
+              <ThemedText style={styles.reorderListItem} lightColor="#1B1B1C" darkColor="#FBFCFF">
+                • {orderDetails?.products?.length || 0} товара
+              </ThemedText>
+              <ThemedText style={styles.reorderListItem} lightColor="#1B1B1C" darkColor="#FBFCFF">
+                • {orderDetails?.totalWeight || 0} кг
+              </ThemedText>
+              <ThemedText style={styles.reorderListItem} lightColor="#1B1B1C" darkColor="#FBFCFF">
+                • На сумму {formatMoneyNoFraction(orderDetails?.totalAmount || 0)} ₽
+              </ThemedText>
+            </View>
+            <ThemedText style={styles.reorderWarning} lightColor="#C12B2B" darkColor="#FF6B6B">
+              Текущая корзина будет очищена
+            </ThemedText>
+            <View style={styles.reorderButtonsRow}>
+              <PrimaryButton
+                title="Отмена"
+                onPress={() => setReorderModalVisible(false)}
+                variant="third"
+                fullWidth
+                style={styles.reorderButton}
+              />
+              <PrimaryButton
+                title={isReordering ? "Загрузка..." : "Повторить"}
+                onPress={handleReorder}
+                variant="primary"
+                fullWidth
+                style={styles.reorderButton}
+                disabled={isReordering}
+              />
+            </View>
+          </>
+        ) : (
+          <>
+            <ThemedText style={styles.reorderMissingTitle} lightColor="#1B1B1C" darkColor="#FBFCFF">
+              Некоторые товары сейчас отсутствуют.
+            </ThemedText>
+            <ThemedText
+              style={styles.reorderMissingText}
+              lightColor="#80818B"
+              darkColor="#80818B"
+            >
+              При повторении заказа система автоматически подберет аналоги из той же
+              ценовой группы. Если подходящей замены не найдется, будут предложены
+              товары из той же категории.
+            </ThemedText>
+            <ThemedText style={styles.reorderWarning} lightColor="#C12B2B" darkColor="#FF6B6B">
+              Текущая корзина будет очищена
+            </ThemedText>
+            <View style={styles.reorderButtonsColumn}>
+              <PrimaryButton
+                title={isReordering ? "Загрузка..." : "Повторить с заменой"}
+                onPress={handleReorder}
+                variant="primary"
+                fullWidth
+                disabled={isReordering}
+              />
+              <View style={{ height: 10 }} />
+              <PrimaryButton
+                title="Отмена"
+                onPress={() => setReorderModalVisible(false)}
+                variant="third"
+                fullWidth
+              />
+            </View>
+          </>
+        )}
+      </SnapBottomSheet>
     </>
   );
 };
@@ -1327,5 +1461,45 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   statusTextContainer: {
-  }
+  },
+  reorderSubTitle: {
+    fontSize: 14,
+    fontWeight: "500",
+    marginBottom: 10,
+  },
+  reorderList: {
+    gap: 6,
+    marginBottom: 14,
+  },
+  reorderListItem: {
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  reorderWarning: {
+    fontSize: 14,
+    fontWeight: "500",
+    marginBottom: 12,
+  },
+  reorderButtonsRow: {
+    flexDirection: "row",
+    gap: 10,
+    paddingBottom: 8,
+  },
+  reorderButton: {
+    flex: 1,
+  },
+  reorderMissingTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 8,
+  },
+  reorderMissingText: {
+    fontSize: 16,
+    fontWeight: "500",
+    marginBottom: 12,
+    lineHeight: 22,
+  },
+  reorderButtonsColumn: {
+    paddingBottom: 8,
+  },
 });

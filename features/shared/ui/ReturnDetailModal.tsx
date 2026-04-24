@@ -359,7 +359,7 @@ export const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
             </TouchableOpacity>
 
             <View style={styles.headerTitleContainer}>
-              <ThemedText style={styles.headerTitle}>Детали заказа</ThemedText>
+              <ThemedText style={styles.headerTitle}>Детали возврата</ThemedText>
             </View>
 
             <TouchableOpacity onPress={handleCopyId} style={styles.copyButton}>

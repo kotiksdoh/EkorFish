@@ -4,6 +4,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { getMangers, getMyInfo, setCompany } from '@/features/auth/authSlice';
 import { axdef, baseUrl } from '@/features/shared/services/axios';
+import { useAppTheme } from '@/hooks/use-theme-color';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { useEffect, useState } from 'react';
@@ -17,7 +18,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   View,
-  useColorScheme,
 } from 'react-native';
 import ManagerReviewModal from './ManagerReviewModal';
 
@@ -39,8 +39,7 @@ interface ManagerCardProps {
 
 // Карточка для отображения текущего менеджера (с кнопками)
 const CurrentManagerCard = ({ manager, onChangePress, onReviewPress }: ManagerCardProps) => {
-  const systemTheme = useColorScheme();
-  const currentTheme = systemTheme || "light";
+  const { isDark } = useAppTheme();
 
   const handleMessage = async () => {
     if (!manager.phoneNumber) {
@@ -206,7 +205,7 @@ const CurrentManagerCard = ({ manager, onChangePress, onReviewPress }: ManagerCa
             >
               <View style={styles.buttonContent}>
                 <MessageIcon
-                  fill={currentTheme === "dark" ? "#FBFCFF" : "#203686"}
+                  fill={isDark ? "#FBFCFF" : "#203686"}
                   width={24}
                   height={24}
                 />
@@ -227,7 +226,7 @@ const CurrentManagerCard = ({ manager, onChangePress, onReviewPress }: ManagerCa
             >
               <View style={styles.buttonContent}>
                 <PhoneIcon
-                  fill={currentTheme === "dark" ? "#FBFCFF" : "#203686"}
+                  fill={isDark ? "#FBFCFF" : "#203686"}
                   width={24}
                   height={24}
                 />
@@ -249,7 +248,7 @@ const CurrentManagerCard = ({ manager, onChangePress, onReviewPress }: ManagerCa
 
 // Карточка для горизонтального списка (для выбора менеджера)
 const ManagerSelectCard = ({ manager, onSelect }: ManagerCardProps) => {
-  const isDark = useColorScheme() === "dark";
+  const { isDark } = useAppTheme();
 
   return (
     <TouchableOpacity
@@ -291,7 +290,7 @@ const ManagerSelectCard = ({ manager, onSelect }: ManagerCardProps) => {
 };
 
 export const ManagerSection = () => {
-  const isDark = useColorScheme() === "dark";
+  const { isDark } = useAppTheme();
   const dispatch = useAppDispatch();
   const { currentCompany, me } = useAppSelector((state) => state.auth);
   const { managers, isLoadingManager } = useAppSelector((state) => state.auth);

@@ -106,7 +106,13 @@ const DARK_COLORS = [
   },
 ];
 
-export const ProfileEditModal = ({ visible, onClose, onSave, initialData, handleLogout }: ProfileEditModalProps) => {
+export const ProfileEditModal = ({
+  visible,
+  onClose,
+  onSave,
+  initialData,
+  handleLogout,
+}: ProfileEditModalProps) => {
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === "dark";
   
@@ -121,6 +127,7 @@ export const ProfileEditModal = ({ visible, onClose, onSave, initialData, handle
   const [selectedColorId, setSelectedColorId] = useState(colors[0].id);
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
+  const [isIndividualProfile, setIsIndividualProfile] = useState(false);
   
   const modalTranslateY = useRef(new Animated.Value(screenHeight)).current;
   const colorPickerTranslateY = useRef(new Animated.Value(screenHeight)).current;
@@ -190,6 +197,7 @@ export const ProfileEditModal = ({ visible, onClose, onSave, initialData, handle
       try {
         const savedColorId = await AsyncStorage.getItem('profileCoverColorId');
         const savedAvatar = await AsyncStorage.getItem('profileAvatar');
+        const storedCompany = await AsyncStorage.getItem("company");
         
         if (savedColorId) {
           const colorExists = colors.some(c => c.id === savedColorId);
@@ -198,6 +206,13 @@ export const ProfileEditModal = ({ visible, onClose, onSave, initialData, handle
           }
         }
         if (savedAvatar) setAvatar(savedAvatar);
+
+        if (storedCompany) {
+          const parsedCompany = JSON.parse(storedCompany);
+          setIsIndividualProfile(parsedCompany?.type === "individual");
+        } else {
+          setIsIndividualProfile(false);
+        }
       } catch (error) {
         console.error('Error loading saved data:', error);
       }
@@ -205,8 +220,10 @@ export const ProfileEditModal = ({ visible, onClose, onSave, initialData, handle
     
     if (visible) {
       loadSavedData();
-      setName('');
-      setSurname( '');
+      setName(initialData.name || "");
+      setSurname(initialData.surname || "");
+      setPhone(initialData.phone || "");
+      setMail(initialData.phone || "");
     }
   }, [visible, initialData, colors]);
 
@@ -300,34 +317,50 @@ export const ProfileEditModal = ({ visible, onClose, onSave, initialData, handle
                         </LinearGradient>
                       )}
                     </View>
-                    <TouchableOpacity onPress={pickImage}>
-                      <ThemedText style={styles.changePhotoText}>Выбрать фотографию</ThemedText>
-                    </TouchableOpacity>
+                    {!isIndividualProfile && (
+                      <TouchableOpacity onPress={pickImage}>
+                        <ThemedText style={styles.changePhotoText}>Выбрать фотографию</ThemedText>
+                      </TouchableOpacity>
+                    )}
                   </View>
 
                   {/* Inputs */}
                   <ThemedView lightColor="#FFFFFF" darkColor='#151516' style={styles.inputsCard}>
-                    <AnimatedTextInput
-                      placeholder="Имя"
-                      placeholderTextColor="#80818B"
-                      value={name}
-                      onChangeText={setName}
-                    />
-                    <AnimatedTextInput
-                      placeholder="Фамилия"
-                      placeholderTextColor="#80818B"
-                      value={surname}
-                      onChangeText={setSurname}
-                    />
+                    {isIndividualProfile ? (
+                      <>
+                        <AnimatedTextInput
+                          placeholder="Имя"
+                          placeholderTextColor="#80818B"
+                          value={name}
+                          onChangeText={setName}
+                          editable={false}
+                        />
+                        <AnimatedTextInput
+                          placeholder="Фамилия"
+                          placeholderTextColor="#80818B"
+                          value={surname}
+                          onChangeText={setSurname}
+                          editable={false}
+                        />
+                      </>
+                    ) : (
+                      <AnimatedTextInput
+                        placeholder="Наименование компании"
+                        placeholderTextColor="#80818B"
+                        value={name}
+                        onChangeText={setName}
+                        editable={false}
+                      />
+                    )}
                   </ThemedView>
 
                     <ThemedView lightColor="#FFFFFF" darkColor='#151516' style={styles.colorPickerTrigger}>
                       <AnimatedTextInput
                         placeholder="Логин"
                         placeholderTextColor="#80818B"
-                        value={name}
-                        onChangeText={setName}
-                        disabled={true}
+                        value={mail}
+                        onChangeText={setMail}
+                        editable={false}
                       />
          
                         <TouchableOpacity style={styles.colorPickerCont} onPress={() => setShowColorPicker(true)}>

@@ -16,11 +16,11 @@ import React, {
 } from "react";
 import {
   ActivityIndicator,
-  Image,
   StyleSheet,
   TouchableOpacity,
   View,
 } from "react-native";
+import { Image } from "expo-image";
 
 interface ProductCardProps {
   id?: number;
@@ -85,11 +85,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   };
 
   const handleLogin = (phoneNumber: string) => {
-    console.log("Login with:", phoneNumber);
     setLoginModalVisible(false);
   };
   const handleLikePress = async (e: any) => {
     e.stopPropagation();
+    if (!id) return;
     const token = await AsyncStorage.getItem("token");
     if (!token) {
       handleLoginPress();
@@ -99,9 +99,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       return;
     }
     if (isLiked) {
-      dispatch(putUnFavorite(id)).then(() => setIsLiked(false));
+      dispatch(putUnFavorite(String(id))).then(() => setIsLiked(false));
     } else {
-      dispatch(putFavorite(id)).then(() => setIsLiked(true));
+      dispatch(putFavorite(String(id))).then(() => setIsLiked(true));
     }
   };
 
@@ -194,9 +194,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   }, [templateLinesForProduct]);
 
   const toProductDetail = () => {
-    if (!isDis) {
+    if (!isDis && id && name) {
       router.push(
-        `dashboard/product/${encodeURIComponent(id)}?productId=${id}&productName=${encodeURIComponent(name)}`,
+        `dashboard/product/${encodeURIComponent(id)}?productId=${id}&productName=${encodeURIComponent(name)}` as any,
       );
     }
   };
@@ -262,7 +262,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               }
               source={showPlaceholder ? PLACEHOLDER_IMAGE : imageSource}
               style={styles.image}
-              resizeMode="cover"
+              contentFit="cover"
+              cachePolicy="memory-disk"
               onLoadStart={!showPlaceholder ? handleImageLoadStart : undefined}
               onLoadEnd={!showPlaceholder ? handleImageLoadEnd : undefined}
               onError={!showPlaceholder ? handleImageError : undefined}
@@ -391,12 +392,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           </View>
         </ThemedView>
       </TouchableOpacity>
-      <LoginModal
-        visible={loginModalVisible}
-        onClose={() => setLoginModalVisible(false)}
-        onLogin={handleLogin}
-        enumFlag={"login"}
-      />
+      {loginModalVisible ? (
+        <LoginModal
+          visible={loginModalVisible}
+          onClose={() => setLoginModalVisible(false)}
+          onLogin={handleLogin}
+          enumFlag={"login"}
+        />
+      ) : null}
     </>
   );
 };

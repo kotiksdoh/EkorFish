@@ -413,9 +413,63 @@ export const getCart = createAsyncThunk(
 
 export const getMyOrders = createAsyncThunk(
   "catalog/getMyOrders",
-  async (_, { rejectWithValue }) => {
+  async (
+    paramsPayload:
+      | {
+          offset?: number;
+          count?: number;
+          isActive?: boolean;
+        }
+      | undefined,
+    { rejectWithValue },
+  ) => {
     try {
-      const response = await axdef.get("/api/Order");
+      const queryParams = new URLSearchParams();
+      if (paramsPayload?.offset !== undefined) {
+        queryParams.append("offset", String(paramsPayload.offset));
+      }
+      if (paramsPayload?.count !== undefined) {
+        queryParams.append("count", String(paramsPayload.count));
+      }
+      if (paramsPayload?.isActive !== undefined) {
+        queryParams.append("isActive", String(paramsPayload.isActive));
+      }
+
+      const endpoint = queryParams.toString()
+        ? `/api/Order?${queryParams.toString()}`
+        : "/api/Order";
+
+      const response = await axdef.get(endpoint);
+      return response.data.data;
+    } catch (error: any) {
+      if (error.response?.status !== 401) {
+        return rejectWithValue(error);
+      }
+      throw error;
+    }
+  },
+);
+
+export const checkForReorder = createAsyncThunk(
+  "catalog/checkForReorder",
+  async (orderId: number | string, { rejectWithValue }) => {
+    try {
+      const response = await axdef.get(`/api/Order/${orderId}/check-for-reorder`);
+      return response.data.data;
+    } catch (error: any) {
+      if (error.response?.status !== 401) {
+        return rejectWithValue(error);
+      }
+      throw error;
+    }
+  },
+);
+
+export const reorderOrder = createAsyncThunk(
+  "catalog/reorderOrder",
+  async (orderId: number | string, { rejectWithValue }) => {
+    try {
+      const response = await axdef.post(`/api/Order/${orderId}/reorder`);
       return response.data.data;
     } catch (error: any) {
       if (error.response?.status !== 401) {

@@ -2,6 +2,7 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { createReview, getManagerReviewOptions, getMyInfo, setCompany } from '@/features/auth/authSlice';
+import { useAppTheme } from '@/hooks/use-theme-color';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { Image } from "expo-image";
 import React, { useEffect, useState } from 'react';
@@ -13,7 +14,6 @@ import {
     TouchableOpacity,
     TouchableWithoutFeedback,
     View,
-    useColorScheme
 } from 'react-native';
 import Animated, {
     runOnJS,
@@ -21,6 +21,7 @@ import Animated, {
     useSharedValue,
     withTiming,
 } from 'react-native-reanimated';
+import Svg, { Path } from "react-native-svg";
 import { baseUrl } from '../services/axios';
 import { CustomCheckbox } from './components/CustomCheckBox';
 import AnimatedTextInput from './components/CustomInput';
@@ -36,12 +37,12 @@ interface ManagerReviewModalProps {
 
 const StarIcon = ({ filled, onPress, size = 40 }: { filled: boolean; onPress: () => void; size?: number }) => (
     <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
-        <svg width={size} height={size} viewBox="0 0 40 40" fill="none">
-            <path
+        <Svg width={size} height={size} viewBox="0 0 40 40" fill="none">
+            <Path
                 d="M19.0523 2.80357C19.3586 1.89708 20.6407 1.89708 20.947 2.80357L24.6344 13.7156C24.7717 14.122 25.1529 14.3955 25.5818 14.3955H37.4283C38.4065 14.3955 38.8029 15.655 38.001 16.2153L28.4853 22.8629C28.121 23.1174 27.9684 23.5818 28.1106 24.0028L31.7611 34.8056C32.0701 35.7201 31.0323 36.4983 30.241 35.9455L20.5724 29.191C20.2284 28.9507 19.771 28.9507 19.427 29.191L9.75834 35.9455C8.96705 36.4983 7.92927 35.7201 8.23828 34.8056L11.8887 24.0028C12.031 23.5818 11.8784 23.1174 11.514 22.8629L1.99834 16.2152C1.19644 15.655 1.59283 14.3955 2.57103 14.3955H14.4176C14.8465 14.3955 15.2276 14.122 15.3649 13.7156L19.0523 2.80357Z"
                 fill={filled ? "#FFB800" : "#C0C0C5"}
             />
-        </svg>
+        </Svg>
     </TouchableOpacity>
 );
 
@@ -81,8 +82,7 @@ export const ManagerReviewModal: React.FC<ManagerReviewModalProps> = ({
     managerName,
     managerImage,
 }) => {
-    const systemTheme = useColorScheme();
-    const currentTheme = systemTheme || "light";
+    const { isDark } = useAppTheme();
     const dispatch = useAppDispatch();
     const { reviewOptions, isLoadingManagerReviewOption } = useAppSelector((state) => state.auth);
     const { currentCompany, me } = useAppSelector((state) => state.auth);
@@ -149,7 +149,6 @@ export const ManagerReviewModal: React.FC<ManagerReviewModalProps> = ({
     
             // Затем обновляем данные пользователя и ждем результат
             const result = await dispatch(getMyInfo("")).unwrap();
-            debugger
             // Используем обновленные данные из result
             if (result?.data?.data?.companies) {
                 const updatedCompany = result.data.data.companies.find(
@@ -192,7 +191,7 @@ export const ManagerReviewModal: React.FC<ManagerReviewModalProps> = ({
                             style={[
                                 styles.modalContainer,
                                 animatedStyle,
-                                currentTheme === 'dark' && styles.modalContainerDark,
+                                isDark && styles.modalContainerDark,
                             ]}
                         >
                             {/* Защелка для свайпа */}
@@ -201,7 +200,7 @@ export const ManagerReviewModal: React.FC<ManagerReviewModalProps> = ({
                                 activeOpacity={0.7}
                                 onPress={handleClose}
                             >
-                                <View style={[styles.swipeHandle, currentTheme === 'dark' && styles.swipeHandleDark]} />
+                                <View style={[styles.swipeHandle, isDark && styles.swipeHandleDark]} />
                             </TouchableOpacity>
 
                             {showThankYou ? (
@@ -233,7 +232,7 @@ export const ManagerReviewModal: React.FC<ManagerReviewModalProps> = ({
                                                         style={[
                                                             styles.managerAvatar,
                                                             styles.avatarPlaceholder,
-                                                            currentTheme === 'dark' && styles.avatarPlaceholderDark,
+                                                            isDark && styles.avatarPlaceholderDark,
                                                         ]}
                                                     >
                                                         <ThemedText style={styles.avatarPlaceholderText}>
@@ -304,7 +303,7 @@ export const ManagerReviewModal: React.FC<ManagerReviewModalProps> = ({
                                                 multiline
                                                 style={[
                                                     styles.commentInput,
-                                                    currentTheme === 'dark' && styles.commentInputDark,
+                                                    isDark && styles.commentInputDark,
                                                 ]}
                                             />
                                         </View>

@@ -1250,7 +1250,7 @@ export const MyFinanceModal: React.FC<MyFinanceProps> = ({
   const router = useRouter();
 
   useEffect(() => {
-    if (currentCompany) {
+    if (visible && currentCompany) {
       const paymentParams =
         currentCompany?.type === "individual" || !currentCompany?.id
           ? {}
@@ -1261,7 +1261,7 @@ export const MyFinanceModal: React.FC<MyFinanceProps> = ({
         }),
       );
     }
-  }, [currentCompany?.id, currentCompany?.type, dispatch]);
+  }, [visible, currentCompany?.id, currentCompany?.type, dispatch]);
 
   const handleCloseAll = () => {
     setShowPaymentsHistory(false);
@@ -1471,12 +1471,12 @@ export const MyFinanceModal: React.FC<MyFinanceProps> = ({
                 История оплат
               </ThemedText>
               <TouchableOpacity onPress={() => setShowPaymentsHistory(true)}>
-                <ThemedText type="caption" darkColor="#4C94FF">
+                <ThemedText type="caption" lightColor="#203686" darkColor="#4C94FF">
                   Подробнее
                 </ThemedText>
               </TouchableOpacity>
             </View>
-            {payments.length > 0 &&
+            {payments?.length > 0 &&
               (() => {
                 // Сортируем платежи от новых к старым
                 const sortedPayments = [...payments].sort(

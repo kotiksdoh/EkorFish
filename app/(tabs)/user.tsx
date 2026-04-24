@@ -27,6 +27,7 @@ import { Fonts } from "@/constants/theme";
 import { clearAuthState, setCompany } from "@/features/auth/authSlice";
 import { LoginModal } from "@/features/auth/ui/components/LoginModal";
 import { clearCatalogState } from "@/features/catalog/catalogSlice";
+import { axdef } from "@/features/shared/services/axios";
 import { CompanySelectModal } from "@/features/shared/ui/CompanySelectModal";
 import { HelpModal } from "@/features/shared/ui/HelpModal";
 import ManagerSection from "@/features/shared/ui/ManagerSection";
@@ -40,6 +41,12 @@ import { useTemplatePicker } from "@/features/templates/TemplatePickerContext";
 import { useAppTheme } from "@/hooks/use-theme-color";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+
+type StoredCompany = {
+  id?: string;
+  name?: string;
+  type?: string;
+};
 
 export default function TabTwoScreen() {
   const { currentTheme, isDark: isDarkMode } = useAppTheme();
@@ -67,6 +74,26 @@ export default function TabTwoScreen() {
     coverColor: "#ACCBEE",
   });
   const currentCompany = useAppSelector((state) => state.auth.currentCompany);
+  const [storedCompany, setStoredCompany] = useState<StoredCompany | null>(null);
+
+  useEffect(() => {
+    const loadStoredCompany = async () => {
+      try {
+        const rawCompany = await AsyncStorage.getItem("company");
+        if (!rawCompany) {
+          setStoredCompany(null);
+          return;
+        }
+
+        const parsedCompany = JSON.parse(rawCompany);
+        setStoredCompany(parsedCompany);
+      } catch (error) {
+        console.error("Error loading company from storage:", error);
+      }
+    };
+
+    loadStoredCompany();
+  }, [currentCompany]);
 
   // Загружаем сохраненные данные профиля
   useEffect(() => {
@@ -153,16 +180,21 @@ export default function TabTwoScreen() {
   // Обновляем данные когда меняется me
   useEffect(() => {
     if (me) {
+      const isIndividualCompany = storedCompany?.type === "individual";
+      const individualProfile = me.individualProfile;
       const nameParts = getDisplayName().split(" ");
+
       setProfileData((prev) => ({
         ...prev,
-        name: nameParts[1] || "",
-        surname: nameParts[0] || "",
+        name: isIndividualCompany
+          ? individualProfile?.firstName || ""
+          : storedCompany?.name || currentCompany?.name || nameParts[0] || "",
+        surname: isIndividualCompany ? individualProfile?.lastName || "" : "",
         email: me?.email || "",
-        phone: me?.phoneNumber || "",
+        phone: me?.login || me?.phoneNumber || "",
       }));
     }
-  }, [me]);
+  }, [me, storedCompany, currentCompany]);
 
   const handleClosePress = () => {
     router.replace("/");
@@ -197,6 +229,12 @@ export default function TabTwoScreen() {
 
   const handleLogout = async () => {
     try {
+      try {
+        await axdef.post("/api/Account/logout");
+      } catch (logoutError) {
+        console.error("Ошибка при вызове logout API:", logoutError);
+      }
+
       dispatch(clearAuthState());
       dispatch(clearCatalogState());
       await AsyncStorage.clear();
@@ -214,16 +252,29 @@ export default function TabTwoScreen() {
   };
 
   const getDisplayName = () => {
+    if (storedCompany?.name) {
+      return storedCompany.name;
+    }
+
     if (!me) return "";
+
+    if (currentCompany?.name) {
+      return currentCompany.name;
+    }
+
     if (me.companies?.length > 0) {
-      return currentCompany?.name || me.companies[0]?.name || "";
+      return me.companies[0]?.name || "";
     }
+
     const profile = me.individualProfile;
-    if (profile) {
-      return `${profile.lastName || ""} ${profile.firstName || ""} ${profile.patronymic || ""}`.trim();
-    }
-    return "";
+    if (!profile) return "";
+
+    return `${profile.lastName || ""} ${profile.firstName || ""} ${profile.patronymic || ""}`.trim();
   };
+
+  const isIndividualSelected = storedCompany?.type === "individual";
+  const profileTitle = getDisplayName();
+  const profileSubtitle = me?.login || "";
 
   return (
     <>
@@ -269,10 +320,8 @@ export default function TabTwoScreen() {
                 )}
               </View>
               <ThemedView style={styles.profileInfo}>
-                <ThemedText style={styles.profileName}>TODO</ThemedText>
-                <ThemedText style={styles.profileEmail}>
-                  в разработке
-                </ThemedText>
+                <ThemedText style={styles.profileName}>{profileTitle}</ThemedText>
+                <ThemedText style={styles.profileEmail}>{profileSubtitle}</ThemedText>
               </ThemedView>
             </ThemedView>
           </LinearGradient>

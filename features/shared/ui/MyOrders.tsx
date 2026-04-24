@@ -5,15 +5,12 @@ import { ModalHeader } from "@/features/auth/ui/Header";
 import { getMyOrders } from "@/features/catalog/catalogSlice";
 import OrdersCard from "@/features/home/ui/components/Orders/OrdersCard";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { useAppDispatch } from "@/store/hooks";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Image } from "expo-image";
-import { useFocusEffect } from "expo-router";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Animated,
-  Dimensions,
   FlatList,
   LayoutChangeEvent,
   Modal,
@@ -21,7 +18,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-const { width: screenWidth } = Dimensions.get("window");
 
 interface MyOrdersProps {
   visible: boolean;
@@ -29,6 +25,7 @@ interface MyOrdersProps {
 }
 
 type TabType = "active" | "completed";
+const ORDERS_PAGE_SIZE = 10;
 
 export const MyOrdersModal: React.FC<MyOrdersProps> = ({
   visible,
@@ -41,34 +38,90 @@ export const MyOrdersModal: React.FC<MyOrdersProps> = ({
   const [selectedTab, setSelectedTab] = useState<TabType>("active");
   const [tabContainerWidth, setTabContainerWidth] = useState(0);
   const [tabAnim] = useState(new Animated.Value(0));
-
-  const loading = useAppSelector((state) => state.catalog.isLoadingOrders);
-  const orders = useAppSelector((state) => state.catalog.orders);
+  const [activeOrders, setActiveOrders] = useState<any[]>([]);
+  const [completedOrders, setCompletedOrders] = useState<any[]>([]);
+  const [initializedTabs, setInitializedTabs] = useState<Record<TabType, boolean>>({
+    active: false,
+    completed: false,
+  });
+  const [isTabLoading, setIsTabLoading] = useState<Record<TabType, boolean>>({
+    active: false,
+    completed: false,
+  });
+  const [isLoadingMore, setIsLoadingMore] = useState<Record<TabType, boolean>>({
+    active: false,
+    completed: false,
+  });
+  const offsetsRef = useRef<Record<TabType, number>>({ active: 0, completed: 0 });
+  const hasMoreRef = useRef<Record<TabType, boolean>>({ active: true, completed: true });
+  const inFlightRef = useRef<Record<TabType, boolean>>({ active: false, completed: false });
 
   const dispatch = useAppDispatch();
 
-  useFocusEffect(
-    useCallback(() => {
-      const checkToken = async () => {
-        const token = await AsyncStorage.getItem("token");
-        if (token) {
-          dispatch(getMyOrders()).unwrap();
-        }
-      };
-      checkToken();
-    }, [])
-  );
+  const fetchOrders = useCallback(async (tab: TabType, isLoadMore = false) => {
+      if (inFlightRef.current[tab]) return;
+      if (isLoadMore && !hasMoreRef.current[tab]) return;
 
-  // Фильтрация заказов по статусу
-  const activeOrders = orders.filter(
-    (order) => order.orderStatus !== "Доставлен (закрыт)"
-  );
-  
-  const completedOrders = orders.filter(
-    (order) => order.orderStatus === "Доставлен (закрыт)"
-  );
+      const token = await AsyncStorage.getItem("token");
+      if (!token) return;
+
+      inFlightRef.current[tab] = true;
+      const isActive = tab === "active";
+      const offset = isLoadMore ? offsetsRef.current[tab] : 0;
+
+      if (isLoadMore) {
+        setIsLoadingMore((prev) => ({ ...prev, [tab]: true }));
+      } else {
+        setIsTabLoading((prev) => ({ ...prev, [tab]: true }));
+      }
+
+      try {
+        const payload = await dispatch(
+          getMyOrders({
+            offset,
+            count: ORDERS_PAGE_SIZE,
+            isActive,
+          })
+        ).unwrap();
+
+        const nextItems = Array.isArray(payload)
+          ? payload
+          : Array.isArray(payload?.items)
+            ? payload.items
+            : [];
+
+        const setData = tab === "active" ? setActiveOrders : setCompletedOrders;
+        setData((prev) => (isLoadMore ? [...prev, ...nextItems] : nextItems));
+
+        offsetsRef.current[tab] = isLoadMore
+          ? offset + nextItems.length
+          : nextItems.length;
+        hasMoreRef.current[tab] = nextItems.length === ORDERS_PAGE_SIZE;
+        setInitializedTabs((prev) => ({ ...prev, [tab]: true }));
+      } finally {
+        inFlightRef.current[tab] = false;
+        setIsTabLoading((prev) => ({ ...prev, [tab]: false }));
+        setIsLoadingMore((prev) => ({ ...prev, [tab]: false }));
+      }
+    }, [dispatch]);
+
+  useEffect(() => {
+    if (!visible) return;
+    setSelectedTab("active");
+    tabAnim.setValue(0);
+    setActiveOrders([]);
+    setCompletedOrders([]);
+    setInitializedTabs({ active: false, completed: false });
+    setIsTabLoading({ active: false, completed: false });
+    setIsLoadingMore({ active: false, completed: false });
+    offsetsRef.current = { active: 0, completed: 0 };
+    hasMoreRef.current = { active: true, completed: true };
+    inFlightRef.current = { active: false, completed: false };
+    fetchOrders("active", false);
+  }, [visible, fetchOrders, tabAnim]);
 
   const handleTabChange = (tab: TabType) => {
+    if (tab === selectedTab) return;
     Animated.spring(tabAnim, {
       toValue: tab === "active" ? 0 : 1,
       useNativeDriver: false,
@@ -76,6 +129,10 @@ export const MyOrdersModal: React.FC<MyOrdersProps> = ({
       friction: 7,
     }).start();
     setSelectedTab(tab);
+    const shouldFetch = !initializedTabs[tab];
+    if (shouldFetch) {
+      fetchOrders(tab, false);
+    }
   };
 
   const handleTabContainerLayout = (event: LayoutChangeEvent) => {
@@ -117,14 +174,32 @@ export const MyOrdersModal: React.FC<MyOrdersProps> = ({
     </View>
   );
 
-  const renderOrdersList = (data: any[]) => (
+  const renderOrdersList = (data: any[], tab: TabType) => (
     <FlatList
       data={data}
       keyExtractor={(item) => item.id.toString()}
       showsVerticalScrollIndicator={false}
-      renderItem={({ item }) => <OrdersCard order={item} fullWidth={true} />}
+      renderItem={({ item }) => (
+        <OrdersCard
+          order={item}
+          fullWidth={true}
+          onReorderSuccess={onClose}
+        />
+      )}
       contentContainerStyle={styles.ordersList}
-      ListEmptyComponent={!loading ? renderEmptyState(selectedTab) : null}
+      ListEmptyComponent={!isTabLoading[tab] ? renderEmptyState(tab) : null}
+      onEndReachedThreshold={0.3}
+      onEndReached={() => {
+        if (isLoadingMore[tab] || isTabLoading[tab]) return;
+        fetchOrders(tab, true);
+      }}
+      ListFooterComponent={
+        isLoadingMore[tab] ? (
+          <View style={styles.loadMoreContainer}>
+            <ActivityIndicator size="small" color={isDark ? "#FBFCFF" : "#203686"} />
+          </View>
+        ) : null
+      }
     />
   );
 
@@ -154,8 +229,7 @@ export const MyOrdersModal: React.FC<MyOrdersProps> = ({
             darkColor="#151516"
             style={styles.content}
           >
-            {orders.length > 0 ?
-            (
+            {
                 <>
                     <View style={styles.tabsWrapper}>
                     <ThemedView
@@ -184,7 +258,7 @@ export const MyOrdersModal: React.FC<MyOrdersProps> = ({
                         ]}
                         onPress={() => handleTabChange("active")}
                         activeOpacity={0.7}
-                        disabled={loading}
+                        disabled={isTabLoading[selectedTab]}
                         >
                         <ThemedText
                             style={[
@@ -209,7 +283,7 @@ export const MyOrdersModal: React.FC<MyOrdersProps> = ({
                         ]}
                         onPress={() => handleTabChange("completed")}
                         activeOpacity={0.7}
-                        disabled={loading}
+                        disabled={isTabLoading[selectedTab]}
                         >
                         <ThemedText
                             style={[
@@ -230,27 +304,13 @@ export const MyOrdersModal: React.FC<MyOrdersProps> = ({
                     </View>
 
                     <View style={styles.tabContent}>
-                    {loading ? renderLoadingState() : (
+                    {isTabLoading[selectedTab] ? renderLoadingState() : (
                         selectedTab === "active" 
-                        ? renderOrdersList(activeOrders)
-                        : renderOrdersList(completedOrders)
+                        ? renderOrdersList(activeOrders, "active")
+                        : renderOrdersList(completedOrders, "completed")
                     )}
                     </View>
                 </>
-            )
-            :
-            (
-                <View style={styles.noOrders}>
-                    <Image
-                    source={require("@/assets/icons/png/noOrders.png")}
-                    style={[styles.image]}
-                    contentFit="cover"
-                    />
-                    <ThemedText style={styles.noOrdersText}>
-                        У вас еще нет заказов.
-                    </ThemedText>
-                </View>
-            )
             }
 
           </ThemedView>
@@ -379,18 +439,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: "center",
   },
-  image: {
-    width: 86,
-    height: 86,
+  loadMoreContainer: {
+    paddingVertical: 12,
+    alignItems: "center",
   },
-  noOrders:{
-    display: 'flex',
-    alignItems: 'center',
-    gap: 24,
-    margin: 'auto'
-  },
-  noOrdersText:{
-    fontSize: 24,
-    fontWeight: '600'
-  }
 });

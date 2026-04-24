@@ -3,25 +3,95 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { ModalHeader } from "@/features/auth/ui/Header";
 import { useAppTheme } from "@/hooks/use-theme-color";
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
+  Animated,
+  Dimensions,
   Modal,
   StyleSheet,
-  Switch,
   TouchableOpacity,
   View,
 } from "react-native";
 import { CustomCheckbox } from "./components/CustomCheckBox";
+import AnimatedTextInput from "./components/CustomInput";
 
 interface MySettingsProps {
   visible: boolean;
   onClose: () => void;
 }
 
+const { width: screenWidth } = Dimensions.get("window");
+const switchScale = Math.min(Math.max(screenWidth / 390, 0.85), 1);
+const SWITCH_TRACK_WIDTH = 64 * switchScale;
+const SWITCH_TRACK_HEIGHT = 28 * switchScale;
+const SWITCH_THUMB_WIDTH = 36 * switchScale;
+const SWITCH_THUMB_HEIGHT = 24 * switchScale;
+const SWITCH_THUMB_OFFSET = 2 * switchScale;
+const SWITCH_THUMB_TRANSLATE =
+  SWITCH_TRACK_WIDTH - SWITCH_THUMB_WIDTH - SWITCH_THUMB_OFFSET * 2;
+
+interface AppSwitchProps {
+  value: boolean;
+  onValueChange: (value: boolean) => void;
+  isDark: boolean;
+}
+
+const AppSwitch: React.FC<AppSwitchProps> = ({ value, onValueChange, isDark }) => {
+  const thumbTranslate = useRef(
+    new Animated.Value(value ? SWITCH_THUMB_TRANSLATE : 0)
+  ).current;
+
+  useEffect(() => {
+    Animated.timing(thumbTranslate, {
+      toValue: value ? SWITCH_THUMB_TRANSLATE : 0,
+      duration: 170,
+      useNativeDriver: true,
+    }).start();
+  }, [thumbTranslate, value]);
+
+  return (
+    <TouchableOpacity
+      activeOpacity={0.8}
+      onPress={() => onValueChange(!value)}
+      style={[
+        styles.appSwitchTrack,
+        {
+          backgroundColor: value
+            ? isDark
+              ? "#4C94FF"
+              : "#203686"
+            : isDark
+              ? "#ECEFFA26"
+              : "#03051E1F",
+        },
+      ]}
+    >
+      <Animated.View
+        style={[
+          styles.appSwitchThumb,
+          {
+            transform: [{ translateX: thumbTranslate }],
+          },
+        ]}
+      />
+    </TouchableOpacity>
+  );
+};
+
+const formatTimeValue = (rawValue: string) => {
+  const digitsOnly = rawValue.replace(/\D/g, "").slice(0, 4);
+  if (digitsOnly.length <= 2) {
+    return digitsOnly;
+  }
+  return `${digitsOnly.slice(0, 2)}:${digitsOnly.slice(2)}`;
+};
+
 // Компонент уведомлений
 const NotificationsScreen: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   const { isDark } = useAppTheme();
   const [quietMode, setQuietMode] = useState(false);
+  const [quietStartTime, setQuietStartTime] = useState("22:00");
+  const [quietEndTime, setQuietEndTime] = useState("08:00");
   const [deliveryMethod, setDeliveryMethod] = useState("push");
   const [notifications, setNotifications] = useState({
     orderStatus: true,
@@ -61,8 +131,8 @@ const NotificationsScreen: React.FC<{ onBack: () => void }> = ({ onBack }) => {
               value={notifications.orderStatus}
               onValueChange={() => toggleNotification("orderStatus")}
               style={undefined}
-              lightColor={undefined}
-              darkColor={undefined}
+              lightColor={"#F2F4F7"}
+              darkColor={"#202022"}
               disabled={undefined}
             />
             <ThemedText lightColor="#1B1B1C" darkColor="#FBFCFF">
@@ -77,8 +147,8 @@ const NotificationsScreen: React.FC<{ onBack: () => void }> = ({ onBack }) => {
               value={notifications.promotions}
               onValueChange={() => toggleNotification("promotions")}
               style={undefined}
-              lightColor={undefined}
-              darkColor={undefined}
+              lightColor={"#F2F4F7"}
+              darkColor={"#202022"}
               disabled={undefined}
             />
             <ThemedText lightColor="#1B1B1C" darkColor="#FBFCFF">
@@ -93,8 +163,8 @@ const NotificationsScreen: React.FC<{ onBack: () => void }> = ({ onBack }) => {
               value={notifications.system}
               onValueChange={() => toggleNotification("system")}
               style={undefined}
-              lightColor={undefined}
-              darkColor={undefined}
+              lightColor={"#F2F4F7"}
+              darkColor={"#202022"}
               disabled={undefined}
             />
             <ThemedText lightColor="#1B1B1C" darkColor="#FBFCFF">
@@ -113,13 +183,10 @@ const NotificationsScreen: React.FC<{ onBack: () => void }> = ({ onBack }) => {
           <ThemedText lightColor="#1B1B1C" darkColor="#FBFCFF">
             Включить тихий период
           </ThemedText>
-          <Switch
+          <AppSwitch
             value={quietMode}
             onValueChange={setQuietMode}
-            trackColor={{
-              false: isDark ? "#767577" : "#03051E1F",
-              true: isDark ? "#3881EE" : "#203686",
-            }}
+            isDark={isDark}
           />
         </View>
         <ThemedText
@@ -129,6 +196,26 @@ const NotificationsScreen: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         >
           В это время уведомления будут приходить без звука и вибрации
         </ThemedText>
+        {quietMode && (
+          <View style={styles.quietTimeRow}>
+            <AnimatedTextInput
+              placeholder="Не беспокоить с:"
+              value={quietStartTime}
+              onChangeText={(text) => setQuietStartTime(formatTimeValue(text))}
+              keyboardType="number-pad"
+              maxLength={5}
+              style={styles.quietTimeInput}
+            />
+            <AnimatedTextInput
+              placeholder="До:"
+              value={quietEndTime}
+              onChangeText={(text) => setQuietEndTime(formatTimeValue(text))}
+              keyboardType="number-pad"
+              maxLength={5}
+              style={styles.quietTimeInput}
+            />
+          </View>
+        )}
       </ThemedView>
 
       <ThemedView
@@ -266,13 +353,10 @@ export const MySettingsModal: React.FC<MySettingsProps> = ({
             <ThemedText lightColor="#1B1B1C" darkColor="#FBFCFF">
               Темная тема
             </ThemedText>
-            <Switch
+            <AppSwitch
               value={isDark}
               onValueChange={(value) => setThemeMode(value ? "dark" : "light")}
-              trackColor={{
-                false: isDark ? "#767577" : "#03051E1F",
-                true: isDark ? "#3881EE" : "#203686",
-              }}
+              isDark={isDark}
             />
           </View>
 
@@ -280,19 +364,21 @@ export const MySettingsModal: React.FC<MySettingsProps> = ({
             <ThemedText lightColor="#1B1B1C" darkColor="#FBFCFF">
               Системная тема
             </ThemedText>
-            <Switch
+            <AppSwitch
               value={themeMode === "system"}
               onValueChange={(value) =>
                 setThemeMode(value ? "system" : "light")
               }
-              trackColor={{
-                false: isDark ? "#767577" : "#03051E1F",
-                true: isDark ? "#3881EE" : "#203686",
-              }}
+              isDark={isDark}
             />
           </View>
 
-          <View style={styles.divider} />
+          <View
+            style={[
+              styles.divider,
+              { backgroundColor: isDark ? "#252527" : "#F0F3F7" },
+            ]}
+          />
 
           <ThemedText style={styles.titleBlock} lightColor="#1B1B1C" darkColor="#FBFCFF">
             Типы уведомлений
@@ -310,7 +396,7 @@ export const MySettingsModal: React.FC<MySettingsProps> = ({
             </View>
           </TouchableOpacity>
 
-          <TouchableOpacity
+          {/* <TouchableOpacity
             onPress={() => setShowNotifications(true)}
             activeOpacity={0.7}
           >
@@ -320,7 +406,7 @@ export const MySettingsModal: React.FC<MySettingsProps> = ({
               </ThemedText>
               <ArrowIconRight />
             </View>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </ThemedView>
       </ThemedView>
     </Modal>
@@ -357,7 +443,6 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: "#E5E5E5",
     marginVertical: 16,
   },
   formSubtitle: {
@@ -397,7 +482,34 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   infoText: {
-    fontSize: 12,
+    fontSize: 14,
+    fontWeight: "500",
     marginVertical: 12,
+  },
+  quietTimeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 14,
+  },
+  quietTimeInput: {
+    flex: 1,
+    height: 48,
+  },
+  appSwitchTrack: {
+    width: SWITCH_TRACK_WIDTH,
+    height: SWITCH_TRACK_HEIGHT,
+    borderRadius: SWITCH_TRACK_HEIGHT / 2,
+    overflow: "hidden",
+    position: "relative",
+  },
+  appSwitchThumb: {
+    position: "absolute",
+    top: SWITCH_THUMB_OFFSET,
+    left: SWITCH_THUMB_OFFSET,
+    width: SWITCH_THUMB_WIDTH,
+    height: SWITCH_THUMB_HEIGHT,
+    borderRadius: 100,
+    backgroundColor: "#FBFCFF",
   },
 });
