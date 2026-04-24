@@ -1,6 +1,7 @@
 // components/ui/icons.js
 import React from "react";
 import Svg, {
+  Circle,
   ClipPath,
   Defs,
   Ellipse,
@@ -2004,7 +2005,7 @@ export const ICricleIcon = ({
       stroke-linecap="round"
       stroke-linejoin="round"
     />
-    <circle cx="10.75" cy="5.75" r="1" fill={fill} />
+    <Circle cx="10.75" cy="5.75" r="1" fill={fill} />
   </Svg>
 );
 

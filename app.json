@@ -8,6 +8,14 @@
     "scheme": "ekorfish",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/07fa57a7-2ac4-4072-abd8-d2f527d72c08",
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
+    },
     "ios": {
       "bundleIdentifier": "com.kotiksdoh.EkorFishNew",
       "buildNumber": "1.0.0",
