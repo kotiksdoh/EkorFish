@@ -6,6 +6,7 @@ import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { Image } from "expo-image";
 import React, { useEffect, useState } from 'react';
 import {
+    Alert,
     Modal,
     ScrollView,
     StyleSheet,
@@ -54,7 +55,7 @@ const ThankYouScreen = ({ managerName, onClose }: { managerName: string; onClose
                     Спасибо за вашу оценку!
                 </ThemedText>
                 
-                <ThemedText style={styles.thankYouText}>
+                <ThemedText style={styles.thankYouText} lightColor="#80818B" darkColor="#FBFCFF80">
                     Ваш отзыв поможет нам улучшить сервис. {managerName} получит вашу обратную связь
                 </ThemedText>
             </View>
@@ -200,7 +201,7 @@ export const ManagerReviewModal: React.FC<ManagerReviewModalProps> = ({
                                 activeOpacity={0.7}
                                 onPress={handleClose}
                             >
-                                <View style={styles.swipeHandle} />
+                                <View style={[styles.swipeHandle, currentTheme === 'dark' && styles.swipeHandleDark]} />
                             </TouchableOpacity>
 
                             {showThankYou ? (
@@ -228,7 +229,13 @@ export const ManagerReviewModal: React.FC<ManagerReviewModalProps> = ({
                                                         style={styles.managerAvatar}
                                                     />
                                                 ) : (
-                                                    <View style={[styles.managerAvatar, styles.avatarPlaceholder]}>
+                                                    <View
+                                                        style={[
+                                                            styles.managerAvatar,
+                                                            styles.avatarPlaceholder,
+                                                            currentTheme === 'dark' && styles.avatarPlaceholderDark,
+                                                        ]}
+                                                    >
                                                         <ThemedText style={styles.avatarPlaceholderText}>
                                                             {managerName?.charAt(0) || 'М'}
                                                         </ThemedText>
@@ -295,7 +302,10 @@ export const ManagerReviewModal: React.FC<ManagerReviewModalProps> = ({
                                                 value={comment}
                                                 onChangeText={setComment}
                                                 multiline
-                                                style={styles.commentInput}
+                                                style={[
+                                                    styles.commentInput,
+                                                    currentTheme === 'dark' && styles.commentInputDark,
+                                                ]}
                                             />
                                         </View>
                                     </ScrollView>
@@ -350,6 +360,9 @@ const styles = StyleSheet.create({
         backgroundColor: "#E0E0E0",
         borderRadius: 2,
     },
+    swipeHandleDark: {
+        backgroundColor: "#4A4A50",
+    },
     scrollView: {
         flex: 1,
     },
@@ -384,6 +397,9 @@ const styles = StyleSheet.create({
         backgroundColor: '#E5E7EB',
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    avatarPlaceholderDark: {
+        backgroundColor: '#2E2E32',
     },
     avatarPlaceholderText: {
         fontSize: 32,
@@ -451,6 +467,9 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontFamily: "Montserrat",
         textAlignVertical: "top",
+    },
+    commentInputDark: {
+        borderColor: "#3A3A3F",
     },
     buttonContainer: {
         paddingHorizontal: 20,

@@ -285,15 +285,22 @@ const PaymentsHistoryScreen: React.FC<{ onBack: () => void }> = ({
   const paymentsList = useAppSelector((state) => state.auth.payments);
   const isLoading = useAppSelector((state) => state.auth.isLoadingPayments);
   const [filters, setFilters] = useState<Record<string, string>>({});
-  const [count, setCount] = useState(10);
+  const pageSize = 10;
+  const [offset, setOffset] = useState(0);
+  const [hasMorePayments, setHasMorePayments] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const scrollEndRef = useRef(false);
+  const isFetchingRef = useRef(false);
+  const offsetRef = useRef(0);
 
   useEffect(() => {
     if (currentCompany) {
-      dispatch(getUserPaymentsFilterThunk({ companyId: currentCompany.id }));
+      const filterParams =
+        currentCompany?.type === "individual" || !currentCompany?.id
+          ? {}
+          : { companyId: currentCompany.id };
+      dispatch(getUserPaymentsFilterThunk(filterParams));
     }
-  }, [currentCompany]);
+  }, [currentCompany?.id, currentCompany?.type, dispatch]);
 
   useEffect(() => {
     if (paymentFilters && paymentFilters.length > 0) {
@@ -397,6 +404,56 @@ const PaymentsHistoryScreen: React.FC<{ onBack: () => void }> = ({
     return uniqueGroups;
   }, [paymentFilters, filters, getDisplayValue]);
 
+  const loadPayments = useCallback(
+    async (isLoadMore: boolean, customFilters?: Record<string, string>) => {
+      if (isFetchingRef.current) return;
+      if (isLoadMore && (isLoading || isLoadingMore || !hasMorePayments)) return;
+
+      isFetchingRef.current = true;
+      if (isLoadMore) setIsLoadingMore(true);
+
+      try {
+        const activeFilters = customFilters ?? filters;
+        const nextOffset = isLoadMore ? offsetRef.current + pageSize : 0;
+        const params: Record<string, any> = {
+          ...activeFilters,
+          count: pageSize,
+          offSet: nextOffset,
+        };
+
+        if (currentCompany?.type !== "individual" && currentCompany?.id) {
+          params.companyId = currentCompany.id;
+        }
+
+        const res: any = await dispatch(getUserPaymentsThunk(params));
+        const nextChunk = res?.payload?.data?.data || [];
+        setHasMorePayments(nextChunk.length === pageSize);
+        offsetRef.current = nextOffset;
+        setOffset(nextOffset);
+      } finally {
+        if (isLoadMore) setIsLoadingMore(false);
+        isFetchingRef.current = false;
+      }
+    },
+    [
+      dispatch,
+      filters,
+      isLoading,
+      isLoadingMore,
+      hasMorePayments,
+      currentCompany?.id,
+      currentCompany?.type,
+    ],
+  );
+
+  useEffect(() => {
+    if (!currentCompany) return;
+    offsetRef.current = 0;
+    setOffset(0);
+    setHasMorePayments(true);
+    void loadPayments(false);
+  }, [currentCompany?.id, currentCompany?.type]);
+
   // Мемоизированные и сгруппированные платежи
   const groupedPayments = useMemo(() => {
     if (paymentsList.length === 0) return [];
@@ -413,66 +470,39 @@ const PaymentsHistoryScreen: React.FC<{ onBack: () => void }> = ({
       grouped[payment.date].push(payment);
     });
 
-    let remaining = count;
     const result = [];
 
     for (const date of Object.keys(grouped)) {
-      if (remaining <= 0) break;
-      const take = Math.min(grouped[date].length, remaining);
-      result.push({ date, payments: grouped[date].slice(0, take) });
-      remaining -= take;
+      result.push({ date, payments: grouped[date] });
     }
 
     return result;
-  }, [paymentsList, count]);
+  }, [paymentsList]);
 
   const handleScroll = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
       const { layoutMeasurement, contentOffset, contentSize } =
         event.nativeEvent;
-      const isEnd =
-        layoutMeasurement.height + contentOffset.y >= contentSize.height - 50;
+      const distanceFromBottom =
+        contentSize.height - layoutMeasurement.height - contentOffset.y;
+      const isNearEnd = distanceFromBottom < 50;
 
-      // Добавляем флаг, чтобы не вызывать много раз
-      if (isEnd && !isLoading && !isLoadingMore && !scrollEndRef.current) {
-        scrollEndRef.current = true;
-        setIsLoadingMore(true);
-
-        const newCount = count + 10;
-        setCount(newCount);
-
-        dispatch(
-          getUserPaymentsThunk({
-            ...filters,
-            count: newCount,
-            companyId: currentCompany?.id,
-          }),
-        ).finally(() => {
-          setIsLoadingMore(false);
-          setTimeout(() => {
-            scrollEndRef.current = false;
-          }, 500);
-        });
-      } else if (!isEnd) {
-        scrollEndRef.current = false;
+      if (isNearEnd) {
+        void loadPayments(true);
       }
     },
-    [isLoading, isLoadingMore, count, filters, currentCompany, dispatch],
+    [loadPayments],
   );
 
   const handleApplyFilters = useCallback(
     (newFilters: Record<string, string>) => {
       setFilters(newFilters);
-      setCount(10); // Сбрасываем count при применении фильтров
-      dispatch(
-        getUserPaymentsThunk({
-          ...newFilters,
-          count: 10,
-          companyId: currentCompany?.id,
-        }),
-      );
+      offsetRef.current = 0;
+      setOffset(0);
+      setHasMorePayments(true);
+      void loadPayments(false, newFilters);
     },
-    [currentCompany, dispatch],
+    [loadPayments],
   );
 
   return (
@@ -1221,13 +1251,17 @@ export const MyFinanceModal: React.FC<MyFinanceProps> = ({
 
   useEffect(() => {
     if (currentCompany) {
+      const paymentParams =
+        currentCompany?.type === "individual" || !currentCompany?.id
+          ? {}
+          : { companyId: currentCompany.id };
       dispatch(
         getUserPaymentsThunk({
-          companyId: currentCompany.id,
+          ...paymentParams,
         }),
       );
     }
-  }, [currentCompany]);
+  }, [currentCompany?.id, currentCompany?.type, dispatch]);
 
   const handleCloseAll = () => {
     setShowPaymentsHistory(false);
@@ -1430,9 +1464,9 @@ export const MyFinanceModal: React.FC<MyFinanceProps> = ({
           >
             <View style={styles.previewHeader}>
               <ThemedText
-                type="subtitle"
                 lightColor="#1B1B1C"
                 darkColor="#FBFCFF"
+                style={styles.historyTitle}
               >
                 История оплат
               </ThemedText>
@@ -1583,7 +1617,10 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
   },
-
+  historyTitle:{
+    fontWeight: "600",
+    fontSize:20,
+  },
   // Модалка фильтров
   modalOverlay: {
     flex: 1,

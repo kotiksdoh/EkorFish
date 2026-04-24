@@ -258,7 +258,7 @@ export const MySettingsModal: React.FC<MySettingsProps> = ({
           darkColor="#151516"
           style={[styles.paymentsPreviewContainer, { flex: 1 }]}
         >
-          <ThemedText type="subtitle" lightColor="#1B1B1C" darkColor="#FBFCFF">
+          <ThemedText style={styles.titleBlock} lightColor="#1B1B1C" darkColor="#FBFCFF">
             Внешний вид
           </ThemedText>
 
@@ -294,7 +294,7 @@ export const MySettingsModal: React.FC<MySettingsProps> = ({
 
           <View style={styles.divider} />
 
-          <ThemedText type="subtitle" lightColor="#1B1B1C" darkColor="#FBFCFF">
+          <ThemedText style={styles.titleBlock} lightColor="#1B1B1C" darkColor="#FBFCFF">
             Типы уведомлений
           </ThemedText>
 
@@ -350,6 +350,10 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     paddingVertical: 18,
+  },
+  titleBlock:{
+    fontWeight: "600",
+    fontSize:20,
   },
   divider: {
     height: 1,

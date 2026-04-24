@@ -240,7 +240,7 @@ const styles = StyleSheet.create({
   },
   imageWrapper: {
     flex: 1,
-    marginTop: 40,
+    marginTop: 0,
     overflow: "hidden",
     borderBottomLeftRadius: 8,
     borderBottomRightRadius: 8,
@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
   },
   imageContainer: {
     width: "100%",
-    height: "120%",
+    height: "90%",
     marginTop: 30,
     position: "relative",
   },

@@ -343,7 +343,12 @@ export const getUserPaymentsThunk = createAsyncThunk(
     { rejectWithValue },
   ) => {
     try {
-      const queryString = new URLSearchParams(payload as any).toString();
+      const cleanedPayload = Object.fromEntries(
+        Object.entries(payload || {}).filter(
+          ([, value]) => value !== undefined && value !== null && value !== "",
+        ),
+      );
+      const queryString = new URLSearchParams(cleanedPayload as any).toString();
       const data = await axdef.get(`/api/PaymentHistory/list?${queryString}`);
       return data;
     } catch (error) {
@@ -362,8 +367,14 @@ export const getUserPaymentsFilterThunk = createAsyncThunk(
     { rejectWithValue },
   ) => {
     try {
+      const cleanedPayload = Object.fromEntries(
+        Object.entries(payload || {}).filter(
+          ([, value]) => value !== undefined && value !== null && value !== "",
+        ),
+      );
+      const queryString = new URLSearchParams(cleanedPayload as any).toString();
       const filterData = await axdef.get(
-        `/api/PaymentHistory/filters?companyId=${payload.companyId}`,
+        `/api/PaymentHistory/filters${queryString ? `?${queryString}` : ""}`,
       );
       return filterData;
     } catch (error) {
@@ -748,7 +759,19 @@ const authSlice = createSlice({
 
     builder.addCase(getUserPaymentsThunk.fulfilled, (state, action) => {
       state.isLoadingPayments = false;
-      state.payments = action.payload.data.data;
+      const nextPayments = action.payload.data.data || [];
+      const isLoadMore = !!(
+        action.meta?.arg?.offSet &&
+        Number(action.meta.arg.offSet) > 0
+      );
+
+      if (isLoadMore) {
+        const existingIds = new Set((state.payments || []).map((item: any) => item.id));
+        const uniqueNext = nextPayments.filter((item: any) => !existingIds.has(item.id));
+        state.payments = [...state.payments, ...uniqueNext];
+      } else {
+        state.payments = nextPayments;
+      }
       console.log("Payments LOaded:", state.payments);
     });
 

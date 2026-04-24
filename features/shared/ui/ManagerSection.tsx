@@ -2,9 +2,10 @@
 import { ArrowIconRight, MessageIcon, PhoneIcon, RefreshIcon } from '@/assets/icons/icons';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { getMangers, getMyInfo, loadCompanyFromStorage, setCompany } from '@/features/auth/authSlice';
+import { getMangers, getMyInfo, setCompany } from '@/features/auth/authSlice';
 import { axdef, baseUrl } from '@/features/shared/services/axios';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -248,9 +249,11 @@ const CurrentManagerCard = ({ manager, onChangePress, onReviewPress }: ManagerCa
 
 // Карточка для горизонтального списка (для выбора менеджера)
 const ManagerSelectCard = ({ manager, onSelect }: ManagerCardProps) => {
+  const isDark = useColorScheme() === "dark";
+
   return (
     <TouchableOpacity
-      style={styles.selectCard}
+      style={[styles.selectCard, isDark && styles.selectCardDark]}
       onPress={() => onSelect?.(manager.id)}
       activeOpacity={0.7}
     >
@@ -262,7 +265,13 @@ const ManagerSelectCard = ({ manager, onSelect }: ManagerCardProps) => {
             resizeMode="cover"
           />
         ) : (
-          <View style={[styles.selectAvatar, styles.avatarPlaceholderSmall]}>
+          <View
+            style={[
+              styles.selectAvatar,
+              styles.avatarPlaceholderSmall,
+              isDark && styles.avatarPlaceholderSmallDark,
+            ]}
+          >
             <ThemedText style={styles.avatarPlaceholderTextSmall}>
               {manager.name?.charAt(0) || 'М'}
             </ThemedText>
@@ -282,23 +291,20 @@ const ManagerSelectCard = ({ manager, onSelect }: ManagerCardProps) => {
 };
 
 export const ManagerSection = () => {
+  const isDark = useColorScheme() === "dark";
   const dispatch = useAppDispatch();
   const { currentCompany, me } = useAppSelector((state) => state.auth);
   const { managers, isLoadingManager } = useAppSelector((state) => state.auth);
   const [showManagerList, setShowManagerList] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  console.log('currentCompany', currentCompany)
-//   const currentManager = currentCompany?.manager || null;
-  const [currentManager, setCurrentManager] = useState(currentCompany?.manager || null)
-  useEffect(() => {
-    if (me) {
-      dispatch(loadCompanyFromStorage());
-    }
-  }, []);
-  useEffect(() => {
-    setCurrentManager(currentCompany?.manager)
-  },[])
+  const fallbackCompany =
+    me?.companies?.find((company: any) => company?.type === "individual") ||
+    me?.companies?.[0] ||
+    null;
+  const activeCompany = currentCompany || fallbackCompany;
+  const currentManager = activeCompany?.manager || null;
+
   // Загружаем список менеджеров при необходимости
   useEffect(() => {
     if (showManagerList && managers.length === 0 && !isLoadingManager) {
@@ -306,49 +312,74 @@ export const ManagerSection = () => {
     }
   }, [showManagerList, managers.length, isLoadingManager, dispatch]);
 
-  // Обновляем currentCompany, если изменился me
-  console.log('currentCompany?.manager', currentCompany?.manager)
+  // Если currentCompany пустой (часто на этапе PHIS_USER), берем из me.companies
   useEffect(() => {
-    debugger
-    console.log('fddfdf')
-    if (me && me.companies && currentCompany?.id) {
+    if (!currentCompany?.id && fallbackCompany?.id) {
+      dispatch(setCompany(fallbackCompany));
+    }
+  }, [currentCompany?.id, fallbackCompany?.id, dispatch]);
+
+  // Обновляем currentCompany, если изменился me
+  useEffect(() => {
+    if (me && me.companies && activeCompany?.id) {
       const updatedCompany = me.companies.find(
-        (company: any) => company.id === currentCompany.id
+        (company: any) => company.id === activeCompany.id
       );
-      debugger
-      if (updatedCompany && updatedCompany.manager?.id !== currentCompany?.manager?.id) {
-        console.log('Обновляем currentCompany с новым менеджером:', updatedCompany.manager);
+      if (updatedCompany && updatedCompany.manager?.id !== activeCompany?.manager?.id) {
         dispatch(setCompany(updatedCompany));
-        debugger
-        setCurrentManager(updatedCompany.manager)
       }
     }
-  }, [me, currentCompany?.id, dispatch]);
+  }, [me?.companies, activeCompany?.id, activeCompany?.manager?.id, dispatch]);
 
   // Обработчик выбора менеджера
   const handleSelectManager = async (managerId: string) => {
     setIsLoading(true);
     try {
+      const storedCompanyRaw = await AsyncStorage.getItem("company");
+      const storedCompany = storedCompanyRaw ? JSON.parse(storedCompanyRaw) : null;
+      const companyForRequest = storedCompany || activeCompany;
+      const shouldSendCompanyId = companyForRequest?.type !== "individual" && !!companyForRequest?.id;
+
+      const params: { managerId: string; companyId?: string } = { managerId };
+      if (shouldSendCompanyId) {
+        params.companyId = companyForRequest.id;
+      }
+
       await axdef.put('/api/AdditionalInformation/manager', null, {
-        params: {
-          managerId: managerId,
-          companyId: me.userType === 0 ? null : currentCompany?.id,
-        },
+        params,
       });
 
       const result = await dispatch(getMyInfo("")).unwrap();
-      debugger
-      if (result?.data?.data?.companies) {
-        const updatedCompany = result.data.data.companies.find(
-          (company: any) => company.id === currentCompany?.id
+      const myInfo = result?.data?.data;
+
+      if (myInfo?.userType === 0 && myInfo?.individualProfile) {
+        const profile = myInfo.individualProfile;
+        const fullName = [profile.lastName, profile.firstName, profile.patronymic]
+          .filter(Boolean)
+          .join(' ')
+          .trim();
+
+        const updatedIndividualCompany = {
+          id: profile.id,
+          name: fullName || activeCompany?.name || "",
+          inn: activeCompany?.inn || "",
+          foundationDate: profile.birthDate || activeCompany?.foundationDate || "",
+          kpp: activeCompany?.kpp || "",
+          legalAddress: activeCompany?.legalAddress || "",
+          contactPerson: fullName || activeCompany?.contactPerson || "",
+          deliveryAddresses: profile.deliveryAddresses || [],
+          type: "individual",
+          manager: profile.manager || null,
+        };
+
+        dispatch(setCompany(updatedIndividualCompany));
+      } else if (myInfo?.companies) {
+        const updatedCompany = myInfo.companies.find(
+          (company: any) => company.id === activeCompany?.id
         );
-        debugger
         if (updatedCompany) {
-            debugger
           dispatch(setCompany(updatedCompany));
-          setCurrentManager(updatedCompany.manager)
         }
-        debugger
       }
 
       setShowManagerList(false);
@@ -385,7 +416,7 @@ export const ManagerSection = () => {
   if (isLoadingManager || isLoading) {
     return (
       <View style={styles.loaderContainer}>
-        <ActivityIndicator size="large" color="#203686" />
+        <ActivityIndicator size="large" color={isDark ? "#4C94FF" : "#203686"} />
       </View>
     );
   }
@@ -576,6 +607,9 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     justifyContent: 'center',
   },
+  selectCardDark: {
+    backgroundColor: '#202022',
+  },
   selectAvatarContainer: {
     marginBottom: 8,
   },
@@ -591,6 +625,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#E5E7EB',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  avatarPlaceholderSmallDark: {
+    backgroundColor: '#2E2E32',
   },
   avatarPlaceholderTextSmall: {
     fontSize: 32,

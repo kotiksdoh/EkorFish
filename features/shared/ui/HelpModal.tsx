@@ -1,4 +1,4 @@
-import { ArrowIconRight, LogoIcon, PhoneIcon } from "@/assets/icons/icons";
+import { ArrowIconRight, LogoIcon, SupportEmailIcon, SupportPhoneIcon, SupportTelegramIcon } from "@/assets/icons/icons";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { getHeplListThunk } from "@/features/auth/authSlice";
@@ -17,6 +17,7 @@ import {
 } from "react-native";
 import { WebView } from "react-native-webview";
 import { PrimaryButton } from "./components/PrimartyButton";
+import { SnapBottomSheet } from "./SnapBottomSheet";
 
 // Иконки
 const TelegramIcon = ({ fill }: { fill: string }) => (
@@ -150,8 +151,8 @@ export const HelpModal: React.FC<HelpProps> = ({ visible, onClose }) => {
   }, [currentHelpObject, screenState]);
 
   const renderMainScreen = () => (
-    <ThemedView lightColor="#FFFFFF" darkColor="#151516" style={styles.contentContainer}>
-      <View>
+    <ThemedView lightColor="transparent" darkColor="transparent" style={styles.contentContainer}>
+      <ThemedView lightColor="#FFFFFF" darkColor="#151516" style={styles.mainMenuCard}>
         <TouchableOpacity onPress={loadHelpList} activeOpacity={0.7}>
           <View style={[styles.menuRow, { borderColor: isDark ? "#252527" : "#F0F3F7" }]}>
             <ThemedText>Помощь</ThemedText>
@@ -172,20 +173,24 @@ export const HelpModal: React.FC<HelpProps> = ({ visible, onClose }) => {
             <ArrowIconRight />
           </View>
         </TouchableOpacity>
-      </View>
+      </ThemedView>
     </ThemedView>
   );
 
   const renderHelpListScreen = () => (
-    <ThemedView lightColor="#FFFFFF" darkColor="#151516" style={styles.contentContainer}>
-      {helpList.map((helpObj) => (
-        <View style={styles.helpSection} key={helpObj.type}>
-          <ThemedText type="subtitle" darkColor="#FBFCFF" lightColor="#1B1B1C">
-            {helpObj.type[0].toUpperCase() + helpObj.type.slice(1)}
-          </ThemedText>
-          {helpObj.items.map((helpItem, index) => {
-            const isLast = index === helpObj.items.length - 1;
-            return (
+    <ThemedView lightColor="transparent" darkColor="transparent" style={styles.contentContainer}>
+      <ThemedView lightColor="#FFFFFF" darkColor="#151516" style={styles.helpListCard}>
+        {helpList.map((helpObj) => (
+          <View style={styles.helpSection} key={helpObj.type}>
+            <ThemedText
+              type="subtitle"
+              darkColor="#FBFCFF"
+              lightColor="#1B1B1C"
+              style={styles.helpSectionTitle}
+            >
+              {helpObj.type[0].toUpperCase() + helpObj.type.slice(1)}
+            </ThemedText>
+            {helpObj.items.map((helpItem) => (
               <TouchableOpacity
                 key={helpItem.title}
                 onPress={() => onCkickHelp(helpObj, helpItem.htmlText)}
@@ -194,10 +199,7 @@ export const HelpModal: React.FC<HelpProps> = ({ visible, onClose }) => {
                 <View
                   style={[
                     styles.menuRow,
-                    !isLast && {
-                      borderColor: isDark ? "#252527" : "#F0F3F7",
-                      borderBottomWidth: 1,
-                    },
+                    { borderColor: isDark ? "#252527" : "#F0F3F7" },
                   ]}
                 >
                   <ThemedText darkColor="#FBFCFF" lightColor="#1B1B1C">
@@ -206,10 +208,10 @@ export const HelpModal: React.FC<HelpProps> = ({ visible, onClose }) => {
                   <ArrowIconRight />
                 </View>
               </TouchableOpacity>
-            );
-          })}
-        </View>
-      ))}
+            ))}
+          </View>
+        ))}
+      </ThemedView>
     </ThemedView>
   );
 
@@ -243,51 +245,50 @@ export const HelpModal: React.FC<HelpProps> = ({ visible, onClose }) => {
   );
 
   const renderSupportModal = () => (
-    <Modal
+    <SnapBottomSheet
       visible={supportModalState === 'visible'}
-      animationType="slide"
-      transparent={true}
-      onRequestClose={() => setSupportModalState('hidden')}
-      statusBarTranslucent={true}
+      title="Поддержка"
+      titleAlign="left"
+      onClose={() => setSupportModalState('hidden')}
     >
-      <View style={styles.modalOverlay}>
-        <ThemedView lightColor="#FFFFFF" darkColor="#151516" style={styles.modalContent}>
-          <TouchableOpacity style={styles.swipeHandleContainer} onPress={() => setSupportModalState('hidden')}>
-            <View style={styles.swipeHandle} />
+      <View style={styles.supportContent}>
+        <ThemedText>Выберите удобный способ связи</ThemedText>
+
+        <View style={styles.contactRow}>
+          <TouchableOpacity style={styles.contactButton} onPress={handlePhonePress}>
+            <ThemedView lightColor="#203686" darkColor="#3881EE" style={[styles.contactIcon]}>
+              <SupportPhoneIcon fill="#FBFCFF" />
+            </ThemedView>
           </TouchableOpacity>
 
-          <View style={styles.supportContent}>
-            <ThemedText type="subtitle">Поддержка</ThemedText>
-            <ThemedText>Выберите удобный способ связи</ThemedText>
+          <TouchableOpacity style={styles.contactButton} onPress={handleTelegramPress}>
+            <ThemedView lightColor="#203686" darkColor="#3881EE" style={[styles.contactIcon]}>
+              <SupportTelegramIcon fill="#FBFCFF" />
+            </ThemedView>
+          </TouchableOpacity>
 
-            <View style={styles.contactRow}>
-              <TouchableOpacity style={styles.contactButton} onPress={handlePhonePress}>
-                <View style={[styles.contactIcon, { backgroundColor: "#3881EE" }]}>
-                  <PhoneIcon fill="#FBFCFF" />
-                </View>
-                <ThemedText style={styles.contactLabel}>Звонок</ThemedText>
-              </TouchableOpacity>
+          <TouchableOpacity style={styles.contactButton} onPress={handleEmailPress}>
+            <ThemedView lightColor="#203686" darkColor="#3881EE" style={[styles.contactIcon]}>
+              <SupportEmailIcon fill="#FBFCFF" />
+            </ThemedView>
+          </TouchableOpacity>
+        </View>
 
-              <TouchableOpacity style={styles.contactButton} onPress={handleTelegramPress}>
-                <View style={[styles.contactIcon, { backgroundColor: "#26A5E4" }]}>
-                  <TelegramIcon fill="#FBFCFF" />
-                </View>
-                <ThemedText style={styles.contactLabel}>Telegram</ThemedText>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.contactButton} onPress={handleEmailPress}>
-                <View style={[styles.contactIcon, { backgroundColor: "#EA4335" }]}>
-                  <EmailIcon fill="#FBFCFF" />
-                </View>
-                <ThemedText style={styles.contactLabel}>Email</ThemedText>
-              </TouchableOpacity>
-            </View>
-
-            <PrimaryButton title="Перейти в FAQ" onPress={handleFaqPress} />
-          </View>
-        </ThemedView>
+        <View style={styles.supportActionsRow}>
+          <PrimaryButton
+            title="Закрыть"
+            variant="third"
+            onPress={() => setSupportModalState('hidden')}
+            style={styles.supportActionButton}
+          />
+          <PrimaryButton
+            title="Перейти в FAQ"
+            onPress={handleFaqPress}
+            style={styles.supportActionButton}
+          />
+        </View>
       </View>
-    </Modal>
+    </SnapBottomSheet>
   );
 
   const renderCurrentScreen = () => {
@@ -333,8 +334,12 @@ const styles = StyleSheet.create({
   contentContainer: {
     flex: 1,
     borderRadius: 16,
-    padding: 16,
+    // padding: 16,
     marginTop: 8,
+  },
+  mainMenuCard: {
+    borderRadius: 16,
+    paddingHorizontal: 16,
   },
   menuRow: {
     flexDirection: "row",
@@ -344,8 +349,16 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   helpSection: {
-    marginBottom: 32,
+    marginBottom: 24,
     gap: 4,
+  },
+  helpSectionTitle: {
+    paddingTop: 16,
+    paddingBottom: 8,
+  },
+  helpListCard: {
+    borderRadius: 16,
+    paddingHorizontal: 16,
   },
   aboutContainer: {
     flex: 1,
@@ -376,40 +389,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: "center",
   },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "flex-end",
-  },
-  modalContent: {
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    maxHeight: "85%",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  swipeHandleContainer: {
-    alignItems: "center",
-    paddingTop: 12,
-    paddingBottom: 8,
-  },
-  swipeHandle: {
-    width: 40,
-    height: 4,
-    backgroundColor: "#E0E0E0",
-    borderRadius: 2,
-  },
   supportContent: {
-    paddingHorizontal: 16,
-    paddingBottom: 24,
+    paddingBottom: 8,
     gap: 24,
   },
   contactRow: {
     flexDirection: "row",
-    gap: 16,
+    gap: 8,
     justifyContent: "center",
   },
   contactButton: {
@@ -427,5 +413,12 @@ const styles = StyleSheet.create({
   },
   contactLabel: {
     fontSize: 12,
+  },
+  supportActionsRow: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  supportActionButton: {
+    flex: 1,
   },
 });

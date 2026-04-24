@@ -327,7 +327,7 @@ export const BonusPage: React.FC<BonusPageProps> = ({
                           Заказ №{item.orderNumber}
                         </ThemedText>
                         <ThemedText lightColor="#80818B" darkColor="#FBFCFF80" style={styles.compactHistoryDescription} numberOfLines={1}>
-                          Сумма заказа: {item.orderAmount.toLocaleString('ru-RU')} ₽
+                          Сумма заказа: {item.orderAmount?.toLocaleString('ru-RU')} ₽
                         </ThemedText>
                       </View>
                       <View style={styles.compactHistoryRight}>
@@ -406,7 +406,7 @@ export const BonusPage: React.FC<BonusPageProps> = ({
                                   Заказ №{item.orderNumber}
                                 </ThemedText>
                                 <ThemedText lightColor="#80818B" darkColor="#FBFCFF80" style={styles.fullHistoryDescription} numberOfLines={1}>
-                                  Сумма заказа: {item.orderAmount.toLocaleString('ru-RU')} ₽
+                                  Сумма заказа: {item.orderAmount?.toLocaleString('ru-RU')} ₽
                                 </ThemedText>
                               </View>
                               <View style={styles.fullHistoryItemRight}>

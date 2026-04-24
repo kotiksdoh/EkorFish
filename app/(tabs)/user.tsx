@@ -15,12 +15,11 @@ import {
   BoxIcon,
   ExitIcon,
   FinanceAndDocksIcon,
-  IconDocument,
   IconGeo,
   ICricleIcon,
   MenuRefreshIcon,
   PencilIcon,
-  SettingsIcon,
+  SettingsIcon
 } from "@/assets/icons/icons";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
@@ -378,10 +377,8 @@ export default function TabTwoScreen() {
                 darkColor="#202022"
                 style={styles.iconPlaceholder}
               >
-                <IconDocument
-                  width={22}
-                  height={22}
-                />
+                {/*  */}
+                <BoxIcon />
               </ThemedView>
               <View
                 style={[

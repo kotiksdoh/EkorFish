@@ -16,6 +16,7 @@ import { PrimaryButton } from "@/features/home";
 import { DatePickerWithIcon } from "@/features/shared/ui/components/DatePickerCustom";
 // import SmartInput from '@/features/shared/ui/components/SmartInput';
 import SmartInput from "@/features/shared/ui/components/SmartInput";
+import ManagerSection from "@/features/shared/ui/ManagerSection";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { useEffect, useRef, useState } from "react";
@@ -323,7 +324,11 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                   "res?.payload?.data?.data",
                   res?.payload?.data?.data,
                 );
-                if (res?.payload?.data?.data?.companies.length > 0) {
+                const hasIndividualCompany = res?.payload?.data?.data?.companies?.some(
+                  (company: any) => company?.type === "individual",
+                );
+
+                if (!hasIndividualCompany) {
                   resetModal();
                   handleClose();
                 } else {
@@ -1412,98 +1417,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                   внесения исправлений.
                 </ThemedText>
 
-                <ThemedView
-                  style={stylesManager.container}
-                  lightColor="#F2F4F7"
-                  darkColor="#202022"
-                >
-                  <ThemedText
-                    style={stylesManager.yourManager}
-                    lightColor="#80818B"
-                    darkColor="#80818B"
-                  >
-                    Ваш менеджер
-                  </ThemedText>
-
-                  <View style={stylesManager.managerInfo}>
-                    {/* Фото менеджера */}
-                    <View style={stylesManager.avatarContainer}>
-                      <Image
-                        source={manager}
-                        // source={{ uri: 'https://example.com/manager-photo.jpg' }}
-                        style={stylesManager.avatar}
-                        resizeMode="cover"
-                      />
-                    </View>
-
-                    {/* Имя менеджера */}
-                    <View style={stylesManager.nameContainer}>
-                      <ThemedText
-                        style={stylesManager.managerName}
-                        lightColor="#1B1B1C"
-                        darkColor="#FBFCFF"
-                        numberOfLines={2}
-                      >
-                        Иванова Мария Сергеевна
-                      </ThemedText>
-                    </View>
-                  </View>
-
-                  <View style={stylesManager.actionsContainer}>
-                    <ThemedView
-                      style={stylesManager.bigButton}
-                      lightColor="#FFFFFF"
-                      darkColor="#2E2E32"
-                    >
-                      <TouchableOpacity
-                        //
-                        style={[stylesManager.actionButton]}
-                        onPress={() => console.log("Написать сообщение")}
-                        activeOpacity={0.7}
-                      >
-                        <View style={stylesManager.buttonContent}>
-                          <MessageIcon
-                            fill={
-                              currentTheme === "dark" ? "#FBFCFF" : "#203686"
-                            }
-                            width={24}
-                            height={24}
-                          />
-                          <ThemedText
-                            style={stylesManager.buttonText}
-                            lightColor="#203686"
-                            darkColor="#FBFCFF"
-                          >
-                            Написать
-                          </ThemedText>
-                        </View>
-                      </TouchableOpacity>
-
-                      <TouchableOpacity
-                        style={[stylesManager.actionButton]}
-                        onPress={() => console.log("Позвонить")}
-                        activeOpacity={0.7}
-                      >
-                        <View style={stylesManager.buttonContent}>
-                          <PhoneIcon
-                            fill={
-                              currentTheme === "dark" ? "#FBFCFF" : "#203686"
-                            }
-                            width={24}
-                            height={24}
-                          />
-                          <ThemedText
-                            style={stylesManager.buttonText}
-                            lightColor="#203686"
-                            darkColor="#FBFCFF"
-                          >
-                            Позвонить
-                          </ThemedText>
-                        </View>
-                      </TouchableOpacity>
-                    </ThemedView>
-                  </View>
-                </ThemedView>
+                <ManagerSection />
+         
               </View>
               <View style={phisUser.button}>
                 <PrimaryButton
@@ -2021,8 +1936,8 @@ const stylesManager = StyleSheet.create({
 });
 const phisUser = StyleSheet.create({
   innerContainer: {
+    flex: 1,
     width: "100%",
-    minHeight: 232,
     borderRadius: 16,
     paddingTop: 12,
     paddingRight: 16,
@@ -2055,6 +1970,6 @@ const phisUser = StyleSheet.create({
     marginBottom: 24,
   },
   button: {
-    marginTop: "28%",
+    marginTop: "auto",
   },
 });
