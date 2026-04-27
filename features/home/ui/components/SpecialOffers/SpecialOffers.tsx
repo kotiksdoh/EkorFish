@@ -19,9 +19,13 @@ const { width: screenWidth } = Dimensions.get("window");
 const cardWidth = (screenWidth - 32 - 8) / 2; // 32 = paddingHorizontal 16 с двух сторон, 8 = gap
 interface SpecialOffersProps {
   handleAddToCartPress: (product: any) => void;
+  onShowAllPress?: () => void;
 }
 
-function SpecialOffersComponent({ handleAddToCartPress }: SpecialOffersProps) {
+function SpecialOffersComponent({
+  handleAddToCartPress,
+  onShowAllPress,
+}: SpecialOffersProps) {
   const dispatch = useAppDispatch();
   const router = useRouter();
   const me = useAppSelector((state) => state.auth.me);
@@ -51,6 +55,7 @@ function SpecialOffersComponent({ handleAddToCartPress }: SpecialOffersProps) {
   const promoProducts = products.slice(0, 5);
 
   const handleShowAll = () => {
+    onShowAllPress?.();
     router.push(
       `dashboard/${encodeURIComponent("promo")}?catalogId=${" "}&catalogName=${encodeURIComponent("Акции")}&isPromo=true`
     );
@@ -117,7 +122,10 @@ function SpecialOffersComponent({ handleAddToCartPress }: SpecialOffersProps) {
 }
 
 export default React.memo(SpecialOffersComponent, (prevProps, nextProps) => {
-  return prevProps.handleAddToCartPress === nextProps.handleAddToCartPress;
+  return (
+    prevProps.handleAddToCartPress === nextProps.handleAddToCartPress &&
+    prevProps.onShowAllPress === nextProps.onShowAllPress
+  );
 });
 
 const styles = StyleSheet.create({

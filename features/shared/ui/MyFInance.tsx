@@ -39,6 +39,7 @@ import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { formatDate } from "../services/utils";
 import { CompanySelectionModal } from "./CompanySelectionModalSmall";
 import { CompanySelectModal } from "./CompanySelectModal";
+import { SnapBottomSheet } from "./SnapBottomSheet";
 import AnimatedTextInput from "./components/CustomInput";
 import { PrimaryButton } from "./components/PrimartyButton";
 
@@ -695,13 +696,14 @@ const ReconciliationActScreen: React.FC<{ onBack: () => void }> = ({
 
   const companies = useAppSelector((state) => state.auth.me.companies) || [];
 
-  const [startDate, setStartDate] = useState<Date | null>(null);
-  const [endDate, setEndDate] = useState<Date | null>(null);
+  const [startDate, setStartDate] = useState<Date | null>(new Date(2026, 3, 10));
+  const [endDate, setEndDate] = useState<Date | null>(new Date(2026, 3, 12));
   const [selectedCompany, setSelectedCompany] = useState<any>(null);
   const [email, setEmail] = useState("");
   const [comment, setComment] = useState("");
   const [companyModalVisible, setCompanyModalVisible] = useState(false);
   const [registerModalVisible, setRegisterModalVisible] = useState(false);
+  const [successSheetVisible, setSuccessSheetVisible] = useState(false);
 
   // Состояния для дата-пикеров
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
@@ -808,17 +810,22 @@ const ReconciliationActScreen: React.FC<{ onBack: () => void }> = ({
     }
   };
 
-  const handleSendReconciliationAct = () => {
+  const handleSendReconciliationAct = async () => {
     if (validateForm()) {
-      dispatch(
-        postReconciliationActThunk({
-          dateFrom: formatDateForBackend(startDate),
-          dateTo: formatDateForBackend(endDate),
-          companyId: selectedCompany.id,
-          comment,
-          email,
-        }),
-      );
+      try {
+        await dispatch(
+          postReconciliationActThunk({
+            dateFrom: formatDateForBackend(startDate),
+            dateTo: formatDateForBackend(endDate),
+            companyId: selectedCompany.id,
+            comment,
+            email,
+          }),
+        ).unwrap();
+        setSuccessSheetVisible(true);
+      } catch (error) {
+        console.error("Ошибка отправки акта-сверки:", error);
+      }
     }
   };
 
@@ -1038,6 +1045,19 @@ const ReconciliationActScreen: React.FC<{ onBack: () => void }> = ({
         screenScene={"register"}
         onAddCompany={() => {}}
       />
+
+      <SnapBottomSheet
+        visible={successSheetVisible}
+        title="Запрос успешно отправлен"
+        titleAlign="left"
+        onClose={() => setSuccessSheetVisible(false)}
+      >
+        <View style={styles.successSheetContent}>
+          <ThemedText style={styles.successSheetText} darkColor="#FBFCFF80">
+            Запрос на акт-сверки принят. Мы отправим документ на указанный email.
+          </ThemedText>
+        </View>
+      </SnapBottomSheet>
     </>
   );
 };
@@ -1054,6 +1074,7 @@ const PriceListScreen: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   const [email, setEmail] = useState("");
   const [companyModalVisible, setCompanyModalVisible] = useState(false);
   const [registerModalVisible, setRegisterModalVisible] = useState(false);
+  const [successSheetVisible, setSuccessSheetVisible] = useState(false);
 
   // Состояния для ошибок валидации
   const [errors, setErrors] = useState<{
@@ -1063,8 +1084,13 @@ const PriceListScreen: React.FC<{ onBack: () => void }> = ({ onBack }) => {
 
   const validateForm = (): boolean => {
     const newErrors: {
+      company?: string;
       email?: string;
     } = {};
+
+    if (!selectedCompany) {
+      newErrors.company = "Выберите компанию";
+    }
 
     // Валидация email
     const emailRegex = /^[^\s@]+@([^\s@.,]+\.)+[^\s@.,]{2,}$/;
@@ -1090,14 +1116,19 @@ const PriceListScreen: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     setRegisterModalVisible(true);
   };
 
-  const handleSendPriceList = () => {
+  const handleSendPriceList = async () => {
     if (validateForm()) {
-      dispatch(
-        postPriceListThunk({
-          companyId: selectedCompany.id,
-          email,
-        }),
-      );
+      try {
+        await dispatch(
+          postPriceListThunk({
+            companyId: selectedCompany.id,
+            email,
+          }),
+        ).unwrap();
+        setSuccessSheetVisible(true);
+      } catch (error) {
+        console.error("Ошибка отправки прайс-листа:", error);
+      }
     }
   };
 
@@ -1224,6 +1255,19 @@ const PriceListScreen: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         screenScene={"register"}
         onAddCompany={() => {}}
       />
+
+      <SnapBottomSheet
+        visible={successSheetVisible}
+        title="Запрос успешно отправлен"
+        titleAlign="left"
+        onClose={() => setSuccessSheetVisible(false)}
+      >
+        <View style={styles.successSheetContent}>
+          <ThemedText style={styles.successSheetText} darkColor="#FBFCFF80">
+            Запрос на прайс-лист принят. Мы отправим файл на указанный email.
+          </ThemedText>
+        </View>
+      </SnapBottomSheet>
     </>
   );
 };
@@ -2195,5 +2239,12 @@ const styles = StyleSheet.create({
   },
   returnsContent: {
     flex: 1,
+  },
+  successSheetContent: {
+    paddingBottom: 8,
+  },
+  successSheetText: {
+    fontSize: 14,
+    lineHeight: 20,
   },
 });

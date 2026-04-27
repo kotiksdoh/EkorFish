@@ -298,6 +298,7 @@ export const ManagerSection = () => {
   const [showManagerList, setShowManagerList] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isCompanyHydrated, setIsCompanyHydrated] = useState(false);
   const fallbackCompany =
     me?.companies?.find((company: any) => company?.type === "individual") ||
     me?.companies?.[0] ||
@@ -320,32 +321,75 @@ export const ManagerSection = () => {
     }
   }, [showManagerList, currentManager, managers.length, isLoadingManager, dispatch, isAuthorized]);
 
-  // Если currentCompany пустой (часто на этапе PHIS_USER), берем из me.companies
+  // Гидратация выбранной компании из AsyncStorage с приоритетом над fallback
   useEffect(() => {
-    if (!isAuthorized) return;
-    if (!currentCompany?.id && fallbackCompany?.id) {
-      dispatch(setCompany(fallbackCompany));
-    }
-  }, [currentCompany?.id, fallbackCompany?.id, dispatch, isAuthorized]);
+    let isMounted = true;
+
+    const hydrateCompany = async () => {
+      if (!isAuthorized) {
+        if (isMounted) setIsCompanyHydrated(true);
+        return;
+      }
+
+      try {
+        const storedCompanyRaw = await AsyncStorage.getItem("company");
+        const storedCompany = storedCompanyRaw ? JSON.parse(storedCompanyRaw) : null;
+
+        if (!currentCompany?.id) {
+          if (storedCompany?.id && me?.companies?.length) {
+            const matchedStoredCompany = me.companies.find(
+              (company: any) => company.id === storedCompany.id,
+            );
+            if (matchedStoredCompany) {
+              dispatch(setCompany(matchedStoredCompany));
+            } else if (fallbackCompany?.id) {
+              dispatch(setCompany(fallbackCompany));
+            }
+          } else if (fallbackCompany?.id) {
+            dispatch(setCompany(fallbackCompany));
+          }
+        }
+      } catch (error) {
+        console.error("Error hydrating company in ManagerSection:", error);
+      } finally {
+        if (isMounted) setIsCompanyHydrated(true);
+      }
+    };
+
+    hydrateCompany();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [currentCompany?.id, fallbackCompany?.id, dispatch, isAuthorized, me?.companies]);
 
   // Обновляем currentCompany, если изменился me
   useEffect(() => {
     if (!isAuthorized) return;
-    if (me && me.companies && activeCompany?.id) {
+    if (!isCompanyHydrated) return;
+    if (me && me.companies && currentCompany?.id) {
       const updatedCompany = me.companies.find(
-        (company: any) => company.id === activeCompany.id
+        (company: any) => company.id === currentCompany.id
       );
       if (
         updatedCompany &&
         (
-          updatedCompany.manager?.id !== activeCompany?.manager?.id ||
-          updatedCompany.manager?.hasReviewed !== activeCompany?.manager?.hasReviewed
+          updatedCompany.manager?.id !== currentCompany?.manager?.id ||
+          updatedCompany.manager?.hasReviewed !== currentCompany?.manager?.hasReviewed
         )
       ) {
         dispatch(setCompany(updatedCompany));
       }
     }
-  }, [me?.companies, activeCompany?.id, activeCompany?.manager?.id, activeCompany?.manager?.hasReviewed, dispatch, isAuthorized]);
+  }, [
+    me?.companies,
+    currentCompany?.id,
+    currentCompany?.manager?.id,
+    currentCompany?.manager?.hasReviewed,
+    dispatch,
+    isAuthorized,
+    isCompanyHydrated,
+  ]);
 
   if (!isAuthorized) {
     return null;

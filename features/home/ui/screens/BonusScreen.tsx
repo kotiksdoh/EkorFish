@@ -307,7 +307,10 @@ export const BonusPage: React.FC<BonusPageProps> = ({
                   /> */}
           </ThemedView>
 
-          <SpecialOffers handleAddToCartPress={handleAddToCartPress} />
+          <SpecialOffers
+            handleAddToCartPress={handleAddToCartPress}
+            onShowAllPress={onClose}
+          />
 
           {/* История начислений - компактный блок с группировкой */}
           <ThemedView lightColor="#FFFFFF" style={styles.historyBlock}>
