@@ -59,15 +59,26 @@ export const MyOrdersModal: React.FC<MyOrdersProps> = ({
   const dispatch = useAppDispatch();
 
   const fetchOrders = useCallback(async (tab: TabType, isLoadMore = false) => {
-      if (inFlightRef.current[tab]) return;
-      if (isLoadMore && !hasMoreRef.current[tab]) return;
+      if (inFlightRef.current[tab]) {
+        console.log(`[Orders] Already fetching ${tab}`, isLoadMore);
+        return;
+      }
+      if (isLoadMore && !hasMoreRef.current[tab]) {
+        console.log(`[Orders] No more items for ${tab}`);
+        return;
+      }
 
       const token = await AsyncStorage.getItem("token");
-      if (!token) return;
+      if (!token) {
+        console.log(`[Orders] No token found`);
+        return;
+      }
 
       inFlightRef.current[tab] = true;
       const isActive = tab === "active";
       const offset = isLoadMore ? offsetsRef.current[tab] : 0;
+
+      console.log(`[Orders] Fetching ${tab}:`, { isLoadMore, offset, isActive });
 
       if (isLoadMore) {
         setIsLoadingMore((prev) => ({ ...prev, [tab]: true }));
@@ -90,14 +101,22 @@ export const MyOrdersModal: React.FC<MyOrdersProps> = ({
             ? payload.items
             : [];
 
+        console.log(`[Orders] Got ${nextItems.length} items for ${tab}`);
+
         const setData = tab === "active" ? setActiveOrders : setCompletedOrders;
-        setData((prev) => (isLoadMore ? [...prev, ...nextItems] : nextItems));
+        setData((prev) => {
+          const newData = isLoadMore ? [...prev, ...nextItems] : nextItems;
+          console.log(`[Orders] Setting ${tab} data, count:`, newData.length);
+          return newData;
+        });
 
         offsetsRef.current[tab] = isLoadMore
           ? offset + nextItems.length
           : nextItems.length;
         hasMoreRef.current[tab] = nextItems.length === ORDERS_PAGE_SIZE;
         setInitializedTabs((prev) => ({ ...prev, [tab]: true }));
+      } catch (error) {
+        console.error(`[Orders] Error fetching ${tab}:`, error);
       } finally {
         inFlightRef.current[tab] = false;
         setIsTabLoading((prev) => ({ ...prev, [tab]: false }));
@@ -107,18 +126,22 @@ export const MyOrdersModal: React.FC<MyOrdersProps> = ({
 
   useEffect(() => {
     if (!visible) return;
+    
+    // Сбрасываем состояние при открытии модалки
     setSelectedTab("active");
     tabAnim.setValue(0);
     setActiveOrders([]);
     setCompletedOrders([]);
     setInitializedTabs({ active: false, completed: false });
-    setIsTabLoading({ active: false, completed: false });
+    setIsTabLoading({ active: true, completed: false });
     setIsLoadingMore({ active: false, completed: false });
     offsetsRef.current = { active: 0, completed: 0 };
     hasMoreRef.current = { active: true, completed: true };
     inFlightRef.current = { active: false, completed: false };
+    
+    // Загружаем активные заказы
     fetchOrders("active", false);
-  }, [visible, fetchOrders, tabAnim]);
+  }, [visible]);
 
   const handleTabChange = (tab: TabType) => {
     if (tab === selectedTab) return;
@@ -177,7 +200,7 @@ export const MyOrdersModal: React.FC<MyOrdersProps> = ({
   const renderOrdersList = (data: any[], tab: TabType) => (
     <FlatList
       data={data}
-      keyExtractor={(item) => item.id.toString()}
+      keyExtractor={(item, index) => `${tab}-${item.id}-${index}`}
       showsVerticalScrollIndicator={false}
       renderItem={({ item }) => (
         <OrdersCard

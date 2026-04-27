@@ -40,7 +40,7 @@ interface ProductCardProps {
 // Заглушка для изображения
 const PLACEHOLDER_IMAGE = require("@/assets/icons/png/noImage.png");
 
-export const ProductCard: React.FC<ProductCardProps> = ({
+const ProductCardComponent: React.FC<ProductCardProps> = ({
   id,
   img,
   isFrozen,
@@ -562,4 +562,19 @@ const styles = StyleSheet.create({
   cartButtonActive: {
     backgroundColor: "#FFED32", // Можно сделать другой цвет
   },
+});
+
+export const ProductCard = React.memo(ProductCardComponent, (prevProps, nextProps) => {
+  return (
+    prevProps.id === nextProps.id &&
+    prevProps.img === nextProps.img &&
+    prevProps.isFrozen === nextProps.isFrozen &&
+    prevProps.name === nextProps.name &&
+    prevProps.kgPrice === nextProps.kgPrice &&
+    prevProps.fullPrice === nextProps.fullPrice &&
+    prevProps.isFavorite === nextProps.isFavorite &&
+    prevProps.fullWidth === nextProps.fullWidth &&
+    prevProps.isDis === nextProps.isDis &&
+    prevProps.onAddToCartPress === nextProps.onAddToCartPress
+  );
 });

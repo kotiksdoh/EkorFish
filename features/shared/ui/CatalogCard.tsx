@@ -32,7 +32,7 @@ const cardWidth =
 
 const PLACEHOLDER_IMAGE = require("@/assets/icons/png/noImage.png");
 
-export const CatalogCard: React.FC<CatalogCardProps> = ({
+const CatalogCardComponent: React.FC<CatalogCardProps> = ({
   id,
   img,
   name,
@@ -261,4 +261,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "rgba(245, 245, 245, 0.85)",
   },
+});
+
+export const CatalogCard = React.memo(CatalogCardComponent, (prevProps, nextProps) => {
+  return (
+    prevProps.id === nextProps.id &&
+    prevProps.img === nextProps.img &&
+    prevProps.name === nextProps.name
+  );
 });

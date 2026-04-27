@@ -231,6 +231,8 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
   if (!product || !visible) return null;
 
   const totalPrice = selectedOption ? selectedOption.price * quantity : 0;
+  const isAddToCartDisabled =
+    !selectedOption || selectedOption.maxQuantity <= 0 || quantity <= 0;
   const optionsCount = product.purchaseOptions.length;
 
   // Динамический расчет ширины табов с учетом отступов
@@ -367,11 +369,13 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
           <TouchableOpacity
             style={[
               styles.addToCartButton,
+              isAddToCartDisabled && styles.addToCartButtonDisabled,
               isDarkMode && {
                 backgroundColor: "#202022",
               },
             ]}
             onPress={handleAddToCart}
+            disabled={isAddToCartDisabled}
           >
             <ThemedText style={styles.addToCartButtonText}>
               {variant === "template"
@@ -579,6 +583,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flex: 1,
     marginRight: 12,
+  },
+  addToCartButtonDisabled: {
+    opacity: 0.5,
   },
   addToCartButtonText: {
     fontSize: 14,

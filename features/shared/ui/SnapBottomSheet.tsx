@@ -139,6 +139,7 @@ const styles = StyleSheet.create({
     borderColor: "#F0F3F7",
     paddingBottom: 24,
     paddingHorizontal: 16,
+    minHeight: 200,
   },
   handleWrap: {
     alignItems: "center",

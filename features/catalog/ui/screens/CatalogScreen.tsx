@@ -7,7 +7,7 @@ import { useTemplatePicker } from "@/features/templates/TemplatePickerContext";
 import { useAppSelector } from "@/store/hooks";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
-import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+import { FlatList, StyleSheet, TouchableOpacity, View } from "react-native";
 
 export const CatalogScreen = () => {
   const [showSearch, setShowSearch] = useState(false);
@@ -26,140 +26,69 @@ export const CatalogScreen = () => {
     }, [openSearchAfterNavigate, pickingForTemplateId, consumeOpenSearchFlag]),
   );
 
-  const handleButtonPress = () => {
-    console.log("Button pressed!");
-  };
   const catalog = useAppSelector((state) => state.auth.categories);
   const router = useRouter();
 
   const handleSearchPress = () => {
     setShowSearch(true);
   };
+
   const handleSearchClose = () => {
     setShowSearch(false);
   };
 
   const handleSearchSubmit = (query: string) => {
-    // Переходим на экран каталога с поиском
     //@ts-ignore
     router.push(
-      `dashboard/${encodeURIComponent("fsfs")}?catalogId=${" "}&catalogName=${encodeURIComponent(`${query}`)}&children=${encodeURIComponent("")}&search=${encodeURIComponent(`${query}`)}&isPromo=false`,
+      `dashboard/${encodeURIComponent("fsfs")}?catalogId=${" "}&catalogName=${encodeURIComponent(
+        `${query}`
+      )}&children=${encodeURIComponent("")}&search=${encodeURIComponent(
+        `${query}`
+      )}&isPromo=false`,
     );
   };
 
-  // const catalog = [
-  //   {
-  //     id: 1,
-  //     imageUrl: fish,
-  //     name: 'Рыба свежая и замороженная'
-  //   },
-  //   {
-  //     id: 2,
-  //     imageUrl: chiken,
-  //     name: 'Морепродукты и ракообразные'
-  //   },
-  //   {
-  //     id: 3,
-  //     imageUrl: conserv,
-  //     name: 'Икра и деликатесы'
-  //   },
-  //   {
-  //     id: 4,
-  //     imageUrl: otherMeet,
-  //     name: 'Готовая продукция и полуфабрикаты'
-  //   },
-  //   {
-  //     id: 5,
-  //     imageUrl: fish,
-  //     name: 'Консервы и закуски'
-  //   },
-  //   {
-  //     id: 6,
-  //     imageUrl: chiken,
-  //     name: 'Спецпредложения и акции'
-  //   },
-  //   {
-  //     id: 7,
-  //     imageUrl: conserv,
-  //     name: 'Премиум сегмент эксклюзив'
-  //   },
-  //   {
-  //     id: 8,
-  //     imageUrl: otherMeet,
-  //     name: 'Сезонные уловы и новинки'
-  //   },
-  //   {
-  //       id: 9,
-  //       imageUrl: otherMeet,
-  //       name: 'Сезонные уловы и новинки'
-  //     },
-  //     {
-  //       id: 10,
-  //       imageUrl: otherMeet,
-  //       name: 'Сезонные уловы и новинки'
-  //     },
-  //     {
-  //       id: 11,
-  //       imageUrl: otherMeet,
-  //       name: 'Сезонные уловы и новинки'
-  //     },
-  //     {
-  //       id: 12,
-  //       imageUrl: otherMeet,
-  //       name: 'Сезонные уловы и новинки'
-  //     },
-  //     {
-  //       id: 13,
-  //       imageUrl: otherMeet,
-  //       name: 'Сезонные уловы и новинки'
-  //     },
-  //     {
-  //       id: 14,
-  //       imageUrl: otherMeet,
-  //       name: 'Сезонные уловы и новинки'
-  //     },
-  //     {
-  //       id: 15,
-  //       imageUrl: otherMeet,
-  //       name: 'Сезонные уловы и новинки'
-  //     },
-  //     {
-  //       id: 16,
-  //       imageUrl: otherMeet,
-  //       name: 'Сезонные уловы и новинки'
-  //     },
+  const renderCatalogCard = ({ item }: { item: any }) => (
+    <CatalogCard
+      key={item.id}
+      id={item.id}
+      img={item.imageUrl}
+      name={item.name}
+      children={item.children}
+    />
+  );
 
-  // ];
+  const keyExtractor = (item: any) => String(item.id);
+  const numColumns = 3;
+
   return (
     <>
-      <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-        <ThemedView lightColor={"#FFFFFF"} style={styles.container}>
-          <TouchableOpacity onPress={handleSearchPress} activeOpacity={1}>
-            <View pointerEvents="none">
-              <SearchInput
-                isActiveButton={false}
-                placeholder="Найти товары"
-                disabled={false}
-              />
-            </View>
-          </TouchableOpacity>
-        </ThemedView>
-        <TemplatePickerBanner />
-        <View style={styles.catalog}>
-          {catalog.map((item) => (
-            <CatalogCard
-              key={item.id}
-              id={item.id}
-              img={item.imageUrl}
-              name={item.name}
-              children={item.children}
-            />
-          ))}
-        </View>
-        {/* </SafeAreaView> */}
-
-        {/* </ThemedView> */}
-      </ScrollView>
+      <FlatList
+        data={catalog}
+        renderItem={renderCatalogCard}
+        keyExtractor={keyExtractor}
+        numColumns={numColumns}
+        scrollEnabled={true}
+        showsVerticalScrollIndicator={false}
+        columnWrapperStyle={styles.columnWrapper}
+        ListHeaderComponent={
+          <View style={styles.headerContainer}>
+            <ThemedView lightColor={"#FFFFFF"} style={styles.container}>
+              <TouchableOpacity onPress={handleSearchPress} activeOpacity={1}>
+                <View pointerEvents="none">
+                  <SearchInput
+                    isActiveButton={false}
+                    placeholder="Найти товары"
+                    disabled={false}
+                  />
+                </View>
+              </TouchableOpacity>
+            </ThemedView>
+            <TemplatePickerBanner />
+          </View>
+        }
+        contentContainerStyle={styles.content}
+      />
 
       <SearchScreenWithHistory
         visible={showSearch}
@@ -171,19 +100,22 @@ export const CatalogScreen = () => {
 };
 
 const styles = StyleSheet.create({
+  headerContainer: {
+    width: "100%",
+  },
   container: {
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
     paddingTop: 42,
   },
-  catalog: {
-    marginTop: 8,
-    flexDirection: "row",
-    flexWrap: "wrap",
+  content: {
+    paddingHorizontal: 8,
+    paddingTop: 8,
+    paddingBottom: 20,
+  },
+  columnWrapper: {
     gap: 8,
-    marginHorizontal: 11,
-    // justifyContent: 'space-between',
-    // Для 3 колонок на маленьких экранах
-    // Для 2 колонок используйте justifyContent: 'flex-start' и marginRight
+    marginBottom: 8,
+    justifyContent: "space-between",
   },
 });

@@ -33,7 +33,7 @@ function AppToastHost() {
   return (
     <ToastManager
       config={toastConfig}
-      useModal={false}
+      useModal={true}
       position="bottom"
       bottomOffset={12 + insets.bottom}
       topOffset={10 + insets.top}

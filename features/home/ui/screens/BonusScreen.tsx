@@ -19,7 +19,9 @@ import { LemonIcon } from "@/assets/icons/icons";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { clearBonusHistory, getBonusHistory } from "@/features/auth/authSlice";
+import { AddToCart } from "@/features/catalog/catalogSlice";
 import { ModalHeader } from "@/features/auth/ui/Header";
+import { AddToCartModal } from "@/features/shared/ui/AddToCartModal";
 import { useAppSelector } from "@/store/hooks";
 import { TRootState } from "@/store/store";
 import { PrimaryButton } from "../..";
@@ -59,6 +61,7 @@ export const BonusPage: React.FC<BonusPageProps> = ({
   const isLoadingBonus = useSelector((state: TRootState) => state.auth.isLoadingBonus);
   const hasMoreBonus = useSelector((state: TRootState) => state.auth.hasMoreBonus);
   const currentBonusPage = useSelector((state: TRootState) => state.auth.currentBonusPage);
+  const cartItems = useAppSelector((state) => state.catalog.cart);
   
   const [historyModalVisible, setHistoryModalVisible] = useState(false);
   const [historyModalTranslateY] = useState(new Animated.Value(screenHeight));
@@ -66,6 +69,9 @@ export const BonusPage: React.FC<BonusPageProps> = ({
   
   // Состояние для отслеживания загрузки следующих страниц
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<any>(null);
+  const [existingCartItem, setExistingCartItem] = useState<any>(null);
+  const [showAddToCartModal, setShowAddToCartModal] = useState(false);
   
   // Ref для предотвращения множественных запросов
   const isFetchingRef = useRef(false);
@@ -192,6 +198,29 @@ export const BonusPage: React.FC<BonusPageProps> = ({
     }
   };
 
+  const handleAddToCartPress = (product: any) => {
+    const cartItemsForProduct =
+      cartItems?.filter((item: any) => item.productId === product.id) || [];
+
+    setSelectedProduct(product);
+    setExistingCartItem(cartItemsForProduct);
+    setShowAddToCartModal(true);
+  };
+
+  const handleAddToCart = (
+    productId: string,
+    optionId: string,
+    quantity: number,
+  ) => {
+    dispatch(
+      AddToCart({
+        productId,
+        productPurchaseOptionId: optionId,
+        quantity,
+      }),
+    );
+  };
+
   // Группировка первых 3 записей по дате для компактного отображения
   const getGroupedFirstThree = () => {
     if (!bonusHistory?.length) return [];
@@ -278,7 +307,7 @@ export const BonusPage: React.FC<BonusPageProps> = ({
                   /> */}
           </ThemedView>
 
-          <SpecialOffers />
+          <SpecialOffers handleAddToCartPress={handleAddToCartPress} />
 
           {/* История начислений - компактный блок с группировкой */}
           <ThemedView lightColor="#FFFFFF" style={styles.historyBlock}>
@@ -443,6 +472,17 @@ export const BonusPage: React.FC<BonusPageProps> = ({
                 </ScrollView>
             </ThemedView>
             </Modal>
+        <AddToCartModal
+          visible={showAddToCartModal}
+          onClose={() => {
+            setShowAddToCartModal(false);
+            setExistingCartItem(null);
+          }}
+          product={selectedProduct}
+          onAddToCart={handleAddToCart}
+          existingCartItem={existingCartItem}
+          variant="cart"
+        />
       </ThemedView>
     </Modal>
   );

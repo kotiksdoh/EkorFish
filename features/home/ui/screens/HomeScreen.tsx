@@ -2,7 +2,7 @@
 import { ThemedView } from "@/components/themed-view";
 import SearchInput from "@/features/auth/ui/components/SearchInput";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import React, { useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
   FlatList,
   ScrollView,
@@ -15,7 +15,6 @@ import Catalog from "../components/Catalog/Catalog";
 import DeliveryInfoCard from "../components/DeliveryInfoCard";
 import { HomeHeader } from "../components/HomeHeader";
 import SpecialOffers from "../components/SpecialOffers/SpecialOffers";
-// import { SearchScreenWithHistory } from '@/features/search/ui/SearchScreenWithHistory';
 import { AddToCart } from "@/features/catalog/catalogSlice";
 import { buildTemplateLineFromProduct } from "@/features/templates/buildTemplateLine";
 import { TemplatePickerBanner } from "@/features/templates/TemplatePickerBanner";
@@ -74,23 +73,22 @@ export const HomeScreen = ({
   const currentCompany = useAppSelector((state) => state.auth.currentCompany);
   const templatePicker = useTemplatePicker();
 
-  const handleSearchPress = () => {
+  const handleSearchPress = useCallback(() => {
     setShowSearch(true);
-  };
+  }, []);
 
-  const handleSearchClose = () => {
+  const handleSearchClose = useCallback(() => {
     setShowSearch(false);
-  };
+  }, []);
 
-  const handleSearchSubmit = (query: string) => {
-    // Переходим на экран каталога с поиском
+  const handleSearchSubmit = useCallback((query: string) => {
     //@ts-ignore
     router.push(
       `dashboard/${encodeURIComponent("fsfs")}?catalogId=${" "}&catalogName=${encodeURIComponent(`${query}`)}&children=${encodeURIComponent("")}&search=${encodeURIComponent(`${query}`)}&isPromo=false`,
     );
-  };
+  }, [router]);
 
-  const handleAddToCartPress = (product: any) => {
+  const handleAddToCartPress = useCallback((product: any) => {
     const cartItemsForProduct =
       cartItems?.filter((item: any) => item.productId === product.id) || [];
     const templateLines = templatePicker.pickingForTemplateId
@@ -102,9 +100,9 @@ export const HomeScreen = ({
       templatePicker.pickingForTemplateId ? templateLines : cartItemsForProduct,
     );
     setShowAddToCartModal(true);
-  };
+  }, [cartItems, templatePicker]);
 
-  const handleAddToCart = (
+  const handleAddToCart = useCallback((
     productId: string,
     optionId: string,
     quantity: number,
@@ -122,7 +120,7 @@ export const HomeScreen = ({
         quantity: quantity,
       }),
     );
-  };
+  }, [templatePicker, selectedProduct, dispatch]);
   return (
     <>
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>

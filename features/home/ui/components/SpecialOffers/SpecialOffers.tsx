@@ -20,7 +20,8 @@ const cardWidth = (screenWidth - 32 - 8) / 2; // 32 = paddingHorizontal 16 с д
 interface SpecialOffersProps {
   handleAddToCartPress: (product: any) => void;
 }
-export default function SpecialOffers({ handleAddToCartPress }: SpecialOffersProps) {
+
+function SpecialOffersComponent({ handleAddToCartPress }: SpecialOffersProps) {
   const dispatch = useAppDispatch();
   const router = useRouter();
   const me = useAppSelector((state) => state.auth.me);
@@ -114,6 +115,10 @@ export default function SpecialOffers({ handleAddToCartPress }: SpecialOffersPro
     </>
   );
 }
+
+export default React.memo(SpecialOffersComponent, (prevProps, nextProps) => {
+  return prevProps.handleAddToCartPress === nextProps.handleAddToCartPress;
+});
 
 const styles = StyleSheet.create({
   container: {
