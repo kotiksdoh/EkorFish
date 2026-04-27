@@ -19,12 +19,19 @@ import {
   ICricleIcon,
   MenuRefreshIcon,
   PencilIcon,
+  PushNotificationIcon,
   SettingsIcon
 } from "@/assets/icons/icons";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Fonts } from "@/constants/theme";
-import { clearAuthState, setCompany } from "@/features/auth/authSlice";
+import {
+  clearAuthState,
+  getCategoryItems,
+  getPushesThunk,
+  getSliderItems,
+  setCompany,
+} from "@/features/auth/authSlice";
 import { LoginModal } from "@/features/auth/ui/components/LoginModal";
 import { clearCatalogState } from "@/features/catalog/catalogSlice";
 import { axdef } from "@/features/shared/services/axios";
@@ -36,6 +43,7 @@ import { MyOrdersModal } from "@/features/shared/ui/MyOrders";
 import { MyReturnsModal } from "@/features/shared/ui/MyReturns";
 import { MySettingsModal } from "@/features/shared/ui/MySettings";
 import { ProfileEditModal } from "@/features/shared/ui/ProfileEditModal";
+import { PushNotificationsModal } from "@/features/shared/ui/PushNotificationsModal";
 import { MyTemplatesModal } from "@/features/templates/MyTemplatesModal";
 import { useTemplatePicker } from "@/features/templates/TemplatePickerContext";
 import { useAppTheme } from "@/hooks/use-theme-color";
@@ -63,6 +71,9 @@ export default function TabTwoScreen() {
   const [financeModalVisible, setFinanceModalVisible] = useState(false);
   const [settingsModalVisible, setSettingsModalVisible] = useState(false);
   const [helpModalVisible, setHelpModalVisible] = useState(false);
+  const [pushesModalVisible, setPushesModalVisible] = useState(false);
+  const [hasAuthToken, setHasAuthToken] = useState(false);
+  const pageSize = 10;
 
   const { resumeDetailTemplateId } = useTemplatePicker();
   const [profileData, setProfileData] = useState({
@@ -74,6 +85,9 @@ export default function TabTwoScreen() {
     coverColor: "#ACCBEE",
   });
   const currentCompany = useAppSelector((state) => state.auth.currentCompany);
+  const { pushes, isLoadingPushes, hasMorePushes } = useAppSelector(
+    (state) => state.auth,
+  );
   const [storedCompany, setStoredCompany] = useState<StoredCompany | null>(null);
 
   useEffect(() => {
@@ -210,9 +224,12 @@ export default function TabTwoScreen() {
     useCallback(() => {
       const checkTokenAndLoad = async () => {
         const token = await AsyncStorage.getItem("token");
+        setHasAuthToken(Boolean(token));
         if (!token) {
           console.log("No token found - showing login modal");
           setLoginModalVisible(true);
+        } else {
+          setLoginModalVisible(false);
         }
       };
       checkTokenAndLoad();
@@ -227,10 +244,50 @@ export default function TabTwoScreen() {
     }, [resumeDetailTemplateId]),
   );
 
+  useFocusEffect(
+    useCallback(() => {
+      if (!hasAuthToken) return;
+      dispatch(
+        getPushesThunk({
+          offset: 0,
+          count: pageSize,
+        }),
+      );
+    }, [dispatch, hasAuthToken]),
+  );
+
+  const handleLoadMorePushes = useCallback(() => {
+    if (isLoadingPushes || !hasMorePushes) return;
+
+    dispatch(
+      getPushesThunk({
+        offset: pushes.length,
+        count: pageSize,
+        isLoadMore: true,
+      }),
+    );
+  }, [dispatch, hasMorePushes, isLoadingPushes, pushes.length]);
+
+  const handleOpenPushes = useCallback(async () => {
+    if (!hasAuthToken) return;
+
+    setPushesModalVisible(true);
+    await dispatch(
+      getPushesThunk({
+        offset: 0,
+        count: pageSize,
+        check: false,
+      }),
+    );
+  }, [dispatch, hasAuthToken]);
+
   const handleLogout = async () => {
     try {
       try {
-        await axdef.post("/api/Account/logout");
+        const deviceId = await AsyncStorage.getItem("device_id");
+        await axdef.post("/api/Account/logout", {
+          deviceId: deviceId || "",
+        });
       } catch (logoutError) {
         console.error("Ошибка при вызове logout API:", logoutError);
       }
@@ -238,6 +295,11 @@ export default function TabTwoScreen() {
       dispatch(clearAuthState());
       dispatch(clearCatalogState());
       await AsyncStorage.clear();
+      setHasAuthToken(false);
+      await Promise.all([
+        dispatch(getCategoryItems("")).unwrap(),
+        dispatch(getSliderItems("")).unwrap(),
+      ]);
       setEditModalVisible(false);
       router.replace("/");
     } catch (error) {
@@ -290,12 +352,26 @@ export default function TabTwoScreen() {
             locations={[0, 1]}
           >
             {/* Иконка карандаша */}
-            <TouchableOpacity
-              style={styles.pencilIconContainer}
-              onPress={() => setEditModalVisible(true)}
-            >
-              <PencilIcon width={24} height={24} fill="#1B1B1C" />
-            </TouchableOpacity>
+            <View style={styles.topActions}>
+              <TouchableOpacity
+                style={styles.notificationIconContainer}
+                onPress={handleOpenPushes}
+                activeOpacity={0.8}
+              >
+                <PushNotificationIcon width={24} height={24} color="#1B1B1C" />
+                {pushes.length > 0 ? (
+                  <View style={styles.pushesBadge}>
+                    <ThemedText style={styles.pushesBadgeText}>{pushes.length}</ThemedText>
+                  </View>
+                ) : null}
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.pencilIconContainer}
+                onPress={() => setEditModalVisible(true)}
+              >
+                <PencilIcon width={24} height={24} fill="#1B1B1C" />
+              </TouchableOpacity>
+            </View>
 
             {/* Белый блок с фото профиля */}
             <ThemedView style={styles.whiteProfileCard}>
@@ -326,9 +402,11 @@ export default function TabTwoScreen() {
             </ThemedView>
           </LinearGradient>
         </View>
-        <ThemedView style={styles.managerCard}>
-          <ManagerSection />
-        </ThemedView>
+        {hasAuthToken ? (
+          <ThemedView style={styles.managerCard}>
+            <ManagerSection />
+          </ThemedView>
+        ) : null}
 
         {/* Информационные блоки */}
         <ThemedView style={styles.infoCard}>
@@ -620,6 +698,15 @@ export default function TabTwoScreen() {
         visible={helpModalVisible}
         onClose={() => setHelpModalVisible(false)}
       />
+
+      <PushNotificationsModal
+        visible={pushesModalVisible && hasAuthToken}
+        onClose={() => setPushesModalVisible(false)}
+        pushes={pushes}
+        isLoading={isLoadingPushes}
+        hasMore={hasMorePushes}
+        onLoadMore={handleLoadMorePushes}
+      />
     </>
   );
 }
@@ -663,11 +750,40 @@ const styles = StyleSheet.create({
       },
     }),
   },
-  pencilIconContainer: {
+  topActions: {
     position: "absolute",
     top: 60,
     right: 16,
     zIndex: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  notificationIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  pushesBadge: {
+    position: "absolute",
+    top: -2,
+    right: -2,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: "#F10B34",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 4,
+  },
+  pushesBadgeText: {
+    color: "#FFFFFF",
+    fontSize: 10,
+    fontWeight: "700",
+  },
+  pencilIconContainer: {
     width: 40,
     height: 40,
     borderRadius: 20,

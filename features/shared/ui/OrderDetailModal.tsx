@@ -11,6 +11,7 @@ import {
   IconMessage,
   IconNumber,
   IconUser,
+  RepeatOrderIcon
 } from "@/assets/icons/icons";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
@@ -39,6 +40,7 @@ import {
   TouchableOpacity,
   TouchableWithoutFeedback,
   View,
+  Linking,
 } from "react-native";
 import { PrimaryButton } from "./components/PrimartyButton";
 
@@ -88,6 +90,13 @@ interface OrderDetails {
   profileFullName?: string;
 }
 
+interface OrderDocument {
+  id: string;
+  fileName: string;
+  fileUrl: string;
+  createdAt: string;
+}
+
 interface OrderDetailsModalProps {
   visible: boolean;
   onClose: () => void;
@@ -110,13 +119,14 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
   const [isCheckingReorder, setIsCheckingReorder] = useState(false);
   const [isReordering, setIsReordering] = useState(false);
   const [reorderModalVisible, setReorderModalVisible] = useState(false);
+  const [documentsModalVisible, setDocumentsModalVisible] = useState(false);
+  const [documents, setDocuments] = useState<OrderDocument[]>([]);
+  const [isLoadingDocuments, setIsLoadingDocuments] = useState(false);
   const [canReorderFully, setCanReorderFully] = useState<boolean | null>(null);
   const [productsModalVisible, setProductsModalVisible] = useState(false);
   const [statusModalVisible, setStatusModalVisible] = useState(false);
   const [productsModalTranslateY] = useState(new Animated.Value(screenHeight));
-  const [statusModalTranslateY] = useState(new Animated.Value(screenHeight));
   const [isProductsModalClosing, setIsProductsModalClosing] = useState(false);
-  const [isStatusModalClosing, setIsStatusModalClosing] = useState(false);
 
   // Загрузка деталей заказа
   useEffect(() => {
@@ -141,20 +151,6 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
     }
   }, [productsModalVisible]);
 
-  // Анимация для модалки со статусами
-  useEffect(() => {
-    if (statusModalVisible) {
-      statusModalTranslateY.setValue(screenHeight);
-      Animated.spring(statusModalTranslateY, {
-        toValue: 0,
-        useNativeDriver: true,
-        damping: 20,
-        stiffness: 90,
-        mass: 0.8,
-      }).start();
-    }
-  }, [statusModalVisible]);
-
   const closeProductsModal = () => {
     if (isProductsModalClosing) return;
 
@@ -169,19 +165,7 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
     });
   };
 
-  const closeStatusModal = () => {
-    if (isStatusModalClosing) return;
-
-    setIsStatusModalClosing(true);
-    Animated.timing(statusModalTranslateY, {
-      toValue: screenHeight,
-      duration: 250,
-      useNativeDriver: true,
-    }).start(() => {
-      setIsStatusModalClosing(false);
-      setStatusModalVisible(false);
-    });
-  };
+  const closeStatusModal = () => setStatusModalVisible(false);
 
   const loadOrderDetails = async () => {
     setIsLoading(true);
@@ -198,7 +182,7 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
 
   const handleCopyId = async () => {
     if (orderDetails) {
-      await Clipboard.setStringAsync(orderDetails?.id?.toString());
+      await Clipboard.setStringAsync(orderDetails?.orderId?.toString());
     }
   };
 
@@ -271,6 +255,41 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
       Alert.alert("Ошибка", "Не удалось проверить возможность повторного заказа");
     } finally {
       setIsCheckingReorder(false);
+    }
+  };
+
+  const openDocumentsModal = async () => {
+    if (!orderDetails?.orderId) return;
+    setDocumentsModalVisible(true);
+    setIsLoadingDocuments(true);
+    try {
+      const response = await axdef.get(`/api/Order/${orderDetails.orderId}/documents`);
+      setDocuments(response?.data?.data || []);
+    } catch (error) {
+      console.error("Error loading order documents:", error);
+      Alert.alert("Ошибка", "Не удалось загрузить документы заказа");
+      setDocuments([]);
+    } finally {
+      setIsLoadingDocuments(false);
+    }
+  };
+
+  const handleOpenDocument = async (fileUrl: string) => {
+    try {
+      const normalizedUrl =
+        fileUrl?.startsWith("http://") || fileUrl?.startsWith("https://")
+          ? fileUrl
+          : `${baseUrl}/${String(fileUrl || "").replace(/^\/+/, "")}`;
+
+      const canOpen = await Linking.canOpenURL(normalizedUrl);
+      if (!canOpen) {
+        Alert.alert("Ошибка", "Не удалось открыть документ");
+        return;
+      }
+      await Linking.openURL(normalizedUrl);
+    } catch (error) {
+      console.error("Error opening document:", error);
+      Alert.alert("Ошибка", "Не удалось открыть документ");
     }
   };
 
@@ -561,6 +580,9 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                     fullWidth
                     style={styles.cancelButton}
                     disabled={isCheckingReorder}
+                    customIcon={
+                      <RepeatOrderIcon fill={isDarkMode ? "#FBFCFF" : "#1B1B1C"} />
+                    }
                   />
                   <PrimaryButton
                     title="Написать"
@@ -577,7 +599,7 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                 </View>
                 <PrimaryButton
                   title="Документы"
-                  onPress={() => console.log("Документы")}
+                  onPress={openDocumentsModal}
                   variant="third"
                   size="md"
                   style={styles.documentsButton}
@@ -762,51 +784,19 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
           </TouchableWithoutFeedback>
         </Modal>
 
-        {/* Модалка со статусами */}
-        <Modal
-          visible={statusModalVisible}
-          animationType="none"
-          transparent={true}
-          onRequestClose={closeStatusModal}
-          statusBarTranslucent={true}
-        >
-          <TouchableWithoutFeedback onPress={closeStatusModal}>
-            <View style={styles.modalOverlay}>
-              <TouchableWithoutFeedback>
-                <Animated.View
-                  style={[
-                    styles.modalContainer,
-                    {
-                      transform: [{ translateY: statusModalTranslateY }],
-                    },
-                    isDarkMode && {
-                      backgroundColor: "#202022",
-                    },
-                  ]}
-                >
-                  {/* Защелка для свайпа */}
-                  <TouchableOpacity
-                    style={styles.swipeHandleContainer}
-                    activeOpacity={0.7}
-                    onPress={closeStatusModal}
-                  >
-                    <View style={styles.swipeHandle} />
-                  </TouchableOpacity>
-
-                  <View style={styles.modalHeader}>
-                    <ThemedText style={styles.modalTitle}>
-                      Статус вашего заказа
-                    </ThemedText>
-                  </View>
-
-                  {/* Список статусов - теперь с прокруткой и правильным выравниванием */}
-                  <View style={styles.statusesListWrapper}>
-                    <ScrollView
-                      style={styles.statusesList}
-                      showsVerticalScrollIndicator={true}
-                      contentContainerStyle={styles.statusesListContent}
-                    >
-                      {orderDetails?.statuses?.map((status, index) => {
+      <SnapBottomSheet
+        visible={statusModalVisible}
+        title="Статус вашего заказа"
+        titleAlign="left"
+        onClose={closeStatusModal}
+      >
+        <View style={styles.statusesListWrapper}>
+          <ScrollView
+            style={styles.statusesList}
+            showsVerticalScrollIndicator={true}
+            contentContainerStyle={styles.statusesListContent}
+          >
+            {orderDetails?.statuses?.map((status, index) => {
                         const currentIndex = getCurrentStatusIndex();
                         const isCurrent = index === currentIndex;
                         const isNext = index === currentIndex + 1;
@@ -919,15 +909,46 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                             </View>
                           </View>
                         );
-                      })}
-                    </ScrollView>
-                  </View>
-                </Animated.View>
-              </TouchableWithoutFeedback>
-            </View>
-          </TouchableWithoutFeedback>
-        </Modal>
+            })}
+          </ScrollView>
+        </View>
+      </SnapBottomSheet>
       </Modal>
+      <SnapBottomSheet
+        visible={documentsModalVisible}
+        title="Документы заказа"
+        titleAlign="left"
+        onClose={() => setDocumentsModalVisible(false)}
+      >
+        {isLoadingDocuments ? (
+          <View style={styles.documentsLoader}>
+            <ActivityIndicator size="small" color={isDarkMode ? "#4C94FF" : "#203686"} />
+          </View>
+        ) : documents.length === 0 ? (
+          <ThemedText style={styles.documentsEmpty} lightColor="#80818B" darkColor="#FBFCFF80">
+            Документы не найдены
+          </ThemedText>
+        ) : (
+          <View style={styles.documentsList}>
+            {documents.map((doc) => (
+              <TouchableOpacity
+                key={doc.id}
+                style={[
+                  styles.documentItem,
+                  { backgroundColor: isDarkMode ? "#2E2E32" : "#F2F4F7" },
+                ]}
+                activeOpacity={0.7}
+                onPress={() => handleOpenDocument(doc.fileUrl)}
+              >
+                <ThemedText style={styles.documentName} numberOfLines={1}>
+                  {doc.fileName}
+                </ThemedText>
+                <ArrowIconRight />
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+      </SnapBottomSheet>
       <SnapBottomSheet
         visible={reorderModalVisible}
         title={
@@ -1156,6 +1177,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 12,
     alignItems: "center",
+    marginBottom: 12,
   },
   documentsButtonText: {
     fontSize: 14,
@@ -1501,5 +1523,32 @@ const styles = StyleSheet.create({
   },
   reorderButtonsColumn: {
     paddingBottom: 8,
+  },
+  documentsLoader: {
+    paddingVertical: 20,
+    alignItems: "center",
+  },
+  documentsEmpty: {
+    fontSize: 14,
+    fontWeight: "500",
+    paddingBottom: 16,
+  },
+  documentsList: {
+    gap: 8,
+    paddingBottom: 16,
+  },
+  documentItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+  },
+  documentName: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: "500",
+    marginRight: 8,
   },
 });

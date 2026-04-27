@@ -61,6 +61,20 @@ interface AuthState {
     }[];
   }[];
   isLoadingHelp: boolean;
+  pushSettings: {
+    pushNotificationType: number;
+    name: string;
+    isEnabled: boolean;
+  }[];
+  isLoadingPushSettings: boolean;
+  isUpdatingPushPreference: boolean;
+  pushes: {
+    title: string;
+    body: string;
+    sentAt: string;
+  }[];
+  isLoadingPushes: boolean;
+  hasMorePushes: boolean;
 }
 interface Town {
   id: string;
@@ -102,7 +116,25 @@ const initialState: AuthState = {
 
   helpList: [],
   isLoadingHelp: false,
+  pushSettings: [],
+  isLoadingPushSettings: false,
+  isUpdatingPushPreference: false,
+  pushes: [],
+  isLoadingPushes: false,
+  hasMorePushes: true,
 };
+
+interface UpdatePushPreferencePayload {
+  pushNotificationType: number;
+  isEnabled: boolean;
+}
+
+interface GetPushesPayload {
+  count: number;
+  offset: number;
+  isLoadMore?: boolean;
+  check?: boolean;
+}
 
 export const getCode = createAsyncThunk(
   "user/getCode",
@@ -437,6 +469,51 @@ export const getHeplListThunk = createAsyncThunk(
     try {
       const res = await axdef.get(`/api/AdditionalInformation/help`);
       return res;
+    } catch (error) {
+      console.log(error);
+      return rejectWithValue(error);
+    }
+  },
+);
+
+export const getPushSettings = createAsyncThunk(
+  "user/getPushSettings",
+  async (_, { rejectWithValue }) => {
+    try {
+      const res = await axdef.get("/api/AdditionalInformation/push/settings");
+      return res;
+    } catch (error) {
+      console.log(error);
+      return rejectWithValue(error);
+    }
+  },
+);
+
+export const updatePushPreference = createAsyncThunk(
+  "user/updatePushPreference",
+  async (payload: UpdatePushPreferencePayload, { rejectWithValue }) => {
+    try {
+      const res = await axdef.put("/api/Account/push/preferences", payload);
+      return { response: res, payload };
+    } catch (error) {
+      console.log(error);
+      return rejectWithValue(error);
+    }
+  },
+);
+
+export const getPushesThunk = createAsyncThunk(
+  "user/getPushesThunk",
+  async (payload: GetPushesPayload, { rejectWithValue }) => {
+    try {
+      const data = await axdef.get("/api/AdditionalInformation/pushes", {
+        params: {
+          count: payload.count,
+          offset: payload.offset,
+          check: payload.check,
+        },
+      });
+      return { data, payload };
     } catch (error) {
       console.log(error);
       return rejectWithValue(error);
@@ -837,6 +914,70 @@ const authSlice = createSlice({
     builder.addCase(getHeplListThunk.rejected, (state, action) => {
       state.isLoadingHelp = false;
       state.error = "Ошибка отправки";
+      axiosErrorHandler(action?.payload);
+    });
+
+    builder.addCase(getPushSettings.pending, (state) => {
+      state.isLoadingPushSettings = true;
+      state.error = null;
+    });
+
+    builder.addCase(getPushSettings.fulfilled, (state, action) => {
+      state.isLoadingPushSettings = false;
+      state.pushSettings = action.payload?.data?.data || [];
+    });
+
+    builder.addCase(getPushSettings.rejected, (state, action) => {
+      state.isLoadingPushSettings = false;
+      state.error = "Ошибка загрузки настроек уведомлений";
+      axiosErrorHandler(action?.payload);
+    });
+
+    builder.addCase(updatePushPreference.pending, (state) => {
+      state.isUpdatingPushPreference = true;
+      state.error = null;
+    });
+
+    builder.addCase(updatePushPreference.fulfilled, (state, action) => {
+      state.isUpdatingPushPreference = false;
+      const { pushNotificationType, isEnabled } = action.payload.payload;
+      state.pushSettings = state.pushSettings.map((item) =>
+        item.pushNotificationType === pushNotificationType
+          ? { ...item, isEnabled }
+          : item,
+      );
+    });
+
+    builder.addCase(updatePushPreference.rejected, (state, action) => {
+      state.isUpdatingPushPreference = false;
+      state.error = "Ошибка обновления настроек уведомлений";
+      axiosErrorHandler(action?.payload);
+    });
+
+    builder.addCase(getPushesThunk.pending, (state, action) => {
+      if (!action.meta.arg?.isLoadMore) {
+        state.isLoadingPushes = true;
+      }
+      state.error = null;
+    });
+
+    builder.addCase(getPushesThunk.fulfilled, (state, action) => {
+      state.isLoadingPushes = false;
+      const nextItems = action.payload?.data?.data?.data || [];
+      const { isLoadMore, count } = action.payload.payload;
+
+      if (isLoadMore) {
+        state.pushes = [...state.pushes, ...nextItems];
+      } else {
+        state.pushes = nextItems;
+      }
+
+      state.hasMorePushes = nextItems.length === count;
+    });
+
+    builder.addCase(getPushesThunk.rejected, (state, action) => {
+      state.isLoadingPushes = false;
+      state.error = "Ошибка загрузки уведомлений";
       axiosErrorHandler(action?.payload);
     });
 

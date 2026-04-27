@@ -7,11 +7,10 @@ import {
   IconCard,
   IconCloseNew,
   IconCompanyNew,
-  IconDocument,
   IconGeo,
   IconMessage,
   IconNumber,
-  IconUser,
+  IconUser
 } from "@/assets/icons/icons";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
@@ -580,7 +579,7 @@ export const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                     }
                   />
                 </View>
-                <PrimaryButton
+                {/* <PrimaryButton
                   title="Документы"
                   onPress={() => Alert.alert("Документы", "Недоступно")}
                   variant="third"
@@ -591,7 +590,7 @@ export const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                   customIcon={
                     <IconDocument color={isDarkMode ? "#FBFCFF" : "#1B1B1C"} />
                   }
-                />
+                /> */}
               </ThemedView>
 
               <ThemedView lightColor="#FFFFFF" style={styles.productsBlock}>

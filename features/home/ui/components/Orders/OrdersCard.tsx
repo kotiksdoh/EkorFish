@@ -62,9 +62,6 @@ export default function OrdersCard({
   const colorScheme = useColorScheme();
   //TODO
   const isDarkMode = colorScheme === "dark";
-  const isReceivedOrder =
-    order.orderStatuses?.[0]?.name === "Получен" ||
-    (order as any).orderStatus === "Получен";
   const [modalVisible, setModalVisible] = useState(false);
 
   const handleCopyId = async () => {
@@ -130,23 +127,6 @@ export default function OrdersCard({
         >
           {formatDeliveryDate(order.deliveryDate)}
         </ThemedText>
-        {isReceivedOrder && (
-          <TouchableOpacity style={styles.repeatButton} activeOpacity={0.8}>
-            <ThemedView
-              lightColor="#1B1B1C"
-              darkColor="#FBFCFF"
-              style={styles.repeatButtonBg}
-            >
-              <ThemedText
-                lightColor="#FBFCFF"
-                darkColor="#1B1B1C"
-                style={styles.repeatButtonText}
-              >
-                Повторить заказ
-              </ThemedText>
-            </ThemedView>
-          </TouchableOpacity>
-        )}
       </ThemedView>
 
       {/* Модальное окно с деталями заказа */}
@@ -205,18 +185,5 @@ const styles = StyleSheet.create({
   date: {
     fontSize: 14,
     fontWeight: "400",
-  },
-  repeatButton: {
-    marginTop: 10,
-    width: "50%",
-  },
-  repeatButtonBg: {
-    borderRadius: 12,
-    paddingVertical: 10,
-    alignItems: "center",
-  },
-  repeatButtonText: {
-    fontSize: 14,
-    fontWeight: "600",
   },
 });

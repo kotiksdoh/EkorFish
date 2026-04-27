@@ -18,6 +18,7 @@ import { DatePickerWithIcon } from "@/features/shared/ui/components/DatePickerCu
 import SmartInput from "@/features/shared/ui/components/SmartInput";
 import ManagerSection from "@/features/shared/ui/ManagerSection";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { syncPushTokenToBackend } from "@/hooks/usePushNotifications";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { useEffect, useRef, useState } from "react";
 import {
@@ -45,6 +46,7 @@ import {
   sendCode,
 } from "../../authSlice";
 import { ModalHeader } from "../Header";
+import { getCart, getMyOrders } from "@/features/catalog/catalogSlice";
 // import Error from '../../../../assets/icons/png/error.png'
 interface LoginModalProps {
   visible: boolean;
@@ -118,6 +120,15 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   const [isPasting, setIsPasting] = useState(false);
 
   const loading = useAppSelector((state) => state.auth.isLoading);
+  const runPostLoginRequests = async () => {
+    try {
+      await dispatch(getMyParams("")).unwrap();
+      await dispatch(getCart()).unwrap();
+      await dispatch(getMyOrders()).unwrap();
+    } catch (error) {
+      console.log("[LoginModal] post-login requests failed:", error);
+    }
+  };
   const company = useAppSelector((state) => state.auth.company);
   const predUserData = useAppSelector((state) => state.auth.predUserData);
   // const company = {
@@ -317,9 +328,10 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             console.log("dfdfdfffff");
             dispatch(getMyInfo("")).then((res) => {
               if (getMyInfo.fulfilled.match(res)) {
+                void syncPushTokenToBackend("post_login");
                 // resetModal()
                 // handleClose()
-                dispatch(getMyParams(""))
+                void runPostLoginRequests();
                 console.log(
                   "res?.payload?.data?.data",
                   res?.payload?.data?.data,
@@ -418,7 +430,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       if (compliteProfile.fulfilled.match(res)) {
         dispatch(getMyInfo("")).then((res) => {
           if (getMyInfo.fulfilled.match(res)) {
-            dispatch(getMyParams(""))
+            void syncPushTokenToBackend("post_login");
+            void runPostLoginRequests();
             setCurrentScreen(ScreensScenario.ACC_TYPE);
             setCurrentScenarion(AuthScenario.DEFAULT);
             resetModal();
@@ -443,7 +456,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       if (compliteCompany.fulfilled.match(res)) {
         dispatch(getMyInfo("")).then((res) => {
           if (getMyInfo.fulfilled.match(res)) {
-            dispatch(getMyParams(""))
+            void syncPushTokenToBackend("post_login");
+            void runPostLoginRequests();
             setCurrentScreen(ScreensScenario.ACC_TYPE);
             setCurrentScenarion(AuthScenario.DEFAULT);
             resetModal();
@@ -473,7 +487,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         //
         dispatch(getMyInfo("")).then((res) => {
           if (getMyInfo.fulfilled.match(res)) {
-            dispatch(getMyParams(""))
+            void syncPushTokenToBackend("post_login");
+            void runPostLoginRequests();
             setCurrentScreen(ScreensScenario.ACC_TYPE);
             setCurrentScenarion(AuthScenario.DEFAULT);
             resetModal();
@@ -486,7 +501,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   const handleInitUser = () => {
     dispatch(getMyInfo("")).then((res) => {
       if (getMyInfo.fulfilled.match(res)) {
-        dispatch(getMyParams(""))
+        void syncPushTokenToBackend("post_login");
+        void runPostLoginRequests();
         setCurrentScreen(ScreensScenario.ACC_TYPE);
         setCurrentScenarion(AuthScenario.DEFAULT);
         resetModal();
@@ -1772,6 +1788,7 @@ const stylesError = StyleSheet.create({
     fontSize: 16,
     marginTop: 8,
     marginBottom: 24,
+    textAlign: "center",
   },
   continueButton: {
     // marginTop: 24,

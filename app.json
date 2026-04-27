@@ -19,6 +19,7 @@
     "ios": {
       "bundleIdentifier": "com.kotiksdoh.EkorFishNew",
       "buildNumber": "1.0.0",
+      "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
         "NSAppTransportSecurity": {
           "NSAllowsArbitraryLoads": true
@@ -36,7 +37,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.kotiksdoh.EkorFish",
+      "package": "com.bitoobit.ekorfish",
       "googleServicesFile": "./google-services.json"
     },
     "web": {

@@ -1,21 +1,21 @@
 {
   "project_info": {
-    "project_number": "203768581882",
-    "project_id": "ekorfish-cef8a",
-    "storage_bucket": "ekorfish-cef8a.firebasestorage.app"
+    "project_number": "953987741517",
+    "project_id": "ekorfish-9a4d4",
+    "storage_bucket": "ekorfish-9a4d4.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:203768581882:android:089bc2c7f735c4fff54343",
+        "mobilesdk_app_id": "1:953987741517:android:87a4eb27e7efec7e98e904",
         "android_client_info": {
-          "package_name": "com.kotiksdoh.EkorFish"
+          "package_name": "com.bitoobit.ekorfish"
         }
       },
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyDyWplNbLZWYN3LoPTLOBVlHTVaga53IRk"
+          "current_key": "AIzaSyBpx0VjFyE-ehgUD-GtgSxiVEtskccBtSo"
         }
       ],
       "services": {

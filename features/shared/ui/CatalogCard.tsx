@@ -156,7 +156,7 @@ export const CatalogCard: React.FC<CatalogCardProps> = ({
         <View style={styles.textContainer}>
           <ThemedText
             lightColor="#1B1B1C"
-            darkColor="#FBFCFF"
+            darkColor="#1B1B1C"
             style={styles.name}
             numberOfLines={3}
             ellipsizeMode="tail"
@@ -248,8 +248,8 @@ const styles = StyleSheet.create({
   },
   imageContainer: {
     width: "100%",
-    height: "90%",
-    marginTop: 30,
+    height: "100%",
+    // marginTop: 30,
     position: "relative",
   },
   image: {

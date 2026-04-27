@@ -568,6 +568,7 @@ export default function ShopScreen() {
                   alignItems: "center",
                   gap: 8,
                   justifyContent: "space-between",
+                  paddingHorizontal: 10,
                 }}
               >
                 <View

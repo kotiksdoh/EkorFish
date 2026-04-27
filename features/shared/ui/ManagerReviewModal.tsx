@@ -7,6 +7,7 @@ import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { Image } from "expo-image";
 import React, { useEffect, useState } from 'react';
 import {
+    ActivityIndicator,
     Alert,
     Modal,
     ScrollView,
@@ -15,12 +16,6 @@ import {
     TouchableWithoutFeedback,
     View,
 } from 'react-native';
-import Animated, {
-    runOnJS,
-    useAnimatedStyle,
-    useSharedValue,
-    withTiming,
-} from 'react-native-reanimated';
 import Svg, { Path } from "react-native-svg";
 import { baseUrl } from '../services/axios';
 import { CustomCheckbox } from './components/CustomCheckBox';
@@ -85,7 +80,7 @@ export const ManagerReviewModal: React.FC<ManagerReviewModalProps> = ({
     const { isDark } = useAppTheme();
     const dispatch = useAppDispatch();
     const { reviewOptions, isLoadingManagerReviewOption } = useAppSelector((state) => state.auth);
-    const { currentCompany, me } = useAppSelector((state) => state.auth);
+    const { currentCompany } = useAppSelector((state) => state.auth);
 
     const [rating, setRating] = useState(0);
     const [selectedOptions, setSelectedOptions] = useState<number[]>([]);
@@ -93,26 +88,24 @@ export const ManagerReviewModal: React.FC<ManagerReviewModalProps> = ({
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showThankYou, setShowThankYou] = useState(false);
 
-    const translateY = useSharedValue(1000);
-
     useEffect(() => {
         if (visible) {
-            translateY.value = withTiming(0, { duration: 300 });
-            dispatch(getManagerReviewOptions());
+            if (managerId) {
+                dispatch(getManagerReviewOptions());
+            }
             // Сбрасываем состояние при открытии
             resetForm();
             setShowThankYou(false);
         } else {
-            translateY.value = withTiming(1000, { duration: 300 });
+            resetForm();
+            setShowThankYou(false);
         }
     }, [visible]);
 
     const handleClose = () => {
-        translateY.value = withTiming(1000, { duration: 300 }, () => {
-            runOnJS(onClose)();
-            runOnJS(resetForm)();
-            runOnJS(() => setShowThankYou(false))();
-        });
+        resetForm();
+        setShowThankYou(false);
+        onClose();
     };
 
     const resetForm = () => {
@@ -159,6 +152,17 @@ export const ManagerReviewModal: React.FC<ManagerReviewModalProps> = ({
                     dispatch(setCompany(updatedCompany));
                 }
             }
+
+            // Для сценария физлица менеджер может жить в individualProfile, а не в companies
+            const updatedProfileManager = result?.data?.data?.individualProfile?.manager;
+            if (currentCompany?.type === "individual" && updatedProfileManager) {
+                dispatch(
+                    setCompany({
+                        ...currentCompany,
+                        manager: updatedProfileManager,
+                    }),
+                );
+            }
     
             // После успешной отправки показываем экран благодарности
             setShowThankYou(true);
@@ -169,10 +173,6 @@ export const ManagerReviewModal: React.FC<ManagerReviewModalProps> = ({
             setIsSubmitting(false);
         }
     };
-
-    const animatedStyle = useAnimatedStyle(() => ({
-        transform: [{ translateY: translateY.value }],
-    }));
 
     const isSubmitDisabled = rating === 0 || isSubmitting;
 
@@ -187,10 +187,10 @@ export const ManagerReviewModal: React.FC<ManagerReviewModalProps> = ({
             <TouchableWithoutFeedback onPress={handleClose}>
                 <View style={styles.modalOverlay}>
                     <TouchableWithoutFeedback>
-                        <Animated.View
+                        <View
                             style={[
                                 styles.modalContainer,
-                                animatedStyle,
+                                showThankYou && styles.modalContainerCompact,
                                 isDark && styles.modalContainerDark,
                             ]}
                         >
@@ -264,7 +264,14 @@ export const ManagerReviewModal: React.FC<ManagerReviewModalProps> = ({
                                         </ThemedView>
 
                                         {/* Опции для выбора */}
-                                        {reviewOptions.length > 0 && (
+                                        {isLoadingManagerReviewOption ? (
+                                            <View style={styles.reviewOptionsLoader}>
+                                                <ActivityIndicator size="small" color={isDark ? "#4C94FF" : "#203686"} />
+                                                <ThemedText lightColor="#80818B" darkColor="#FBFCFF80">
+                                                    Загрузка вариантов оценки...
+                                                </ThemedText>
+                                            </View>
+                                        ) : reviewOptions.length > 0 && (
                                             <View style={styles.optionsContainer}>
                                                 <ThemedText style={styles.optionsLabel}>
                                                     Что понравилось особенно?
@@ -283,6 +290,7 @@ export const ManagerReviewModal: React.FC<ManagerReviewModalProps> = ({
                                                                 onValueChange={() => handleOptionToggle(option.id)}
                                                                 lightColor="#F2F4F7"
                                                                 darkColor="#202022"
+                                                                disabled={false}
                                                             />
                                                             <ThemedText style={styles.optionText}>
                                                                 {option.value}
@@ -324,7 +332,7 @@ export const ManagerReviewModal: React.FC<ManagerReviewModalProps> = ({
                                     </View>
                                 </>
                             )}
-                        </Animated.View>
+                        </View>
                     </TouchableWithoutFeedback>
                 </View>
             </TouchableWithoutFeedback>
@@ -342,7 +350,12 @@ const styles = StyleSheet.create({
         backgroundColor: "#FFFFFF",
         borderTopLeftRadius: 24,
         borderTopRightRadius: 24,
-        maxHeight: "90%",
+        height: "88%",
+        minHeight: 420,
+    },
+    modalContainerCompact: {
+        height: 280,
+        minHeight: 280,
     },
     modalContainerDark: {
         backgroundColor: "#202022",
@@ -438,6 +451,11 @@ const styles = StyleSheet.create({
     },
     optionsList: {
         gap: 12,
+    },
+    reviewOptionsLoader: {
+        marginBottom: 24,
+        gap: 10,
+        alignItems: "center",
     },
     optionItem: {
         flexDirection: "row",

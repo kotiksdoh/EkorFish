@@ -61,6 +61,17 @@ async function registerForPushNotificationsAsync(): Promise<string | null> {
     return null;
   }
 
+  if (Platform.OS === "android") {
+    const devicePushToken = await Notifications.getDevicePushTokenAsync();
+
+    if (typeof devicePushToken.data === "string") {
+      return devicePushToken.data;
+    }
+
+    console.log("Android device push token is not a string:", devicePushToken.data);
+    return null;
+  }
+
   const projectId =
     Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
 
@@ -69,8 +80,8 @@ async function registerForPushNotificationsAsync(): Promise<string | null> {
     return null;
   }
 
-  const token = await Notifications.getExpoPushTokenAsync({ projectId });
-  return token.data;
+  const expoToken = await Notifications.getExpoPushTokenAsync({ projectId });
+  return expoToken.data;
 }
 
 async function sendFirebaseTokenToBackend(tokenFirebase: string): Promise<void> {
@@ -89,6 +100,25 @@ async function sendFirebaseTokenToBackend(tokenFirebase: string): Promise<void> 
   });
 }
 
+export async function syncPushTokenToBackend(
+  source: "app_start" | "post_login" = "app_start",
+): Promise<void> {
+  try {
+    const pushToken = await registerForPushNotificationsAsync();
+
+    if (!pushToken) {
+      console.log(`[Push][${source}] No Expo push token received.`);
+      return;
+    }
+
+    console.log(`[Push][${source}] Push token to backend:`, pushToken);
+    await sendFirebaseTokenToBackend(pushToken);
+    console.log(`[Push][${source}] Firebase token sent to backend.`);
+  } catch (error) {
+    console.log(`[Push][${source}] Token sync failed:`, error);
+  }
+}
+
 export function usePushNotifications() {
   const notificationListener =
     useRef<Notifications.EventSubscription | null>(null);
@@ -96,16 +126,7 @@ export function usePushNotifications() {
 
   useEffect(() => {
     void (async () => {
-      try {
-        const pushToken = await registerForPushNotificationsAsync();
-
-        if (pushToken) {
-          console.log("Expo push token:", pushToken);
-          await sendFirebaseTokenToBackend(pushToken);
-        }
-      } catch (error) {
-        console.log("Push registration failed:", error);
-      }
+      await syncPushTokenToBackend("app_start");
     })();
 
     notificationListener.current =

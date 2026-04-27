@@ -294,6 +294,7 @@ export const ManagerSection = () => {
   const dispatch = useAppDispatch();
   const { currentCompany, me } = useAppSelector((state) => state.auth);
   const { managers, isLoadingManager } = useAppSelector((state) => state.auth);
+  const isAuthorized = Boolean(me?.id);
   const [showManagerList, setShowManagerList] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -304,31 +305,51 @@ export const ManagerSection = () => {
   const activeCompany = currentCompany || fallbackCompany;
   const currentManager = activeCompany?.manager || null;
 
-  // Загружаем список менеджеров при необходимости
+  // Загружаем список менеджеров:
+  // 1) при явном открытии списка
+  // 2) автоматически, если текущий менеджер не назначен
   useEffect(() => {
-    if (showManagerList && managers.length === 0 && !isLoadingManager) {
+    const shouldLoadManagers =
+      isAuthorized &&
+      (showManagerList || !currentManager) &&
+      managers.length === 0 &&
+      !isLoadingManager;
+
+    if (shouldLoadManagers) {
       dispatch(getMangers());
     }
-  }, [showManagerList, managers.length, isLoadingManager, dispatch]);
+  }, [showManagerList, currentManager, managers.length, isLoadingManager, dispatch, isAuthorized]);
 
   // Если currentCompany пустой (часто на этапе PHIS_USER), берем из me.companies
   useEffect(() => {
+    if (!isAuthorized) return;
     if (!currentCompany?.id && fallbackCompany?.id) {
       dispatch(setCompany(fallbackCompany));
     }
-  }, [currentCompany?.id, fallbackCompany?.id, dispatch]);
+  }, [currentCompany?.id, fallbackCompany?.id, dispatch, isAuthorized]);
 
   // Обновляем currentCompany, если изменился me
   useEffect(() => {
+    if (!isAuthorized) return;
     if (me && me.companies && activeCompany?.id) {
       const updatedCompany = me.companies.find(
         (company: any) => company.id === activeCompany.id
       );
-      if (updatedCompany && updatedCompany.manager?.id !== activeCompany?.manager?.id) {
+      if (
+        updatedCompany &&
+        (
+          updatedCompany.manager?.id !== activeCompany?.manager?.id ||
+          updatedCompany.manager?.hasReviewed !== activeCompany?.manager?.hasReviewed
+        )
+      ) {
         dispatch(setCompany(updatedCompany));
       }
     }
-  }, [me?.companies, activeCompany?.id, activeCompany?.manager?.id, dispatch]);
+  }, [me?.companies, activeCompany?.id, activeCompany?.manager?.id, activeCompany?.manager?.hasReviewed, dispatch, isAuthorized]);
+
+  if (!isAuthorized) {
+    return null;
+  }
 
   // Обработчик выбора менеджера
   const handleSelectManager = async (managerId: string) => {
@@ -512,7 +533,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   nameContainer: {
-    flex: 1,
+    flexShrink: 1,
   },
   alreadyReviewed: {
     fontWeight: '500',

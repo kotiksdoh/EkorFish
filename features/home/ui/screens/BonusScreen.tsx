@@ -267,7 +267,7 @@ export const BonusPage: React.FC<BonusPageProps> = ({
                 <LemonIcon height={51} width={51}/>
                 </View>
             </ThemedView>
-            <PrimaryButton
+            {/* <PrimaryButton
                     title="Как потратить баллы?"
                     onPress={() => console.log("Как потратить баллы")}
                     variant="third"
@@ -275,7 +275,7 @@ export const BonusPage: React.FC<BonusPageProps> = ({
                     activeOpacity={0.8}
                     fullWidth
                     style={styles.howButton}
-                  />
+                  /> */}
           </ThemedView>
 
           <SpecialOffers />

@@ -40,7 +40,7 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
   const currentCompany = useAppSelector((state) => state.auth.currentCompany);
   useEffect(() => {
     console.log("me", me);
-  }, me);
+  }, [me]);
   useEffect(() => {
     if (me) {
       dispatch(loadCompanyFromStorage());

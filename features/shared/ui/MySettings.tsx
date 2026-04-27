@@ -1,10 +1,16 @@
 import { ArrowIconRight } from "@/assets/icons/icons";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import {
+  getPushSettings,
+  updatePushPreference,
+} from "@/features/auth/authSlice";
 import { ModalHeader } from "@/features/auth/ui/Header";
 import { useAppTheme } from "@/hooks/use-theme-color";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import React, { useEffect, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Animated,
   Dimensions,
   Modal,
@@ -13,7 +19,6 @@ import {
   View,
 } from "react-native";
 import { CustomCheckbox } from "./components/CustomCheckBox";
-import AnimatedTextInput from "./components/CustomInput";
 
 interface MySettingsProps {
   visible: boolean;
@@ -89,18 +94,25 @@ const formatTimeValue = (rawValue: string) => {
 // Компонент уведомлений
 const NotificationsScreen: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   const { isDark } = useAppTheme();
+  const dispatch = useAppDispatch();
+  const { pushSettings, isLoadingPushSettings, isUpdatingPushPreference } =
+    useAppSelector((state) => state.auth);
   const [quietMode, setQuietMode] = useState(false);
   const [quietStartTime, setQuietStartTime] = useState("22:00");
   const [quietEndTime, setQuietEndTime] = useState("08:00");
   const [deliveryMethod, setDeliveryMethod] = useState("push");
-  const [notifications, setNotifications] = useState({
-    orderStatus: true,
-    promotions: false,
-    system: true,
-  });
 
-  const toggleNotification = (key: keyof typeof notifications) => {
-    setNotifications((prev) => ({ ...prev, [key]: !prev[key] }));
+  useEffect(() => {
+    dispatch(getPushSettings());
+  }, [dispatch]);
+
+  const toggleNotification = (pushNotificationType: number, isEnabled: boolean) => {
+    dispatch(
+      updatePushPreference({
+        pushNotificationType,
+        isEnabled: !isEnabled,
+      }),
+    );
   };
 
   return (
@@ -126,55 +138,36 @@ const NotificationsScreen: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         </ThemedText>
 
         <View style={styles.formGroup}>
-          <View style={styles.checkboxRow}>
-            <CustomCheckbox
-              value={notifications.orderStatus}
-              onValueChange={() => toggleNotification("orderStatus")}
-              style={undefined}
-              lightColor={"#F2F4F7"}
-              darkColor={"#202022"}
-              disabled={undefined}
-            />
-            <ThemedText lightColor="#1B1B1C" darkColor="#FBFCFF">
-              Статусы заказов
-            </ThemedText>
-          </View>
-        </View>
-
-        <View style={styles.formGroup}>
-          <View style={styles.checkboxRow}>
-            <CustomCheckbox
-              value={notifications.promotions}
-              onValueChange={() => toggleNotification("promotions")}
-              style={undefined}
-              lightColor={"#F2F4F7"}
-              darkColor={"#202022"}
-              disabled={undefined}
-            />
-            <ThemedText lightColor="#1B1B1C" darkColor="#FBFCFF">
-              Акции и скидки
-            </ThemedText>
-          </View>
-        </View>
-
-        <View style={styles.formGroup}>
-          <View style={styles.checkboxRow}>
-            <CustomCheckbox
-              value={notifications.system}
-              onValueChange={() => toggleNotification("system")}
-              style={undefined}
-              lightColor={"#F2F4F7"}
-              darkColor={"#202022"}
-              disabled={undefined}
-            />
-            <ThemedText lightColor="#1B1B1C" darkColor="#FBFCFF">
-              Системные уведомления
-            </ThemedText>
-          </View>
+          {isLoadingPushSettings ? (
+            <View style={styles.loaderContainer}>
+              <ActivityIndicator size="small" color={isDark ? "#FBFCFF" : "#203686"} />
+              <ThemedText lightColor="#1B1B1C" darkColor="#FBFCFF">
+                Загрузка настроек...
+              </ThemedText>
+            </View>
+          ) : (
+            pushSettings.map((item) => (
+              <View style={styles.checkboxRow} key={item.pushNotificationType}>
+                <CustomCheckbox
+                  value={item.isEnabled}
+                  onValueChange={() =>
+                    toggleNotification(item.pushNotificationType, item.isEnabled)
+                  }
+                  style={undefined}
+                  lightColor={"#F2F4F7"}
+                  darkColor={"#202022"}
+                  disabled={isUpdatingPushPreference}
+                />
+                <ThemedText lightColor="#1B1B1C" darkColor="#FBFCFF">
+                  {item.name}
+                </ThemedText>
+              </View>
+            ))
+          )}
         </View>
       </ThemedView>
 
-      <ThemedView
+      {/* <ThemedView
         lightColor="#FFFFFF"
         darkColor="#151516"
         style={styles.paymentsMainContainer}
@@ -284,7 +277,7 @@ const NotificationsScreen: React.FC<{ onBack: () => void }> = ({ onBack }) => {
             Push + SMS
           </ThemedText>
         </TouchableOpacity>
-      </ThemedView>
+      </ThemedView> */}
     </View>
   );
 };
@@ -451,11 +444,17 @@ const styles = StyleSheet.create({
   },
   formGroup: {
     marginBottom: 20,
+    gap: 20,
   },
   checkboxRow: {
     flexDirection: "row",
     gap: 8,
     alignItems: "center",
+  },
+  loaderContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
   },
   radioOption: {
     flexDirection: "row",

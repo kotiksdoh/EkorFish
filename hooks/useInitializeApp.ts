@@ -11,6 +11,8 @@ import { getCart, getMyOrders } from "@/features/catalog/catalogSlice";
 import { store } from "@/store/store";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+const INIT_REQUEST_TIMEOUT_MS = 12000;
+
 // Предотвращаем автоматическое скрытие сплеш-скрина
 SplashScreenExpo.preventAutoHideAsync().catch(() => {
   /* ignore */
@@ -20,18 +22,34 @@ SplashScreenExpo.preventAutoHideAsync().catch(() => {
 
 // Имитация загрузки данных
 const loadAppResources = async () => {
+  const withTimeout = async <T>(promise: Promise<T>, label: string): Promise<void> => {
+    try {
+      await Promise.race([
+        promise,
+        new Promise<never>((_, reject) =>
+          setTimeout(
+            () => reject(new Error(`[Init] Timeout while loading ${label}`)),
+            INIT_REQUEST_TIMEOUT_MS,
+          ),
+        ),
+      ]);
+    } catch (error) {
+      console.log(`[Init] Skip failed step "${label}":`, error);
+    }
+  };
+
   try {
     const token = await AsyncStorage.getItem("token");
     // 1. Загружаем шрифты
 
     // 2. Инициализируем данные приложения
-    await store.dispatch(getCategoryItems("")).unwrap();
-    await store.dispatch(getSliderItems("")).unwrap();
+    await withTimeout(store.dispatch(getCategoryItems("")).unwrap(), "categories");
+    await withTimeout(store.dispatch(getSliderItems("")).unwrap(), "sliders");
     if (token) {
-      await store.dispatch(getMyInfo("")).unwrap();
-      await store.dispatch(getMyParams("")).unwrap();
-      await store.dispatch(getCart()).unwrap();
-      await store.dispatch(getMyOrders()).unwrap();
+      await withTimeout(store.dispatch(getMyInfo("")).unwrap(), "my-info");
+      await withTimeout(store.dispatch(getMyParams("")).unwrap(), "params");
+      await withTimeout(store.dispatch(getCart()).unwrap(), "cart");
+      await withTimeout(store.dispatch(getMyOrders()).unwrap(), "orders");
     }
     // 3. Другие инициализации (если нужны)
     // - Кэширование изображений
