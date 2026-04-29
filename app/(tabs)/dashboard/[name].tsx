@@ -22,6 +22,7 @@ import { TemplatePickerBanner } from "@/features/templates/TemplatePickerBanner"
 import { useTemplatePicker } from "@/features/templates/TemplatePickerContext";
 import { buildTemplateLineFromProduct } from "@/features/templates/buildTemplateLine";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -75,6 +76,7 @@ export default function CatalogDetailScreen() {
   // Состояния
   const [searchQuery, setSearchQuery] = useState(search || "");
   const [showFilters, setShowFilters] = useState(false);
+  const [isOpeningFilters, setIsOpeningFilters] = useState(false);
   const [sortBy, setSortBy] = useState("alphabet");
   const [priceRange, setPriceRange] = useState({
     min: "",
@@ -84,6 +86,7 @@ export default function CatalogDetailScreen() {
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [showAddToCartModal, setShowAddToCartModal] = useState(false);
   const [showTownModal, setShowTownModal] = useState(false);
+  const [hasAuthToken, setHasAuthToken] = useState(false);
   const pageSize = 10;
 
   // Анимация для свайпа модалки
@@ -109,6 +112,16 @@ export default function CatalogDetailScreen() {
   const [showSortModal, setShowSortModal] = useState(false);
   const sortModalTranslateY = useRef(new Animated.Value(screenHeight)).current;
   const [isClosingSortModal, setIsClosingSortModal] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      const checkAuthToken = async () => {
+        const token = await AsyncStorage.getItem("token");
+        setHasAuthToken(Boolean(token));
+      };
+      checkAuthToken();
+    }, []),
+  );
 
   const sortOptions = [
     { id: "alphabet", label: "По алфавиту" },
@@ -225,6 +238,22 @@ export default function CatalogDetailScreen() {
     closeModalWithAnimation();
   }, [closeModalWithAnimation]);
 
+  const handleOpenFilters = useCallback(async () => {
+    setShowFilters(true);
+
+    // Подгружаем фильтры при открытии, если их еще нет.
+    if (!catalogId || isLoadingFilters || filters.length > 0) {
+      return;
+    }
+
+    try {
+      setIsOpeningFilters(true);
+      await dispatch(getCategoryFilters(catalogId));
+    } finally {
+      setIsOpeningFilters(false);
+    }
+  }, [catalogId, dispatch, filters.length, isLoadingFilters]);
+
   // Загрузка продуктов
   const loadProducts = useCallback(
     async (
@@ -316,8 +345,10 @@ export default function CatalogDetailScreen() {
       // Загружаем избранное
       loadProducts(false, "");
 
-      // Загружаем фильтры для избранного
-      dispatch(getCategoryFilters(null));
+      // Загружаем фильтры для конкретной категории
+      if (catalogId) {
+        dispatch(getCategoryFilters(catalogId));
+      }
 
       // Опционально: функция очистки при уходе с экрана
       return () => {
@@ -325,7 +356,7 @@ export default function CatalogDetailScreen() {
         // Можно отменить запросы если нужно
         // isFetchingRef.current = false;
       };
-    }, []), // Добавьте зависимости
+    }, [catalogId, dispatch, loadProducts]), // Добавьте зависимости
   );
   // Обработчик смены подкатегории
   const handleSubcategorySelect = useCallback(
@@ -575,7 +606,7 @@ export default function CatalogDetailScreen() {
                 {/* Кнопка фильтров остается без изменений */}
                 <TouchableOpacity
                   style={styles.filterButton}
-                  onPress={() => setShowFilters(true)}
+                  onPress={handleOpenFilters}
                 >
                   <View>
                     {appliedFiltersCount > 0 && (
@@ -676,28 +707,30 @@ export default function CatalogDetailScreen() {
                 </View>
               )}
               {/* { !me?.storageId ? */}
-              <TouchableOpacity onPress={() => setShowTownModal(true)}>
-                <ThemedView
-                  darkColor="#202022"
-                  lightColor="#F2F4F7"
-                  style={styles.cityContainer}
-                >
+              {hasAuthToken && (
+                <TouchableOpacity onPress={() => setShowTownModal(true)}>
                   <ThemedView
-                    darkColor="#151516"
-                    lightColor="#FFFFFF"
-                    style={styles.cityIcon}
+                    darkColor="#202022"
+                    lightColor="#F2F4F7"
+                    style={styles.cityContainer}
                   >
-                    <WarningIcon
-                      stroke={isDarkMode ? "#FBFCFF" : "#1B1B1C"}
-                      fill={isDarkMode ? "#FBFCFF" : "#1B1B1C"}
-                    />
+                    <ThemedView
+                      darkColor="#151516"
+                      lightColor="#FFFFFF"
+                      style={styles.cityIcon}
+                    >
+                      <WarningIcon
+                        stroke={isDarkMode ? "#FBFCFF" : "#1B1B1C"}
+                        fill={isDarkMode ? "#FBFCFF" : "#1B1B1C"}
+                      />
+                    </ThemedView>
+                    <ThemedText darkColor="#FBFCFF" style={styles.cityText}>
+                      Укажите ваш город, чтобы увидеть наличие товаров
+                    </ThemedText>
+                    <ThemedText style={styles.arrowIcon}>›</ThemedText>
                   </ThemedView>
-                  <ThemedText darkColor="#FBFCFF" style={styles.cityText}>
-                    Укажите ваш город, чтобы увидеть наличие товаров
-                  </ThemedText>
-                  <ThemedText style={styles.arrowIcon}>›</ThemedText>
-                </ThemedView>
-              </TouchableOpacity>
+                </TouchableOpacity>
+              )}
 
               {/* : null
               } */}
@@ -832,13 +865,21 @@ export default function CatalogDetailScreen() {
                     </TouchableOpacity>
                   </View>
 
-                  <ScrollView
-                    ref={modalScrollViewRef}
-                    style={styles.modalContent}
-                    showsVerticalScrollIndicator={true}
-                    bounces={true}
-                    scrollEventThrottle={16}
-                  >
+                  {((isLoadingFilters || isOpeningFilters) && filters.length === 0) ? (
+                    <View style={styles.filtersFullScreenLoadingContainer}>
+                      <ActivityIndicator size="large" color="#203686" />
+                      <ThemedText style={styles.filtersLoadingText}>
+                        Загружаем фильтры...
+                      </ThemedText>
+                    </View>
+                  ) : (
+                    <ScrollView
+                      ref={modalScrollViewRef}
+                      style={styles.modalContent}
+                      showsVerticalScrollIndicator={true}
+                      bounces={true}
+                      scrollEventThrottle={16}
+                    >
                     {/* Фильтр по цене */}
                     <View style={styles.filterSection}>
                       <ThemedText style={styles.filterSectionTitle}>
@@ -913,8 +954,9 @@ export default function CatalogDetailScreen() {
                     )}
 
                     {/* Добавляем отступ внизу чтобы контент не прилипал к кнопке */}
-                    <View style={styles.modalBottomSpacer} />
-                  </ScrollView>
+                      <View style={styles.modalBottomSpacer} />
+                    </ScrollView>
+                  )}
 
                   {/* Кнопка применения */}
                   <TouchableOpacity

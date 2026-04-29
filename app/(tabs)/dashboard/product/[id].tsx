@@ -9,9 +9,10 @@ import { TemplatePickerBanner } from "@/features/templates/TemplatePickerBanner"
 import { useTemplatePicker } from "@/features/templates/TemplatePickerContext";
 import { AddToCartModal } from "@/features/shared/ui/AddToCartModal";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
   Animated,
@@ -57,6 +58,7 @@ export default function ProductDetailScreen() {
   const [tabAnim] = useState(new Animated.Value(0));
   const [isCartModalVisible, setIsCartModalVisible] = useState(false);
   const [existingCartItem, setExistingCartItem] = useState<any>(null);
+  const [hasAuthToken, setHasAuthToken] = useState(false);
 
   const tabContainerRef = useRef<View>(null);
 
@@ -70,6 +72,16 @@ export default function ProductDetailScreen() {
   const totalPrice = selectedPurchaseOption
     ? quantity * selectedPurchaseOption.price
     : 0;
+
+  useFocusEffect(
+    useCallback(() => {
+      const checkAuthToken = async () => {
+        const token = await AsyncStorage.getItem("token");
+        setHasAuthToken(Boolean(token));
+      };
+      checkAuthToken();
+    }, []),
+  );
 
   useEffect(() => {
     if (selectedPurchaseOption) {
@@ -555,8 +567,9 @@ export default function ProductDetailScreen() {
           <View style={styles.bottomPanel}>
             <TouchableOpacity
               style={styles.addToCartButton}
-              onPress={handleOpenCartModal}
-              activeOpacity={0.9}
+              onPress={hasAuthToken ? handleOpenCartModal : undefined}
+              disabled={!hasAuthToken}
+              activeOpacity={hasAuthToken ? 0.9 : 1}
             >
               <View style={styles.addToCartContent}>
                 <View style={styles.cartIconContainer}>
