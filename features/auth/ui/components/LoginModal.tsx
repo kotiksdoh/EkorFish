@@ -15,6 +15,7 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { PrimaryButton } from "@/features/home";
 import { DatePickerWithIcon } from "@/features/shared/ui/components/DatePickerCustom";
 // import SmartInput from '@/features/shared/ui/components/SmartInput';
+import { getCart, getMyOrders } from "@/features/catalog/catalogSlice";
 import SmartInput from "@/features/shared/ui/components/SmartInput";
 import ManagerSection from "@/features/shared/ui/ManagerSection";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -46,7 +47,6 @@ import {
   sendCode,
 } from "../../authSlice";
 import { ModalHeader } from "../Header";
-import { getCart, getMyOrders } from "@/features/catalog/catalogSlice";
 // import Error from '../../../../assets/icons/png/error.png'
 interface LoginModalProps {
   visible: boolean;
@@ -103,13 +103,13 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   const [surname, setSurname] = useState("");
   const [name, setName] = useState("");
   const [secondName, setSecondName] = useState("");
-  const [birthDate, setBirthDate] = useState("17.01.2002");
+  const [birthDate, setBirthDate] = useState("");
 
   const [orgName, setOrgName] = useState("");
   const [kpp, setKpp] = useState("");
   const [legalAddress, setLegalAddress] = useState("");
   const [contactPerson, setContactPerson] = useState("");
-  const [dateCreated, setDateCreated] = useState("17.01.2002");
+  const [dateCreated, setDateCreated] = useState("");
   // const [phone, setPhone] = useState(phoneNumber)
   // const [email, setEmail] = useState('')
 

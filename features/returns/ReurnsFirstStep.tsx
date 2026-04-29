@@ -5,6 +5,7 @@ import { clearReturnRequests, getMyReturnableOrders } from "@/features/catalog/c
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { useFocusEffect } from "expo-router";
 import React, { useCallback, useMemo } from "react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   ActivityIndicator,
   Dimensions,
@@ -31,6 +32,7 @@ export const MyReturnsFirstStep: React.FC<MyReturnsFirstStepProps> = ({
   onClose,
   onNext,
 }) => {
+  const insets = useSafeAreaInsets();
   const systemTheme = useColorScheme();
   const currentTheme = systemTheme || "light";
   const isDark = currentTheme === "dark";
@@ -208,7 +210,10 @@ export const MyReturnsFirstStep: React.FC<MyReturnsFirstStepProps> = ({
           <ThemedView
             darkColor="#151516"
             lightColor="#FFFFFF"
-            style={styles.bottomPanel}
+            style={[
+              styles.bottomPanel,
+              { paddingBottom: (Platform.OS === "ios" ? 34 : 16) + insets.bottom },
+            ]}
           >
             <View style={styles.bottomPanelContent}>
               <View style={styles.bottomLeft}>

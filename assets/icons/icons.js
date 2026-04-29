@@ -1291,6 +1291,26 @@ export const WarningIcon = ({
   </Svg>
 );
 
+export const PaymentPendingIcon = ({
+  width = 16,
+  height = 16,
+  stroke = "#FF4D6D",
+  fill = "#FF4D6D",
+  ...props
+}) => (
+  <Svg width={width} height={height} viewBox="0 0 16 16" fill="none" {...props}>
+    <Path
+      d="M8 11.178V7.82203C8 7.2604 7.54469 6.80508 6.98305 6.80508H6.72881M6.72881 11.2034H8H9.27119M2 8C2 4.6863 4.6863 2 8 2C11.3137 2 14 4.6863 14 8C14 11.3137 11.3137 14 8 14C4.6863 14 2 11.3137 2 8Z"
+      stroke={stroke}
+      strokeWidth="1.25"
+      strokeMiterlimit="10"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <Circle cx="8.00039" cy="4.99844" r="0.6" fill={fill} />
+  </Svg>
+);
+
 export const IconCompany = ({ width = 40, height = 40, ...props }) => (
   <Svg width={width} height={height} viewBox="0 0 40 40" fill="none" {...props}>
     <Rect width="40" height="40" rx="8" fill="white" />

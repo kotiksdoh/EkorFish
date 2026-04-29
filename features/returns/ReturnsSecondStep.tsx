@@ -13,6 +13,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ReasonModal } from "./ReasonModal";
 import { SelectedReturnItem } from "./SelectedReturnItem";
 
@@ -29,6 +30,7 @@ export const MyReturnsSecondStep: React.FC<MyReturnsSecondStepProps> = ({
   onBack,
   onNext,
 }) => {
+  const insets = useSafeAreaInsets();
   const systemTheme = useColorScheme();
   const isDark = systemTheme === "dark";
 
@@ -237,7 +239,10 @@ export const MyReturnsSecondStep: React.FC<MyReturnsSecondStepProps> = ({
             <ThemedView
               darkColor="#151516"
               lightColor="#FFFFFF"
-              style={styles.bottomPanel}
+              style={[
+                styles.bottomPanel,
+                { paddingBottom: (Platform.OS === "ios" ? 34 : 16) + insets.bottom },
+              ]}
             >
               <View style={styles.bottomPanelContent}>
                 <View style={styles.bottomLeft}>

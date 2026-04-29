@@ -24,6 +24,7 @@ import {
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { Image } from "expo-image";
 import React, { useEffect, useRef, useState } from "react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   ActivityIndicator,
   FlatList,
@@ -98,6 +99,7 @@ function adaptPresetItemToLine(item: any): TemplateLineItem {
 }
 
 export function MyTemplatesModal({ visible, onClose }: Props) {
+  const insets = useSafeAreaInsets();
   const systemTheme = useColorScheme();
   const isDark = (systemTheme || "light") === "dark";
   const currentCompany = useAppSelector((s) => s.auth.currentCompany);
@@ -698,7 +700,10 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
             <ThemedView
               lightColor="#FFFFFF"
               darkColor="#151516"
-              style={styles.bottomPanel}
+              style={[
+                styles.bottomPanel,
+                { paddingBottom: (Platform.OS === "ios" ? 34 : 16) + insets.bottom },
+              ]}
             >
               <View style={styles.templateBottomSummary}>
                 <View style={styles.totalTopRow}>
@@ -763,7 +768,10 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
             <ThemedView
               lightColor="#FFFFFF"
               darkColor="#151516"
-              style={styles.bottomPanel}
+              style={[
+                styles.bottomPanel,
+                { paddingBottom: (Platform.OS === "ios" ? 34 : 16) + insets.bottom },
+              ]}
             >
               <PrimaryButton
                 title={isUpdating ? "Сохранение..." : "Сохранить"}

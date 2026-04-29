@@ -14,6 +14,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import AnimatedTextInput from "./components/CustomInput";
 import { DatePickerWithIcon } from "./components/DatePickerCustom";
 import { PrimaryButton } from "./components/PrimartyButton";
@@ -65,6 +66,7 @@ export const CompanySelectModal: React.FC<CompanySelectModalProps> = ({
   onAddCompany,
   screenScene = "choose",
 }) => {
+  const insets = useSafeAreaInsets();
   const systemTheme = useColorScheme();
   const colorScheme = useColorScheme();
   //TODO
@@ -75,7 +77,7 @@ export const CompanySelectModal: React.FC<CompanySelectModalProps> = ({
   const [kpp, setKpp] = useState("");
   const [legalAddress, setLegalAddress] = useState("");
   const [contactPerson, setContactPerson] = useState("");
-  const [dateCreated, setDateCreated] = useState("17.01.2002");
+  const [dateCreated, setDateCreated] = useState("");
   const [inn, setInn] = useState("");
 
   const loading = useAppSelector((state) => state.auth.isLoading);
@@ -287,7 +289,12 @@ export const CompanySelectModal: React.FC<CompanySelectModalProps> = ({
           </ThemedView>
 
           {/* Кнопка добавления компании - следует за скроллом */}
-          <View style={styles.footer}>
+          <View
+            style={[
+              styles.footer,
+              { paddingBottom: 16 + insets.bottom },
+            ]}
+          >
             <PrimaryButton
               title="+ Добавить аккаунт"
               onPress={() => {
@@ -376,7 +383,12 @@ const [contactPerson, setContactPerson] = useState('') */}
               </View>
             </View>
           </ThemedView>
-          <View style={styles.footerNew}>
+          <View
+            style={[
+              styles.footerNew,
+              { paddingBottom: 16 + insets.bottom },
+            ]}
+          >
             <PrimaryButton
               title="Завершить регистрацию"
               onPress={() => handleAcceptCompany()}

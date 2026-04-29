@@ -1,4 +1,8 @@
-import { ArrowIconRight, FilterXsIcon } from "@/assets/icons/icons";
+import {
+  ArrowIconRight,
+  FilterXsIcon,
+  PaymentPendingIcon,
+} from "@/assets/icons/icons";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import {
@@ -39,9 +43,9 @@ import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { formatDate } from "../services/utils";
 import { CompanySelectionModal } from "./CompanySelectionModalSmall";
 import { CompanySelectModal } from "./CompanySelectModal";
-import { SnapBottomSheet } from "./SnapBottomSheet";
 import AnimatedTextInput from "./components/CustomInput";
 import { PrimaryButton } from "./components/PrimartyButton";
+import { SnapBottomSheet } from "./SnapBottomSheet";
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 
@@ -93,6 +97,7 @@ const PaymentFiltersModal: React.FC<{
   const isDarkMode = colorScheme === "dark";
   const [localFilters, setLocalFilters] =
     useState<Record<string, string>>(filters);
+  const [monthYearError, setMonthYearError] = useState("");
 
   const [isClosing, setIsClosing] = useState(false);
   const modalTranslateY = useRef(new Animated.Value(screenHeight)).current;
@@ -100,8 +105,19 @@ const PaymentFiltersModal: React.FC<{
   useEffect(() => {
     if (visible) {
       setLocalFilters(filters);
+      setMonthYearError("");
     }
   }, [visible, filters]);
+
+  const isMonthYearPairValid = useMemo(() => {
+    const selectedYear =
+      localFilters.paymentDateYear || localFilters.PaymentDateYear;
+    const selectedMonth =
+      localFilters.paymentDateMonth || localFilters.PaymentDateMonth;
+    const hasYear = Boolean(selectedYear);
+    const hasMonth = Boolean(selectedMonth);
+    return (hasYear && hasMonth) || (!hasYear && !hasMonth);
+  }, [localFilters]);
 
   const closeModalWithAnimation = useCallback(() => {
     if (isClosing) return;
@@ -138,6 +154,7 @@ const PaymentFiltersModal: React.FC<{
       ...prev,
       [paramName]: prev[paramName] === code ? "" : code,
     }));
+    setMonthYearError("");
   };
 
   const resetFilters = () => {
@@ -146,9 +163,14 @@ const PaymentFiltersModal: React.FC<{
       resetFiltersObj[filter.paramName] = "";
     });
     setLocalFilters(resetFiltersObj);
+    setMonthYearError("");
   };
 
   const applyFilters = () => {
+    if (!isMonthYearPairValid) {
+      setMonthYearError("Месяц и год даты платежа нужно выбрать вместе");
+      return;
+    }
     onApplyFilters(localFilters);
     closeModalWithAnimation();
   };
@@ -207,10 +229,6 @@ const PaymentFiltersModal: React.FC<{
 
               <ScrollView style={styles.modalContent}>
                 {uniqueFilters.map((filterGroup) => {
-                  // Пропускаем PaymentDateYear и PaymentDateMonth
-                  if (filterGroup.paramName === "PaymentDateYear") return null;
-                  if (filterGroup.paramName === "PaymentDateMonth") return null;
-
                   return (
                     <View key={filterGroup.id} style={styles.filterSection}>
                       <ThemedText style={styles.filterSectionTitle}>
@@ -252,6 +270,12 @@ const PaymentFiltersModal: React.FC<{
 
                 <View style={styles.modalBottomSpacer} />
               </ScrollView>
+
+              {!isMonthYearPairValid && (
+                <ThemedText style={styles.filterValidationText} darkColor="#FF6B6B">
+                  {monthYearError || "Месяц и год даты платежа нужно выбрать вместе"}
+                </ThemedText>
+              )}
 
               <TouchableOpacity
                 style={[
@@ -341,18 +365,26 @@ const PaymentsHistoryScreen: React.FC<{ onBack: () => void }> = ({
     const uniqueGroups = Array.from(groupedFilters.entries()).map(
       ([groupName, filtersInGroup]) => {
         const hasYearFilter = filtersInGroup.some(
-          (f: any) => f.paramName === "PaymentDateYear",
+          (f: any) =>
+            f.paramName === "PaymentDateYear" ||
+            f.paramName === "paymentDateYear",
         );
         const hasMonthFilter = filtersInGroup.some(
-          (f: any) => f.paramName === "PaymentDateMonth",
+          (f: any) =>
+            f.paramName === "PaymentDateMonth" ||
+            f.paramName === "paymentDateMonth",
         );
 
         if (hasYearFilter && hasMonthFilter) {
           const yearFilter = filtersInGroup.find(
-            (f: any) => f.paramName === "PaymentDateYear",
+            (f: any) =>
+              f.paramName === "PaymentDateYear" ||
+              f.paramName === "paymentDateYear",
           );
           const monthFilter = filtersInGroup.find(
-            (f: any) => f.paramName === "PaymentDateMonth",
+            (f: any) =>
+              f.paramName === "PaymentDateMonth" ||
+              f.paramName === "paymentDateMonth",
           );
 
           const selectedYearCode = filters[yearFilter?.paramName || ""];
@@ -544,9 +576,6 @@ const PaymentsHistoryScreen: React.FC<{ onBack: () => void }> = ({
           contentContainerStyle={styles.subcategoriesContent}
         >
           {groupedFilters.map((group) => {
-            if (group.paramName === "PaymentDateYear") return null;
-            if (group.paramName === "PaymentDateMonth") return null;
-
             return (
               <TouchableOpacity
                 key={group.id}
@@ -630,9 +659,16 @@ const PaymentsHistoryScreen: React.FC<{ onBack: () => void }> = ({
                           <ThemedText darkColor="#4C94FF" weight="medium">
                             {payment.paymentType || "Оплата"}
                           </ThemedText>
-                          <ThemedText darkColor="#FBFCFF" weight="semiBold">
-                            {payment.amount.toLocaleString()} ₽
-                          </ThemedText>
+                          <View style={styles.amountContainer}>
+                            {payment.processed === false && <PaymentPendingIcon />}
+                            <ThemedText
+                              darkColor={payment.processed === false ? "#FF4D6D" : "#FBFCFF"}
+                              lightColor={payment.processed === false ? "#FF4D6D" : "#1B1B1C"}
+                              weight="semiBold"
+                            >
+                              {payment.amount.toLocaleString()} ₽
+                            </ThemedText>
+                          </View>
                         </View>
                         <View
                           style={{
@@ -696,8 +732,8 @@ const ReconciliationActScreen: React.FC<{ onBack: () => void }> = ({
 
   const companies = useAppSelector((state) => state.auth.me.companies) || [];
 
-  const [startDate, setStartDate] = useState<Date | null>(new Date(2026, 3, 10));
-  const [endDate, setEndDate] = useState<Date | null>(new Date(2026, 3, 12));
+  const [startDate, setStartDate] = useState<Date | null>(null);
+  const [endDate, setEndDate] = useState<Date | null>(null);
   const [selectedCompany, setSelectedCompany] = useState<any>(null);
   const [email, setEmail] = useState("");
   const [comment, setComment] = useState("");
@@ -1571,9 +1607,16 @@ export const MyFinanceModal: React.FC<MyFinanceProps> = ({
                             <ThemedText darkColor="#4C94FF" weight="medium">
                               {payment.paymentType || "Оплата"}
                             </ThemedText>
-                            <ThemedText darkColor="#FBFCFF" weight="semiBold">
-                              {payment.amount.toLocaleString()} ₽
-                            </ThemedText>
+                            <View style={styles.amountContainer}>
+                              {payment.processed === false && <PaymentPendingIcon />}
+                              <ThemedText
+                                darkColor={payment.processed === false ? "#FF4D6D" : "#FBFCFF"}
+                                lightColor={payment.processed === false ? "#FF4D6D" : "#1B1B1C"}
+                                weight="semiBold"
+                              >
+                                {payment.amount.toLocaleString()} ₽
+                              </ThemedText>
+                            </View>
                           </View>
                           <View
                             style={{
@@ -1735,6 +1778,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
   },
+  filterValidationText: {
+    fontSize: 12,
+    marginHorizontal: 20,
+    marginBottom: 8,
+  },
 
   // Фильтры
   filterSection: {
@@ -1841,6 +1889,11 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     zIndex: 1,
+  },
+  amountContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
   },
 
   // Компания и документы

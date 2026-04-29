@@ -14,6 +14,7 @@ import {
   View,
   useColorScheme
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { baseUrl } from "../shared/services/axios";
 
 interface ReasonModalProps {
@@ -41,6 +42,7 @@ export const ReasonModal: React.FC<ReasonModalProps> = ({
   reasons,
   product,
 }) => {
+  const insets = useSafeAreaInsets();
   const systemTheme = useColorScheme();
   const isDark = systemTheme === "dark";
   const [selectedReason, setSelectedReason] = useState<number | undefined>(undefined);
@@ -232,7 +234,10 @@ export const ReasonModal: React.FC<ReasonModalProps> = ({
         <ThemedView
           darkColor="#151516"
           lightColor="#FFFFFF"
-          style={styles.bottomPanel}
+          style={[
+            styles.bottomPanel,
+            { paddingBottom: (Platform.OS === "ios" ? 34 : 16) + insets.bottom },
+          ]}
         >
           <TouchableOpacity
             style={[

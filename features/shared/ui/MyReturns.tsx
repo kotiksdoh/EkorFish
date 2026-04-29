@@ -21,6 +21,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PrimaryButton } from "./components/PrimartyButton";
 import ReturnsCard from "./components/ReturnsCard";
 
@@ -35,6 +36,7 @@ export const MyReturnsModal: React.FC<MyReturnsProps> = ({
   visible,
   onClose,
 }) => {
+  const insets = useSafeAreaInsets();
   const systemTheme = useColorScheme();
   const currentTheme = systemTheme || "light";
   const isDark = currentTheme === "dark";
@@ -192,7 +194,12 @@ export const MyReturnsModal: React.FC<MyReturnsProps> = ({
                   {loading ? renderLoadingState() : renderReturnsList()}
                 </View>
 
-                <View style={styles.headerButtons}>
+                <View
+                  style={[
+                    styles.headerButtons,
+                    { marginBottom: 1 + insets.bottom },
+                  ]}
+                >
                   <TouchableOpacity
                     style={styles.createReturnButton}
                     onPress={onCreateReturn}

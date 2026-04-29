@@ -32,6 +32,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   ActivityIndicator,
   Alert,
@@ -94,6 +95,7 @@ export default function CheckoutModal({
   cartItems,
   totals,
 }: CheckoutModalProps) {
+  const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme();
   //TODO
   const isDarkMode = colorScheme === "dark";
@@ -1295,6 +1297,7 @@ function DateTimeModal({
   initialDateTime,
   deliverySchedule,
 }: any) {
+  const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme();
   //TODO
   const isDarkMode = colorScheme === "dark";
@@ -1605,7 +1608,10 @@ function DateTimeModal({
               {/* Нижняя панель с раздельными блоками даты и времени */}
               <ThemedView
                 lightColor="#FFFFFF"
-                style={styles.dateTimeBottomPanel}
+                style={[
+                  styles.dateTimeBottomPanel,
+                  { paddingBottom: (Platform.OS === "ios" ? 34 : 16) + insets.bottom },
+                ]}
               >
                 <View style={styles.selectedDateTime}>
                   {/* Блок выбранной даты */}

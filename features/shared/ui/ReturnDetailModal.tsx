@@ -22,6 +22,7 @@ import * as Clipboard from "expo-clipboard";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useMemo, useState } from "react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   ActivityIndicator,
   Alert,
@@ -34,6 +35,7 @@ import {
   TouchableWithoutFeedback,
   View,
 } from "react-native";
+import { SnapBottomSheet } from "./SnapBottomSheet";
 import { PrimaryButton } from "./components/PrimartyButton";
 
 const { height: screenHeight } = Dimensions.get("window");
@@ -62,15 +64,14 @@ export const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
   onClose,
   returnRequestId,
 }) => {
+  const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === "dark";
 
   const [productsModalVisible, setProductsModalVisible] = useState(false);
   const [statusModalVisible, setStatusModalVisible] = useState(false);
   const [productsModalTranslateY] = useState(new Animated.Value(screenHeight));
-  const [statusModalTranslateY] = useState(new Animated.Value(screenHeight));
   const [isProductsModalClosing, setIsProductsModalClosing] = useState(false);
-  const [isStatusModalClosing, setIsStatusModalClosing] = useState(false);
 
   const detail = useAppSelector((state) => state.catalog.return);
   const isLoading = useAppSelector(
@@ -101,20 +102,6 @@ export const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
     }
   }, [productsModalVisible]);
 
-  // Анимация для модалки со статусами
-  useEffect(() => {
-    if (statusModalVisible) {
-      statusModalTranslateY.setValue(screenHeight);
-      Animated.spring(statusModalTranslateY, {
-        toValue: 0,
-        useNativeDriver: true,
-        damping: 20,
-        stiffness: 90,
-        mass: 0.8,
-      }).start();
-    }
-  }, [statusModalVisible]);
-
   const closeProductsModal = () => {
     if (isProductsModalClosing) return;
     setIsProductsModalClosing(true);
@@ -129,16 +116,7 @@ export const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
   };
 
   const closeStatusModal = () => {
-    if (isStatusModalClosing) return;
-    setIsStatusModalClosing(true);
-    Animated.timing(statusModalTranslateY, {
-      toValue: screenHeight,
-      duration: 250,
-      useNativeDriver: true,
-    }).start(() => {
-      setIsStatusModalClosing(false);
-      setStatusModalVisible(false);
-    });
+    setStatusModalVisible(false);
   };
 
   const handleCopyId = async () => {
@@ -691,6 +669,7 @@ export const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                 <Animated.View
                   style={[
                     styles.modalContainer,
+                    { paddingBottom: insets.bottom },
                     { transform: [{ translateY: productsModalTranslateY }] },
                     isDarkMode && { backgroundColor: "#202022" },
                   ]}
@@ -721,44 +700,19 @@ export const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
           </TouchableWithoutFeedback>
         </Modal>
 
-        <Modal
+        <SnapBottomSheet
           visible={statusModalVisible}
-          animationType="none"
-          transparent={true}
-          onRequestClose={closeStatusModal}
-          statusBarTranslucent={true}
+          title="Статус вашего возврата"
+          titleAlign="left"
+          onClose={closeStatusModal}
         >
-          <TouchableWithoutFeedback onPress={closeStatusModal}>
-            <View style={styles.modalOverlay}>
-              <TouchableWithoutFeedback>
-                <Animated.View
-                  style={[
-                    styles.modalContainer,
-                    { transform: [{ translateY: statusModalTranslateY }] },
-                    isDarkMode && { backgroundColor: "#202022" },
-                  ]}
-                >
-                  <TouchableOpacity
-                    style={styles.swipeHandleContainer}
-                    activeOpacity={0.7}
-                    onPress={closeStatusModal}
-                  >
-                    <View style={styles.swipeHandle} />
-                  </TouchableOpacity>
-
-                  <View style={styles.modalHeader}>
-                    <ThemedText style={styles.modalTitle}>
-                      Статус вашего возврата
-                    </ThemedText>
-                  </View>
-
-                  <View style={styles.statusesListWrapper}>
-                    <ScrollView
-                      style={styles.statusesList}
-                      showsVerticalScrollIndicator={true}
-                      contentContainerStyle={styles.statusesListContent}
-                    >
-                      {statusList.map((status: any, index: number) => {
+          <View style={styles.statusesListWrapper}>
+            <ScrollView
+              style={styles.statusesList}
+              showsVerticalScrollIndicator={true}
+              contentContainerStyle={styles.statusesListContent}
+            >
+              {statusList.map((status: any, index: number) => {
                         const currentIndex = getCurrentStatusIndex();
                         const isCurrent = index === currentIndex;
                         const isNext = index === currentIndex + 1;
@@ -863,14 +817,10 @@ export const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                             </View>
                           </View>
                         );
-                      })}
-                    </ScrollView>
-                  </View>
-                </Animated.View>
-              </TouchableWithoutFeedback>
-            </View>
-          </TouchableWithoutFeedback>
-        </Modal>
+              })}
+            </ScrollView>
+          </View>
+        </SnapBottomSheet>
       </Modal>
     </>
   );

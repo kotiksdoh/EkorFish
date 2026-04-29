@@ -20,6 +20,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { createReturnRequest } from "../catalog/catalogSlice";
 import { baseUrl } from "../shared/services/axios";
 
@@ -52,6 +53,7 @@ export const MyReturnsThirdStep: React.FC<MyReturnsThirdStepProps> = ({
   onNavigateHome,
   onViewReturnDetails,
 }) => {
+  const insets = useSafeAreaInsets();
   const systemTheme = useColorScheme();
   const isDark = systemTheme === "dark";
   const dispatch = useAppDispatch();
@@ -549,7 +551,10 @@ export const MyReturnsThirdStep: React.FC<MyReturnsThirdStepProps> = ({
               <ThemedView
                 darkColor="#151516"
                 lightColor="#FFFFFF"
-                style={styles.bottomPanel}
+                style={[
+                  styles.bottomPanel,
+                  { paddingBottom: (Platform.OS === "ios" ? 34 : 16) + insets.bottom },
+                ]}
               >
                 <View style={styles.bottomPanelContent}>
                   <View style={styles.bottomLeft}>

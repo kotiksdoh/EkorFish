@@ -2,6 +2,7 @@ import { ThemedText } from "@/components/themed-text";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import React, { useCallback, useEffect, useRef } from "react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   Animated,
   Dimensions,
@@ -33,6 +34,7 @@ export function SnapBottomSheet({
   onClose,
   children,
 }: SnapBottomSheetProps) {
+  const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === "dark";
   const backgroundColor = useThemeColor({}, "background");
@@ -100,6 +102,7 @@ export function SnapBottomSheet({
             {
               backgroundColor,
               maxHeight: MAX_SHEET_HEIGHT,
+              paddingBottom: 24 + insets.bottom,
               transform: [{ translateY }],
             },
             isDarkMode && { borderColor: "#252527" },
