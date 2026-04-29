@@ -14,7 +14,6 @@ import {
   FlatList,
   Image,
   Linking,
-  Platform,
   StyleSheet,
   TouchableOpacity,
   View,
@@ -48,40 +47,19 @@ const CurrentManagerCard = ({ manager, onChangePress, onReviewPress }: ManagerCa
     }
 
     const phoneNumber = manager.phoneNumber.replace(/[^0-9+]/g, '');
-    
-    let url = '';
-    
-    if (Platform.OS === 'ios') {
-      url = `sms:${phoneNumber}`;
-    } else {
-      try {
-        const whatsappUrl = `whatsapp://send?phone=${phoneNumber}`;
-        const canOpenWhatsapp = await Linking.canOpenURL(whatsappUrl);
-        
-        if (canOpenWhatsapp) {
-          url = whatsappUrl;
-        } else {
-          url = `sms:${phoneNumber}`;
-        }
-      } catch (error) {
-        url = `sms:${phoneNumber}`;
-      }
-    }
-    
+    const telegramDeepLink = `tg://resolve?phone=${phoneNumber}`;
+    const telegramWebLink = `https://t.me/+${phoneNumber.replace(/^\+/, '')}`;
+
     try {
-      const canOpen = await Linking.canOpenURL(url);
-      if (canOpen) {
-        await Linking.openURL(url);
-      } else {
-        Alert.alert(
-          'Написать сообщение',
-          `Номер менеджера: ${manager.phoneNumber}`,
-          [{ text: 'OK' }]
-        );
+      const canOpenTelegram = await Linking.canOpenURL(telegramDeepLink);
+      if (canOpenTelegram) {
+        await Linking.openURL(telegramDeepLink);
+        return;
       }
+      await Linking.openURL(telegramWebLink);
     } catch (error) {
-      console.error('Ошибка при открытии сообщений:', error);
-      Alert.alert('Ошибка', 'Не удалось открыть приложение для сообщений');
+      console.error('Ошибка при открытии Telegram:', error);
+      Alert.alert('Ошибка', 'Не удалось открыть Telegram');
     }
   };
 
@@ -106,7 +84,6 @@ const CurrentManagerCard = ({ manager, onChangePress, onReviewPress }: ManagerCa
       Alert.alert('Ошибка', 'Не удалось совершить звонок');
     }
   };
-  console.log('manager?.hasReviewed', manager?.hasReviewed)
   return (
     <View style={styles.mainCont}>
       <ThemedView
@@ -456,7 +433,6 @@ export const ManagerSection = () => {
   };
 
   // Если есть текущий менеджер и не показываем список выбора
-  console.log('currentManager', currentManager)
   if (currentManager && !showManagerList) {
     return (
       <>

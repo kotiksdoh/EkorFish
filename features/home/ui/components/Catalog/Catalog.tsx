@@ -2,24 +2,12 @@ import { ThemedText } from '@/components/themed-text';
 import { CatalogCard } from '@/features/shared/ui/CatalogCard';
 import { useAppSelector } from '@/store/hooks';
 import React, { useMemo } from 'react';
-import { FlatList, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 
 export default function Catalog() {
   const catalog = useAppSelector((state) => state.auth.categories);
-
-  const renderCatalogCard = ({ item }: { item: any }) => (
-    <CatalogCard
-      key={item.id}
-      id={item.id}
-      img={item.imageUrl}
-      name={item.name}
-      children={item.children}
-    />
-  );
-
-  const numColumns = 3;
-  const keyExtractor = (item: any) => String(item.id);
+  const visibleCatalog = useMemo(() => catalog, [catalog]);
 
   return (
     <View style={styles.container}>
@@ -31,15 +19,17 @@ export default function Catalog() {
         Каталог товаров
       </ThemedText>
       
-      <FlatList
-        data={catalog}
-        renderItem={renderCatalogCard}
-        keyExtractor={keyExtractor}
-        numColumns={numColumns}
-        scrollEnabled={false}
-        contentContainerStyle={styles.scrollContent}
-        columnWrapperStyle={styles.columnWrapper}
-      />
+      <View style={styles.catalog}>
+        {visibleCatalog.map((item: any) => (
+          <CatalogCard
+            key={item.id}
+            id={item.id}
+            img={item.imageUrl}
+            name={item.name}
+            children={item.children}
+          />
+        ))}
+      </View>
     </View>
   );
 }

@@ -1,7 +1,7 @@
 import { ThemedView } from '@/components/themed-view';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useThemeColor } from '@/hooks/use-theme-color';
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Animated,
   Platform,
@@ -44,6 +44,14 @@ const AnimatedTextInput: React.FC<AnimatedTextInputProps> = ({
   const [isFocused, setIsFocused] = useState(false);
   const animatedValue = useState(new Animated.Value(value ? 1 : 0))[0];
   const inputRef = useRef<TextInput>(null);
+
+  useEffect(() => {
+    Animated.timing(animatedValue, {
+      toValue: value ? 1 : 0,
+      duration: 200,
+      useNativeDriver: false,
+    }).start();
+  }, [value, animatedValue]);
 
   const handleFocus = () => {
     setIsFocused(true);

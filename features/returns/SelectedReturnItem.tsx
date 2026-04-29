@@ -108,13 +108,16 @@ export const SelectedReturnItem = memo(({ item, onSelectReason }: SelectedReturn
 
         {!hasReason && (
           <TouchableOpacity
-            style={styles.reasonButtonEmpty}
+            style={[
+              styles.reasonButtonEmpty,
+              isDark && styles.reasonButtonEmptyDark,
+            ]}
             onPress={onSelectReason}
           >
             <ThemedText
               style={styles.reasonButtonText}
               lightColor="#80818B"
-              darkColor="#FBFCFF80"
+              darkColor="#F2F4F7"
             >
               Выбрать причину
             </ThemedText>
@@ -199,6 +202,9 @@ const styles = StyleSheet.create({
     gap: 6,
     minWidth: "50%",
     alignSelf: "flex-end",
+  },
+  reasonButtonEmptyDark: {
+    backgroundColor: "#202022",
   },
   reasonButton: {
     flexDirection: "row",

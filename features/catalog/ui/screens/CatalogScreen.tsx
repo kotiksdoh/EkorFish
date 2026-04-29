@@ -5,11 +5,15 @@ import { CatalogCard } from "@/features/shared/ui/CatalogCard";
 import { TemplatePickerBanner } from "@/features/templates/TemplatePickerBanner";
 import { useTemplatePicker } from "@/features/templates/TemplatePickerContext";
 import { useAppSelector } from "@/store/hooks";
+import { useHeaderHeight } from "@react-navigation/elements";
 import { useFocusEffect, useRouter } from "expo-router";
-import React, { useCallback, useState } from "react";
-import { FlatList, StyleSheet, TouchableOpacity, View } from "react-native";
+import React, { useCallback, useMemo, useState } from "react";
+import { FlatList, Platform, StyleSheet, TouchableOpacity, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export const CatalogScreen = () => {
+  const insets = useSafeAreaInsets();
+  const headerHeight = useHeaderHeight();
   const [showSearch, setShowSearch] = useState(false);
   const {
     openSearchAfterNavigate,
@@ -48,18 +52,44 @@ export const CatalogScreen = () => {
     );
   };
 
-  const renderCatalogCard = ({ item }: { item: any }) => (
-    <CatalogCard
-      key={item.id}
-      id={item.id}
-      img={item.imageUrl}
-      name={item.name}
-      children={item.children}
-    />
+  const renderCatalogCard = useCallback(
+    ({ item }: { item: any }) => (
+      <CatalogCard
+        id={item.id}
+        img={item.imageUrl}
+        name={item.name}
+        children={item.children}
+      />
+    ),
+    [],
   );
 
-  const keyExtractor = (item: any) => String(item.id);
+  const keyExtractor = useCallback((item: any) => String(item.id), []);
   const numColumns = 3;
+  const headerTopPadding =
+    Platform.OS === "android" ? headerHeight + 8 : insets.top + 8;
+  const headerComponent = useMemo(
+    () => (
+      <View style={styles.headerContainer}>
+        <ThemedView
+          lightColor={"#FFFFFF"}
+          style={[styles.container, { paddingTop: headerTopPadding }]}
+        >
+          <TouchableOpacity onPress={handleSearchPress} activeOpacity={1}>
+            <View pointerEvents="none">
+              <SearchInput
+                isActiveButton={false}
+                placeholder="Найти товары"
+                disabled={false}
+              />
+            </View>
+          </TouchableOpacity>
+        </ThemedView>
+        <TemplatePickerBanner />
+      </View>
+    ),
+    [handleSearchPress, headerTopPadding],
+  );
 
   return (
     <>
@@ -71,23 +101,12 @@ export const CatalogScreen = () => {
         scrollEnabled={true}
         showsVerticalScrollIndicator={false}
         columnWrapperStyle={styles.columnWrapper}
-        ListHeaderComponent={
-          <View style={styles.headerContainer}>
-            <ThemedView lightColor={"#FFFFFF"} style={styles.container}>
-              <TouchableOpacity onPress={handleSearchPress} activeOpacity={1}>
-                <View pointerEvents="none">
-                  <SearchInput
-                    isActiveButton={false}
-                    placeholder="Найти товары"
-                    disabled={false}
-                  />
-                </View>
-              </TouchableOpacity>
-            </ThemedView>
-            <TemplatePickerBanner />
-          </View>
-        }
+        ListHeaderComponent={headerComponent}
         contentContainerStyle={styles.content}
+        initialNumToRender={12}
+        maxToRenderPerBatch={12}
+        windowSize={5}
+        removeClippedSubviews
       />
 
       <SearchScreenWithHistory
@@ -102,11 +121,12 @@ export const CatalogScreen = () => {
 const styles = StyleSheet.create({
   headerContainer: {
     width: "100%",
+    marginBottom: 10,
   },
   container: {
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
-    paddingTop: 42,
+    paddingTop: 0,
   },
   content: {
     paddingHorizontal: 8,

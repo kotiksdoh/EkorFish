@@ -73,6 +73,7 @@ interface AuthState {
     body: string;
     sentAt: string;
   }[];
+  uncheckedPushesCount: number;
   isLoadingPushes: boolean;
   hasMorePushes: boolean;
 }
@@ -120,6 +121,7 @@ const initialState: AuthState = {
   isLoadingPushSettings: false,
   isUpdatingPushPreference: false,
   pushes: [],
+  uncheckedPushesCount: 0,
   isLoadingPushes: false,
   hasMorePushes: true,
 };
@@ -514,6 +516,21 @@ export const getPushesThunk = createAsyncThunk(
         },
       });
       return { data, payload };
+    } catch (error) {
+      console.log(error);
+      return rejectWithValue(error);
+    }
+  },
+);
+
+export const getUncheckedPushesCountThunk = createAsyncThunk(
+  "user/getUncheckedPushesCountThunk",
+  async (_, { rejectWithValue }) => {
+    try {
+      const data = await axdef.get(
+        "/api/AdditionalInformation/pushes/unchecked-count",
+      );
+      return data;
     } catch (error) {
       console.log(error);
       return rejectWithValue(error);
@@ -979,6 +996,14 @@ const authSlice = createSlice({
       state.isLoadingPushes = false;
       state.error = "Ошибка загрузки уведомлений";
       axiosErrorHandler(action?.payload);
+    });
+
+    builder.addCase(getUncheckedPushesCountThunk.fulfilled, (state, action) => {
+      const rawCount = action.payload?.data?.data;
+      state.uncheckedPushesCount =
+        typeof rawCount === "number"
+          ? rawCount
+          : Number.parseInt(String(rawCount ?? 0), 10) || 0;
     });
 
     builder.addCase(updateUserTown.pending, (state) => {

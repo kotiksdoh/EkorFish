@@ -592,12 +592,21 @@ export default function CheckoutModal({
       if (result?.data) {
         setCreatedOrderId(result.data);
         dispatch(getMyOrders()).unwrap();
-        dispatch(getCart()).unwrap();
       }
       setShowSuccessContent(true);
     } catch (error) {
       console.error("Error creating order:", error);
       Alert.alert("Ошибка", "Не удалось оформить заказ");
+    }
+  };
+  const closeSuccessAndRefreshCart = async () => {
+    setShowSuccessContent(false);
+    try {
+      await dispatch(getCart()).unwrap();
+    } catch (error) {
+      console.error("Error refreshing cart after order:", error);
+    } finally {
+      onClose();
     }
   };
   const isItemAvailable = (item: any): boolean => {
@@ -737,8 +746,7 @@ export default function CheckoutModal({
         statusBarTranslucent={true}
         onRequestClose={() => {
           if (showSuccessContent) {
-            setShowSuccessContent(false);
-            onClose();
+            void closeSuccessAndRefreshCart();
           } else {
             onClose();
           }
@@ -755,8 +763,7 @@ export default function CheckoutModal({
             showCloseButton={true}
             onBackPress={() => {
               if (showSuccessContent) {
-                setShowSuccessContent(false);
-                onClose();
+                void closeSuccessAndRefreshCart();
               } else {
                 onClose();
               }
@@ -793,9 +800,8 @@ export default function CheckoutModal({
                 />
                 <PrimaryButton
                   title="В каталог"
-                  onPress={() => {
-                    setShowSuccessContent(false);
-                    onClose();
+                  onPress={async () => {
+                    await closeSuccessAndRefreshCart();
                     router.navigate("/dashboard");
                     // Здесь можно добавить навигацию в каталог
                   }}

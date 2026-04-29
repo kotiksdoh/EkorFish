@@ -1433,7 +1433,9 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                   внесения исправлений.
                 </ThemedText>
 
-                <ManagerSection />
+                <View style={phisUser.managerSectionFullWidth}>
+                  <ManagerSection />
+                </View>
          
               </View>
               <View style={phisUser.button}>
@@ -1985,6 +1987,9 @@ const phisUser = StyleSheet.create({
     fontSize: 16,
     fontWeight: 500,
     marginBottom: 24,
+  },
+  managerSectionFullWidth: {
+    marginHorizontal: -16,
   },
   button: {
     marginTop: "auto",

@@ -202,8 +202,31 @@ export const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
   }, [pageData, detail?.refundMethod]);
 
   const allLines: ReturnLine[] = useMemo(() => {
+    const directItems = detail?.items || [];
     const orders = detail?.orders || [];
     const lines: ReturnLine[] = [];
+
+    if (directItems.length > 0) {
+      directItems.forEach((it: any) => {
+        const price = Number(it.unitPrice || 0);
+        const returnQuantity = Number(it.returnQuantity || 0);
+        lines.push({
+          id: String(it.id ?? `${detail?.orderId}_${it.orderProductId}`),
+          productName: it.productName ?? "",
+          productImage: it.productImage,
+          price,
+          returnQuantity,
+          measureType: it.measureType ?? "шт",
+          totalPrice: price * returnQuantity,
+          reason: typeof it.reason === "number" ? it.reason : undefined,
+          reasonName:
+            typeof it.reason === "number" ? reasonNameById.get(it.reason) : undefined,
+          comment: it.comment || "",
+        });
+      });
+      return lines;
+    }
+
     orders.forEach((o: any) => {
       (o.items || []).forEach((it: any) => {
         const price = Number(it.unitPrice || 0);
@@ -225,6 +248,11 @@ export const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
     });
     return lines;
   }, [detail, reasonNameById]);
+
+  const getMeasureLabel = (measureType?: string) => {
+    const normalized = String(measureType || "").toLowerCase();
+    return normalized === "килограмм" || normalized === "кг" ? "кг" : "шт";
+  };
 
   const renderReturnItemCard = (item: ReturnLine, key: string) => {
     const imageSource = item.productImage
@@ -284,8 +312,8 @@ export const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                   lightColor="#80818B"
                   darkColor="#FBFCFF80"
                 >
-                  {item.returnQuantity} {item.measureType === "килограмм" ? "кг" : "шт"} •{" "}
-                  {formatPrice(item.price)}₽ / {item.measureType === "килограмм" ? "кг" : "шт"}
+                  {formatPrice(item.price)}₽ / {getMeasureLabel(item.measureType)} •{" "}
+                  {item.returnQuantity} {getMeasureLabel(item.measureType)}
                 </ThemedText>
               </View>
             </ThemedView>
@@ -309,8 +337,8 @@ export const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                 lightColor="#80818B"
                 darkColor="#FBFCFF80"
               >
-                {item.returnQuantity} {item.measureType === "килограмм" ? "кг" : "шт"} •{" "}
-                {formatPrice(item.price)}₽ / {item.measureType === "килограмм" ? "кг" : "шт"}
+                {formatPrice(item.price)}₽ / {getMeasureLabel(item.measureType)} •{" "}
+                {item.returnQuantity} {getMeasureLabel(item.measureType)}
               </ThemedText>
             </ThemedView>
           )}
@@ -321,14 +349,26 @@ export const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
 
   const statusList = useMemo(() => {
     const list = pageData?.returnRequestStatuses || [];
-    // сортируем по коду статуса, чтобы было похоже на этапы
-    return [...list].sort((a: any, b: any) => (a.status ?? 0) - (b.status ?? 0));
-  }, [pageData]);
+    const sorted = [...list].sort((a: any, b: any) => (a.status ?? 0) - (b.status ?? 0));
+
+    // На Android иногда приходит пустой справочник статусов,
+    // поэтому показываем хотя бы текущий статус заявки, чтобы модалка не была пустой.
+    if (sorted.length === 0 && detail) {
+      return [
+        {
+          status: detail.status ?? 0,
+          name: "Статус обновляется",
+        },
+      ];
+    }
+
+    return sorted;
+  }, [pageData, detail]);
 
   const getCurrentStatusName = () => {
     if (!detail) return "";
     const s = statusList.find((x: any) => x.status === detail.status);
-    return s?.name || "";
+    return s?.name || "Статус обновляется";
   };
 
   const getCurrentStatusIndex = () => {
@@ -596,7 +636,7 @@ export const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
               <ThemedView lightColor="#FFFFFF" style={styles.productsBlock}>
                 <View style={styles.productsHeader}>
                   <ThemedText style={styles.productsTitle}>
-                    Состав заказа
+                    Состав возврата
                   </ThemedText>
                   <TouchableOpacity
                     onPress={() => setProductsModalVisible(true)}
@@ -610,6 +650,16 @@ export const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                 {allLines.slice(0, 2).map((item) => (
                   renderReturnItemCard(item, item.id)
                 ))}
+
+                {allLines.length === 0 && (
+                  <ThemedText
+                    style={styles.emptyProductsText}
+                    lightColor="#80818B"
+                    darkColor="#FBFCFF80"
+                  >
+                    Нет товаров в составе возврата
+                  </ThemedText>
+                )}
 
                 {allLines.length > 2 && (
                   <TouchableOpacity
@@ -654,7 +704,7 @@ export const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                   </TouchableOpacity>
 
                   <View style={styles.modalHeader}>
-                    <ThemedText style={styles.modalTitle}>Состав заказа</ThemedText>
+                    <ThemedText style={styles.modalTitle}>Состав возврата</ThemedText>
                   </View>
 
                   <ScrollView
@@ -698,7 +748,7 @@ export const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
 
                   <View style={styles.modalHeader}>
                     <ThemedText style={styles.modalTitle}>
-                      Статус вашего заказа
+                      Статус вашего возврата
                     </ThemedText>
                   </View>
 
@@ -986,6 +1036,7 @@ const styles = StyleSheet.create({
   },
   showAllButton: { alignItems: "center", paddingVertical: 12 },
   showAllText: { fontSize: 14, fontWeight: "500" },
+  emptyProductsText: { fontSize: 14, fontWeight: "500" },
   bottomSpacer: { height: 20 },
   loadingContainer: {
     flex: 1,
@@ -1018,24 +1069,38 @@ const styles = StyleSheet.create({
     backgroundColor: "#E0E0E0",
     borderRadius: 2,
   },
-  modalHeader: { padding: 16, paddingBottom: 8 },
-  modalTitle: { fontSize: 18, fontWeight: "600", textAlign: "center" },
+  modalHeader: { paddingHorizontal: 20, paddingVertical: 16 },
+  modalTitle: { fontSize: 20, fontWeight: "600" },
   productsList: { paddingHorizontal: 16, paddingBottom: 24 },
   // Старые стили карточек состава оставлены неиспользуемыми — можно удалить позже
-  statusesListWrapper: { maxHeight: 520 },
-  statusesList: { paddingHorizontal: 16, paddingBottom: 20 },
-  statusesListContent: { paddingBottom: 28 },
-  statusItemContainer: { flexDirection: "row", paddingVertical: 10 },
-  statusLeftColumn: { width: 34, alignItems: "center" },
+  statusesListWrapper: {
+    flex: 1,
+  },
+  statusesList: {
+    flex: 1,
+  },
+  statusesListContent: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+  },
+  statusItemContainer: {
+    flexDirection: "row",
+    minHeight: 60,
+  },
+  statusLeftColumn: {
+    width: 30,
+    alignItems: "center",
+    position: "relative",
+  },
   statusCircle: {
+    marginTop: 10,
     width: 20,
     height: 20,
     borderRadius: 10,
     borderWidth: 2,
-    borderColor: "#80818B",
-    backgroundColor: "#FFFFFF",
     justifyContent: "center",
     alignItems: "center",
+    zIndex: 2,
   },
   statusCircleCompleted: {
     borderColor: "#203686",
@@ -1044,24 +1109,41 @@ const styles = StyleSheet.create({
   statusCircleNext: {
     borderColor: "#203686",
     backgroundColor: "#FFFFFF",
+    borderWidth: 2,
   },
   statusCirclePending: {
     borderColor: "#80818B",
     backgroundColor: "#FFFFFF",
   },
-  statusCircleCheckmark: { transform: [{ translateY: 0.5 }] },
+  statusCircleCheckmark: {
+    width: 10,
+    height: 10,
+    position: "relative",
+  },
   statusCurrentDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
     backgroundColor: "#203686",
   },
-  statusLineContainer: { flex: 1, width: 3, marginTop: 2 },
-  statusLine: { flex: 1, width: 3, borderRadius: 2 },
-  statusRightColumn: { flex: 1, paddingLeft: 12 },
-  statusTextContainer: { justifyContent: "center" },
+  statusLineContainer: {
+    position: "absolute",
+    top: 20,
+    width: 2,
+    height: 45,
+    alignItems: "center",
+  },
+  statusLine: {
+    width: 2,
+    height: "120%",
+  },
+  statusRightColumn: {
+    flex: 1,
+    paddingLeft: 12,
+  },
+  statusTextContainer: {},
   statusName: { fontSize: 16, fontWeight: "500", color: "#80818B" },
-  statusNameCompleted: { color: "#1B1B1C", fontWeight: "600" },
-  statusDate: { fontSize: 12, marginTop: 4 },
+  statusNameCompleted: { color: "#1B1B1C" },
+  statusDate: { fontSize: 12, fontWeight: "400" },
 });
 

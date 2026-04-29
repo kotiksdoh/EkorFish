@@ -1,12 +1,13 @@
 // features/shared/ui/SpecialOffers.tsx
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { AddToCart, getProductList } from "@/features/catalog/catalogSlice";
+import { adaptProductsArray } from "@/features/shared/services/productAdapter";
+import { axdef } from "@/features/shared/services/axios";
 import { ProductCard } from "@/features/shared/ui/ProductCard";
 import { PrimaryButton } from "@/features/shared/ui/components/PrimartyButton";
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { useAppSelector } from "@/store/hooks";
 import { useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Dimensions,
@@ -26,33 +27,58 @@ function SpecialOffersComponent({
   handleAddToCartPress,
   onShowAllPress,
 }: SpecialOffersProps) {
-  const dispatch = useAppDispatch();
   const router = useRouter();
   const me = useAppSelector((state) => state.auth.me);
-  const products = useAppSelector((state) => state.catalog.products);
-  const isLoading = useAppSelector((state) => state.catalog.isLoading);
+  const [promoProducts, setPromoProducts] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
 
-  // Загрузка промо-товаров
+  // Локально загружаем промо, чтобы не трогать глобальный catalog.products
   useEffect(() => {
-    const params = {
-      isPromo: true,
-      offset: 0,
-      count: 10,
-      storageId: me?.storageId,
-      isFavorite: false,
+    let isMounted = true;
+
+    const loadPromo = async () => {
+      setIsLoading(true);
+      try {
+        const params = new URLSearchParams();
+        params.append("isFavorite", "false");
+        params.append("isPromo", "true");
+        params.append("offset", "0");
+        params.append("count", "10");
+        if (me?.storageId) {
+          params.append("storageId", String(me.storageId));
+        }
+
+        const response = await axdef.get("/api/Catalog/product/list", {
+          params,
+          paramsSerializer: (p) => p.toString(),
+        });
+
+        const rawProducts = response?.data?.data || [];
+        const adapted = adaptProductsArray(rawProducts);
+        if (isMounted) {
+          setPromoProducts(adapted.slice(0, 5));
+        }
+      } catch (error) {
+        console.error("Ошибка загрузки спецпредложений:", error);
+        if (isMounted) {
+          setPromoProducts([]);
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
     };
 
-    dispatch(
-      getProductList({
-        params,
-        isLoadMore: false,
-      })
-    );
-  }, [dispatch, me?.storageId]);
+    void loadPromo();
 
-  // Берем первые 5 промо-товаров
-  const promoProducts = products.slice(0, 5);
+    return () => {
+      isMounted = false;
+    };
+  }, [me?.storageId]);
+
+  const hasProducts = useMemo(() => promoProducts.length > 0, [promoProducts.length]);
 
   const handleShowAll = () => {
     onShowAllPress?.();
@@ -61,7 +87,7 @@ function SpecialOffersComponent({
     );
   };
 
-  if (!isLoading && promoProducts.length === 0) {
+  if (!isLoading && !hasProducts) {
     return null;
   }
 

@@ -2,9 +2,10 @@
 import { ThemedView } from "@/components/themed-view";
 import SearchInput from "@/features/auth/ui/components/SearchInput";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   FlatList,
+  InteractionManager,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
@@ -59,6 +60,7 @@ export const HomeScreen = ({
 }: {
   handleLoginPress: () => void;
 }) => {
+  const [showHeavyBlocks, setShowHeavyBlocks] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [existingCartItem, setExistingCartItem] = useState<any>(null);
@@ -69,9 +71,25 @@ export const HomeScreen = ({
   const sliderItems = useAppSelector((state) => state.auth.sliders);
   const router = useRouter();
   const orders = useAppSelector((state) => state.catalog.orders);
-
-  const currentCompany = useAppSelector((state) => state.auth.currentCompany);
   const templatePicker = useTemplatePicker();
+  const sliderData = useMemo(
+    () => (sliderItems.length > 0 ? sliderItems : SLIDER_ITEMS),
+    [sliderItems],
+  );
+  const ordersKeyExtractor = useCallback((item: any) => String(item.id), []);
+  const renderOrderItem = useCallback(
+    ({ item }: { item: any }) => <OrdersCard order={item} fullWidth={false} />,
+    [],
+  );
+
+  // На Android откладываем тяжёлые блоки, чтобы первая отрисовка была плавнее
+  useEffect(() => {
+    setShowHeavyBlocks(false);
+    const task = InteractionManager.runAfterInteractions(() => {
+      setShowHeavyBlocks(true);
+    });
+    return () => task.cancel();
+  }, []);
 
   const handleSearchPress = useCallback(() => {
     setShowSearch(true);
@@ -134,7 +152,7 @@ export const HomeScreen = ({
         {/* Слайдер */}
         <ThemedView lightColor={"#FFFFFF"} style={styles.container}>
           <AutoSlider
-            items={sliderItems.length > 0 ? sliderItems : SLIDER_ITEMS}
+            items={sliderData}
             autoPlayInterval={4000}
             showIndicators={true}
           />
@@ -154,20 +172,32 @@ export const HomeScreen = ({
             <View style={styles.ordersSection}>
               <FlatList
                 data={orders}
-                keyExtractor={(item) => item.id.toString()}
+                keyExtractor={ordersKeyExtractor}
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                renderItem={({ item }) => <OrdersCard order={item} fullWidth={false}/>}
+                renderItem={renderOrderItem}
                 contentContainerStyle={styles.ordersList}
+                initialNumToRender={3}
+                maxToRenderPerBatch={4}
+                windowSize={3}
+                removeClippedSubviews
               />
             </View>
           )}
-          <ManagerSection />
-          <DeliveryInfoCard />
+          {showHeavyBlocks ? (
+            <>
+              <ManagerSection />
+              <DeliveryInfoCard />
+            </>
+          ) : null}
         </ThemedView>
 
-        <SpecialOffers handleAddToCartPress={handleAddToCartPress}/>
-        <Catalog />
+        {showHeavyBlocks ? (
+          <>
+            <SpecialOffers handleAddToCartPress={handleAddToCartPress} />
+            <Catalog />
+          </>
+        ) : null}
       </ScrollView>
 
       {/* Экран поиска с историей */}

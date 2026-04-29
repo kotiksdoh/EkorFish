@@ -5,16 +5,16 @@ import { ModalHeader } from "@/features/auth/ui/Header";
 import { Image } from "expo-image";
 import React, { useEffect, useState } from "react";
 import {
-    Modal,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    TouchableOpacity,
-    View,
-    useColorScheme
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View,
+  useColorScheme
 } from "react-native";
 import { baseUrl } from "../shared/services/axios";
-import AnimatedTextInput from "../shared/ui/components/CustomInput";
 
 interface ReasonModalProps {
   visible: boolean;
@@ -171,7 +171,11 @@ export const ReasonModal: React.FC<ReasonModalProps> = ({
                   <ThemedText
                     style={[
                       styles.reasonName,
+                      isDark && styles.reasonNameDark,
                       selectedReason === reason.reason && styles.reasonNameSelected,
+                      isDark &&
+                        selectedReason === reason.reason &&
+                        styles.reasonNameSelectedDark,
                     ]}
                     lightColor="#202022"
                     darkColor="#F2F4F7"
@@ -209,14 +213,19 @@ export const ReasonModal: React.FC<ReasonModalProps> = ({
               numberOfLines={4}
               textAlignVertical="top"
             /> */}
-                <AnimatedTextInput
-                    placeholder="Опишите, что не так с товаром"
-                    placeholderTextColor="#80818B"
-                    value={comment}
-                    multiline
-                    onChangeText={setComment}
-                    style={styles.commentInput}
-                />
+            <TextInput
+              style={[
+                styles.commentInput,
+                isDark && styles.commentInputDark,
+              ]}
+              placeholder="Опишите, что не так с товаром"
+              placeholderTextColor="#80818B"
+              value={comment}
+              onChangeText={setComment}
+              multiline
+              numberOfLines={4}
+              textAlignVertical="top"
+            />
           </ThemedView>
         </ScrollView>
 
@@ -354,8 +363,14 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingBottom: 10
   },
+  reasonNameDark: {
+    borderBottomColor: "#252527",
+  },
   reasonNameSelected: {
     color: "#203686",
+  },
+  reasonNameSelectedDark: {
+    color: "#FFFFFF",
   },
   commentContainer: {
     marginTop: 16,

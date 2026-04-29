@@ -24,6 +24,7 @@ import { axdef, baseUrl } from "@/features/shared/services/axios";
 import { SnapBottomSheet } from "@/features/shared/ui/SnapBottomSheet";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAppDispatch } from "@/store/hooks";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Clipboard from "expo-clipboard";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
@@ -104,6 +105,12 @@ interface OrderDetailsModalProps {
   onReorderSuccess?: () => void;
 }
 
+interface CompanyManager {
+  id: string;
+  name?: string;
+  phoneNumber?: string;
+}
+
 export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
   visible,
   onClose,
@@ -125,6 +132,7 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
   const [canReorderFully, setCanReorderFully] = useState<boolean | null>(null);
   const [productsModalVisible, setProductsModalVisible] = useState(false);
   const [statusModalVisible, setStatusModalVisible] = useState(false);
+  const [companyManager, setCompanyManager] = useState<CompanyManager | null>(null);
   const [productsModalTranslateY] = useState(new Animated.Value(screenHeight));
   const [isProductsModalClosing, setIsProductsModalClosing] = useState(false);
 
@@ -136,6 +144,25 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
       setOrderDetails(null);
     }
   }, [visible, orderId]);
+
+  useEffect(() => {
+    const hydrateCompanyManager = async () => {
+      if (!visible) {
+        setCompanyManager(null);
+        return;
+      }
+      try {
+        const storedCompanyRaw = await AsyncStorage.getItem("company");
+        const storedCompany = storedCompanyRaw ? JSON.parse(storedCompanyRaw) : null;
+        setCompanyManager(storedCompany?.manager || null);
+      } catch (error) {
+        console.error("Error loading company manager from storage:", error);
+        setCompanyManager(null);
+      }
+    };
+
+    void hydrateCompanyManager();
+  }, [visible]);
 
   // Анимация для модалки с товарами
   useEffect(() => {
@@ -223,6 +250,21 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
   const formatMoneyNoFraction = (price: number) => {
     return price.toLocaleString("ru-RU");
   };
+
+  const getOrderTotalQuantity = () => {
+    return (
+      orderDetails?.products?.reduce((sum, product) => {
+        return sum + Number(product.quantity || 0);
+      }, 0) || 0
+    );
+  };
+
+  const getOrderTotalWeightOrQuantity = () => {
+    if (typeof orderDetails?.totalWeight === "number" && orderDetails.totalWeight > 0) {
+      return `${orderDetails.totalWeight} кг`;
+    }
+    return `${getOrderTotalQuantity()} шт`;
+  };
   
   const getCurrentStatusName = () => {
     return orderDetails?.statuses.at(-1)?.name || ''
@@ -307,6 +349,30 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
       Alert.alert("Ошибка", "Не удалось повторить заказ. Попробуйте позже.");
     } finally {
       setIsReordering(false);
+    }
+  };
+  console.log('orderDetails', orderDetails)
+  const getManagerPhoneForTelegram = () => {
+    return String(companyManager?.phoneNumber || "").replace(/[^\d+]/g, "");
+  };
+
+  const handleMessageManager = async () => {
+    const normalizedPhone = getManagerPhoneForTelegram();
+    if (!normalizedPhone) return;
+
+    const telegramDeepLink = `tg://resolve?phone=${normalizedPhone}`;
+    const telegramWebLink = `https://t.me/+${normalizedPhone.replace(/^\+/, "")}`;
+
+    try {
+      const canOpenTelegram = await Linking.canOpenURL(telegramDeepLink);
+      if (canOpenTelegram) {
+        await Linking.openURL(telegramDeepLink);
+        return;
+      }
+      await Linking.openURL(telegramWebLink);
+    } catch (error) {
+      console.error("Error opening Telegram:", error);
+      Alert.alert("Ошибка", "Не удалось открыть Telegram");
     }
   };
 
@@ -586,12 +652,13 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                   />
                   <PrimaryButton
                     title="Написать"
-                    onPress={() => console.log("Написать сообщение")}
+                    onPress={handleMessageManager}
                     variant="third"
                     size="md"
                     style={styles.messageButton}
                     activeOpacity={0.8}
                     fullWidth
+                    disabled={!companyManager}
                     customIcon={
                       <IconMessage color={isDarkMode ? "#FBFCFF" : "#1B1B1C"} />
                     }
@@ -973,7 +1040,7 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                 • {orderDetails?.products?.length || 0} товара
               </ThemedText>
               <ThemedText style={styles.reorderListItem} lightColor="#1B1B1C" darkColor="#FBFCFF">
-                • {orderDetails?.totalWeight || 0} кг
+                • {getOrderTotalWeightOrQuantity()}
               </ThemedText>
               <ThemedText style={styles.reorderListItem} lightColor="#1B1B1C" darkColor="#FBFCFF">
                 • На сумму {formatMoneyNoFraction(orderDetails?.totalAmount || 0)} ₽

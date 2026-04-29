@@ -1,9 +1,8 @@
-import { LikeIcon, TrashIcon } from "@/assets/icons/icons";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { Image } from "expo-image";
-import React, { memo, useCallback, useMemo, useState } from "react";
+import React, { memo, useCallback, useMemo } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { baseUrl } from "../shared/services/axios";
@@ -23,7 +22,6 @@ const CartItemComponent = memo(({
   isSelected,
   onToggleSelect,
   onUpdateQuantity,
-  onRemove,
   returnQuantity,
   isReturnable,
 }: {
@@ -31,17 +29,11 @@ const CartItemComponent = memo(({
   isSelected: boolean;
   onToggleSelect: () => void;
   onUpdateQuantity: (newQuantity: number) => void;
-  onRemove: () => void;
   returnQuantity: number;
   isReturnable: boolean;
 }) => {
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === "dark";
-  const [isFavorite, setIsFavorite] = useState(item.isFavorite);
-
-  const handleToggleFavorite = useCallback(async () => {
-    console.error("Error toggling favorite:");
-  }, []);
 
   const formatPrice = useCallback((price: number) => {
     return price.toLocaleString("ru-RU", {
@@ -143,37 +135,6 @@ const CartItemComponent = memo(({
         ) : null}
 
         <View style={styles.priceRow}>
-          <TouchableOpacity
-            style={styles.favoriteButton}
-            onPress={handleToggleFavorite}
-            disabled={!isReturnable}
-          >
-            <ThemedView
-              style={styles.favoriteTheme}
-              lightColor="#F2F4F7"
-              darkColor="#202022"
-            >
-              <LikeIcon isFilled={isFavorite} />
-            </ThemedView>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.deleteButton}
-            onPress={onRemove}
-            disabled={!isReturnable}
-          >
-            <ThemedView
-              style={styles.favoriteTheme}
-              lightColor="#F2F4F7"
-              darkColor="#202022"
-            >
-              <TrashIcon
-                stroke={isDarkMode ? "#FBFCFF" : "#1B1B1C"}
-                fill={isDarkMode ? "#FBFCFF" : "#1B1B1C"}
-              />
-            </ThemedView>
-          </TouchableOpacity>
-
           <ThemedView
             style={[
               styles.quantityControls,
@@ -250,6 +211,7 @@ const ReturnsOrderCard: React.FC<ReturnsOrderCardProps> = ({
     return returnRequests.orders.find((order) => order.items.some((item) => item.returnQuantity > 0))?.orderId;
   }, [returnRequests.orders]);
   const isAnotherOrderLocked = selectedOrderId !== undefined && selectedOrderId !== returnsOrder.orderId;
+  const isOrderReturnable = returnsOrder.isReturnable && !isAnotherOrderLocked;
   
   // Мемоизируем получение количества возврата для конкретного товара
   const getReturnQuantity = useCallback((orderProductId: string): number => {
@@ -324,13 +286,12 @@ const ReturnsOrderCard: React.FC<ReturnsOrderCardProps> = ({
           onUpdateQuantity={(newQuantity: number) =>
             updateReturnQuantity(item.id, newQuantity, item.quantity)
           }
-          onRemove={() => updateReturnQuantity(item.id, 0, item.quantity)}
           returnQuantity={returnQuantity}
-          isReturnable={returnsOrder.isReturnable && !isAnotherOrderLocked}
+          isReturnable={isOrderReturnable}
         />
       );
     });
-  }, [returnsOrder.products, returnsOrder.isReturnable, getReturnQuantity, toggleSelectItem, updateReturnQuantity, isAnotherOrderLocked]);
+  }, [returnsOrder.products, isOrderReturnable, getReturnQuantity, toggleSelectItem, updateReturnQuantity]);
 
   return (
     <CardWrapper
@@ -338,8 +299,9 @@ const ReturnsOrderCard: React.FC<ReturnsOrderCardProps> = ({
         styles.card,
         fullWidth && styles.fullWidthCard,
         isDark && styles.darkCard,
+        !isOrderReturnable && styles.disabledCard,
       ]}
-      onPress={returnsOrder.isReturnable ? onPress : undefined}
+      onPress={isOrderReturnable ? onPress : undefined}
       activeOpacity={0.7}
     >
       <View style={styles.cardHeader}>
@@ -347,11 +309,15 @@ const ReturnsOrderCard: React.FC<ReturnsOrderCardProps> = ({
           Заказ № {returnsOrder.orderId}
         </ThemedText>
         <ThemedText lightColor="#80818B" darkColor="#FBFCFF80" style={styles.receivedAt}>
-          {returnsOrder.receivedAt ? `Доставлен ${formatDate(returnsOrder.receivedAt)}` : `Еще не доставлен`}
+          {isAnotherOrderLocked
+            ? "Выбран другой заказ"
+            : returnsOrder.receivedAt
+            ? `Доставлен ${formatDate(returnsOrder.receivedAt)}`
+            : "Еще не доставлен"}
         </ThemedText>
       </View>
 
-      <View style={[styles.cardBody, !returnsOrder.isReturnable && { opacity: 0.5 }]}>
+      <View style={[styles.cardBody, !isOrderReturnable && { opacity: 0.5 }]}>
         {renderProducts()}
       </View>
     </CardWrapper>
@@ -386,6 +352,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   cardBody: {},
+  disabledCard: {
+    opacity: 0.65,
+  },
   cartItem: {
     flexDirection: "row",
     padding: 16,
@@ -444,19 +413,7 @@ const styles = StyleSheet.create({
   },
   priceRow: {
     flexDirection: "row",
-  },
-  favoriteButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginRight: 4,
-  },
-  favoriteTheme: {
-    borderRadius: 8,
-    padding: 3,
-  },
-  deleteButton: {
-    flexDirection: "row",
-    alignItems: "center",
+    justifyContent: "flex-end",
   },
   quantityControls: {
     flexDirection: "row",

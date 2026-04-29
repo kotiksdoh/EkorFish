@@ -606,23 +606,23 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     justifyContent: "center",
     alignItems: "center",
-    ...Platform.select({
-      ios: {
-        shadowColor: "#000",
-        shadowOffset: {
-          width: 0,
-          height: 1,
-        },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
+    // ...Platform.select({
+    //   ios: {
+    //     shadowColor: "#000",
+    //     shadowOffset: {
+    //       width: 0,
+    //       height: 1,
+    //     },
+    //     shadowOpacity: 0.1,
+    //     shadowRadius: 2,
+    //   },
+    //   android: {
+    //     elevation: 2,
+    //   },
+    // }),
   },
   quantityButtonDisabled: {
-    opacity: 0.5,
+    opacity: 0.2,
   },
   quantityButtonText: {
     fontSize: 20,

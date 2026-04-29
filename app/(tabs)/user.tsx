@@ -28,6 +28,7 @@ import { Fonts } from "@/constants/theme";
 import {
   clearAuthState,
   getCategoryItems,
+  getUncheckedPushesCountThunk,
   getPushesThunk,
   getSliderItems,
   setCompany,
@@ -85,7 +86,7 @@ export default function TabTwoScreen() {
     coverColor: "#ACCBEE",
   });
   const currentCompany = useAppSelector((state) => state.auth.currentCompany);
-  const { pushes, isLoadingPushes, hasMorePushes } = useAppSelector(
+  const { pushes, isLoadingPushes, hasMorePushes, uncheckedPushesCount } = useAppSelector(
     (state) => state.auth,
   );
   const [storedCompany, setStoredCompany] = useState<StoredCompany | null>(null);
@@ -247,12 +248,7 @@ export default function TabTwoScreen() {
   useFocusEffect(
     useCallback(() => {
       if (!hasAuthToken) return;
-      dispatch(
-        getPushesThunk({
-          offset: 0,
-          count: pageSize,
-        }),
-      );
+      dispatch(getUncheckedPushesCountThunk());
     }, [dispatch, hasAuthToken]),
   );
 
@@ -264,6 +260,8 @@ export default function TabTwoScreen() {
         offset: pushes.length,
         count: pageSize,
         isLoadMore: true,
+        check: true,
+
       }),
     );
   }, [dispatch, hasMorePushes, isLoadingPushes, pushes.length]);
@@ -276,9 +274,10 @@ export default function TabTwoScreen() {
       getPushesThunk({
         offset: 0,
         count: pageSize,
-        check: false,
+        check: true,
       }),
     );
+    dispatch(getUncheckedPushesCountThunk());
   }, [dispatch, hasAuthToken]);
 
   const handleLogout = async () => {
@@ -359,9 +358,11 @@ export default function TabTwoScreen() {
                 activeOpacity={0.8}
               >
                 <PushNotificationIcon width={24} height={24} color="#1B1B1C" />
-                {pushes.length > 0 ? (
+                {uncheckedPushesCount > 0 ? (
                   <View style={styles.pushesBadge}>
-                    <ThemedText style={styles.pushesBadgeText}>{pushes.length}</ThemedText>
+                    <ThemedText style={styles.pushesBadgeText}>
+                      {uncheckedPushesCount > 10 ? "10+" : uncheckedPushesCount}
+                    </ThemedText>
                   </View>
                 ) : null}
               </TouchableOpacity>
@@ -776,12 +777,17 @@ const styles = StyleSheet.create({
     backgroundColor: "#F10B34",
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: 4,
+    // paddingHorizontal: 2,
+    // paddingVertical: 2,
+
   },
   pushesBadgeText: {
     color: "#FFFFFF",
     fontSize: 10,
     fontWeight: "700",
+    lineHeight: 12,
+    textAlignVertical: "center",
+    includeFontPadding: false,
   },
   pencilIconContainer: {
     width: 40,

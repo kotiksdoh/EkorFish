@@ -8,7 +8,7 @@ import {
 import { CompanySelectModal } from "@/features/shared/ui/CompanySelectModal";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   StyleSheet,
   TouchableOpacity,
@@ -39,9 +39,6 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
   const dispatch = useAppDispatch();
   const currentCompany = useAppSelector((state) => state.auth.currentCompany);
   useEffect(() => {
-    console.log("me", me);
-  }, [me]);
-  useEffect(() => {
     if (me) {
       dispatch(loadCompanyFromStorage());
     }
@@ -54,20 +51,17 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
     setModalVisible(false);
   };
 
-  const getDisplayName = () => {
+  const resolvedDisplayName = useMemo(() => {
     if (!me) return "";
-    debugger;
     if (me.companies?.length > 0) {
       return currentCompany?.name || me.companies[0]?.name || "";
     }
-    debugger;
     const profile = me.individualProfile;
     if (profile) {
       return `${profile.firstName || ""} ${profile.lastName || ""} ${profile.patronymic || ""}`.trim();
     }
-
     return "";
-  };
+  }, [me, currentCompany?.name]);
 
   return (
     <>
@@ -107,7 +101,7 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
                 ellipsizeMode="tail"
                 style={{ maxWidth: 150 }}
               >
-                {getDisplayName()}
+                {resolvedDisplayName}
               </ThemedText>
             </TouchableOpacity>
             <TouchableOpacity
@@ -130,7 +124,7 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
         visible={modalVisible}
         onClose={() => setModalVisible(false)}
         companies={me?.companies || []}
-        selectedCompanyId={me?.companies[0]?.id}
+        selectedCompanyId={currentCompany?.id || me?.companies[0]?.id}
         onSelectCompany={handleSelectCompany}
         onAddCompany={
           onAddCompanyPress ||

@@ -185,23 +185,21 @@ export const MyReturnsFirstStep: React.FC<MyReturnsFirstStepProps> = ({
         />
 
         <View style={styles.content}>
-          {returnableOrders.length > 0 ? (
-            <>
-              <View style={styles.returnsContent}>
-                {loading ? renderLoadingState() : renderReturnsList()}
-              </View>
-            </>
+          {loading ? (
+            renderLoadingState()
+          ) : returnableOrders.length > 0 ? (
+            <View style={styles.returnsContent}>
+              {renderReturnsList()}
+            </View>
           ) : (
-            !loading && (
-              <View style={styles.emptyContainer}>
-                <ThemedText style={styles.emptyTextMain} lightColor="#1B1B1C" darkColor="#FBFCFF">
-                  Нет заказов для возврата
-                </ThemedText>
-                <ThemedText style={styles.emptyText} lightColor="#80818B" darkColor="#FBFCFF80">
-                  У вас нет заказов, которые можно вернуть
-                </ThemedText>
-              </View>
-            )
+            <View style={styles.emptyContainer}>
+              <ThemedText style={styles.emptyTextMain} lightColor="#1B1B1C" darkColor="#FBFCFF">
+                Нет заказов для возврата
+              </ThemedText>
+              <ThemedText style={styles.emptyText} lightColor="#80818B" darkColor="#FBFCFF80">
+                У вас нет заказов, которые можно вернуть
+              </ThemedText>
+            </View>
           )}
         </View>
 

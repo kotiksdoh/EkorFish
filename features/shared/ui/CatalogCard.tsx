@@ -2,13 +2,11 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { getProductList } from "@/features/catalog/catalogSlice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { Image as ExpoImage } from "expo-image";
 import { useRouter } from "expo-router";
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useMemo } from "react";
 import {
-  ActivityIndicator,
-  Dimensions,
-  Image,
   StyleSheet,
   TouchableOpacity,
   View,
@@ -21,15 +19,6 @@ interface CatalogCardProps {
   children?: any[];
 }
 
-const { width: screenWidth } = Dimensions.get("window");
-const PADDING_HORIZONTAL = 16;
-const GAP = 12;
-const NUM_COLUMNS = 3;
-
-const cardWidth =
-  (screenWidth - PADDING_HORIZONTAL * 2 - GAP * (NUM_COLUMNS - 1)) /
-  NUM_COLUMNS;
-
 const PLACEHOLDER_IMAGE = require("@/assets/icons/png/noImage.png");
 
 const CatalogCardComponent: React.FC<CatalogCardProps> = ({
@@ -38,14 +27,10 @@ const CatalogCardComponent: React.FC<CatalogCardProps> = ({
   name,
   children,
 }) => {
-  const [isImageLoading, setIsImageLoading] = useState(true);
-  const [imageError, setImageError] = useState(false);
-  const imageLoadTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const router = useRouter();
   const dispatch = useAppDispatch();
   const me = useAppSelector((state) => state.auth.me);
   const handlePress = () => {
-    console.log("Navigating to catalog-detail with:", { id, name, children });
     if (id && name) {
       // Преобразуем children в строку для передачи через URL
       const childrenString = children ? JSON.stringify(children) : "[]";
@@ -70,74 +55,20 @@ const CatalogCardComponent: React.FC<CatalogCardProps> = ({
     }
   };
 
-  useEffect(() => {
-    return () => {
-      if (imageLoadTimeoutRef.current) {
-        clearTimeout(imageLoadTimeoutRef.current);
-      }
-    };
-  }, []);
-
   const isValidImageUrl = useCallback((url: string): boolean => {
     if (!url || typeof url !== "string") return false;
     return url.length > 10 && !url.endsWith("/") && url.startsWith("http");
   }, []);
 
-  const imageSource = useMemo(() => {
-    if (!img || (typeof img === "string" && !isValidImageUrl(img))) {
-      return PLACEHOLDER_IMAGE;
-    }
-    if (typeof img === "string") {
-      return { uri: img };
-    }
-    return img;
-  }, [img, isValidImageUrl]);
-
-  const showPlaceholder =
-    !img ||
-    imageError ||
-    (typeof img === "string" && !isValidImageUrl(img));
-
-  useEffect(() => {
-    setImageError(false);
-    if (!img || (typeof img === "string" && !isValidImageUrl(img as string))) {
-      setIsImageLoading(false);
-    } else {
-      setIsImageLoading(true);
-    }
-  }, [img, isValidImageUrl]);
-
-  const handleImageLoadStart = useCallback(() => {
-    setIsImageLoading(true);
-    if (imageLoadTimeoutRef.current) {
-      clearTimeout(imageLoadTimeoutRef.current);
-    }
-    imageLoadTimeoutRef.current = setTimeout(() => {
-      setIsImageLoading((loading) => {
-        if (loading) {
-          setImageError(true);
-          return false;
-        }
-        return loading;
-      });
-    }, 10000);
-  }, [img]);
-
-  const handleImageLoadEnd = useCallback(() => {
-    setIsImageLoading(false);
-    setImageError(false);
-    if (imageLoadTimeoutRef.current) {
-      clearTimeout(imageLoadTimeoutRef.current);
-    }
-  }, []);
-
-  const handleImageError = useCallback(() => {
-    setIsImageLoading(false);
-    setImageError(true);
-    if (imageLoadTimeoutRef.current) {
-      clearTimeout(imageLoadTimeoutRef.current);
-    }
-  }, [img]);
+  const imageSource = useMemo(
+    () =>
+      !img || (typeof img === "string" && !isValidImageUrl(img))
+        ? PLACEHOLDER_IMAGE
+        : typeof img === "string"
+          ? { uri: img }
+          : img,
+    [img, isValidImageUrl],
+  );
   
   return (
     // <Link
@@ -167,29 +98,13 @@ const CatalogCardComponent: React.FC<CatalogCardProps> = ({
 
         <View style={styles.imageWrapper}>
           <View style={styles.imageContainer}>
-            <Image
-              key={
-                showPlaceholder || typeof img !== "string"
-                  ? "placeholder-or-local"
-                  : img
-              }
-              source={showPlaceholder ? PLACEHOLDER_IMAGE : imageSource}
+            <ExpoImage
+              source={imageSource}
               style={styles.image}
-              resizeMode="cover"
-              onLoadStart={!showPlaceholder ? handleImageLoadStart : undefined}
-              onLoadEnd={!showPlaceholder ? handleImageLoadEnd : undefined}
-              onError={!showPlaceholder ? handleImageError : undefined}
+              contentFit="cover"
+              cachePolicy="disk"
+              transition={120}
             />
-            {!showPlaceholder && isImageLoading && (
-              <View
-                style={[
-                  StyleSheet.absoluteFillObject,
-                  styles.loadingOverlay,
-                ]}
-              >
-                <ActivityIndicator size="small" color="#CCCCCC" />
-              </View>
-            )}
           </View>
         </View>
       </ThemedView>
@@ -255,11 +170,6 @@ const styles = StyleSheet.create({
   image: {
     width: "100%",
     height: "100%",
-  },
-  loadingOverlay: {
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(245, 245, 245, 0.85)",
   },
 });
 
