@@ -18,7 +18,6 @@
     },
     "ios": {
       "bundleIdentifier": "com.kotiksdoh.EkorFishNew",
-      "buildNumber": "1.0.0",
       "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
         "NSAppTransportSecurity": {
