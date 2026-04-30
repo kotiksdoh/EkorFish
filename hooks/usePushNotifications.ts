@@ -1,5 +1,6 @@
 import { axdef } from "@/features/shared/services/axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import messaging from "@react-native-firebase/messaging";
 import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
 import { useEffect, useRef } from "react";
@@ -60,17 +61,21 @@ async function registerForPushNotificationsAsync(): Promise<string | null> {
     return null;
   }
 
-  const devicePushToken = await Notifications.getDevicePushTokenAsync();
+  try {
+    // Firebase messaging needs native remote messages registration on iOS.
+    await messaging().registerDeviceForRemoteMessages();
+    const firebaseToken = await messaging().getToken();
 
-  if (typeof devicePushToken.data === "string") {
-    return devicePushToken.data;
+    if (firebaseToken && typeof firebaseToken === "string") {
+      return firebaseToken;
+    }
+
+    console.log(`${Platform.OS} Firebase token is empty or invalid.`);
+    return null;
+  } catch (error) {
+    console.log(`${Platform.OS} Firebase token fetch failed:`, error);
+    return null;
   }
-
-  console.log(
-    `${Platform.OS} device push token is not a string:`,
-    devicePushToken.data,
-  );
-  return null;
 }
 
 async function sendFirebaseTokenToBackend(tokenFirebase: string): Promise<void> {
