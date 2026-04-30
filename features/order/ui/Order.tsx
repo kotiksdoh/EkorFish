@@ -26,13 +26,13 @@ import { useSavedAddress } from "@/features/shared/services/useSavedAddress";
 import { AddressSelectionModal } from "@/features/shared/ui/AddressSelectionModal";
 import { CompanySelectionModal } from "@/features/shared/ui/CompanySelectionModalSmall";
 import { OrderDetailsModal } from "@/features/shared/ui/OrderDetailModal";
+import { SnapBottomSheet } from "@/features/shared/ui/SnapBottomSheet";
 import { CustomCheckbox } from "@/features/shared/ui/components/CustomCheckBox";
 import AnimatedTextInput from "@/features/shared/ui/components/CustomInput";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   ActivityIndicator,
   Alert,
@@ -48,6 +48,7 @@ import {
   TouchableWithoutFeedback,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const { height: screenHeight } = Dimensions.get("window");
 
@@ -825,7 +826,10 @@ export default function CheckoutModal({
               ) : (
                 <ScrollView
                   style={styles.scrollView}
-                  contentContainerStyle={styles.scrollContent}
+                  contentContainerStyle={[
+                    styles.scrollContent,
+                    { paddingBottom: Math.max(insets.bottom, 24) + 24 },
+                  ]}
                   showsVerticalScrollIndicator={false}
                 >
                   {/* Блок с табами доставки */}
@@ -1537,6 +1541,8 @@ function DateTimeModal({
                 ]}
                 onPress={() => date && handleDateSelect(date)}
                 disabled={disabled}
+                delayPressIn={140}
+                pressRetentionOffset={{ top: 12, left: 12, right: 12, bottom: 12 }}
               >
                 <ThemedText
                   style={[
@@ -1558,127 +1564,94 @@ function DateTimeModal({
   };
 
   return (
-    <RNModal
-      visible={visible}
-      animationType="none"
-      transparent={true}
-      onRequestClose={handleClose}
-    >
-      <TouchableWithoutFeedback onPress={handleClose}>
-        <View style={styles.modalOverlay}>
-          <TouchableWithoutFeedback>
-            <Animated.View
-              style={[
-                styles.modalContent,
-                isDarkMode && {
-                  backgroundColor: "#202022",
-                },
+    <>
+      <SnapBottomSheet
+        visible={visible}
+        title="Выберите дату доставки"
+        titleAlign="left"
+        onClose={handleClose}
+      >
+        <FlatList
+          data={months}
+          renderItem={renderMonth}
+          keyExtractor={(item) => item.toISOString()}
+          showsVerticalScrollIndicator={false}
+          nestedScrollEnabled
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={[
+            styles.monthsList,
+            { paddingBottom: 180 + insets.bottom },
+          ]}
+        />
 
-                {
-                  transform: [{ translateY: modalTranslateY }],
-                },
-              ]}
+        {/* Нижняя панель с раздельными блоками даты и времени */}
+        <ThemedView
+          lightColor="#FFFFFF"
+          style={[
+            styles.dateTimeBottomPanel,
+            { paddingBottom: (Platform.OS === "ios" ? 34 : 16) + insets.bottom },
+            Platform.OS === "android" && {
+              paddingBottom: Math.max(insets.bottom, 24) + 25,
+            },
+          ]}
+        >
+          <View style={styles.selectedDateTime}>
+            <TouchableOpacity
+              style={styles.dateTimeBlock}
+              onPress={() => {
+                // Если нужно, можно сделать что-то при нажатии на дату
+              }}
             >
-              {/* Защелка для свайпа */}
-              <TouchableOpacity
-                style={styles.swipeHandleContainer}
-                activeOpacity={0.7}
-                onPress={handleClose}
-              >
-                <View style={styles.swipeHandle} />
-              </TouchableOpacity>
-
-              <ThemedText style={styles.chooseDateTime}>
-                Выберите дату доставки
-              </ThemedText>
-              {/* <ModalHeader 
-                title="Выберите дату доставки" 
-                showBackButton={false} 
-                onBackPress={handleClose}
-              /> */}
-
-              <FlatList
-                data={months}
-                renderItem={renderMonth}
-                keyExtractor={(item) => item.toISOString()}
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={styles.monthsList}
-              />
-
-              {/* Нижняя панель с раздельными блоками даты и времени */}
               <ThemedView
-                lightColor="#FFFFFF"
+                lightColor="#F2F4F7"
+                darkColor="#ECEFFA0D"
+                style={styles.dateTimeBlockInner}
+              >
+                <ThemedText style={styles.dateTimeBlockValue}>
+                  {selectedDate ? formatDateForDisplay(selectedDate) : "Не выбрана"}
+                </ThemedText>
+              </ThemedView>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.dateTimeBlock}
+              onPress={() => {
+                if (selectedDate && availableTimeSlots.length > 0) {
+                  setShowTimeModal(true);
+                }
+              }}
+              disabled={!selectedDate || availableTimeSlots.length === 0}
+            >
+              <ThemedView
+                lightColor={
+                  !selectedDate || availableTimeSlots.length === 0
+                    ? "#F5F5F5"
+                    : "#F2F4F7"
+                }
+                darkColor="#ECEFFA0D"
                 style={[
-                  styles.dateTimeBottomPanel,
-                  { paddingBottom: (Platform.OS === "ios" ? 34 : 16) + insets.bottom },
+                  styles.dateTimeBlockInner,
+                  (!selectedDate || availableTimeSlots.length === 0) &&
+                    styles.dateTimeBlockDisabled,
                 ]}
               >
-                <View style={styles.selectedDateTime}>
-                  {/* Блок выбранной даты */}
-                  <TouchableOpacity
-                    style={styles.dateTimeBlock}
-                    onPress={() => {
-                      // Если нужно, можно сделать что-то при нажатии на дату
-                    }}
-                  >
-                    <ThemedView
-                      lightColor="#F2F4F7"
-                      darkColor="#ECEFFA0D"
-                      style={styles.dateTimeBlockInner}
-                    >
-                      {/* <ThemedText style={styles.dateTimeBlockLabel}>Дата</ThemedText> */}
-                      <ThemedText style={styles.dateTimeBlockValue}>
-                        {selectedDate
-                          ? formatDateForDisplay(selectedDate)
-                          : "Не выбрана"}
-                      </ThemedText>
-                    </ThemedView>
-                  </TouchableOpacity>
-
-                  {/* Блок выбора времени */}
-                  <TouchableOpacity
-                    style={styles.dateTimeBlock}
-                    onPress={() => {
-                      if (selectedDate && availableTimeSlots.length > 0) {
-                        setShowTimeModal(true);
-                      }
-                    }}
-                    disabled={!selectedDate || availableTimeSlots.length === 0}
-                  >
-                    <ThemedView
-                      lightColor={
-                        !selectedDate || availableTimeSlots.length === 0
-                          ? "#F5F5F5"
-                          : "#F2F4F7"
-                      }
-                      darkColor="#ECEFFA0D"
-                      style={[
-                        styles.dateTimeBlockInner,
-                        (!selectedDate || availableTimeSlots.length === 0) &&
-                          styles.dateTimeBlockDisabled,
-                      ]}
-                    >
-                      {/* <ThemedText style={styles.dateTimeBlockLabel}>Время</ThemedText> */}
-                      <ThemedText style={styles.dateTimeBlockValue}>
-                        {selectedTime || "Не выбрано"}
-                      </ThemedText>
-                    </ThemedView>
-                  </TouchableOpacity>
-                </View>
-
-                <PrimaryButton
-                  title="Применить"
-                  onPress={handleConfirm}
-                  variant="primary"
-                  size="md"
-                  fullWidth
-                  disabled={!selectedDate || !selectedTime}
-                />
+                <ThemedText style={styles.dateTimeBlockValue}>
+                  {selectedTime || "Не выбрано"}
+                </ThemedText>
               </ThemedView>
-            </Animated.View>
-          </TouchableWithoutFeedback>
-        </View>
-      </TouchableWithoutFeedback>
+            </TouchableOpacity>
+          </View>
+
+          <PrimaryButton
+            title="Применить"
+            onPress={handleConfirm}
+            variant="primary"
+            size="md"
+            fullWidth
+            disabled={!selectedDate || !selectedTime}
+          />
+        </ThemedView>
+      </SnapBottomSheet>
 
       {/* Модалка выбора времени */}
       <TimeModal
@@ -1690,7 +1663,7 @@ function DateTimeModal({
         selectedDate={selectedDate}
         deliverySchedule={deliverySchedule}
       />
-    </RNModal>
+    </>
   );
 }
 
@@ -1704,6 +1677,7 @@ function TimeModal({
   selectedDate,
   deliverySchedule,
 }: any) {
+  const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme();
   //TODO
   const isDarkMode = colorScheme === "dark";
@@ -1781,102 +1755,62 @@ function TimeModal({
   };
 
   return (
-    <RNModal
+    <SnapBottomSheet
       visible={visible}
-      animationType="none"
-      transparent={true}
-      onRequestClose={handleClose}
+      title="Выберите время"
+      titleAlign="left"
+      onClose={handleClose}
     >
-      <TouchableWithoutFeedback onPress={handleClose}>
-        <View style={styles.modalOverlay}>
-          <TouchableWithoutFeedback>
-            <Animated.View
+      <ScrollView
+        style={styles.timeList}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
+        showsVerticalScrollIndicator={false}
+        nestedScrollEnabled
+        keyboardShouldPersistTaps="handled"
+      >
+        {timeSlots.map((slot: any, index: number) => {
+          const timeString = formatTimeForDisplay(slot);
+          const isSelected = selectedTime === timeString;
+          const isNearest = isNearestTime(slot);
+
+          return (
+            <TouchableOpacity
+              key={index}
               style={[
-                styles.timeModalContent,
-                isDarkMode && {
-                  backgroundColor: "#202022",
-                },
-                {
-                  transform: [{ translateY: modalTranslateY }],
-                },
+                styles.timeSlot,
+                isDarkMode && { borderBottomColor: "#323235" },
               ]}
+              onPress={() => onSelectTime(slot)}
             >
-              {/* Защелка для свайпа */}
-              <TouchableOpacity
-                style={styles.swipeHandleContainer}
-                activeOpacity={0.7}
-                onPress={handleClose}
+              <View
+                style={[
+                  styles.radioOuter,
+                  (isSelected || isNearest) && styles.radioOuterSelected,
+                  isDarkMode &&
+                    (isSelected || isNearest) && {
+                      borderColor: "#4C94FF",
+                    },
+                ]}
               >
-                <View style={styles.swipeHandle} />
-              </TouchableOpacity>
-
-              <ThemedText style={styles.chooseDateTime}>
-                Выберите время
+                {(isSelected || isNearest) && <View style={styles.radioInner} />}
+              </View>
+              <ThemedText
+                style={[
+                  styles.timeSlotText,
+                  (isSelected || isNearest) && styles.timeSlotTextSelected,
+                  isDarkMode &&
+                    (isSelected || isNearest) && {
+                      color: "#4C94FF",
+                    },
+                ]}
+              >
+                {timeString}
               </ThemedText>
-
-              {/* {selectedDate && (
-                <ThemedView lightColor="#F2F4F7" style={styles.selectedDateHeader}>
-                  <ThemedText style={styles.selectedDateHeaderText}>
-                    {formatDateForHeader(selectedDate)}
-                  </ThemedText>
-                </ThemedView>
-              )} */}
-
-              <ScrollView
-                style={styles.timeList}
-                showsVerticalScrollIndicator={false}
-              >
-                {timeSlots.map((slot: any, index: number) => {
-                  const timeString = formatTimeForDisplay(slot);
-                  const isSelected = selectedTime === timeString;
-                  const isNearest = isNearestTime(slot);
-
-                  return (
-                    <TouchableOpacity
-                      key={index}
-                      style={[
-                        styles.timeSlot,
-                        isDarkMode && { borderBottomColor: "#323235" },
-                      ]}
-                      onPress={() => onSelectTime(slot)}
-                    >
-                      <View
-                        style={[
-                          styles.radioOuter,
-                          (isSelected || isNearest) &&
-                            styles.radioOuterSelected,
-                          isDarkMode &&
-                            (isSelected || isNearest) && {
-                              borderColor: "#4C94FF",
-                            },
-                        ]}
-                      >
-                        {(isSelected || isNearest) && (
-                          <View style={styles.radioInner} />
-                        )}
-                      </View>
-                      <ThemedText
-                        style={[
-                          styles.timeSlotText,
-                          (isSelected || isNearest) &&
-                            styles.timeSlotTextSelected,
-                          isDarkMode &&
-                            (isSelected || isNearest) && {
-                              color: "#4C94FF",
-                            },
-                        ]}
-                      >
-                        {timeString}
-                      </ThemedText>
-                    </TouchableOpacity>
-                  );
-                })}
-              </ScrollView>
-            </Animated.View>
-          </TouchableWithoutFeedback>
-        </View>
-      </TouchableWithoutFeedback>
-    </RNModal>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+    </SnapBottomSheet>
   );
 }
 

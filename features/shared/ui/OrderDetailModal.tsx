@@ -35,14 +35,14 @@ import {
   Alert,
   Animated,
   Dimensions,
-  Platform,
+  Linking,
   Modal,
+  Platform,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
   TouchableWithoutFeedback,
   View,
-  Linking,
 } from "react-native";
 import { PrimaryButton } from "./components/PrimartyButton";
 
@@ -65,6 +65,7 @@ interface OrderStatus {
   id: string;
   name: string;
   date: string;
+  code?: string;
 }
 
 interface OrderDetails {
@@ -286,9 +287,16 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
     const currentIndex = getCurrentStatusIndex();
     return index === currentIndex;
   };
+  const canRepeatOrderByStatus = Boolean(
+    orderDetails?.statuses?.some(
+      (status) =>
+        status?.code?.toLowerCase() === "received" ||
+        status?.name?.toLowerCase() === "получен",
+    ),
+  );
 
   const openReorderModal = async () => {
-    if (!orderDetails || isCheckingReorder) return;
+    if (!orderDetails || isCheckingReorder || !canRepeatOrderByStatus) return;
     setIsCheckingReorder(true);
     try {
       const result = await dispatch(checkForReorder(orderDetails.orderId)).unwrap();
@@ -647,7 +655,7 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                     activeOpacity={0.8}
                     fullWidth
                     style={styles.cancelButton}
-                    disabled={isCheckingReorder}
+                    disabled={isCheckingReorder || !canRepeatOrderByStatus}
                     customIcon={
                       <RepeatOrderIcon fill={isDarkMode ? "#FBFCFF" : "#1B1B1C"} />
                     }
@@ -1052,7 +1060,12 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
             <ThemedText style={styles.reorderWarning} lightColor="#C12B2B" darkColor="#FF6B6B">
               Текущая корзина будет очищена
             </ThemedText>
-            <View style={styles.reorderButtonsRow}>
+            <View
+              style={[
+                styles.reorderButtonsRow,
+                Platform.OS === "android" && { paddingBottom: 2 },
+              ]}
+            >
               <PrimaryButton
                 title="Отмена"
                 onPress={() => setReorderModalVisible(false)}
@@ -1087,7 +1100,12 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
             <ThemedText style={styles.reorderWarning} lightColor="#C12B2B" darkColor="#FF6B6B">
               Текущая корзина будет очищена
             </ThemedText>
-            <View style={styles.reorderButtonsColumn}>
+            <View
+              style={[
+                styles.reorderButtonsColumn,
+                Platform.OS === "android" && { paddingBottom: 28 },
+              ]}
+            >
               <PrimaryButton
                 title={isReordering ? "Загрузка..." : "Повторить с заменой"}
                 onPress={handleReorder}

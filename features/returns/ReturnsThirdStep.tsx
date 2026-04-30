@@ -715,6 +715,7 @@ const styles = StyleSheet.create({
   },
   productsList: {
     paddingHorizontal: 16,
+    paddingBottom: 50
   },
   productItem: {
     flexDirection: "row",

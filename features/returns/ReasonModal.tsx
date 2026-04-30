@@ -90,7 +90,7 @@ export const ReasonModal: React.FC<ReasonModalProps> = ({
           onBackPress={handleClose}
         />
 
-        <ScrollView 
+        <ScrollView
           style={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContentContainer}
@@ -216,20 +216,20 @@ export const ReasonModal: React.FC<ReasonModalProps> = ({
               numberOfLines={4}
               textAlignVertical="top"
             /> */}
-            <TextInput
-              style={[
-                styles.commentInput,
-                isDark && styles.commentInputDark,
-              ]}
-              placeholder="Опишите, что не так с товаром"
-              placeholderTextColor="#80818B"
-              value={comment}
-              onChangeText={setComment}
-              multiline
-              numberOfLines={4}
-              textAlignVertical="top"
-            />
-          </ThemedView>
+              <TextInput
+                style={[
+                  styles.commentInput,
+                  isDark && styles.commentInputDark,
+                ]}
+                placeholder="Опишите, что не так с товаром"
+                placeholderTextColor="#80818B"
+                value={comment}
+                onChangeText={setComment}
+                multiline
+                numberOfLines={4}
+                textAlignVertical="top"
+              />
+            </ThemedView>
         </ScrollView>
 
         <ThemedView
@@ -387,15 +387,20 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   commentInput: {
+    backgroundColor: "#03051E08",
     borderRadius: 12,
-    padding: 12,
-    fontSize: 14,
+    borderWidth: 0.1,
+    borderColor: "transparent",
+    paddingHorizontal: 12,
+    paddingTop: 12,
+    paddingBottom: 12,
+    fontSize: 16,
+    fontWeight: "500",
     textAlignVertical: "top",
-    minHeight: 100
+    minHeight: 100,
   },
   commentInputDark: {
-    backgroundColor: "#151516",
-    borderColor: "#252527",
+    backgroundColor: "#ECEFFA0D",
     color: "#F2F4F7",
   },
   bottomPanel: {

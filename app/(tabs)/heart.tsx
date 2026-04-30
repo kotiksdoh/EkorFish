@@ -399,10 +399,14 @@ export default function HeartScreen() {
   );
 
   // Обработчик поиска
-  const handleSearchSubmit = useCallback(() => {
-    console.log("Search submitted in favorites:", searchQuery);
+  const handleSearchSubmit = useCallback((submittedText?: string) => {
+    const effectiveSearch = (submittedText ?? searchQuery).trim();
+    if (submittedText !== undefined) {
+      setSearchQuery(submittedText);
+    }
+    console.log("Search submitted in favorites:", effectiveSearch);
     scrollViewRef.current?.scrollTo({ y: 0, animated: false });
-    loadProducts(false, searchQuery);
+    loadProducts(false, effectiveSearch);
   }, [searchQuery, loadProducts]);
 
   // Обработчик выбора сортировки

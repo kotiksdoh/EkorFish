@@ -28,9 +28,9 @@ import { Fonts } from "@/constants/theme";
 import {
   clearAuthState,
   getCategoryItems,
-  getUncheckedPushesCountThunk,
   getPushesThunk,
   getSliderItems,
+  getUncheckedPushesCountThunk,
   setCompany,
 } from "@/features/auth/authSlice";
 import { LoginModal } from "@/features/auth/ui/components/LoginModal";
@@ -548,7 +548,7 @@ export default function TabTwoScreen() {
                 ]}
               >
                 <ThemedText lightColor="#1B1B1C" style={styles.infoLabel}>
-                  Финансы и докумкеты
+                  Финансы и документы
                 </ThemedText>
                 <View style={styles.infoValueContainer}>
                   <ArrowIconRight />

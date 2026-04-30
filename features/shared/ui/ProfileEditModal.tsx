@@ -19,6 +19,7 @@ import {
   View,
   useColorScheme
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import AnimatedTextInput from "./components/CustomInput";
 
 const { height: screenHeight } = Dimensions.get("window");
@@ -113,6 +114,7 @@ export const ProfileEditModal = ({
   initialData,
   handleLogout,
 }: ProfileEditModalProps) => {
+  const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === "dark";
   
@@ -460,7 +462,14 @@ export const ProfileEditModal = ({
                   ))}
                 </View>
 
-                <View style={styles.buttonsContainer}>
+                <View
+                  style={[
+                    styles.buttonsContainer,
+                    {
+                      paddingBottom: 16 + Math.max(insets.bottom, 24),
+                    },
+                  ]}
+                >
                   <PrimaryButton
                     title="Применить"
                     onPress={() => handleColorSelect(selectedColorId)}

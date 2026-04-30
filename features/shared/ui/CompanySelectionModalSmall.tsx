@@ -7,12 +7,14 @@ import {
   Animated,
   Dimensions,
   Modal,
+  Platform,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
   TouchableWithoutFeedback,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PrimaryButton } from "./components/PrimartyButton";
 
 const { height: screenHeight } = Dimensions.get("window");
@@ -34,6 +36,7 @@ export const CompanySelectionModal: React.FC<CompanySelectionModalProps> = ({
   onSelectCompany,
   onAddCompany,
 }) => {
+  const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme();
   //TODO
   const isDarkMode = colorScheme === "dark";
@@ -186,7 +189,17 @@ export const CompanySelectionModal: React.FC<CompanySelectionModalProps> = ({
                   </ThemedText>
                 </TouchableOpacity>
               </View> */}
-              <View style={styles.addButtonContainer}>
+              <View
+                style={[
+                  styles.addButtonContainer,
+                  {
+                    paddingBottom:
+                      Platform.OS === "android"
+                        ? Math.max(insets.bottom, 24) + 12
+                        : 16 + insets.bottom,
+                  },
+                ]}
+              >
                 <PrimaryButton
                   title="+ Добавить компанию"
                   onPress={handleAddCompany}

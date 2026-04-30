@@ -5,7 +5,6 @@ import { clearReturnRequests, getMyReturnableOrders } from "@/features/catalog/c
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { useFocusEffect } from "expo-router";
 import React, { useCallback, useMemo } from "react";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   ActivityIndicator,
   Dimensions,
@@ -17,6 +16,7 @@ import {
   View,
   useColorScheme
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ReturnsOrderCard from "./ReturnOrderCard";
 
 const { width: screenWidth } = Dimensions.get("window");
@@ -291,6 +291,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   returnsContent: {
+    paddingBottom: 35,
     flex: 1,
   },
   emptyContainer: {

@@ -33,6 +33,7 @@ import {
   Modal,
   NativeScrollEvent,
   NativeSyntheticEvent,
+  Platform,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
@@ -40,6 +41,7 @@ import {
   View,
 } from "react-native";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { formatDate } from "../services/utils";
 import { CompanySelectionModal } from "./CompanySelectionModalSmall";
 import { CompanySelectModal } from "./CompanySelectModal";
@@ -93,6 +95,7 @@ const PaymentFiltersModal: React.FC<{
     }[];
   }[];
 }> = ({ visible, onClose, onApplyFilters, filters, paymentFilters }) => {
+  const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === "dark";
   const [localFilters, setLocalFilters] =
@@ -281,6 +284,12 @@ const PaymentFiltersModal: React.FC<{
                 style={[
                   styles.applyButton,
                   isDarkMode && { backgroundColor: "#3881EE" },
+                  {
+                    bottom:
+                      Platform.OS === "android"
+                        ? Math.max(insets.bottom, 24) + 8
+                        : insets.bottom + 8,
+                  },
                 ]}
                 onPress={applyFilters}
               >
@@ -301,6 +310,7 @@ const PaymentFiltersModal: React.FC<{
 const PaymentsHistoryScreen: React.FC<{ onBack: () => void }> = ({
   onBack,
 }) => {
+  const insets = useSafeAreaInsets();
   const dispatch = useAppDispatch();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
@@ -551,7 +561,47 @@ const PaymentsHistoryScreen: React.FC<{ onBack: () => void }> = ({
         darkColor="#151516"
         style={styles.paymentsMainContainer}
       >
-        <View style={styles.sortFilterRow}>
+        <View style={styles.filtersRow}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.subcategoriesContainer}
+            contentContainerStyle={styles.subcategoriesContent}
+          >
+            {groupedFilters.map((group, index) => {
+              return (
+                <TouchableOpacity
+                  key={`${group.paramName}-${group.id}-${index}`}
+                  style={[
+                    styles.subcategoryButton,
+                    group.isActive && styles.subcategoryButtonActive,
+                    isDark &&
+                      !group.isActive && {
+                        backgroundColor: "#202022",
+                      },
+                    isDark &&
+                      group.isActive && {
+                        backgroundColor: "#3881EE",
+                      },
+                  ]}
+                  onPress={() => setShowFiltersModal(true)}
+                >
+                  <ThemedText
+                    style={[
+                      styles.subcategoryText,
+                      group.isActive && styles.subcategoryTextActive,
+                      isDark && {
+                        color: "#FBFCFF",
+                      },
+                    ]}
+                  >
+                    {group.displayValue || group.name}
+                  </ThemedText>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+
           <TouchableOpacity
             style={styles.filterButton}
             onPress={() => setShowFiltersModal(true)}
@@ -570,49 +620,12 @@ const PaymentsHistoryScreen: React.FC<{ onBack: () => void }> = ({
         </View>
 
         <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.subcategoriesContainer}
-          contentContainerStyle={styles.subcategoriesContent}
-        >
-          {groupedFilters.map((group) => {
-            return (
-              <TouchableOpacity
-                key={group.id}
-                style={[
-                  styles.subcategoryButton,
-                  group.isActive && styles.subcategoryButtonActive,
-                  isDark &&
-                    !group.isActive && {
-                      backgroundColor: "#202022",
-                    },
-                  isDark &&
-                    group.isActive && {
-                      backgroundColor: "#3881EE",
-                    },
-                ]}
-                onPress={() => setShowFiltersModal(true)}
-              >
-                <ThemedText
-                  style={[
-                    styles.subcategoryText,
-                    group.isActive && styles.subcategoryTextActive,
-                    isDark && {
-                      color: "#FBFCFF",
-                    },
-                  ]}
-                >
-                  {group.displayValue || group.name}
-                </ThemedText>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-
-        <ScrollView
           style={styles.paymentsScrollViewFull}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.paymentsContentContainer}
+          contentContainerStyle={[
+            styles.paymentsContentContainer,
+            { paddingBottom: Math.max(insets.bottom, 24) + 24 },
+          ]}
           onScroll={handleScroll}
           scrollEventThrottle={16}
         >
@@ -726,6 +739,7 @@ const PaymentsHistoryScreen: React.FC<{ onBack: () => void }> = ({
 const ReconciliationActScreen: React.FC<{ onBack: () => void }> = ({
   onBack,
 }) => {
+  const insets = useSafeAreaInsets();
   const dispatch = useAppDispatch();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
@@ -874,22 +888,30 @@ const ReconciliationActScreen: React.FC<{ onBack: () => void }> = ({
           onBackPress={onBack}
         />
 
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContent}
+        <ThemedView
+          lightColor="#FFFFFF"
+          darkColor="#151516"
+          style={styles.requestMainContainer}
         >
-          <ThemedView
-            lightColor="#FFFFFF"
-            darkColor="#151516"
-            style={styles.formContainer}
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={[
+              styles.scrollContent,
+              { paddingBottom: Math.max(insets.bottom, 24) + 100 },
+            ]}
           >
-            <ThemedText
-              style={styles.formSubtitle}
-              type="subtitle"
-              darkColor="#FBFCFF"
+            <ThemedView
+              lightColor="#FFFFFF"
+              darkColor="#151516"
+              style={styles.formContainer}
             >
-              Заполните форму
-            </ThemedText>
+              <ThemedText
+                style={styles.formSubtitle}
+                type="subtitle"
+                darkColor="#FBFCFF"
+              >
+                Заполните форму
+              </ThemedText>
 
             {/* Даты в одной строке */}
             <View style={styles.dateRow}>
@@ -1023,23 +1045,29 @@ const ReconciliationActScreen: React.FC<{ onBack: () => void }> = ({
                 onChangeText={setComment}
               />
             </View>
-          </ThemedView>
-        </ScrollView>
+            </ThemedView>
+          </ScrollView>
 
-        {/* Нижняя панель с кнопкой */}
-        <View style={styles.bottomPanel}>
-          <ThemedText style={styles.infoText} darkColor="#FBFCFF80">
-            Акт будет сформирован в 1С и отправлен в течение 24 часов
-          </ThemedText>
+          {/* Нижняя панель с кнопкой */}
+          <View
+            style={[
+              styles.bottomPanel,
+              { paddingBottom: Math.max(insets.bottom, 24) + 16 },
+            ]}
+          >
+            <ThemedText style={styles.infoText} darkColor="#FBFCFF80">
+              Акт будет сформирован в 1С и отправлен в течение 24 часов
+            </ThemedText>
 
-          <PrimaryButton
-            title="Отправить запрос"
-            onPress={handleSendReconciliationAct}
-            variant="primary"
-            size="lg"
-            fullWidth
-          />
-        </View>
+            <PrimaryButton
+              title="Отправить запрос"
+              onPress={handleSendReconciliationAct}
+              variant="primary"
+              size="lg"
+              fullWidth
+            />
+          </View>
+        </ThemedView>
       </View>
 
       {/* Дата-пикеры - размещаем за пределами ScrollView */}
@@ -1100,6 +1128,7 @@ const ReconciliationActScreen: React.FC<{ onBack: () => void }> = ({
 
 // Компонент формы запроса прайс-листа
 const PriceListScreen: React.FC<{ onBack: () => void }> = ({ onBack }) => {
+  const insets = useSafeAreaInsets();
   const dispatch = useAppDispatch();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
@@ -1177,22 +1206,30 @@ const PriceListScreen: React.FC<{ onBack: () => void }> = ({ onBack }) => {
           onBackPress={onBack}
         />
 
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContent}
+        <ThemedView
+          lightColor="#FFFFFF"
+          darkColor="#151516"
+          style={styles.requestMainContainer}
         >
-          <ThemedView
-            lightColor="#FFFFFF"
-            darkColor="#151516"
-            style={styles.formContainer}
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={[
+              styles.scrollContent,
+              { paddingBottom: Math.max(insets.bottom, 24) + 100 },
+            ]}
           >
-            <ThemedText
-              style={styles.formSubtitle}
-              type="subtitle"
-              darkColor="#FBFCFF"
+            <ThemedView
+              lightColor="#FFFFFF"
+              darkColor="#151516"
+              style={styles.formContainer}
             >
-              Заполните форму
-            </ThemedText>
+              <ThemedText
+                style={styles.formSubtitle}
+                type="subtitle"
+                darkColor="#FBFCFF"
+              >
+                Заполните форму
+              </ThemedText>
 
             {/* Выбор компании */}
             <View style={styles.fieldWrapper}>
@@ -1254,23 +1291,29 @@ const PriceListScreen: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                 </ThemedText>
               )}
             </View>
-          </ThemedView>
-        </ScrollView>
+            </ThemedView>
+          </ScrollView>
 
-        {/* Нижняя панель с кнопкой */}
-        <View style={styles.bottomPanel}>
-          <ThemedText style={styles.infoText} darkColor="#FBFCFF80">
-            Прайс-лист будет отправлен в течение 2 часов
-          </ThemedText>
+          {/* Нижняя панель с кнопкой */}
+          <View
+            style={[
+              styles.bottomPanel,
+              { paddingBottom: Math.max(insets.bottom, 24) + 16 },
+            ]}
+          >
+            <ThemedText style={styles.infoText} darkColor="#FBFCFF80">
+              Прайс-лист будет отправлен в течение 2 часов
+            </ThemedText>
 
-          <PrimaryButton
-            title="Отправить запрос"
-            onPress={handleSendPriceList}
-            variant="primary"
-            size="lg"
-            fullWidth
-          />
-        </View>
+            <PrimaryButton
+              title="Отправить запрос"
+              onPress={handleSendPriceList}
+              variant="primary"
+              size="lg"
+              fullWidth
+            />
+          </View>
+        </ThemedView>
       </View>
 
       <CompanySelectionModal
@@ -1312,6 +1355,7 @@ export const MyFinanceModal: React.FC<MyFinanceProps> = ({
   visible,
   onClose,
 }) => {
+  const insets = useSafeAreaInsets();
   const systemTheme = useColorScheme();
   const currentTheme = systemTheme || "light";
   const isDark = currentTheme === "dark";
@@ -1469,7 +1513,10 @@ export const MyFinanceModal: React.FC<MyFinanceProps> = ({
         <ScrollView
           style={styles.mainScrollView}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollViewContent}
+          contentContainerStyle={[
+            styles.scrollViewContent,
+            { paddingBottom: Math.max(insets.bottom, 24) + 16 },
+          ]}
         >
           {currentCompany && (
             <ThemedView
@@ -1835,6 +1882,13 @@ const styles = StyleSheet.create({
     marginBlock: 8,
     position: "relative",
   },
+  requestMainContainer: {
+    flex: 1,
+    borderRadius: 16,
+    marginTop: 8,
+    overflow: "hidden",
+    position: "relative",
+  },
   paymentsPreviewContainer: {
     borderRadius: 16,
     padding: 16,
@@ -1852,6 +1906,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+  },
+  filtersRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
   },
   sortFilterRow: {
     flexDirection: "row",
@@ -1878,6 +1937,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 8,
     position: "relative",
+    marginLeft: 8,
   },
   filterButtonText: {
     marginLeft: 8,
@@ -2215,11 +2275,14 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   subcategoriesContainer: {
-    flexGrow: 0,
+    flex: 1,
+    marginBottom: 8,
   },
   subcategoriesContent: {
     flexDirection: "row",
+    alignItems: "center",
     paddingRight: 16,
+    paddingVertical: 16,
   },
 
   // Дополнительные элементы форм

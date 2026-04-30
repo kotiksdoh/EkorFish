@@ -12,6 +12,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SnapBottomSheet } from "./SnapBottomSheet";
 
 type PushItem = {
@@ -74,6 +75,7 @@ export const PushNotificationsModal: React.FC<PushNotificationsModalProps> = ({
   onLoadMore,
 }) => {
   const { isDark } = useAppTheme();
+  const insets = useSafeAreaInsets();
   const [selectedPush, setSelectedPush] = useState<PushItem | null>(null);
   const groupedData = useMemo(() => groupPushes(pushes), [pushes]);
 
@@ -100,7 +102,10 @@ export const PushNotificationsModal: React.FC<PushNotificationsModalProps> = ({
             <FlatList
               data={groupedData}
               keyExtractor={(item) => item.dateLabel}
-              contentContainerStyle={styles.listContainer}
+              contentContainerStyle={[
+                styles.listContainer,
+                { paddingBottom: Math.max(insets.bottom, 24) + 16 },
+              ]}
               onEndReachedThreshold={0.3}
               onEndReached={() => {
                 if (!isLoading && hasMore) {

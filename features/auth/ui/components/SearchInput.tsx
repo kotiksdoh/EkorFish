@@ -18,7 +18,7 @@ interface SearchInputProps {
   theme?: "light" | "dark" | "auto";
   isActiveButton?: boolean;
   isHeader?: boolean;
-  onSubmitEditing?: () => void; // Добавьте эту строку
+  onSubmitEditing?: (text: string) => void;
   ref?: React.Ref<TextInput>; // Также добавьте ref если нужно
   isFav?: boolean;
 }
@@ -78,7 +78,9 @@ const SearchInput: React.FC<SearchInputProps> = ({
           placeholderTextColor={disabled ? "#A0A0A0" : "#80818B"}
           editable={!disabled}
           selectionColor="#80818B"
-          onSubmitEditing={onSubmitEditing} // Добавьте эту строку
+          onSubmitEditing={(event) =>
+            onSubmitEditing?.(event.nativeEvent.text ?? value)
+          }
           ref={ref} // Если используете ref
         />
 

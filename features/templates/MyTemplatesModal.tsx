@@ -7,9 +7,9 @@ import {
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { ModalHeader } from "@/features/auth/ui/Header";
+import { CustomCheckbox } from "@/features/shared/ui/components/CustomCheckBox";
 import AnimatedTextInput from "@/features/shared/ui/components/CustomInput";
 import { PrimaryButton } from "@/features/shared/ui/components/PrimartyButton";
-import { CustomCheckbox } from "@/features/shared/ui/components/CustomCheckBox";
 import { SnapBottomSheet } from "@/features/shared/ui/SnapBottomSheet";
 import {
   createOrderPreset,
@@ -24,7 +24,6 @@ import {
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { Image } from "expo-image";
 import React, { useEffect, useRef, useState } from "react";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   ActivityIndicator,
   FlatList,
@@ -36,6 +35,7 @@ import {
   useColorScheme,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { OrderFromTemplateConfirmModal } from "./OrderFromTemplateConfirmModal";
 import { ReminderFrequencyPickerModal } from "./ReminderFrequencyPickerModal";
@@ -857,14 +857,28 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
                 keyExtractor={(it) => it.id}
                 renderItem={renderCard}
                 style={{ flex: 1 }}
-                contentContainerStyle={styles.listPad}
+                contentContainerStyle={[
+                  styles.listPad,
+                  { paddingBottom: 120 + Math.max(insets.bottom, 24) },
+                ]}
                 showsVerticalScrollIndicator={false}
               />
             )}
 
             {/* BottomPanel кнопки — всегда поверх, прозрачная подложка */}
             {!isLoadingList && (
-              <View pointerEvents="box-none" style={styles.templatesBottomPanel}>
+              <View
+                pointerEvents="box-none"
+                style={[
+                  styles.templatesBottomPanel,
+                  {
+                    paddingBottom:
+                      Platform.OS === "android"
+                        ? Math.max(insets.bottom, 24) + 16
+                        : 28 + insets.bottom,
+                  },
+                ]}
+              >
                 <PrimaryButton
                   title="+ Создать шаблон"
                   onPress={openCreate}
@@ -954,13 +968,17 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
           </TouchableOpacity>
         </ScrollView>
         <View style={{ height: 16 }} />
-        <PrimaryButton
-          title="Создать шаблон"
-          onPress={submitCreate}
-          variant="primary"
-          fullWidth
-          disabled={isCreating}
-        />
+        <View
+         
+        >
+          <PrimaryButton
+            title="Создать шаблон"
+            onPress={submitCreate}
+            variant="primary"
+            fullWidth
+            disabled={isCreating}
+          />
+        </View>
       </SnapBottomSheet>
 
       <ReminderFrequencyPickerModal

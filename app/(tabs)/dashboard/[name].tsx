@@ -343,9 +343,11 @@ export default function CatalogDetailScreen() {
 
   useEffect(() => {
     if (!catalogId) return;
+    const initialSearchQuery =
+      typeof search === "string" ? decodeURIComponent(search).trim() : "";
 
     dispatch(clearProducts());
-    void loadProducts(false, "");
+    void loadProducts(false, initialSearchQuery);
     dispatch(getCategoryFilters(catalogId));
   }, [catalogId, dispatch, isPromo, me?.storageId, search]);
   // Обработчик смены подкатегории
@@ -441,11 +443,15 @@ export default function CatalogDetailScreen() {
   );
 
   // Обработчик поиска
-  const handleSearchSubmit = useCallback(() => {
+  const handleSearchSubmit = useCallback((submittedText?: string) => {
+    const effectiveSearch = (submittedText ?? searchQuery).trim();
+    if (submittedText !== undefined) {
+      setSearchQuery(submittedText);
+    }
     if (catalogId) {
-      console.log("Search submitted:", searchQuery);
+      console.log("Search submitted:", effectiveSearch);
       scrollViewRef.current?.scrollTo({ y: 0, animated: false });
-      loadProducts(false, searchQuery);
+      loadProducts(false, effectiveSearch);
     }
   }, [catalogId, searchQuery, loadProducts]);
 

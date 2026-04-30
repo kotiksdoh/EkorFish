@@ -8,6 +8,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAppDispatch } from "@/store/hooks";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   ActivityIndicator,
   Animated,
@@ -31,6 +32,7 @@ export const MyOrdersModal: React.FC<MyOrdersProps> = ({
   visible,
   onClose,
 }) => {
+  const insets = useSafeAreaInsets();
   const systemTheme = useColorScheme();
   const currentTheme = systemTheme || "light";
   const isDark = currentTheme === "dark";
@@ -209,7 +211,10 @@ export const MyOrdersModal: React.FC<MyOrdersProps> = ({
           onReorderSuccess={onClose}
         />
       )}
-      contentContainerStyle={styles.ordersList}
+      contentContainerStyle={[
+        styles.ordersList,
+        { paddingBottom: Math.max(insets.bottom, 24) + 16 },
+      ]}
       ListEmptyComponent={!isTabLoading[tab] ? renderEmptyState(tab) : null}
       onEndReachedThreshold={0.3}
       onEndReached={() => {
