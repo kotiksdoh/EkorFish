@@ -168,9 +168,10 @@ export const MyReturnsFirstStep: React.FC<MyReturnsFirstStepProps> = ({
   return (
     <Modal
       animationType="slide"
-      transparent={true}
+      transparent={false}
       visible={visible}
       onRequestClose={handleClose}
+      presentationStyle="fullScreen"
       statusBarTranslucent={true}
     >
       <ThemedView

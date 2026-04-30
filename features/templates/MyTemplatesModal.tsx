@@ -433,6 +433,7 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
       visible={!!detailId}
       animationType="slide"
       onRequestClose={handleCloseDetail}
+      presentationStyle="fullScreen"
       statusBarTranslucent
     >
       <ThemedView
@@ -811,8 +812,9 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
       <Modal
         visible={visible}
         animationType="slide"
-        transparent
+        transparent={false}
         onRequestClose={handleCloseAll}
+        presentationStyle="fullScreen"
         statusBarTranslucent
       >
         <ThemedView

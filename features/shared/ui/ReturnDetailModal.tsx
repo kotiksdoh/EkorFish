@@ -361,8 +361,9 @@ export const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
       <Modal
         visible={visible}
         animationType="none"
-        transparent={true}
+        transparent={false}
         onRequestClose={onClose}
+        presentationStyle="fullScreen"
         statusBarTranslucent={true}
       >
         <ThemedView
@@ -661,6 +662,7 @@ export const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
           animationType="none"
           transparent={true}
           onRequestClose={closeProductsModal}
+          presentationStyle="overFullScreen"
           statusBarTranslucent={true}
         >
           <TouchableWithoutFeedback onPress={closeProductsModal}>

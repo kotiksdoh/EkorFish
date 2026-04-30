@@ -392,7 +392,7 @@ export const MyReturnsThirdStep: React.FC<MyReturnsThirdStepProps> = ({
     <>
     <Modal
       animationType="slide"
-      transparent={true}
+      transparent={false}
       visible={visible}
       onRequestClose={() => {
         if (showSuccessContent) {
@@ -402,6 +402,7 @@ export const MyReturnsThirdStep: React.FC<MyReturnsThirdStepProps> = ({
           onClose();
         }
       }}
+      presentationStyle="fullScreen"
       statusBarTranslucent={true}
     >
       <ThemedView

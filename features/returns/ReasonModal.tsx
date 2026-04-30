@@ -73,9 +73,10 @@ export const ReasonModal: React.FC<ReasonModalProps> = ({
   return (
     <Modal
       animationType="slide"
-      transparent={true}
+      transparent={false}
       visible={visible}
       onRequestClose={handleClose}
+      presentationStyle={Platform.OS === "ios" ? "overFullScreen" : "fullScreen"}
       statusBarTranslucent={true}
     >
       <ThemedView

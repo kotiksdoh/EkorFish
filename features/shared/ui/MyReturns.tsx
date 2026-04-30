@@ -167,9 +167,10 @@ export const MyReturnsModal: React.FC<MyReturnsProps> = ({
     <>
       <Modal
         animationType="slide"
-        transparent={true}
+        transparent={false}
         visible={visible}
         onRequestClose={handleCloseAll}
+        presentationStyle="fullScreen"
         statusBarTranslucent={true}
       >
         <ThemedView

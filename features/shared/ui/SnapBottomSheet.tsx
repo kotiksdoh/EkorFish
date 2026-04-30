@@ -8,6 +8,7 @@ import {
   Dimensions,
   Modal,
   PanResponder,
+  Platform,
   StyleSheet,
   TouchableOpacity,
   View,
@@ -87,6 +88,7 @@ export function SnapBottomSheet({
       visible={visible}
       animationType="none"
       transparent
+      presentationStyle={Platform.OS === "ios" ? "overFullScreen" : undefined}
       statusBarTranslucent
       onRequestClose={closeAnimated}
     >

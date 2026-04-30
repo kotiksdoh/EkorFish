@@ -1,6 +1,5 @@
 import { axdef } from "@/features/shared/services/axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import Constants from "expo-constants";
 import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
 import { useEffect, useRef } from "react";
@@ -61,27 +60,17 @@ async function registerForPushNotificationsAsync(): Promise<string | null> {
     return null;
   }
 
-  if (Platform.OS === "android") {
-    const devicePushToken = await Notifications.getDevicePushTokenAsync();
+  const devicePushToken = await Notifications.getDevicePushTokenAsync();
 
-    if (typeof devicePushToken.data === "string") {
-      return devicePushToken.data;
-    }
-
-    console.log("Android device push token is not a string:", devicePushToken.data);
-    return null;
+  if (typeof devicePushToken.data === "string") {
+    return devicePushToken.data;
   }
 
-  const projectId =
-    Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
-
-  if (!projectId) {
-    console.log('EAS projectId is missing. Cannot get Expo push token.');
-    return null;
-  }
-
-  const expoToken = await Notifications.getExpoPushTokenAsync({ projectId });
-  return expoToken.data;
+  console.log(
+    `${Platform.OS} device push token is not a string:`,
+    devicePushToken.data,
+  );
+  return null;
 }
 
 async function sendFirebaseTokenToBackend(tokenFirebase: string): Promise<void> {
@@ -107,7 +96,7 @@ export async function syncPushTokenToBackend(
     const pushToken = await registerForPushNotificationsAsync();
 
     if (!pushToken) {
-      console.log(`[Push][${source}] No Expo push token received.`);
+      console.log(`[Push][${source}] No native push token received.`);
       return;
     }
 

@@ -1385,9 +1385,10 @@ export const MyFinanceModal: React.FC<MyFinanceProps> = ({
     return (
       <Modal
         animationType="slide"
-        transparent={true}
+        transparent={false}
         visible={visible}
         onRequestClose={handleCloseAll}
+        presentationStyle="fullScreen"
         statusBarTranslucent={true}
       >
         <ThemedView
@@ -1405,9 +1406,10 @@ export const MyFinanceModal: React.FC<MyFinanceProps> = ({
     return (
       <Modal
         animationType="slide"
-        transparent={true}
+        transparent={false}
         visible={visible}
         onRequestClose={handleCloseAll}
+        presentationStyle="fullScreen"
         statusBarTranslucent={true}
       >
         <ThemedView
@@ -1427,9 +1429,10 @@ export const MyFinanceModal: React.FC<MyFinanceProps> = ({
     return (
       <Modal
         animationType="slide"
-        transparent={true}
+        transparent={false}
         visible={visible}
         onRequestClose={handleCloseAll}
+        presentationStyle="fullScreen"
         statusBarTranslucent={true}
       >
         <ThemedView
@@ -1446,9 +1449,10 @@ export const MyFinanceModal: React.FC<MyFinanceProps> = ({
   return (
     <Modal
       animationType="slide"
-      transparent={true}
+      transparent={false}
       visible={visible}
       onRequestClose={handleCloseAll}
+      presentationStyle="fullScreen"
       statusBarTranslucent={true}
     >
       <ThemedView

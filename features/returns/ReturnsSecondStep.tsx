@@ -189,9 +189,10 @@ export const MyReturnsSecondStep: React.FC<MyReturnsSecondStepProps> = ({
     <>
       <Modal
         animationType="slide"
-        transparent={true}
+        transparent={false}
         visible={visible}
         onRequestClose={onClose}
+        presentationStyle="fullScreen"
         statusBarTranslucent={true}
       >
         <ThemedView
