@@ -379,8 +379,8 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
           >
             <ThemedText style={styles.addToCartButtonText}>
               {variant === "template"
-                ? "Добавить в шаблон"
-                : "Добавить в корзину"}
+                ? "В шаблон"
+                : "В корзину"}
             </ThemedText>
           </TouchableOpacity>
 

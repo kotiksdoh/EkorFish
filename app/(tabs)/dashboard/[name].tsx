@@ -260,6 +260,7 @@ export default function CatalogDetailScreen() {
       isLoadMore: boolean = false,
       searchText: string = searchQuery,
       forceStorageId?: string,
+      forceSubcategoryId?: string | null,
     ) => {
       if (isFetchingRef.current || !catalogId) return;
 
@@ -271,7 +272,7 @@ export default function CatalogDetailScreen() {
           categoryId: catalogId,
           offset: isLoadMore ? (currentPage + 1) * pageSize : 0,
           count: pageSize,
-          search: search,
+          search: searchText,
           isPromo: isPromo,
           storageId: forceStorageId || me?.storageId,
         };
@@ -296,15 +297,20 @@ export default function CatalogDetailScreen() {
         }
 
         // Добавляем subCategoryId если выбрана подкатегория
-        if (selectedSubcategoryId && selectedSubcategoryId !== "all") {
-          params.subCategoryId = selectedSubcategoryId;
+        const effectiveSubcategoryId =
+          forceSubcategoryId === undefined
+            ? selectedSubcategoryId
+            : forceSubcategoryId;
+
+        if (effectiveSubcategoryId && effectiveSubcategoryId !== "all") {
+          params.subCategoryId = effectiveSubcategoryId;
         }
 
         console.log("Loading products:", {
           isLoadMore,
           offset: params.offset,
           search: searchText,
-          subcategoryId: selectedSubcategoryId,
+          subcategoryId: effectiveSubcategoryId,
           params,
         });
 
@@ -335,44 +341,23 @@ export default function CatalogDetailScreen() {
     ],
   );
 
-  useFocusEffect(
-    useCallback(() => {
-      console.log("Heart screen focused - loading favorites");
+  useEffect(() => {
+    if (!catalogId) return;
 
-      // Очищаем предыдущие товары
-      dispatch(clearProducts());
-
-      // Загружаем избранное
-      loadProducts(false, "");
-
-      // Загружаем фильтры для конкретной категории
-      if (catalogId) {
-        dispatch(getCategoryFilters(catalogId));
-      }
-
-      // Опционально: функция очистки при уходе с экрана
-      return () => {
-        console.log("Heart screen unfocused");
-        // Можно отменить запросы если нужно
-        // isFetchingRef.current = false;
-      };
-    }, [catalogId, dispatch, loadProducts]), // Добавьте зависимости
-  );
+    dispatch(clearProducts());
+    void loadProducts(false, "");
+    dispatch(getCategoryFilters(catalogId));
+  }, [catalogId, dispatch, isPromo, me?.storageId, search]);
   // Обработчик смены подкатегории
   const handleSubcategorySelect = useCallback(
     (subcategoryId: string | null) => {
-      if (subcategoryId === "all") {
-        dispatch(setSelectedSubcategory(null));
-      } else {
-        dispatch(setSelectedSubcategory(subcategoryId));
-      }
+      const nextSubcategoryId = subcategoryId === "all" ? null : subcategoryId;
+      dispatch(setSelectedSubcategory(nextSubcategoryId));
 
       scrollViewRef.current?.scrollTo({ y: 0, animated: false });
 
-      // Загружаем продукты через небольшой таймаут чтобы Redux успел обновиться
-      setTimeout(() => {
-        loadProducts(false, searchQuery);
-      }, 100);
+      // Грузим по явно выбранной подкатегории, без ожидания Redux-state
+      void loadProducts(false, searchQuery, undefined, nextSubcategoryId);
     },
     [dispatch, loadProducts, searchQuery],
   );
@@ -822,6 +807,7 @@ export default function CatalogDetailScreen() {
           animationType="none"
           transparent={true}
           onRequestClose={closeModalWithAnimation}
+          presentationStyle="overFullScreen"
           statusBarTranslucent={true}
         >
           <TouchableWithoutFeedback onPress={handleOverlayPress}>
@@ -998,6 +984,7 @@ export default function CatalogDetailScreen() {
           animationType="none"
           transparent={true}
           onRequestClose={closeSortModalWithAnimation}
+          presentationStyle="overFullScreen"
           statusBarTranslucent={true}
         >
           <TouchableWithoutFeedback onPress={handleSortOverlayPress}>

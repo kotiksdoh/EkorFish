@@ -86,7 +86,7 @@ export function OrderFromTemplateConfirmModal({
 
       <View style={styles.buttons}>
         <PrimaryButton
-          title={isFillingCart ? "Загрузка..." : "Добавить в корзину"}
+          title={isFillingCart ? "Загрузка..." : "В корзину"}
           onPress={async () => {
             const ok = await doFillCart();
             if (ok) onClose();

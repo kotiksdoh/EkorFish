@@ -35,6 +35,7 @@ import {
   Alert,
   Animated,
   Dimensions,
+  Platform,
   Modal,
   ScrollView,
   StyleSheet,
@@ -383,8 +384,9 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
       <Modal
         visible={visible}
         animationType="none"
-        transparent={true}
+        transparent={false}
         onRequestClose={onClose}
+        presentationStyle="fullScreen"
         statusBarTranslucent={true}
       >
         <ThemedView
@@ -765,6 +767,7 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
           animationType="none"
           transparent={true}
           onRequestClose={closeProductsModal}
+          presentationStyle={Platform.OS === "ios" ? "overFullScreen" : undefined}
           statusBarTranslucent={true}
         >
           <TouchableWithoutFeedback onPress={closeProductsModal}>
