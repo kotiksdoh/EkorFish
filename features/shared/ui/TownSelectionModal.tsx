@@ -15,6 +15,7 @@ import {
   TouchableWithoutFeedback,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const { height: screenHeight } = Dimensions.get("window");
 
@@ -38,6 +39,7 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
   const towns = useAppSelector((state) => state.auth.towns);
   const isLoadingTowns = useAppSelector((state) => state.auth.isLoadingTowns);
   const me = useAppSelector((state) => state.auth.me);
+  const insets = useSafeAreaInsets();
 
   const [selectedTownId, setSelectedTownId] = useState<string | null>(
     me?.storageId || null,
@@ -228,7 +230,12 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
               <ThemedView
                 darkColor="#202022"
                 lightColor="#FFFFFF"
-                style={styles.applyButtonContainer}
+                style={[
+                  styles.applyButtonContainer,
+                  {
+                    marginBottom: insets.bottom + 30,
+                  },
+                ]}
               >
                 <TouchableOpacity
                   style={[
@@ -238,6 +245,7 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
                     },
                     (!selectedTownId || isUpdating) &&
                       styles.applyButtonDisabled,
+                      
                   ]}
                   onPress={handleApplyPress}
                   disabled={!selectedTownId || isUpdating}

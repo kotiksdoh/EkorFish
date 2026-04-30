@@ -1438,7 +1438,12 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                 </View>
          
               </View>
-              <View style={phisUser.button}>
+              <View
+                style={[
+                  phisUser.button,
+                  { paddingBottom: insets.bottom + (Platform.OS === "android" ? 12 : 0) },
+                ]}
+              >
                 <PrimaryButton
                   title="Продолжить"
                   onPress={() => handleInitUser()}
