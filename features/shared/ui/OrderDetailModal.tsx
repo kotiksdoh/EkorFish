@@ -991,7 +991,6 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
           </ScrollView>
         </View>
       </SnapBottomSheet>
-      </Modal>
       <SnapBottomSheet
         visible={documentsModalVisible}
         title="Документы заказа"
@@ -1124,6 +1123,7 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
           </>
         )}
       </SnapBottomSheet>
+      </Modal>
     </>
   );
 };

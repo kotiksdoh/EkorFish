@@ -141,6 +141,14 @@ export const MyReturnsModal: React.FC<MyReturnsProps> = ({
     </View>
   );
 
+  /** На iOS второй одновременный fullScreen Modal оказывается под первым и перехватывает касания — показываем список только когда нет дочерних полноэкранных окон. */
+  const returnsListModalVisible =
+    visible &&
+    !visibleFirstStep &&
+    !visibleSecondStep &&
+    !visibleThirdStep &&
+    !visibleReturnDetail;
+
   const renderReturnsList = () => (
     <FlatList
       data={returns}
@@ -168,7 +176,7 @@ export const MyReturnsModal: React.FC<MyReturnsProps> = ({
       <Modal
         animationType="slide"
         transparent={false}
-        visible={visible}
+        visible={returnsListModalVisible}
         onRequestClose={handleCloseAll}
         presentationStyle="fullScreen"
         statusBarTranslucent={true}

@@ -428,6 +428,9 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
   const showEditBottomPanel = !!detailPreset && detailEditing;
   const showEditBulkActions = !!detailPreset && detailEditing && !detailEmpty;
 
+  /** iOS: два fullScreen Modal + sheet одновременно — нижние окна не видны/блокируют таб. Список скрываем, пока открыты детали или лист создания. */
+  const templatesListModalVisible = visible && !detailId && !createOpen;
+
   const detailContent = (
     <Modal
       visible={!!detailId}
@@ -810,7 +813,7 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
   return (
     <>
       <Modal
-        visible={visible}
+        visible={templatesListModalVisible}
         animationType="slide"
         transparent={false}
         onRequestClose={handleCloseAll}
