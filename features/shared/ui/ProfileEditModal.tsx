@@ -277,7 +277,13 @@ export const ProfileEditModal = ({
         animationType="none"
         statusBarTranslucent={true}
         transparent={true}
-        onRequestClose={closeModalWithAnimation}
+        onRequestClose={() => {
+          if (showColorPicker) {
+            closeColorPickerWithAnimation();
+            return;
+          }
+          closeModalWithAnimation();
+        }}
       >
         <TouchableWithoutFeedback onPress={closeModalWithAnimation}>
           <View style={styles.fullModalOverlay}>
@@ -399,89 +405,81 @@ export const ProfileEditModal = ({
                       />
                     </ThemedView>
                 </ScrollView>
-              </Animated.View>
-            </TouchableWithoutFeedback>
-          </View>
-        </TouchableWithoutFeedback>
-      </RNModal>
 
-      {/* Модалка выбора цвета (снизу) */}
-      <RNModal
-        visible={visible && showColorPicker}
-        animationType="none"
-        transparent={true}
-        presentationStyle="overFullScreen"
-        onRequestClose={closeColorPickerWithAnimation}
-        statusBarTranslucent={true}
-      >
-        <TouchableWithoutFeedback onPress={closeColorPickerWithAnimation}>
-          <View style={styles.modalOverlay}>
-            <TouchableWithoutFeedback>
-              <Animated.View
-                style={[
-                  styles.colorPickerModal,
-                  isDarkMode && {
-                    backgroundColor: "#202022",
-                  },
-                  {
-                    transform: [{ translateY: colorPickerTranslateY }],
-                  },
-                ]}
-              >
-                {/* Защелка для свайпа */}
-                <TouchableOpacity
-                  style={styles.swipeHandleContainer}
-                  activeOpacity={0.7}
-                  onPress={closeColorPickerWithAnimation}
-                >
-                  <View style={[styles.swipeHandle, isDarkMode && { backgroundColor: '#404040' }]} />
-                </TouchableOpacity>
+                {showColorPicker ? (
+                  <TouchableWithoutFeedback onPress={closeColorPickerWithAnimation}>
+                    <View style={styles.innerOverlay}>
+                      <TouchableWithoutFeedback>
+                        <Animated.View
+                          style={[
+                            styles.colorPickerModal,
+                            isDarkMode && {
+                              backgroundColor: "#202022",
+                            },
+                            {
+                              transform: [{ translateY: colorPickerTranslateY }],
+                            },
+                          ]}
+                        >
+                          {/* Защелка для свайпа */}
+                          <TouchableOpacity
+                            style={styles.swipeHandleContainer}
+                            activeOpacity={0.7}
+                            onPress={closeColorPickerWithAnimation}
+                          >
+                            <View style={[styles.swipeHandle, isDarkMode && { backgroundColor: '#404040' }]} />
+                          </TouchableOpacity>
 
-                <View style={styles.colorPickerHeader}>
-                  <ThemedText style={styles.colorPickerModalTitle}>
-                    Изменить цвет обложки
-                  </ThemedText>
-                </View>
+                          <View style={styles.colorPickerHeader}>
+                            <ThemedText style={styles.colorPickerModalTitle}>
+                              Изменить цвет обложки
+                            </ThemedText>
+                          </View>
 
-                <View style={styles.colorsGrid}>
-                  {colors.map((color) => (
-                    <TouchableOpacity
-                      key={color.id}
-                      style={[
-                        styles.colorOption,
-                        selectedColorId === color.id && styles.selectedColorOption,
-                        isDarkMode && selectedColorId === color.id && {
-                            borderColor: '#3881EE'
-                        }
-                      ]}
-                      onPress={() => setSelectedColorId(color.id)}
-                    >
-                      <LinearGradient
-                        colors={color.gradient}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 0 }}
-                        style={styles.colorOptionGradient}
-                      />
-                    </TouchableOpacity>
-                  ))}
-                </View>
+                          <View style={styles.colorsGrid}>
+                            {colors.map((color) => (
+                              <TouchableOpacity
+                                key={color.id}
+                                style={[
+                                  styles.colorOption,
+                                  selectedColorId === color.id && styles.selectedColorOption,
+                                  isDarkMode && selectedColorId === color.id && {
+                                      borderColor: '#3881EE'
+                                  }
+                                ]}
+                                onPress={() => setSelectedColorId(color.id)}
+                              >
+                                <LinearGradient
+                                  colors={color.gradient}
+                                  start={{ x: 0, y: 0 }}
+                                  end={{ x: 1, y: 0 }}
+                                  style={styles.colorOptionGradient}
+                                />
+                              </TouchableOpacity>
+                            ))}
+                          </View>
 
-                <View
-                  style={[
-                    styles.buttonsContainer,
-                    {
-                      paddingBottom: 16 + Math.max(insets.bottom, 24),
-                    },
-                  ]}
-                >
-                  <PrimaryButton
-                    title="Применить"
-                    onPress={() => handleColorSelect(selectedColorId)}
-                    variant="primary"
-                    size="md"
-                    fullWidth
-                  />
-                </View>
+                          <View
+                            style={[
+                              styles.buttonsContainer,
+                              {
+                                paddingBottom: 16 + Math.max(insets.bottom, 24),
+                              },
+                            ]}
+                          >
+                            <PrimaryButton
+                              title="Применить"
+                              onPress={() => handleColorSelect(selectedColorId)}
+                              variant="primary"
+                              size="md"
+                              fullWidth
+                            />
+                          </View>
+                        </Animated.View>
+                      </TouchableWithoutFeedback>
+                    </View>
+                  </TouchableWithoutFeedback>
+                ) : null}
               </Animated.View>
             </TouchableWithoutFeedback>
           </View>
@@ -502,6 +500,11 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "flex-end",
+  },
+  innerOverlay: {
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "flex-end",
   },
