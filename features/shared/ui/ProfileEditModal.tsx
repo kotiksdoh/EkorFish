@@ -273,7 +273,7 @@ export const ProfileEditModal = ({
     <>
       {/* Основная модалка */}
       <RNModal
-        visible={visible && !showColorPicker}
+        visible={visible}
         animationType="none"
         statusBarTranslucent={true}
         transparent={true}
