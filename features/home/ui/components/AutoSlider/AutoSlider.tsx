@@ -57,7 +57,8 @@ export const AutoSlider: React.FC<AutoSliderProps> = ({
     setCurrentIndex((prev) => (prev < items.length - 1 ? prev + 1 : 0));
   }, [items.length]);
 
-  // Автопрокрутка
+  // Автопрокрутка (только timerRef; resumeTimerRef не трогаем — иначе при смене currentIndex
+  // после ручного свайпа cleanup отменяет «возобновить через 2с» и автоплей/полоска замирают навсегда)
   useEffect(() => {
     if (timerRef.current) {
       clearTimeout(timerRef.current);
@@ -70,9 +71,15 @@ export const AutoSlider: React.FC<AutoSliderProps> = ({
 
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
-      if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current);
     };
   }, [currentIndex, isAutoPlaying, items.length, autoPlayInterval, goToNextSlide]);
+
+  useEffect(
+    () => () => {
+      if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current);
+    },
+    [],
+  );
 
   // Если данные слайдера изменились, держим индекс в допустимых пределах
   useEffect(() => {
@@ -91,6 +98,10 @@ export const AutoSlider: React.FC<AutoSliderProps> = ({
   }, [currentIndex, items.length, clampIndex]);
 
   const handleScrollBegin = () => {
+    if (resumeTimerRef.current) {
+      clearTimeout(resumeTimerRef.current);
+      resumeTimerRef.current = null;
+    }
     isUserInteractingRef.current = true;
     setIsAutoPlaying(false);
     if (timerRef.current) {

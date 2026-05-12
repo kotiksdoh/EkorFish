@@ -180,6 +180,7 @@ export const ProfileEditModal = ({
       useNativeDriver: true,
     }).start(() => {
       setIsClosing(false);
+      setShowColorPicker(false);
       onClose();
     });
   };
@@ -226,6 +227,8 @@ export const ProfileEditModal = ({
       setSurname(initialData.surname || "");
       setPhone(initialData.phone || "");
       setMail(initialData.phone || "");
+    } else {
+      setShowColorPicker(false);
     }
   }, [visible, initialData, colors]);
 
@@ -270,7 +273,7 @@ export const ProfileEditModal = ({
     <>
       {/* Основная модалка */}
       <RNModal
-        visible={visible}
+        visible={visible && !showColorPicker}
         animationType="none"
         statusBarTranslucent={true}
         transparent={true}
@@ -404,9 +407,10 @@ export const ProfileEditModal = ({
 
       {/* Модалка выбора цвета (снизу) */}
       <RNModal
-        visible={showColorPicker}
+        visible={visible && showColorPicker}
         animationType="none"
         transparent={true}
+        presentationStyle="overFullScreen"
         onRequestClose={closeColorPickerWithAnimation}
         statusBarTranslucent={true}
       >
