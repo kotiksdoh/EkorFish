@@ -8,8 +8,9 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import {
   getTowns,
+  loadCompanyFromStorage,
   setCompany,
-  updateUserTown
+  updateUserTown,
 } from "@/features/auth/authSlice";
 import { ModalHeader } from "@/features/auth/ui/Header";
 import {
@@ -23,8 +24,15 @@ import {
 } from "@/features/catalog/catalogSlice";
 import { PrimaryButton } from "@/features/home";
 import { useSavedAddress } from "@/features/shared/services/useSavedAddress";
+import { AddAddressModal } from "@/features/shared/ui/AddAddressModal";
 import { AddressSelectionModal } from "@/features/shared/ui/AddressSelectionModal";
 import { CompanySelectionModal } from "@/features/shared/ui/CompanySelectionModalSmall";
+import {
+  formatAddressSummary,
+  getCompanyDeliveryAddresses,
+  getFirstCompanyDeliveryAddress,
+  mergeAddressIntoCompany,
+} from "@/features/shared/utils/deliveryAddress";
 import { OrderDetailsModal } from "@/features/shared/ui/OrderDetailModal";
 import { AnimatedStackedSheet } from "@/features/shared/ui/AnimatedStackedSheet";
 import { SnapBottomSheet } from "@/features/shared/ui/SnapBottomSheet";
@@ -33,7 +41,7 @@ import AnimatedTextInput from "@/features/shared/ui/components/CustomInput";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { useRouter } from "expo-router";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -124,6 +132,8 @@ export default function CheckoutModal({
   const [createdOrderId, setCreatedOrderId] = useState<number | null>(null);
   const [showChangePickupModal, setShowChangePickupModal] = useState(false);
   const [pendingPickupAddress, setPendingPickupAddress] = useState<string | null>(null);
+  const [showAddAddressModal, setShowAddAddressModal] = useState(false);
+  const [showNeedAddressSheet, setShowNeedAddressSheet] = useState(false);
 
   const dispatch = useAppDispatch();
   const tabContainerRef = useRef<View>(null);
@@ -217,8 +227,11 @@ export default function CheckoutModal({
     if (visible) {
       loadOrderData();
       dispatch(getTowns());
+      dispatch(loadCompanyFromStorage());
+      setShowAddAddressModal(false);
+      setShowNeedAddressSheet(false);
     }
-  }, [visible]);
+  }, [visible, dispatch]);
 
   // Загружаем получателей при выборе адреса
   useEffect(() => {
@@ -294,12 +307,59 @@ export default function CheckoutModal({
 
   const { savedAddress, saveAddress } = useSavedAddress(currentCompany?.id);
 
+  const companyDeliveryAddresses = useMemo(
+    () => getCompanyDeliveryAddresses(currentCompany),
+    [currentCompany],
+  );
+
+  const resolveDefaultCompanyAddress = useCallback(() => {
+    if (companyDeliveryAddresses.length === 0) return null;
+    if (
+      savedAddress?.id &&
+      companyDeliveryAddresses.some((a: any) => a.id === savedAddress.id)
+    ) {
+      return savedAddress;
+    }
+    return companyDeliveryAddresses[0];
+  }, [companyDeliveryAddresses, savedAddress]);
+
+  const displayAddress = selectedAddress ?? resolveDefaultCompanyAddress();
+
   useEffect(() => {
-    if (currentCompany?.id && savedAddress) {
+    if (currentCompany?.id && savedAddress && selectedMethod === DeliveryMethod.Delivery) {
       setSelectedAddress(savedAddress);
     }
-  }, [currentCompany?.id, savedAddress]);
-  console.log("savedAddress", savedAddress);
+  }, [currentCompany?.id, savedAddress, selectedMethod]);
+
+  useEffect(() => {
+    if (selectedMethod !== DeliveryMethod.Pickup || !currentCompany?.id) return;
+    const resolved = resolveDefaultCompanyAddress();
+    if (resolved) {
+      setSelectedAddress(resolved);
+    }
+  }, [
+    selectedMethod,
+    currentCompany?.id,
+    companyDeliveryAddresses.length,
+    resolveDefaultCompanyAddress,
+  ]);
+
+  const handleAddressAdded = useCallback(
+    async (newAddress: any) => {
+      if (currentCompany && newAddress) {
+        const updated = mergeAddressIntoCompany(currentCompany, newAddress);
+        dispatch(setCompany(updated));
+        setSelectedAddress(newAddress);
+        await saveAddress(newAddress);
+        if (newAddress.id) {
+          await loadRecipients(newAddress.id);
+        }
+      }
+      setShowAddAddressModal(false);
+      setShowNeedAddressSheet(false);
+    },
+    [currentCompany, dispatch, saveAddress],
+  );
   const handleSelectAddress = async (address: any) => {
     setSelectedAddress(address);
     if (currentCompany?.id) {
@@ -488,11 +548,16 @@ export default function CheckoutModal({
     // }
     const userInfo: Record<string, string> = {};
 
+    const deliveryAddressId =
+      selectedAddress?.id ??
+      getFirstCompanyDeliveryAddress(currentCompany)?.id ??
+      "";
+
     if (selectedMethod === DeliveryMethod.Pickup) {
       userInfo.storageId = selectedPickupAddress;
-    } else {
-      userInfo.deliveryAddressId = selectedAddress?.id ?? "";
     }
+
+    userInfo.deliveryAddressId = deliveryAddressId;
 
     if (currentCompany?.type === "individual") {
       userInfo.individualProfileId = currentCompany.id;
@@ -523,10 +588,6 @@ export default function CheckoutModal({
 
   // Создание получателей (только для доставки — привязка к адресу)
   const createRecipientsForOrder = async () => {
-    if (selectedMethod === DeliveryMethod.Pickup) {
-      return true;
-    }
-
     if (!selectedAddress?.id) return false;
     // Фильтруем только заполненных получателей, которых еще нет на бекенде
     const recipientsToCreate = recipients
@@ -575,8 +636,12 @@ export default function CheckoutModal({
 
   // Оформление заказа
   const handleCreateOrder = async () => {
-    if (!selectedAddress && selectedMethod === DeliveryMethod.Delivery) {
-      Alert.alert("Ошибка", "Выберите адрес доставки");
+    if (!selectedAddress?.id) {
+      if (selectedMethod === DeliveryMethod.Pickup) {
+        setShowNeedAddressSheet(true);
+      } else {
+        Alert.alert("Ошибка", "Выберите адрес доставки");
+      }
       return;
     }
 
@@ -641,7 +706,83 @@ export default function CheckoutModal({
       setSelectedPickupAddress(me.storageId);
     }
   }, [me?.storageId]);
-  console.log("hasUnavailableSelected", hasUnavailableSelected);
+  const openAddressPicker = () => {
+    if (companyDeliveryAddresses.length === 0) {
+      if (currentCompany?.id) {
+        setShowAddAddressModal(true);
+      }
+      return;
+    }
+    setShowAddressModal(true);
+  };
+
+  const renderCompanyAddressBlock = () => (
+    <View style={{ marginTop: selectedMethod === DeliveryMethod.Pickup ? 16 : 0 }}>
+      <ThemedText
+        darkColor="#FBFCFF"
+        lightColor="#1B1B1C"
+        style={styles.blockTitle}
+      >
+        Компания и адрес
+      </ThemedText>
+      <ThemedView
+        darkColor="#202022"
+        lightColor="#F2F4F7"
+        style={styles.compAndAdressCont}
+      >
+        <TouchableOpacity
+          style={styles.compAndAdressContRow}
+          onPress={openAddressPicker}
+        >
+          <View style={styles.compAndAdressContRowDoble}>
+            <ThemedView
+              lightColor="#FFFFFF"
+              darkColor="#151516"
+              style={styles.iconCont}
+            >
+              <IconCompanyNew color={isDarkMode ? "#FBFCFF" : "#1B1B1C"} />
+            </ThemedView>
+            <View style={styles.compAndAdressColumn}>
+              <ThemedText
+                darkColor="#FBFCFF"
+                lightColor="#1B1B1C"
+                style={styles.compText}
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
+                {me?.companies?.length === 0
+                  ? `${me?.individualProfile?.firstName || ""} ${me?.individualProfile?.lastName || ""} ${me?.individualProfile?.patronymic || ""}`.trim()
+                  : currentCompany?.name || "-"}
+              </ThemedText>
+              <ThemedText
+                lightColor="#80818B"
+                darkColor="#FBFCFF80"
+                style={styles.addressTextText}
+                numberOfLines={2}
+                ellipsizeMode="tail"
+              >
+                {formatAddressSummary(displayAddress)}
+              </ThemedText>
+            </View>
+          </View>
+          <ArrowIconRight />
+        </TouchableOpacity>
+
+        <PrimaryButton
+          title={
+            companyDeliveryAddresses.length === 0
+              ? "Добавить адрес"
+              : "Изменить адрес"
+          }
+          onPress={openAddressPicker}
+          variant="black"
+          size="md"
+          fullWidth
+        />
+      </ThemedView>
+    </View>
+  );
+
   // Рендер содержимого для самовывоза с городами из Redux
   const renderPickupContent = () => {
     if (isLoadingTowns) {
@@ -863,76 +1004,7 @@ export default function CheckoutModal({
                     {selectedMethod === DeliveryMethod.Pickup &&
                       renderPickupContent()}
 
-                    {selectedMethod === DeliveryMethod.Delivery && (
-                      <View>
-                        <ThemedText
-                          darkColor="#FBFCFF"
-                          lightColor="#1B1B1C"
-                          style={styles.blockTitle}
-                        >
-                          Компания и адрес
-                        </ThemedText>
-                        <ThemedView
-                          darkColor="#202022"
-                          lightColor="#F2F4F7"
-                          style={styles.compAndAdressCont}
-                        >
-                          <TouchableOpacity
-                            style={styles.compAndAdressContRow}
-                            onPress={() => setShowAddressModal(true)}
-                          >
-                            <View style={styles.compAndAdressContRowDoble}>
-                              <ThemedView
-                                lightColor="#FFFFFF"
-                                darkColor="#151516"
-                                style={styles.iconCont}
-                              >
-                                <IconCompanyNew
-                                  color={isDarkMode ? "#FBFCFF" : "#1B1B1C"}
-                                />
-                              </ThemedView>
-                              <View style={styles.compAndAdressColumn}>
-                                <ThemedText
-                                  darkColor="#FBFCFF"
-                                  lightColor="#1B1B1C"
-                                  style={styles.compText}
-                                  numberOfLines={1}
-                                  ellipsizeMode="tail"
-                                >
-                                  {me?.companies?.length === 0
-                                    ? `${me?.individualProfile?.firstName || ""} ${me?.individualProfile?.lastName || ""} ${me?.individualProfile?.patronymic || ""}`.trim()
-                                    : currentCompany?.name
-                                      ? currentCompany?.name
-                                      : "-"}
-                                </ThemedText>
-                                <ThemedText
-                                  lightColor="#80818B"
-                                  darkColor="#FBFCFF80"
-                                  style={styles.addressTextText}
-                                  numberOfLines={1}
-                                  ellipsizeMode="tail"
-                                >
-                                  {currentCompany?.id ===
-                                    savedAddress?.addressOwnerId &&
-                                  savedAddress?.address
-                                    ? `${savedAddress?.address}, этаж ${savedAddress?.floor}, кв ${savedAddress?.apartment}`
-                                    :  "-"}
-                                </ThemedText>
-                              </View>
-                            </View>
-                            <ArrowIconRight />
-                          </TouchableOpacity>
-
-                          <PrimaryButton
-                            title="Изменить адрес"
-                            onPress={() => setShowAddressModal(true)}
-                            variant="black"
-                            size="md"
-                            fullWidth
-                          />
-                        </ThemedView>
-                      </View>
-                    )}
+                    {renderCompanyAddressBlock()}
                   </ThemedView>
 
                   {/* Блок даты и времени */}
@@ -1173,7 +1245,48 @@ export default function CheckoutModal({
           onAddCompany={handleAddCompany}
           onSelectAddress={handleSelectAddress}
           selectedAddressId={selectedAddress?.id}
+          onAddressAdded={async (address) => {
+            if (address && currentCompany) {
+              const updated = mergeAddressIntoCompany(currentCompany, address);
+              dispatch(setCompany(updated));
+              setSelectedAddress(address);
+              await saveAddress(address);
+            }
+          }}
         />
+
+        {currentCompany?.id ? (
+          <AddAddressModal
+            visible={showAddAddressModal}
+            onClose={() => setShowAddAddressModal(false)}
+            onSuccess={handleAddressAdded}
+            companyId={currentCompany.id}
+          />
+        ) : null}
+
+        {showNeedAddressSheet ? (
+          <AnimatedStackedSheet
+            visible={showNeedAddressSheet}
+            showBackdrop
+            onClose={() => setShowNeedAddressSheet(false)}
+          >
+            <ThemedText
+              style={styles.needAddressTitle}
+              lightColor="#1B1B1C"
+              darkColor="#FBFCFF"
+            >
+              Нужен адрес доставки
+            </ThemedText>
+            <ThemedText
+              style={styles.needAddressText}
+              lightColor="#80818B"
+              darkColor="#FBFCFF80"
+            >
+              Для оформления заказа добавьте адрес компании. При самовывозе он
+              также передаётся в заказ.
+            </ThemedText>
+          </AnimatedStackedSheet>
+        ) : null}
 
         <CompanySelectionModal
           visible={showCompanyModal}
@@ -2379,6 +2492,18 @@ const styles = StyleSheet.create({
   },
   confirmModalBody: {
     marginBottom: 24,
+  },
+  needAddressTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    marginBottom: 12,
+    textAlign: "left",
+  },
+  needAddressText: {
+    fontSize: 14,
+    fontWeight: "500",
+    marginBottom: 8,
+    lineHeight: 20,
   },
   confirmModalText: {
     fontSize: 16,

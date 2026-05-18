@@ -1,6 +1,8 @@
 // features/shared/ui/AddressSelectionModal.tsx
 import { ArrowIconRight } from "@/assets/icons/icons";
 import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
+import { ModalHeader } from "@/features/auth/ui/Header";
 import { getCompanyAddresses } from "@/features/catalog/catalogSlice";
 import {
   getSavedAddress,
@@ -20,6 +22,7 @@ import {
   useColorScheme,
   View,
 } from "react-native";
+import { AddAddressFormPanel } from "./AddAddressFormPanel";
 import { AddAddressModal } from "./AddAddressModal";
 import { CompanySelectModal } from "./CompanySelectModal";
 import { PrimaryButton } from "./components/PrimartyButton";
@@ -36,7 +39,9 @@ interface AddressSelectionModalProps {
   onSelectCompany: (company: any) => void;
   onSelectAddress: (address: any) => void;
   onAddCompany: () => void;
-  onAddressAdded?: () => void;
+  onAddressAdded?: (address: any) => void;
+  /** Без отдельного Modal — для вложения в fullScreen Modal (iOS). */
+  embedded?: boolean;
 }
 
 export const AddressSelectionModal: React.FC<AddressSelectionModalProps> = ({
@@ -50,9 +55,9 @@ export const AddressSelectionModal: React.FC<AddressSelectionModalProps> = ({
   onSelectAddress,
   onAddCompany,
   onAddressAdded,
+  embedded = false,
 }) => {
   const colorScheme = useColorScheme();
-  //TODO
   const isDarkMode = colorScheme === "dark";
   const dispatch = useAppDispatch();
   const [modalTranslateY] = useState(new Animated.Value(screenHeight));
@@ -63,7 +68,6 @@ export const AddressSelectionModal: React.FC<AddressSelectionModalProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [savedAddressId, setSavedAddressId] = useState<string | null>(null);
 
-  // Загружаем адреса и сохраненный адрес при открытии модалки или смене компании
   useEffect(() => {
     if (visible && currentCompany?.id) {
       loadAddresses();
@@ -98,21 +102,25 @@ export const AddressSelectionModal: React.FC<AddressSelectionModalProps> = ({
     }
   };
 
-  // Анимация появления
   useEffect(() => {
-    if (visible) {
-      modalTranslateY.setValue(screenHeight);
-      Animated.spring(modalTranslateY, {
-        toValue: 0,
-        useNativeDriver: true,
-        damping: 20,
-        stiffness: 90,
-        mass: 0.8,
-      }).start();
-    }
-  }, [visible]);
+    if (embedded || !visible) return;
+
+    modalTranslateY.setValue(screenHeight);
+    Animated.spring(modalTranslateY, {
+      toValue: 0,
+      useNativeDriver: true,
+      damping: 20,
+      stiffness: 90,
+      mass: 0.8,
+    }).start();
+  }, [visible, embedded]);
 
   const closeModalWithAnimation = () => {
+    if (embedded) {
+      onClose();
+      return;
+    }
+
     if (isClosing) return;
 
     setIsClosing(true);
@@ -127,7 +135,6 @@ export const AddressSelectionModal: React.FC<AddressSelectionModalProps> = ({
   };
 
   const handleSelectAddress = async (address: any) => {
-    // Сохраняем выбранный адрес в AsyncStorage
     if (currentCompany?.id) {
       await saveSelectedAddress(currentCompany.id, address);
     }
@@ -141,15 +148,14 @@ export const AddressSelectionModal: React.FC<AddressSelectionModalProps> = ({
     setShowCompanyModal(false);
   };
 
-  const handleAddressAdded = async () => {
-    // Перезагружаем адреса после добавления нового
+  const handleAddressAdded = async (newAddress: any) => {
+    setShowAddAddressModal(false);
     await loadAddresses();
-    if (onAddressAdded) {
-      onAddressAdded();
+    if (onAddressAdded && newAddress) {
+      onAddressAdded(newAddress);
     }
   };
 
-  // Определяем, какой адрес показывать как выбранный
   const effectiveSelectedId = selectedAddressId || savedAddressId;
 
   const deliveryAddresses =
@@ -157,163 +163,229 @@ export const AddressSelectionModal: React.FC<AddressSelectionModalProps> = ({
       ? localAddresses
       : currentCompany?.deliveryAddresses || [];
 
-  return (
+  if (!visible) {
+    return null;
+  }
+
+  const addressList = (
     <>
-      <Modal
-        visible={visible}
-        animationType="none"
-        transparent={true}
-        onRequestClose={closeModalWithAnimation}
-        statusBarTranslucent={true}
+      {!embedded && (
+        <TouchableOpacity
+          style={styles.swipeHandleContainer}
+          activeOpacity={0.7}
+          onPress={closeModalWithAnimation}
+        >
+          <View style={styles.swipeHandle} />
+        </TouchableOpacity>
+      )}
+
+      {!embedded && (
+        <View style={styles.modalHeader}>
+          <ThemedText style={styles.modalTitle}>
+            Выберите адрес доставки
+          </ThemedText>
+        </View>
+      )}
+
+      <View style={styles.companyInfo}>
+        <ThemedText
+          lightColor="#80818B"
+          darkColor="#FBFCFF80"
+          numberOfLines={1}
+          style={styles.companyName}
+        >
+          {currentCompany?.name || "Выберите компанию"}
+        </ThemedText>
+      </View>
+
+      <ScrollView
+        style={[
+          styles.addressesContainer,
+          embedded && styles.addressesContainerEmbedded,
+        ]}
+        showsVerticalScrollIndicator={false}
       >
-        <TouchableWithoutFeedback onPress={closeModalWithAnimation}>
-          <View style={styles.modalOverlay}>
-            <TouchableWithoutFeedback>
-              <Animated.View
+        {isLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#203686" />
+          </View>
+        ) : deliveryAddresses.length > 0 ? (
+          deliveryAddresses.map((address: any, index: number) => (
+            <TouchableOpacity
+              key={address.id || index}
+              style={[
+                styles.addressItem,
+                isDarkMode && {
+                  borderBottomColor: "#323235",
+                },
+              ]}
+              onPress={() => handleSelectAddress(address)}
+            >
+              <View
                 style={[
-                  styles.modalContainer,
-                  isDarkMode && {
-                    backgroundColor: "#202022",
-                  },
-                  {
-                    transform: [{ translateY: modalTranslateY }],
-                  },
+                  styles.radioOuter,
+                  effectiveSelectedId === address.id &&
+                    styles.radioOuterSelected,
+                  isDarkMode &&
+                    effectiveSelectedId === address.id && {
+                      borderColor: "#4C94FF",
+                    },
                 ]}
               >
-                {/* Защелка для свайпа */}
-                <TouchableOpacity
-                  style={styles.swipeHandleContainer}
-                  activeOpacity={0.7}
-                  onPress={closeModalWithAnimation}
-                >
-                  <View style={styles.swipeHandle} />
-                </TouchableOpacity>
-
-                <View style={styles.modalHeader}>
-                  <ThemedText style={styles.modalTitle}>
-                    Выберите адрес доставки
-                  </ThemedText>
-                </View>
-
-                <View style={styles.companyInfo}>
-                  <ThemedText
-                    lightColor="#80818B"
-                    darkColor="#FBFCFF80"
-                    numberOfLines={1}
-                    style={styles.companyName}
-                  >
-                    {currentCompany?.name || "Выберите компанию"}
-                  </ThemedText>
-                </View>
-
-                {/* Список адресов */}
-                <ScrollView
-                  style={styles.addressesContainer}
-                  showsVerticalScrollIndicator={false}
-                >
-                  {isLoading ? (
-                    <View style={styles.loadingContainer}>
-                      <ActivityIndicator size="large" color="#203686" />
-                    </View>
-                  ) : deliveryAddresses.length > 0 ? (
-                    deliveryAddresses.map((address: any, index: number) => (
-                      <TouchableOpacity
-                        key={address.id || index}
-                        style={[
-                          styles.addressItem,
-                          isDarkMode && {
-                            borderBottomColor: "#323235",
-                          },
-                        ]}
-                        onPress={() => handleSelectAddress(address)}
-                      >
-                        <View
-                          style={[
-                            styles.radioOuter,
-                            effectiveSelectedId === address.id &&
-                              styles.radioOuterSelected,
-                            isDarkMode &&
-                              effectiveSelectedId === address.id && {
-                                borderColor: "#4C94FF",
-                              },
-                          ]}
-                        >
-                          {effectiveSelectedId === address.id && (
-                            <View style={styles.radioInner} />
-                          )}
-                        </View>
-                        <View style={styles.addressInfo}>
-                          <ThemedText
-                            numberOfLines={2}
-                            style={styles.addressText}
-                          >
-                            {address.address}
-                            {address.apartment && `, кв. ${address.apartment}`}
-                            {address.entrance && `, под. ${address.entrance}`}
-                          </ThemedText>
-                        </View>
-                        <ArrowIconRight />
-                      </TouchableOpacity>
-                    ))
-                  ) : (
-                    <View style={styles.emptyContainer}>
-                      <ThemedText style={styles.emptyText}>
-                        Нет сохраненных адресов
-                      </ThemedText>
-                    </View>
-                  )}
-                </ScrollView>
-
-                {/* Кнопки внизу */}
-                <View style={styles.buttonsContainer}>
-                  <PrimaryButton
-                    title="Добавить адрес доставки"
-                    onPress={() => setShowAddAddressModal(true)}
-                    variant="primary"
-                    size="md"
-                    loading={false}
-                    activeOpacity={0.8}
-                    fullWidth
-                  />
-
-                  <View style={styles.buttonSpacer} />
-
-                  <PrimaryButton
-                    title="Выбрать другую компанию"
-                    onPress={() => setShowCompanyModal(true)}
-                    variant="third"
-                    size="md"
-                    loading={false}
-                    activeOpacity={0.8}
-                    fullWidth
-                  />
-                </View>
-              </Animated.View>
-            </TouchableWithoutFeedback>
+                {effectiveSelectedId === address.id && (
+                  <View style={styles.radioInner} />
+                )}
+              </View>
+              <View style={styles.addressInfo}>
+                <ThemedText numberOfLines={2} style={styles.addressText}>
+                  {address.address}
+                  {address.apartment && `, кв. ${address.apartment}`}
+                  {address.entrance && `, под. ${address.entrance}`}
+                </ThemedText>
+              </View>
+              <ArrowIconRight />
+            </TouchableOpacity>
+          ))
+        ) : (
+          <View style={styles.emptyContainer}>
+            <ThemedText style={styles.emptyText}>
+              Нет сохраненных адресов
+            </ThemedText>
           </View>
-        </TouchableWithoutFeedback>
-        <CompanySelectModal
-          visible={showCompanyModal}
-          onClose={() => setShowCompanyModal(false)}
-          companies={companies}
-          selectedCompanyId={selectedCompanyId}
-          onSelectCompany={handleSelectCompany}
-          onAddCompany={onAddCompany}
+        )}
+      </ScrollView>
+
+      <View style={styles.buttonsContainer}>
+        <PrimaryButton
+          title="Добавить адрес доставки"
+          onPress={() => setShowAddAddressModal(true)}
+          variant="primary"
+          size="md"
+          loading={false}
+          activeOpacity={0.8}
+          fullWidth
         />
 
+        <View style={styles.buttonSpacer} />
+
+        <PrimaryButton
+          title="Выбрать другую компанию"
+          onPress={() => setShowCompanyModal(true)}
+          variant="third"
+          size="md"
+          loading={false}
+          activeOpacity={0.8}
+          fullWidth
+        />
+      </View>
+    </>
+  );
+
+  const childOverlays = (
+    <>
+      {showCompanyModal && (
+        <View style={styles.embeddedOverlay}>
+          <CompanySelectModal
+            embedded={embedded}
+            visible
+            onClose={() => setShowCompanyModal(false)}
+            companies={companies}
+            selectedCompanyId={selectedCompanyId}
+            onSelectCompany={handleSelectCompany}
+            onAddCompany={onAddCompany}
+          />
+        </View>
+      )}
+
+      {embedded && showAddAddressModal && currentCompany?.id ? (
+        <View style={styles.embeddedOverlay}>
+          <AddAddressFormPanel
+            companyId={currentCompany.id}
+            onBack={() => setShowAddAddressModal(false)}
+            onSuccess={handleAddressAdded}
+          />
+        </View>
+      ) : (
         <AddAddressModal
           visible={showAddAddressModal}
           onClose={() => setShowAddAddressModal(false)}
           onSuccess={handleAddressAdded}
           companyId={currentCompany?.id}
         />
-      </Modal>
+      )}
     </>
+  );
+
+  if (embedded) {
+    return (
+      <ThemedView
+        lightColor="#EBEDF0"
+        darkColor="#040508"
+        style={styles.embeddedRoot}
+      >
+        <ModalHeader
+          title="Выберите адрес доставки"
+          showBackButton
+          onBackPress={closeModalWithAnimation}
+        />
+        <ThemedView
+          lightColor="#FFFFFF"
+          darkColor="#151516"
+          style={styles.embeddedContent}
+        >
+          {addressList}
+        </ThemedView>
+        {childOverlays}
+      </ThemedView>
+    );
+  }
+
+  return (
+    <Modal
+      visible={visible}
+      animationType="none"
+      transparent={true}
+      onRequestClose={closeModalWithAnimation}
+      statusBarTranslucent={true}
+    >
+      <TouchableWithoutFeedback onPress={closeModalWithAnimation}>
+        <View style={styles.modalOverlay}>
+          <TouchableWithoutFeedback>
+            <Animated.View
+              style={[
+                styles.modalContainer,
+                isDarkMode && {
+                  backgroundColor: "#202022",
+                },
+                {
+                  transform: [{ translateY: modalTranslateY }],
+                },
+              ]}
+            >
+              {addressList}
+            </Animated.View>
+          </TouchableWithoutFeedback>
+        </View>
+      </TouchableWithoutFeedback>
+      {childOverlays}
+    </Modal>
   );
 };
 
-// Стили остаются без изменений
 const styles = StyleSheet.create({
+  embeddedRoot: {
+    flex: 1,
+  },
+  embeddedContent: {
+    flex: 1,
+    marginTop: 16,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+  },
+  embeddedOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 10,
+  },
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.5)",
@@ -349,6 +421,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     maxHeight: "50%",
+  },
+  addressesContainerEmbedded: {
+    flex: 1,
+    maxHeight: undefined,
   },
   companyInfo: {
     paddingHorizontal: 20,

@@ -27,6 +27,8 @@ interface CompanySelectModalProps {
   onSelectCompany: (company: any) => void;
   onAddCompany: () => void;
   screenScene?: any;
+  /** Без отдельного Modal — для вложения в другой экран (iOS). */
+  embedded?: boolean;
 }
 export enum CompanyScenario {
   DEFAULT = "choose",
@@ -65,6 +67,7 @@ export const CompanySelectModal: React.FC<CompanySelectModalProps> = ({
   onSelectCompany,
   onAddCompany,
   screenScene = "choose",
+  embedded = false,
 }) => {
   const insets = useSafeAreaInsets();
   const systemTheme = useColorScheme();
@@ -169,14 +172,13 @@ export const CompanySelectModal: React.FC<CompanySelectModalProps> = ({
   //     }
   //  ]
   console.log("companies", companies);
-  return (
-    <Modal
-      animationType="slide"
-      transparent={true}
-      visible={visible}
-      onRequestClose={onClose}
-      statusBarTranslucent={true}
-    >
+
+  if (!visible) {
+    return null;
+  }
+
+  const body = (
+    <>
       {currentScreen === "choose" ? (
         <ThemedView
           lightColor="#EBEDF0"
@@ -410,6 +412,22 @@ const [contactPerson, setContactPerson] = useState('') */}
           </View>
         </ThemedView>
       )}
+    </>
+  );
+
+  if (embedded) {
+    return <View style={styles.modalContainer}>{body}</View>;
+  }
+
+  return (
+    <Modal
+      animationType="slide"
+      transparent={true}
+      visible={visible}
+      onRequestClose={onClose}
+      statusBarTranslucent={true}
+    >
+      {body}
     </Modal>
   );
 };

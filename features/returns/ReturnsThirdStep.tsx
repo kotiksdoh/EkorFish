@@ -77,6 +77,8 @@ export const MyReturnsThirdStep: React.FC<MyReturnsThirdStepProps> = ({
   useEffect(() => {
     if (!visible) {
       setShowSuccessContent(false);
+      setShowAddressModal(false);
+      setShowTownModal(false);
     }
   }, [visible]);
 
@@ -389,12 +391,19 @@ export const MyReturnsThirdStep: React.FC<MyReturnsThirdStepProps> = ({
   };
 
   return (
-    <>
     <Modal
       animationType="slide"
       transparent={false}
       visible={visible}
       onRequestClose={() => {
+        if (showAddressModal) {
+          setShowAddressModal(false);
+          return;
+        }
+        if (showTownModal) {
+          setShowTownModal(false);
+          return;
+        }
         if (showSuccessContent) {
           setShowSuccessContent(false);
           onViewReturnDetails?.();
@@ -410,6 +419,30 @@ export const MyReturnsThirdStep: React.FC<MyReturnsThirdStepProps> = ({
         darkColor="#040508"
         style={styles.modalContainer}
       >
+        {showAddressModal ? (
+          <AddressSelectionModal
+            embedded
+            visible
+            onClose={() => setShowAddressModal(false)}
+            currentCompany={currentCompany}
+            companies={me?.companies || []}
+            selectedCompanyId={currentCompany?.id}
+            selectedAddressId={selectedAddressForReturn?.id}
+            onSelectCompany={handleSelectCompanyForReturn}
+            onSelectAddress={handleSelectAddressForReturn}
+            onAddCompany={handleAddCompanyForReturn}
+          />
+        ) : showTownModal ? (
+          <TownSelectionModal
+            embedded
+            selectionOnly
+            visible
+            onClose={() => setShowTownModal(false)}
+            storageId={storageIdForReturn || (me as any)?.storageId || ""}
+            onTownSelected={handleTownSelectedForReturn}
+          />
+        ) : (
+          <>
         <ModalHeader
           title="Заявка на возврат"
           subTitle={showSuccessContent ? undefined : "Шаг 3 из 3"}
@@ -612,28 +645,10 @@ export const MyReturnsThirdStep: React.FC<MyReturnsThirdStepProps> = ({
             )}
           </>
         )}
+          </>
+        )}
       </ThemedView>
     </Modal>
-
-    <AddressSelectionModal
-      visible={visible && showAddressModal}
-      onClose={() => setShowAddressModal(false)}
-      currentCompany={currentCompany}
-      companies={me?.companies || []}
-      selectedCompanyId={currentCompany?.id}
-      selectedAddressId={selectedAddressForReturn?.id}
-      onSelectCompany={handleSelectCompanyForReturn}
-      onSelectAddress={handleSelectAddressForReturn}
-      onAddCompany={handleAddCompanyForReturn}
-    />
-
-    <TownSelectionModal
-      visible={visible && showTownModal}
-      onClose={() => setShowTownModal(false)}
-      storageId={storageIdForReturn || (me as any)?.storageId || ""}
-      onTownSelected={handleTownSelectedForReturn}
-    />
-    </>
   );
 };
 

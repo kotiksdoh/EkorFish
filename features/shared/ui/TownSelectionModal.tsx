@@ -1,5 +1,6 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { ModalHeader } from "@/features/auth/ui/Header";
 import { getMyInfo, getTowns, updateUserTown } from "@/features/auth/authSlice";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -24,6 +25,10 @@ interface TownSelectionModalProps {
   onClose: () => void;
   storageId: string;
   onTownSelected: (selectedStorageId: string) => void;
+  /** Без отдельного Modal — для вложения в fullScreen Modal (iOS). */
+  embedded?: boolean;
+  /** Только выбор склада без обновления профиля (заявка на возврат). */
+  selectionOnly?: boolean;
 }
 
 export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
@@ -31,8 +36,9 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
   onClose,
   storageId,
   onTownSelected,
+  embedded = false,
+  selectionOnly = false,
 }) => {
-  // TODO
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === "dark";
   const dispatch = useAppDispatch();
@@ -41,40 +47,40 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
   const me = useAppSelector((state) => state.auth.me);
   const insets = useSafeAreaInsets();
 
-  const [selectedTownId, setSelectedTownId] = useState<string | null>(
-    me?.storageId || null,
-  );
+  const [selectedTownId, setSelectedTownId] = useState<string | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
   const [modalTranslateY] = useState(new Animated.Value(screenHeight));
   const [isClosing, setIsClosing] = useState(false);
 
-  // Анимация появления
   useEffect(() => {
-    if (visible) {
-      modalTranslateY.setValue(screenHeight);
-      Animated.spring(modalTranslateY, {
-        toValue: 0,
-        useNativeDriver: true,
-        damping: 20,
-        stiffness: 90,
-        mass: 0.8,
-      }).start();
+    if (!visible) return;
 
-      // Загружаем города при открытии модалки
-      dispatch(getTowns());
-    } else {
-      modalTranslateY.setValue(screenHeight);
+    if (storageId) {
+      setSelectedTownId(storageId);
+    } else if (me?.storageId) {
+      setSelectedTownId(me.storageId);
     }
-  }, [visible, dispatch]);
 
-  // Устанавливаем выбранный город при загрузке
-  useEffect(() => {
-    if (me?.townId) {
-      setSelectedTownId(me.townId);
-    }
-  }, [me]);
+    dispatch(getTowns());
+
+    if (embedded) return;
+
+    modalTranslateY.setValue(screenHeight);
+    Animated.spring(modalTranslateY, {
+      toValue: 0,
+      useNativeDriver: true,
+      damping: 20,
+      stiffness: 90,
+      mass: 0.8,
+    }).start();
+  }, [visible, dispatch, embedded, storageId, me?.storageId]);
 
   const closeModalWithAnimation = () => {
+    if (embedded || selectionOnly) {
+      onClose();
+      return;
+    }
+
     if (isClosing) return;
 
     setIsClosing(true);
@@ -101,22 +107,24 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
   const handleApplyPress = async () => {
     if (!selectedTownId) return;
 
+    if (selectionOnly) {
+      onTownSelected(selectedTownId);
+      onClose();
+      return;
+    }
+
     setIsUpdating(true);
 
     try {
       await dispatch(
         updateUserTown({
           storageId: selectedTownId,
-          // townId: selectedTownId,
         }),
-      ).then((res) => dispatch(getMyInfo("")));
+      ).then(() => dispatch(getMyInfo("")));
 
-      // Закрываем модалку после успешного обновления
       setTimeout(() => {
         closeModalWithAnimation();
-        if (onTownSelected) {
-          onTownSelected(selectedTownId);
-        }
+        onTownSelected(selectedTownId);
       }, 300);
     } catch (error) {
       console.error("Error updating town:", error);
@@ -124,6 +132,122 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
       setIsUpdating(false);
     }
   };
+
+  const townList = (
+    <ScrollView
+      style={[styles.modalContent, embedded && styles.modalContentEmbedded]}
+      contentContainerStyle={embedded ? styles.scrollContentEmbedded : undefined}
+      showsVerticalScrollIndicator={false}
+    >
+      {isLoadingTowns ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#203686" />
+          <ThemedText style={styles.loadingText}>Загрузка городов...</ThemedText>
+        </View>
+      ) : (
+        <>
+          {towns.map((town) => (
+            <TouchableOpacity
+              key={town.id}
+              style={[
+                styles.townItem,
+                isDarkMode && {
+                  borderBottomColor: "#323235",
+                },
+              ]}
+              onPress={() => handleTownSelect(town.id)}
+              disabled={isUpdating}
+            >
+              <View style={styles.townItemContent}>
+                <View
+                  style={[
+                    styles.radioOuter,
+                    selectedTownId === town.id && styles.radioOuterSelected,
+                    isDarkMode &&
+                      selectedTownId === town.id && {
+                        borderColor: "#4C94FF",
+                      },
+                  ]}
+                >
+                  {selectedTownId === town.id && (
+                    <View style={styles.radioInner} />
+                  )}
+                </View>
+                <ThemedText style={styles.townName}>{town.value}</ThemedText>
+              </View>
+            </TouchableOpacity>
+          ))}
+
+          {towns.length === 0 && !isLoadingTowns && (
+            <View style={styles.emptyContainer}>
+              <ThemedText style={styles.emptyText}>Города не найдены</ThemedText>
+            </View>
+          )}
+        </>
+      )}
+
+      {!embedded && <View style={styles.modalBottomSpacer} />}
+    </ScrollView>
+  );
+
+  const applyButton = (
+    <ThemedView
+      darkColor="#202022"
+      lightColor="#FFFFFF"
+      style={[
+        embedded ? styles.applyButtonContainerEmbedded : styles.applyButtonContainer,
+        {
+          paddingBottom: Math.max(insets.bottom, 16) + (embedded ? 8 : 30),
+        },
+      ]}
+    >
+      <TouchableOpacity
+        style={[
+          styles.applyButton,
+          isDarkMode && {
+            backgroundColor: "#3881EE",
+          },
+          (!selectedTownId || isUpdating) && styles.applyButtonDisabled,
+        ]}
+        onPress={handleApplyPress}
+        disabled={!selectedTownId || isUpdating}
+      >
+        {isUpdating ? (
+          <ActivityIndicator size="small" color="#FFFFFF" />
+        ) : (
+          <ThemedText style={styles.applyButtonText}>Применить</ThemedText>
+        )}
+      </TouchableOpacity>
+    </ThemedView>
+  );
+
+  if (!visible) {
+    return null;
+  }
+
+  if (embedded) {
+    return (
+      <ThemedView
+        lightColor="#EBEDF0"
+        darkColor="#040508"
+        style={styles.embeddedRoot}
+      >
+        <ModalHeader
+          title="Укажите город"
+          showBackButton
+          onBackPress={closeModalWithAnimation}
+        />
+        <ThemedView
+          lightColor="#FFFFFF"
+          darkColor="#151516"
+          style={styles.embeddedContent}
+        >
+          {townList}
+          {applyButton}
+        </ThemedView>
+      </ThemedView>
+    );
+  }
 
   return (
     <Modal
@@ -151,7 +275,6 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
                 },
               ]}
             >
-              {/* Защелка для свайпа */}
               <TouchableOpacity
                 style={styles.swipeHandleContainer}
                 activeOpacity={0.7}
@@ -164,103 +287,8 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
                 <ThemedText style={styles.modalTitle}>Укажите город</ThemedText>
               </View>
 
-              <ScrollView
-                style={styles.modalContent}
-                showsVerticalScrollIndicator={false}
-              >
-                {isLoadingTowns ? (
-                  <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color="#203686" />
-                    <ThemedText style={styles.loadingText}>
-                      Загрузка городов...
-                    </ThemedText>
-                  </View>
-                ) : (
-                  <>
-                    {towns.map((town) => (
-                      <TouchableOpacity
-                        key={town.id}
-                        style={[
-                          styles.townItem,
-                          isDarkMode && {
-                            borderBottomColor: "#323235",
-                          },
-                        ]}
-                        onPress={() => handleTownSelect(town.id)}
-                        disabled={isUpdating}
-                      >
-                        <View style={styles.townItemContent}>
-                          <View
-                            style={[
-                              styles.radioOuter,
-                              selectedTownId === town.id &&
-                                styles.radioOuterSelected,
-                              // Для темной темы: изменяем цвет бордера выбранной радио-кнопки
-                              isDarkMode &&
-                                selectedTownId === town.id && {
-                                  borderColor: "#4C94FF",
-                                },
-                            ]}
-                          >
-                            {selectedTownId === town.id && (
-                              <View style={styles.radioInner} />
-                            )}
-                          </View>
-                          <ThemedText style={styles.townName}>
-                            {town.value}
-                          </ThemedText>
-                        </View>
-                      </TouchableOpacity>
-                    ))}
-
-                    {towns.length === 0 && !isLoadingTowns && (
-                      <View style={styles.emptyContainer}>
-                        <ThemedText style={styles.emptyText}>
-                          Города не найдены
-                        </ThemedText>
-                      </View>
-                    )}
-                  </>
-                )}
-
-                <View style={styles.modalBottomSpacer} />
-              </ScrollView>
-
-              {/* Кнопка Применить */}
-              <ThemedView
-                darkColor="#202022"
-                lightColor="#FFFFFF"
-                style={[
-                  styles.applyButtonContainer,
-                  {
-                    marginBottom: insets.bottom + 30,
-                  },
-                ]}
-              >
-                <TouchableOpacity
-                  style={[
-                    styles.applyButton,
-                    isDarkMode && {
-                      backgroundColor: "#3881EE",
-                    },
-                    (!selectedTownId || isUpdating) &&
-                      styles.applyButtonDisabled,
-                      
-                  ]}
-                  onPress={handleApplyPress}
-                  disabled={!selectedTownId || isUpdating}
-                >
-                  {isUpdating ? (
-                    <ActivityIndicator size="small" color="#FFFFFF" />
-                  ) : (
-                    <ThemedText style={styles.applyButtonText}>
-                      Применить
-                    </ThemedText>
-                  )}
-                </TouchableOpacity>
-              </ThemedView>
-
-              {/* Оверлей загрузки (убираем, так как теперь индикатор в кнопке) */}
+              {townList}
+              {applyButton}
             </Animated.View>
           </TouchableWithoutFeedback>
         </View>
@@ -270,6 +298,15 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
 };
 
 const styles = StyleSheet.create({
+  embeddedRoot: {
+    flex: 1,
+  },
+  embeddedContent: {
+    flex: 1,
+    marginTop: 16,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+  },
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.5)",
@@ -314,17 +351,20 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "600",
   },
-  modalCloseText: {
-    fontFamily: "Montserrat",
-    fontSize: 20,
-    color: "#80818B",
-  },
   modalContent: {
     paddingHorizontal: 20,
     maxHeight: "70%",
   },
+  modalContentEmbedded: {
+    flex: 1,
+    maxHeight: undefined,
+    paddingTop: 8,
+  },
+  scrollContentEmbedded: {
+    paddingBottom: 100,
+  },
   modalBottomSpacer: {
-    height: 80, // Увеличил отступ для кнопки
+    height: 80,
   },
   townItem: {
     paddingVertical: 16,
@@ -348,7 +388,6 @@ const styles = StyleSheet.create({
     borderColor: "#D8DADE",
     justifyContent: "center",
     alignItems: "center",
-    // backgroundColor: "#FBFCFF",
   },
   radioOuterSelected: {
     borderColor: "#203686",
@@ -379,25 +418,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#80818B",
   },
-  updatingOverlay: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: "rgba(255, 255, 255, 0.9)",
-    justifyContent: "center",
-    alignItems: "center",
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-  },
-  updatingText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: "#203686",
-    fontWeight: "600",
-  },
-  // Новые стили для кнопки Применить
   applyButtonContainer: {
     position: "absolute",
     bottom: 0,
@@ -405,6 +425,10 @@ const styles = StyleSheet.create({
     right: 0,
     paddingHorizontal: 20,
     paddingVertical: 16,
+  },
+  applyButtonContainerEmbedded: {
+    paddingHorizontal: 20,
+    paddingTop: 12,
   },
   applyButton: {
     backgroundColor: "#203686",
