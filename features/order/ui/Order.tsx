@@ -418,20 +418,15 @@ export default function CheckoutModal({
 
   // Валидация получателей
   const validateRecipients = (): boolean => {
-    // Проверяем основного получателя (первый в списке)
-    debugger;
-
     const mainRecipient = recipients[0];
     if (
-      !mainRecipient.fullname.trim() ||
-      !mainRecipient.phoneNumber.trim() ||
-      !mainRecipient.email.trim()
+      !mainRecipient?.fullname?.trim() ||
+      !mainRecipient?.phoneNumber?.trim() ||
+      !mainRecipient?.email?.trim()
     ) {
       Alert.alert("Ошибка", "Заполните все поля основного получателя");
-      debugger;
       return false;
     }
-    debugger;
 
     // Проверяем дополнительных получателей
     // for (let i = 1; i < recipients.length; i++) {
@@ -444,11 +439,20 @@ export default function CheckoutModal({
     //     }
     //   }
     // }
-    debugger;
 
     return true;
   };
-  console.log("currentCompany", currentCompany);
+  const getFilledRecipientsForOrder = () =>
+    recipients
+      .filter(
+        (r) => r.fullname.trim() && r.phoneNumber.trim() && r.email.trim(),
+      )
+      .map((r) => ({
+        fullname: r.fullname.trim(),
+        phoneNumber: r.phoneNumber.trim(),
+        email: r.email.trim(),
+      }));
+
   // Подготовка данных для создания заказа
   const prepareOrderData = () => {
     // Форматируем дату в ISO строку
@@ -481,25 +485,26 @@ export default function CheckoutModal({
     //   deliveryAddressId: selectedAddress?.id,
     // };
     // }
-    let userInfo: any = {
-      deliveryAddressId: selectedAddress?.id,
-    };
-    debugger;
-    if (currentCompany.type === "individual") {
-      userInfo.individualProfileId = currentCompany?.id;
-      debugger;
+    const userInfo: Record<string, string> = {};
+
+    if (selectedMethod === DeliveryMethod.Pickup) {
+      userInfo.storageId = selectedPickupAddress;
     } else {
-      userInfo.companyId = currentCompany?.id;
-      debugger;
+      userInfo.deliveryAddressId = selectedAddress?.id ?? "";
     }
-    debugger;
-    // Если нет компаний, используем individualProfileId
+
+    if (currentCompany?.type === "individual") {
+      userInfo.individualProfileId = currentCompany.id;
+    } else if (currentCompany?.id) {
+      userInfo.companyId = currentCompany.id;
+    }
+
     if (me?.companies?.length === 0 && me?.individualProfile?.id) {
       userInfo.individualProfileId = me.individualProfile.id;
       delete userInfo.companyId;
     }
-    debugger;
-    return {
+
+    const orderPayload: Record<string, unknown> = {
       deliveryMethod: selectedMethod,
       deliveryDate,
       paymentType: selectedPaymentType,
@@ -507,19 +512,28 @@ export default function CheckoutModal({
       userInfo,
       products,
     };
+
+    if (selectedMethod === DeliveryMethod.Pickup) {
+      orderPayload.recipients = getFilledRecipientsForOrder();
+    }
+
+    return orderPayload;
   };
 
-  // Создание получателей
+  // Создание получателей (только для доставки — привязка к адресу)
   const createRecipientsForOrder = async () => {
+    if (selectedMethod === DeliveryMethod.Pickup) {
+      return true;
+    }
+
     if (!selectedAddress?.id) return false;
-    debugger;
     // Фильтруем только заполненных получателей, которых еще нет на бекенде
     const recipientsToCreate = recipients
       ?.filter(
         (r) => r.fullname.trim() || r.phoneNumber.trim() || r.email.trim(),
       )
       ?.filter((r) => !r.isExisting); // Не создаем тех, кто уже есть
-    debugger;
+
     if (recipientsToCreate.length === 0) return true;
 
     // Показываем индикатор загрузки
@@ -560,34 +574,30 @@ export default function CheckoutModal({
 
   // Оформление заказа
   const handleCreateOrder = async () => {
-    // Валидация
-    debugger;
     if (!selectedAddress && selectedMethod === DeliveryMethod.Delivery) {
       Alert.alert("Ошибка", "Выберите адрес доставки");
-      debugger;
-
       return;
     }
-    debugger;
+
+    if (
+      selectedMethod === DeliveryMethod.Pickup &&
+      !selectedPickupAddress
+    ) {
+      Alert.alert("Ошибка", "Выберите склад самовывоза");
+      return;
+    }
+
     if (!selectedDateTime.date || !selectedDateTime.time) {
       Alert.alert("Ошибка", "Выберите дату и время доставки");
-      debugger;
       return;
     }
 
     if (!validateRecipients()) {
-      debugger;
-
       return;
     }
-    debugger;
-    // Сначала создаем получателей
+
     const recipientsCreated = await createRecipientsForOrder();
-    console.log(recipientsCreated);
-    debugger;
     if (!recipientsCreated) return;
-    debugger;
-    // Затем создаем заказ
     try {
       const orderData = prepareOrderData();
       const result = await dispatch(createOrder(orderData)).unwrap();
@@ -1314,7 +1324,6 @@ function DateTimeModal({
   const [availableTimeSlots, setAvailableTimeSlots] = useState<any[]>([]);
   const [months, setMonths] = useState<Date[]>([]);
   const [showTimeModal, setShowTimeModal] = useState(false);
-  const [modalTranslateY] = useState(new Animated.Value(screenHeight));
 
   const daysOfWeek = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 
@@ -1344,17 +1353,9 @@ function DateTimeModal({
     }
   }, [visible, deliverySchedule]);
 
-  // Анимация появления
   useEffect(() => {
-    if (visible) {
-      modalTranslateY.setValue(screenHeight);
-      Animated.spring(modalTranslateY, {
-        toValue: 0,
-        useNativeDriver: true,
-        damping: 20,
-        stiffness: 90,
-        mass: 0.8,
-      }).start();
+    if (!visible) {
+      setShowTimeModal(false);
     }
   }, [visible]);
 
@@ -1374,14 +1375,12 @@ function DateTimeModal({
     }
   }, [selectedDate, deliverySchedule]);
 
-  const handleClose = () => {
-    Animated.timing(modalTranslateY, {
-      toValue: screenHeight,
-      duration: 250,
-      useNativeDriver: true,
-    }).start(() => {
-      onClose();
-    });
+  const handleSheetClose = () => {
+    if (showTimeModal) {
+      setShowTimeModal(false);
+      return;
+    }
+    onClose();
   };
 
   const loadTimeSlotsForDate = (dateString: string) => {
@@ -1495,8 +1494,24 @@ function DateTimeModal({
   const handleConfirm = () => {
     if (selectedDate && selectedTime) {
       onConfirm({ date: selectedDate, time: selectedTime });
-      handleClose();
+      onClose();
     }
+  };
+
+  const isNearestTime = (slot: any) => {
+    if (!selectedDate || !deliverySchedule?.nearestDeliveryDate) return false;
+
+    const nearestDate = new Date(deliverySchedule.nearestDeliveryDate);
+    const currentDate = new Date(selectedDate);
+
+    if (currentDate.toDateString() !== nearestDate.toDateString()) return false;
+
+    const slots = getTimeSlotsForDate(currentDate, deliverySchedule);
+    if (slots.length > 0) {
+      return slots[0].startTime === slot.startTime;
+    }
+
+    return false;
   };
 
   const renderMonth = ({ item: month }: { item: Date }) => {
@@ -1563,14 +1578,137 @@ function DateTimeModal({
     );
   };
 
+  const bottomPanel = (
+    <ThemedView
+      lightColor="#FFFFFF"
+      style={[
+        styles.dateTimeBottomPanel,
+        { paddingBottom: (Platform.OS === "ios" ? 34 : 16) + insets.bottom },
+        Platform.OS === "android" && {
+          paddingBottom: Math.max(insets.bottom, 24) + 25,
+        },
+      ]}
+    >
+      <View style={styles.selectedDateTime}>
+        <TouchableOpacity
+          style={styles.dateTimeBlock}
+          onPress={() => {
+            if (showTimeModal) {
+              setShowTimeModal(false);
+            }
+          }}
+        >
+          <ThemedView
+            lightColor="#F2F4F7"
+            darkColor="#ECEFFA0D"
+            style={styles.dateTimeBlockInner}
+          >
+            <ThemedText style={styles.dateTimeBlockValue}>
+              {selectedDate ? formatDateForDisplay(selectedDate) : "Не выбрана"}
+            </ThemedText>
+          </ThemedView>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.dateTimeBlock}
+          onPress={() => {
+            if (selectedDate && availableTimeSlots.length > 0) {
+              setShowTimeModal(true);
+            }
+          }}
+          disabled={!selectedDate || availableTimeSlots.length === 0}
+        >
+          <ThemedView
+            lightColor={
+              !selectedDate || availableTimeSlots.length === 0
+                ? "#F5F5F5"
+                : "#F2F4F7"
+            }
+            darkColor="#ECEFFA0D"
+            style={[
+              styles.dateTimeBlockInner,
+              (!selectedDate || availableTimeSlots.length === 0) &&
+                styles.dateTimeBlockDisabled,
+            ]}
+          >
+            <ThemedText style={styles.dateTimeBlockValue}>
+              {selectedTime || "Не выбрано"}
+            </ThemedText>
+          </ThemedView>
+        </TouchableOpacity>
+      </View>
+
+      <PrimaryButton
+        title="Применить"
+        onPress={handleConfirm}
+        variant="primary"
+        size="md"
+        fullWidth
+        disabled={!selectedDate || !selectedTime}
+      />
+    </ThemedView>
+  );
+
   return (
-    <>
-      <SnapBottomSheet
-        visible={visible}
-        title="Выберите дату доставки"
-        titleAlign="left"
-        onClose={handleClose}
-      >
+    <SnapBottomSheet
+      visible={visible}
+      title={showTimeModal ? "Выберите время" : "Выберите дату доставки"}
+      titleAlign="left"
+      onClose={handleSheetClose}
+    >
+      {showTimeModal ? (
+        <ScrollView
+          style={styles.timeList}
+          contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
+          showsVerticalScrollIndicator={false}
+          nestedScrollEnabled
+          keyboardShouldPersistTaps="handled"
+        >
+          {availableTimeSlots.map((slot: any, index: number) => {
+            const timeString = formatTimeForDisplay(slot);
+            const isSelected = selectedTime === timeString;
+            const isNearest = isNearestTime(slot);
+
+            return (
+              <TouchableOpacity
+                key={index}
+                style={[
+                  styles.timeSlot,
+                  isDarkMode && { borderBottomColor: "#323235" },
+                ]}
+                onPress={() => handleTimeSelect(slot)}
+              >
+                <View
+                  style={[
+                    styles.radioOuter,
+                    (isSelected || isNearest) && styles.radioOuterSelected,
+                    isDarkMode &&
+                      (isSelected || isNearest) && {
+                        borderColor: "#4C94FF",
+                      },
+                  ]}
+                >
+                  {(isSelected || isNearest) && (
+                    <View style={styles.radioInner} />
+                  )}
+                </View>
+                <ThemedText
+                  style={[
+                    styles.timeSlotText,
+                    (isSelected || isNearest) && styles.timeSlotTextSelected,
+                    isDarkMode &&
+                      (isSelected || isNearest) && {
+                        color: "#4C94FF",
+                      },
+                  ]}
+                >
+                  {timeString}
+                </ThemedText>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      ) : (
         <FlatList
           data={months}
           renderItem={renderMonth}
@@ -1583,233 +1721,9 @@ function DateTimeModal({
             { paddingBottom: 180 + insets.bottom },
           ]}
         />
+      )}
 
-        {/* Нижняя панель с раздельными блоками даты и времени */}
-        <ThemedView
-          lightColor="#FFFFFF"
-          style={[
-            styles.dateTimeBottomPanel,
-            { paddingBottom: (Platform.OS === "ios" ? 34 : 16) + insets.bottom },
-            Platform.OS === "android" && {
-              paddingBottom: Math.max(insets.bottom, 24) + 25,
-            },
-          ]}
-        >
-          <View style={styles.selectedDateTime}>
-            <TouchableOpacity
-              style={styles.dateTimeBlock}
-              onPress={() => {
-                // Если нужно, можно сделать что-то при нажатии на дату
-              }}
-            >
-              <ThemedView
-                lightColor="#F2F4F7"
-                darkColor="#ECEFFA0D"
-                style={styles.dateTimeBlockInner}
-              >
-                <ThemedText style={styles.dateTimeBlockValue}>
-                  {selectedDate ? formatDateForDisplay(selectedDate) : "Не выбрана"}
-                </ThemedText>
-              </ThemedView>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.dateTimeBlock}
-              onPress={() => {
-                if (selectedDate && availableTimeSlots.length > 0) {
-                  setShowTimeModal(true);
-                }
-              }}
-              disabled={!selectedDate || availableTimeSlots.length === 0}
-            >
-              <ThemedView
-                lightColor={
-                  !selectedDate || availableTimeSlots.length === 0
-                    ? "#F5F5F5"
-                    : "#F2F4F7"
-                }
-                darkColor="#ECEFFA0D"
-                style={[
-                  styles.dateTimeBlockInner,
-                  (!selectedDate || availableTimeSlots.length === 0) &&
-                    styles.dateTimeBlockDisabled,
-                ]}
-              >
-                <ThemedText style={styles.dateTimeBlockValue}>
-                  {selectedTime || "Не выбрано"}
-                </ThemedText>
-              </ThemedView>
-            </TouchableOpacity>
-          </View>
-
-          <PrimaryButton
-            title="Применить"
-            onPress={handleConfirm}
-            variant="primary"
-            size="md"
-            fullWidth
-            disabled={!selectedDate || !selectedTime}
-          />
-        </ThemedView>
-      </SnapBottomSheet>
-
-      {/* Модалка выбора времени */}
-      <TimeModal
-        visible={showTimeModal}
-        onClose={() => setShowTimeModal(false)}
-        onSelectTime={handleTimeSelect}
-        selectedTime={selectedTime}
-        timeSlots={availableTimeSlots}
-        selectedDate={selectedDate}
-        deliverySchedule={deliverySchedule}
-      />
-    </>
-  );
-}
-
-// Модалка выбора времени
-function TimeModal({
-  visible,
-  onClose,
-  onSelectTime,
-  selectedTime,
-  timeSlots,
-  selectedDate,
-  deliverySchedule,
-}: any) {
-  const insets = useSafeAreaInsets();
-  const colorScheme = useColorScheme();
-  //TODO
-  const isDarkMode = colorScheme === "dark";
-  const [modalTranslateY] = useState(new Animated.Value(screenHeight));
-
-  useEffect(() => {
-    if (visible) {
-      modalTranslateY.setValue(screenHeight);
-      Animated.spring(modalTranslateY, {
-        toValue: 0,
-        useNativeDriver: true,
-        damping: 20,
-        stiffness: 90,
-        mass: 0.8,
-      }).start();
-    }
-  }, [visible]);
-
-  const handleClose = () => {
-    Animated.timing(modalTranslateY, {
-      toValue: screenHeight,
-      duration: 250,
-      useNativeDriver: true,
-    }).start(() => {
-      onClose();
-    });
-  };
-
-  const formatDateForHeader = (dateString: string) => {
-    if (!dateString) return "";
-    const date = new Date(dateString);
-    const months = [
-      "января",
-      "февраля",
-      "марта",
-      "апреля",
-      "мая",
-      "июня",
-      "июля",
-      "августа",
-      "сентября",
-      "октября",
-      "ноября",
-      "декабря",
-    ];
-    const days = [
-      "воскресенье",
-      "понедельник",
-      "вторник",
-      "среда",
-      "четверг",
-      "пятница",
-      "суббота",
-    ];
-
-    return `${date.getDate()} ${months[date.getMonth()]}, ${days[date.getDay()]}`;
-  };
-
-  // Определяем, является ли слот ближайшим временем
-  const isNearestTime = (slot: any) => {
-    if (!selectedDate || !deliverySchedule?.nearestDeliveryDate) return false;
-
-    const nearestDate = new Date(deliverySchedule.nearestDeliveryDate);
-    const currentDate = new Date(selectedDate);
-
-    if (currentDate.toDateString() !== nearestDate.toDateString()) return false;
-
-    const timeSlots = getTimeSlotsForDate(currentDate, deliverySchedule);
-    if (timeSlots.length > 0) {
-      const firstSlot = timeSlots[0];
-      return firstSlot.startTime === slot.startTime;
-    }
-
-    return false;
-  };
-
-  return (
-    <SnapBottomSheet
-      visible={visible}
-      title="Выберите время"
-      titleAlign="left"
-      onClose={handleClose}
-    >
-      <ScrollView
-        style={styles.timeList}
-        contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
-        showsVerticalScrollIndicator={false}
-        nestedScrollEnabled
-        keyboardShouldPersistTaps="handled"
-      >
-        {timeSlots.map((slot: any, index: number) => {
-          const timeString = formatTimeForDisplay(slot);
-          const isSelected = selectedTime === timeString;
-          const isNearest = isNearestTime(slot);
-
-          return (
-            <TouchableOpacity
-              key={index}
-              style={[
-                styles.timeSlot,
-                isDarkMode && { borderBottomColor: "#323235" },
-              ]}
-              onPress={() => onSelectTime(slot)}
-            >
-              <View
-                style={[
-                  styles.radioOuter,
-                  (isSelected || isNearest) && styles.radioOuterSelected,
-                  isDarkMode &&
-                    (isSelected || isNearest) && {
-                      borderColor: "#4C94FF",
-                    },
-                ]}
-              >
-                {(isSelected || isNearest) && <View style={styles.radioInner} />}
-              </View>
-              <ThemedText
-                style={[
-                  styles.timeSlotText,
-                  (isSelected || isNearest) && styles.timeSlotTextSelected,
-                  isDarkMode &&
-                    (isSelected || isNearest) && {
-                      color: "#4C94FF",
-                    },
-                ]}
-              >
-                {timeString}
-              </ThemedText>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
+      {bottomPanel}
     </SnapBottomSheet>
   );
 }

@@ -12,6 +12,13 @@ import {
   getProductList,
   toggleFilterSelection,
 } from "@/features/catalog/catalogSlice";
+import {
+  DEFAULT_PRODUCT_SORT,
+  applyProductSortToParams,
+  getProductSortLabel,
+  PRODUCT_SORT_OPTIONS,
+  type ProductSortId,
+} from "@/features/catalog/productSort";
 import { AddToCartModal } from "@/features/shared/ui/AddToCartModal";
 import { ProductCard } from "@/features/shared/ui/ProductCard";
 import { buildTemplateLineFromProduct } from "@/features/templates/buildTemplateLine";
@@ -50,7 +57,7 @@ export default function HeartScreen() {
   const [showSortModal, setShowSortModal] = useState(false);
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [selectedFilterGroup, setSelectedFilterGroup] = useState<any>(null);
-  const [sortBy, setSortBy] = useState("alphabet");
+  const [sortBy, setSortBy] = useState<ProductSortId>(DEFAULT_PRODUCT_SORT);
   const [priceRange, setPriceRange] = useState({
     min: "",
     max: "",
@@ -131,14 +138,7 @@ export default function HeartScreen() {
     );
   };
 
-  // Опции сортировки
-  const sortOptions = [
-    { id: "alphabet", label: "По алфавиту" },
-    { id: "priceAsc", label: "Дешевле" },
-    { id: "priceDesc", label: "Дороже" },
-    { id: "new", label: "Новые" },
-    { id: "discount", label: "Со скидками" },
-  ];
+  const sortOptions = PRODUCT_SORT_OPTIONS;
 
   // Функция для закрытия модалки сортировки с анимацией
   const closeSortModalWithAnimation = useCallback(() => {
@@ -254,7 +254,11 @@ export default function HeartScreen() {
 
   // Загрузка продуктов ИЗБРАННОГО
   const loadProducts = useCallback(
-    async (isLoadMore: boolean = false, searchText: string = searchQuery) => {
+    async (
+      isLoadMore: boolean = false,
+      searchText: string = searchQuery,
+      sortOverride?: ProductSortId,
+    ) => {
       if (isFetchingRef.current) return;
 
       isFetchingRef.current = true;
@@ -292,6 +296,8 @@ export default function HeartScreen() {
           params.FilterIds = selectedFilterIds.join(",");
         }
 
+        applyProductSortToParams(params, sortOverride ?? sortBy);
+
         console.log("Loading favorite products:", {
           isLoadMore,
           offset: params.offset,
@@ -318,7 +324,7 @@ export default function HeartScreen() {
         }, 500);
       }
     },
-    [currentPage, dispatch, priceRange, searchQuery, selectedFilterIds],
+    [currentPage, dispatch, me?.storageId, priceRange, searchQuery, selectedFilterIds, sortBy],
   );
 
   // Загрузка фильтров для избранного
@@ -409,10 +415,13 @@ export default function HeartScreen() {
     loadProducts(false, effectiveSearch);
   }, [searchQuery, loadProducts]);
 
-  // Обработчик выбора сортировки
-  const handleSortSelect = (sortId: string) => {
+  const handleSortSelect = (sortId: ProductSortId) => {
     setSortBy(sortId);
     closeSortModalWithAnimation();
+    setTimeout(() => {
+      scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+      loadProducts(false, searchQuery, sortId);
+    }, 300);
   };
 
   // Обработчик переключения фильтра
@@ -448,47 +457,9 @@ export default function HeartScreen() {
     loadProducts(false, searchQuery);
   };
 
-  // Сортировка продуктов
-  const getSortedProducts = useCallback(() => {
-    // Если нет токена или токен null, возвращаем пустой массив
-    if (!hasToken) return [];
-    
-    if (!products || products.length === 0) return [];
-  
-    const sorted = [...products];
-  
-    switch (sortBy) {
-      case "alphabet":
-        return sorted.sort((a, b) => a.name.localeCompare(b.name));
-      case "priceAsc":
-        return sorted.sort((a, b) => a.pricePerKg - b.pricePerKg);
-      case "priceDesc":
-        return sorted.sort((a, b) => b.pricePerKg - a.pricePerKg);
-      case "new":
-        return sorted.sort(
-          (a, b) =>
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-        );
-      case "discount":
-        return sorted.sort((a, b) => {
-          const aHasDiscount = a.discount && a.discount > 0;
-          const bHasDiscount = b.discount && b.discount > 0;
-          if (aHasDiscount && !bHasDiscount) return -1;
-          if (!aHasDiscount && bHasDiscount) return 1;
-          return 0;
-        });
-      default:
-        return sorted;
-    }
-  }, [products, sortBy, hasToken]);
+  const getCurrentSortLabel = () => getProductSortLabel(sortBy);
 
-  const sortedProducts = getSortedProducts();
-
-  // Получаем текущую выбранную сортировку для отображения
-  const getCurrentSortLabel = () => {
-    const option = sortOptions.find((opt) => opt.id === sortBy);
-    return option ? option.label : "Сортировка";
-  };
+  const displayProducts = hasToken ? products : [];
 
   // Рендер элемента группы фильтров в горизонтальном списке
   const renderFilterGroupItem = (filterGroup: any) => {
@@ -599,7 +570,7 @@ export default function HeartScreen() {
               </View>
 
               {/* Индикатор начальной загрузки */}
-              {isLoading && !isLoadingMore && sortedProducts.length === 0 && (
+              {isLoading && !isLoadingMore && displayProducts.length === 0 && (
                 <View style={styles.initialLoadingContainer}>
                   <ActivityIndicator size="large" color="#203686" />
                   <ThemedText style={styles.initialLoadingText}>
@@ -609,9 +580,9 @@ export default function HeartScreen() {
               )}
 {/*  */}
               {/* Сетка товаров */}
-              {!isLoading && sortedProducts.length > 0 && (
+              {!isLoading && displayProducts.length > 0 && (
                 <View style={styles.productsGrid}>
-                  {sortedProducts.map((product) => (
+                  {displayProducts.map((product) => (
                     <ProductCard
                       key={`${product.id}`}
                       id={product.id}
@@ -629,7 +600,7 @@ export default function HeartScreen() {
               )}
 
               {/* Сообщение если товаров нет */}
-              {!isLoading && sortedProducts.length === 0 && (
+              {!isLoading && displayProducts.length === 0 && (
                 <View style={styles.emptyContainer}>
                   <Image
                     source={require("@/assets/icons/png/noItems.png")}

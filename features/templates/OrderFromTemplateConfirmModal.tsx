@@ -1,28 +1,52 @@
 import { ThemedText } from "@/components/themed-text";
-import { ThemedView } from "@/components/themed-view";
 import { PrimaryButton } from "@/features/shared/ui/components/PrimartyButton";
-import { fillCartFromPreset } from "@/features/templates/orderPresetsSlice";
 import { getCart } from "@/features/catalog/catalogSlice";
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { fillCartFromPreset } from "@/features/templates/orderPresetsSlice";
 import { SnapBottomSheet } from "@/features/shared/ui/SnapBottomSheet";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
-import { StyleSheet, View } from "react-native";
+import {
+  StyleSheet,
+  TouchableWithoutFeedback,
+  View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-type Props = {
-  visible: boolean;
-  template: { id: string; productsCount?: number; totalProductsPrice?: number } | null;
+type TemplateSummary = {
+  id: string;
+  productsCount?: number;
+  totalProductsPrice?: number;
+};
+
+type ContentProps = {
+  template: TemplateSummary | null;
   onClose: () => void;
-  /** Закрыть все модалки шаблонов перед переходом в корзину */
   onCloseTemplates?: () => void;
 };
 
-export function OrderFromTemplateConfirmModal({
-  visible,
+function formatMoney(n: number) {
+  return n.toLocaleString("ru-RU", {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 2,
+  });
+}
+
+function goodsWord(n: number) {
+  const abs = Math.abs(n) % 100;
+  const d = abs % 10;
+  if (abs > 10 && abs < 20) return "товаров";
+  if (d === 1) return "товар";
+  if (d >= 2 && d <= 4) return "товара";
+  return "товаров";
+}
+
+export function OrderFromTemplateConfirmContent({
   template,
   onClose,
   onCloseTemplates,
-}: Props) {
+}: ContentProps) {
   const dispatch = useAppDispatch();
   const router = useRouter();
   const isFillingCart = useAppSelector((s) => s.orderPresets.isFillingCart);
@@ -30,21 +54,6 @@ export function OrderFromTemplateConfirmModal({
 
   const productsCount = template?.productsCount ?? 0;
   const totalProductsPrice = template?.totalProductsPrice ?? 0;
-
-  const formatMoney = (n: number) =>
-    n.toLocaleString("ru-RU", {
-      minimumFractionDigits: 1,
-      maximumFractionDigits: 2,
-    });
-
-  const goodsWord = (n: number) => {
-    const abs = Math.abs(n) % 100;
-    const d = abs % 10;
-    if (abs > 10 && abs < 20) return "товаров";
-    if (d === 1) return "товар";
-    if (d >= 2 && d <= 4) return "товара";
-    return "товаров";
-  };
 
   const summaryLine = useMemo(() => {
     return `${productsCount} ${goodsWord(productsCount)} • ${formatMoney(totalProductsPrice)} ₽`;
@@ -64,12 +73,7 @@ export function OrderFromTemplateConfirmModal({
   };
 
   return (
-    <SnapBottomSheet
-      visible={visible}
-      title="Добавить товары в корзину?"
-      titleAlign="left"
-      onClose={onClose}
-    >
+    <>
       <ThemedText style={styles.summary} lightColor="#80818B" darkColor="#FBFCFF80">
         {summaryLine}
       </ThemedText>
@@ -110,6 +114,77 @@ export function OrderFromTemplateConfirmModal({
           disabled={isFillingCart || !template?.id}
         />
       </View>
+    </>
+  );
+}
+
+/** Inline-панель поверх модалки шаблонов (без вложенного Modal). */
+export function OrderFromTemplateConfirmOverlay({
+  visible,
+  template,
+  onClose,
+  onCloseTemplates,
+}: ContentProps & { visible: boolean }) {
+  const insets = useSafeAreaInsets();
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
+
+  if (!visible || !template) return null;
+
+  return (
+    <View style={styles.overlayRoot} pointerEvents="box-none">
+      <TouchableWithoutFeedback onPress={onClose}>
+        <View style={styles.overlayBackdrop} />
+      </TouchableWithoutFeedback>
+      <View
+        style={[
+          styles.overlaySheet,
+          isDark && styles.overlaySheetDark,
+          { paddingBottom: 16 + Math.max(insets.bottom, 16) },
+        ]}
+      >
+        <View style={styles.handleWrap}>
+          <View style={[styles.handle, isDark && styles.handleDark]} />
+        </View>
+        <ThemedText
+          style={styles.overlayTitle}
+          lightColor="#1B1B1C"
+          darkColor="#FBFCFF"
+        >
+          Добавить товары в корзину?
+        </ThemedText>
+        <OrderFromTemplateConfirmContent
+          template={template}
+          onClose={onClose}
+          onCloseTemplates={onCloseTemplates}
+        />
+      </View>
+    </View>
+  );
+}
+
+type ModalProps = ContentProps & {
+  visible: boolean;
+};
+
+export function OrderFromTemplateConfirmModal({
+  visible,
+  template,
+  onClose,
+  onCloseTemplates,
+}: ModalProps) {
+  return (
+    <SnapBottomSheet
+      visible={visible}
+      title="Добавить товары в корзину?"
+      titleAlign="left"
+      onClose={onClose}
+    >
+      <OrderFromTemplateConfirmContent
+        template={template}
+        onClose={onClose}
+        onCloseTemplates={onCloseTemplates}
+      />
     </SnapBottomSheet>
   );
 }
@@ -132,5 +207,47 @@ const styles = StyleSheet.create({
   },
   buttons: {
     paddingBottom: 8,
+  },
+  overlayRoot: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 60,
+    justifyContent: "flex-end",
+  },
+  overlayBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0, 0, 0, 0.45)",
+  },
+  overlaySheet: {
+    backgroundColor: "#FFFFFF",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    borderWidth: 1,
+    borderColor: "#F0F3F7",
+    maxHeight: "92%",
+  },
+  overlaySheetDark: {
+    backgroundColor: "#202022",
+    borderColor: "#323235",
+  },
+  handleWrap: {
+    alignItems: "center",
+    paddingBottom: 8,
+  },
+  handle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: "#C0C0C5",
+  },
+  handleDark: {
+    backgroundColor: "#404040",
+  },
+  overlayTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    marginBottom: 16,
+    textAlign: "left",
   },
 });

@@ -17,9 +17,6 @@ import DeliveryInfoCard from "../components/DeliveryInfoCard";
 import { HomeHeader } from "../components/HomeHeader";
 import SpecialOffers from "../components/SpecialOffers/SpecialOffers";
 import { AddToCart } from "@/features/catalog/catalogSlice";
-import { buildTemplateLineFromProduct } from "@/features/templates/buildTemplateLine";
-import { TemplatePickerBanner } from "@/features/templates/TemplatePickerBanner";
-import { useTemplatePicker } from "@/features/templates/TemplatePickerContext";
 import { AddToCartModal } from "@/features/shared/ui/AddToCartModal";
 import ManagerSection from "@/features/shared/ui/ManagerSection";
 import { useRouter } from "expo-router";
@@ -71,7 +68,6 @@ export const HomeScreen = ({
   const sliderItems = useAppSelector((state) => state.auth.sliders);
   const router = useRouter();
   const orders = useAppSelector((state) => state.catalog.orders);
-  const templatePicker = useTemplatePicker();
   const sliderData = useMemo(
     () => (sliderItems.length > 0 ? sliderItems : SLIDER_ITEMS),
     [sliderItems],
@@ -109,28 +105,17 @@ export const HomeScreen = ({
   const handleAddToCartPress = useCallback((product: any) => {
     const cartItemsForProduct =
       cartItems?.filter((item: any) => item.productId === product.id) || [];
-    const templateLines = templatePicker.pickingForTemplateId
-      ? templatePicker.getExistingTemplateLinesForProduct(String(product.id))
-      : [];
 
     setSelectedProduct(product);
-    setExistingCartItem(
-      templatePicker.pickingForTemplateId ? templateLines : cartItemsForProduct,
-    );
+    setExistingCartItem(cartItemsForProduct);
     setShowAddToCartModal(true);
-  }, [cartItems, templatePicker]);
+  }, [cartItems]);
 
   const handleAddToCart = useCallback((
     productId: string,
     optionId: string,
     quantity: number,
   ) => {
-    if (templatePicker.pickingForTemplateId && selectedProduct) {
-      void templatePicker.addLineFromProduct(
-        buildTemplateLineFromProduct(selectedProduct, optionId, quantity),
-      );
-      return;
-    }
     dispatch(
       AddToCart({
         productId: productId,
@@ -138,7 +123,7 @@ export const HomeScreen = ({
         quantity: quantity,
       }),
     );
-  }, [templatePicker, selectedProduct, dispatch]);
+  }, [dispatch]);
   return (
     <>
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
@@ -147,8 +132,6 @@ export const HomeScreen = ({
           transparent={true}
           onLoginPress={handleLoginPress}
         />
-        <TemplatePickerBanner />
-
         {/* Слайдер */}
         <ThemedView lightColor={"#FFFFFF"} style={styles.container}>
           <AutoSlider
@@ -215,9 +198,7 @@ export const HomeScreen = ({
           product={selectedProduct}
           onAddToCart={handleAddToCart}
           existingCartItem={existingCartItem}
-          variant={
-            templatePicker.pickingForTemplateId ? "template" : "cart"
-          }
+          variant="cart"
         />
     </>
   );

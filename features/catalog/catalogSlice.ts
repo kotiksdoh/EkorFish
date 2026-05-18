@@ -279,6 +279,24 @@ export const getProductList = createAsyncThunk(
       if (payload.params.MaxPrice !== undefined) {
         params.append("MaxPrice", payload.params.MaxPrice.toString());
       }
+      if (payload.params.MinRemainingShelfLifePercent !== undefined) {
+        params.append(
+          "MinRemainingShelfLifePercent",
+          payload.params.MinRemainingShelfLifePercent.toString(),
+        );
+      }
+      if (payload.params.MaxRemainingShelfLifePercent !== undefined) {
+        params.append(
+          "MaxRemainingShelfLifePercent",
+          payload.params.MaxRemainingShelfLifePercent.toString(),
+        );
+      }
+      if (payload.params.name) {
+        params.append("name", payload.params.name);
+      }
+      if (payload.params.price) {
+        params.append("price", payload.params.price);
+      }
       if (payload.params.storageId !== undefined) {
         params.append("storageId", payload.params.storageId.toString());
       }

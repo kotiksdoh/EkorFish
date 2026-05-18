@@ -45,6 +45,31 @@ interface BonusPageProps {
   onClose: () => void;
 }
 
+function getOrderNumber(item: BonusTransaction): string | null {
+  const raw = item.orderNumber;
+  if (raw === null || raw === undefined) return null;
+  const value = String(raw).trim();
+  return value.length > 0 ? value : null;
+}
+
+function isBonusAccrual(item: BonusTransaction): boolean {
+  if (item.type === "accrual") return true;
+  if (item.type === "write-off") return false;
+  return item.bonus > 0;
+}
+
+function getBonusTransactionTitle(item: BonusTransaction): string {
+  const orderNumber = getOrderNumber(item);
+  if (orderNumber) {
+    return `Заказ №${orderNumber}`;
+  }
+  return isBonusAccrual(item) ? "Начисление" : "Списание";
+}
+
+function shouldShowOrderAmount(item: BonusTransaction): boolean {
+  return getOrderNumber(item) !== null;
+}
+
 export const BonusPage: React.FC<BonusPageProps> = ({
   visible,
   onClose,
@@ -356,11 +381,19 @@ export const BonusPage: React.FC<BonusPageProps> = ({
                     <View key={item.id} style={styles.compactHistoryItem}>
                       <View style={styles.compactHistoryLeft}>
                         <ThemedText style={styles.compactHistoryOrder}>
-                          Заказ №{item.orderNumber}
+                          {getBonusTransactionTitle(item)}
                         </ThemedText>
-                        <ThemedText lightColor="#80818B" darkColor="#FBFCFF80" style={styles.compactHistoryDescription} numberOfLines={1}>
-                          Сумма заказа: {item.orderAmount?.toLocaleString('ru-RU')} ₽
-                        </ThemedText>
+                        {shouldShowOrderAmount(item) && (
+                          <ThemedText
+                            lightColor="#80818B"
+                            darkColor="#FBFCFF80"
+                            style={styles.compactHistoryDescription}
+                            numberOfLines={1}
+                          >
+                            Сумма заказа:{" "}
+                            {item.orderAmount?.toLocaleString("ru-RU")} ₽
+                          </ThemedText>
+                        )}
                       </View>
                       <View style={styles.compactHistoryRight}>
                         <ThemedText
@@ -434,12 +467,23 @@ export const BonusPage: React.FC<BonusPageProps> = ({
                           {items.map((item) => (
                             <View key={item.id} style={styles.fullHistoryItem}>
                               <View style={styles.fullHistoryItemLeft}>
-                                <ThemedText style={styles.fullHistoryOrder} lightColor="#1B1B1C">
-                                  Заказ №{item.orderNumber}
+                                <ThemedText
+                                  style={styles.fullHistoryOrder}
+                                  lightColor="#1B1B1C"
+                                >
+                                  {getBonusTransactionTitle(item)}
                                 </ThemedText>
-                                <ThemedText lightColor="#80818B" darkColor="#FBFCFF80" style={styles.fullHistoryDescription} numberOfLines={1}>
-                                  Сумма заказа: {item.orderAmount?.toLocaleString('ru-RU')} ₽
-                                </ThemedText>
+                                {shouldShowOrderAmount(item) && (
+                                  <ThemedText
+                                    lightColor="#80818B"
+                                    darkColor="#FBFCFF80"
+                                    style={styles.fullHistoryDescription}
+                                    numberOfLines={1}
+                                  >
+                                    Сумма заказа:{" "}
+                                    {item.orderAmount?.toLocaleString("ru-RU")} ₽
+                                  </ThemedText>
+                                )}
                               </View>
                               <View style={styles.fullHistoryItemRight}>
                                 <ThemedText

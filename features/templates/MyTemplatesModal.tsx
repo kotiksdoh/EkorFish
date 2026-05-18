@@ -10,7 +10,6 @@ import { ModalHeader } from "@/features/auth/ui/Header";
 import { CustomCheckbox } from "@/features/shared/ui/components/CustomCheckBox";
 import AnimatedTextInput from "@/features/shared/ui/components/CustomInput";
 import { PrimaryButton } from "@/features/shared/ui/components/PrimartyButton";
-import { SnapBottomSheet } from "@/features/shared/ui/SnapBottomSheet";
 import {
   createOrderPreset,
   deleteOrderPresetItem,
@@ -23,25 +22,30 @@ import {
 } from "@/features/templates/orderPresetsSlice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { Image } from "expo-image";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Animated,
+  Dimensions,
   FlatList,
   Modal,
   Platform,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   useColorScheme,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { OrderFromTemplateConfirmModal } from "./OrderFromTemplateConfirmModal";
-import { ReminderFrequencyPickerModal } from "./ReminderFrequencyPickerModal";
+import { OrderFromTemplateConfirmOverlay } from "./OrderFromTemplateConfirmModal";
+import { ReminderFrequencyPickerOverlay } from "./ReminderFrequencyPickerModal";
 import { TemplateOrderLineCard } from "./TemplateOrderLineCard";
 import { useTemplatePicker } from "./TemplatePickerContext";
 import type { TemplateLineItem } from "./types";
+
+const { height: screenHeight } = Dimensions.get("window");
 
 type Props = {
   visible: boolean;
@@ -142,6 +146,8 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
   const [cName, setCName] = useState("");
   const [cDesc, setCDesc] = useState("");
   const [cReminder, setCReminder] = useState<number | null>(null);
+  const [isClosingCreate, setIsClosingCreate] = useState(false);
+  const createSheetTranslateY = useRef(new Animated.Value(screenHeight)).current;
 
   const [eName, setEName] = useState("");
   const [eDesc, setEDesc] = useState("");
@@ -428,8 +434,97 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
   const showEditBottomPanel = !!detailPreset && detailEditing;
   const showEditBulkActions = !!detailPreset && detailEditing && !detailEmpty;
 
-  /** iOS: два fullScreen Modal + sheet одновременно — нижние окна не видны/блокируют таб. Список скрываем, пока открыты детали или лист создания. */
-  const templatesListModalVisible = visible && !detailId && !createOpen;
+  /** Список скрываем только при просмотре деталей (отдельный fullScreen Modal). */
+  const templatesListModalVisible = visible && !detailId;
+
+  useEffect(() => {
+    if (createOpen) {
+      setIsClosingCreate(false);
+      createSheetTranslateY.setValue(screenHeight);
+      Animated.spring(createSheetTranslateY, {
+        toValue: 0,
+        useNativeDriver: true,
+        damping: 20,
+        stiffness: 90,
+        mass: 0.8,
+      }).start();
+    } else {
+      createSheetTranslateY.setValue(screenHeight);
+    }
+  }, [createOpen, createSheetTranslateY]);
+
+  const closeCreateWithAnimation = useCallback(() => {
+    if (isClosingCreate) return;
+
+    setIsClosingCreate(true);
+    Animated.timing(createSheetTranslateY, {
+      toValue: screenHeight,
+      duration: 250,
+      useNativeDriver: true,
+    }).start(() => {
+      setIsClosingCreate(false);
+      setCreateOpen(false);
+      setReminderPickerFor(null);
+    });
+  }, [createSheetTranslateY, isClosingCreate]);
+
+  const handleCreateStackBackdropPress = useCallback(() => {
+    if (reminderPickerFor === "create") {
+      setReminderPickerFor(null);
+      return;
+    }
+    closeCreateWithAnimation();
+  }, [reminderPickerFor, closeCreateWithAnimation]);
+
+  const closeOrderConfirm = () => {
+    setOrderConfirmOpen(false);
+    setOrderConfirmTemplate(null);
+  };
+
+  const orderConfirmOverlay =
+    orderConfirmOpen && orderConfirmTemplate ? (
+      <OrderFromTemplateConfirmOverlay
+        visible
+        template={orderConfirmTemplate}
+        onClose={closeOrderConfirm}
+        onCloseTemplates={handleCloseAll}
+      />
+    ) : null;
+
+  const onReminderPicked = (v: number) => {
+    if (reminderPickerFor === "create") {
+      setCReminder(v);
+    } else if (detailPreset) {
+      setEReminder(v);
+    }
+  };
+
+  const reminderPickerValue =
+    reminderPickerFor === "create" ? (cReminder ?? 0) : (eReminder ?? 0);
+
+  const reminderPickerOverlay =
+    reminderPickerFor === "edit" ? (
+      <ReminderFrequencyPickerOverlay
+        visible
+        value={reminderPickerValue}
+        onClose={() => setReminderPickerFor(null)}
+        onSelect={onReminderPicked}
+        options={pageData?.reminderFrequencies || []}
+        showBackdrop
+      />
+    ) : null;
+
+  const createReminderPickerOverlay =
+    reminderPickerFor === "create" ? (
+      <ReminderFrequencyPickerOverlay
+        visible
+        value={reminderPickerValue}
+        onClose={() => setReminderPickerFor(null)}
+        onSelect={onReminderPicked}
+        options={pageData?.reminderFrequencies || []}
+        showBackdrop={false}
+      />
+    ) : null;
 
   const detailContent = (
     <Modal
@@ -787,28 +882,12 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
             </ThemedView>
           ) : null}
         </ThemedView>
+        {reminderPickerFor === "edit" ? reminderPickerOverlay : null}
+        {orderConfirmOverlay}
       </ThemedView>
 
     </Modal>
   );
-
-  const closeOrderConfirm = () => {
-    setOrderConfirmOpen(false);
-    setOrderConfirmTemplate(null);
-  };
-
-  const reminderPickerValue =
-    reminderPickerFor === "create"
-      ? cReminder
-      : (detailPreset as any)?.reminderFrequency ?? 0;
-
-  const onReminderPicked = (v: number) => {
-    if (reminderPickerFor === "create") {
-      setCReminder(v);
-    } else if (detailPreset) {
-      setEReminder(v);
-    }
-  };
 
   return (
     <>
@@ -816,7 +895,13 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
         visible={templatesListModalVisible}
         animationType="slide"
         transparent={false}
-        onRequestClose={handleCloseAll}
+        onRequestClose={() => {
+          if (createOpen) {
+            closeCreateWithAnimation();
+            return;
+          }
+          handleCloseAll();
+        }}
         presentationStyle="fullScreen"
         statusBarTranslucent
       >
@@ -891,113 +976,134 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
               </View>
             )}
           </ThemedView>
+
+          {createOpen ? (
+            <View style={styles.innerOverlay}>
+              <TouchableWithoutFeedback onPress={handleCreateStackBackdropPress}>
+                <View style={styles.overlayBackdrop} />
+              </TouchableWithoutFeedback>
+
+              {reminderPickerFor !== "create" ? (
+                <TouchableWithoutFeedback>
+                  <Animated.View
+                    style={[
+                      styles.createOverlaySheet,
+                      isDark && styles.createOverlaySheetDark,
+                      {
+                        paddingBottom: 16 + Math.max(insets.bottom, 16),
+                        transform: [{ translateY: createSheetTranslateY }],
+                      },
+                    ]}
+                  >
+                    <TouchableOpacity
+                      style={styles.swipeHandleContainer}
+                      activeOpacity={0.7}
+                      onPress={closeCreateWithAnimation}
+                    >
+                      <View
+                        style={[
+                          styles.swipeHandle,
+                          isDark && styles.swipeHandleDark,
+                        ]}
+                      />
+                    </TouchableOpacity>
+                    <View style={styles.createOverlayHeader}>
+                      <ThemedText
+                        style={styles.createOverlayTitle}
+                        lightColor="#1B1B1C"
+                        darkColor="#FBFCFF"
+                      >
+                        Создание шаблона
+                      </ThemedText>
+                    </View>
+                <ScrollView
+                  keyboardShouldPersistTaps="handled"
+                  showsVerticalScrollIndicator={false}
+                  style={{ maxHeight: 420 }}
+                >
+                  <AnimatedTextInput
+                    placeholder="Название"
+                    value={cName}
+                    onChangeText={setCName}
+                    multiline={false}
+                  />
+                  <View style={{ height: 12 }} />
+                  <AnimatedTextInput
+                    placeholder="Описание"
+                    value={cDesc}
+                    onChangeText={setCDesc}
+                    multiline
+                    textAlignVertical="top"
+                    style={styles.descInputWrap}
+                    inputStyle={styles.descInput}
+                  />
+                  <TouchableOpacity
+                    style={styles.sheetSelectRow}
+                    onPress={() => setReminderPickerFor("create")}
+                    disabled={
+                      isLoadingPageData ||
+                      !(pageData?.reminderFrequencies?.length)
+                    }
+                  >
+                    <View style={styles.sheetRowIcon}>
+                      <CalendarFilledIcon
+                        width={22}
+                        height={22}
+                        stroke={isDark ? "#FBFCFF" : "#1B1B1C"}
+                        fill="none"
+                      />
+                    </View>
+                    <ThemedText
+                      style={styles.sheetRowFieldLabel}
+                      lightColor="#1B1B1C"
+                      darkColor="#FBFCFF"
+                    >
+                      Частота напоминаний
+                    </ThemedText>
+                    <View style={styles.sheetRowRight}>
+                      <ThemedText
+                        style={styles.rowValue}
+                        numberOfLines={1}
+                        lightColor="#80818B"
+                        darkColor="#FBFCFF80"
+                      >
+                        {isLoadingPageData
+                          ? "Загрузка..."
+                          : (pageData?.reminderFrequencies || []).find(
+                              (x: any) => x.frequency === (cReminder ?? 0),
+                            )?.name || "—"}
+                      </ThemedText>
+                      <ArrowIconRight />
+                    </View>
+                  </TouchableOpacity>
+                </ScrollView>
+                <View style={{ height: 16 }} />
+                <PrimaryButton
+                  title="Создать шаблон"
+                  onPress={submitCreate}
+                  variant="primary"
+                  fullWidth
+                  disabled={isCreating}
+                />
+                  </Animated.View>
+                </TouchableWithoutFeedback>
+              ) : null}
+
+              {createReminderPickerOverlay}
+            </View>
+          ) : null}
+          {!createOpen ? orderConfirmOverlay : null}
         </ThemedView>
       </Modal>
 
       {detailContent}
-
-      <OrderFromTemplateConfirmModal
-        visible={orderConfirmOpen}
-        template={orderConfirmTemplate}
-        onClose={closeOrderConfirm}
-        onCloseTemplates={handleCloseAll}
-      />
-
-      <SnapBottomSheet
-        visible={createOpen}
-        title="Создание шаблона"
-        titleAlign="left"
-        onClose={() => {
-          setCreateOpen(false);
-          setReminderPickerFor(null);
-        }}
-      >
-        <ScrollView
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-          style={{ maxHeight: 420 }}
-        >
-          <AnimatedTextInput
-            placeholder="Название"
-            value={cName}
-            onChangeText={setCName}
-            multiline={false}
-          />
-          <View style={{ height: 12 }} />
-          <AnimatedTextInput
-            placeholder="Описание"
-            value={cDesc}
-            onChangeText={setCDesc}
-            multiline
-            textAlignVertical="top"
-            style={styles.descInputWrap}
-            inputStyle={styles.descInput}
-          />
-          <TouchableOpacity
-            style={styles.sheetSelectRow}
-            onPress={() => setReminderPickerFor("create")}
-            disabled={isLoadingPageData || !(pageData?.reminderFrequencies?.length)}
-          >
-            <View style={styles.sheetRowIcon}>
-              <CalendarFilledIcon
-                width={22}
-                height={22}
-                stroke={isDark ? "#FBFCFF" : "#1B1B1C"}
-                fill="none"
-              />
-            </View>
-            <ThemedText
-              style={styles.sheetRowFieldLabel}
-              lightColor="#1B1B1C"
-              darkColor="#FBFCFF"
-            >
-              Частота напоминаний
-            </ThemedText>
-            <View style={styles.sheetRowRight}>
-              <ThemedText
-                style={styles.rowValue}
-                numberOfLines={1}
-                lightColor="#80818B"
-                darkColor="#FBFCFF80"
-              >
-                {isLoadingPageData
-                  ? "Загрузка..."
-                  : (pageData?.reminderFrequencies || []).find(
-                      (x: any) => x.frequency === (cReminder ?? 0),
-                    )?.name || "—"}
-              </ThemedText>
-              <ArrowIconRight />
-            </View>
-          </TouchableOpacity>
-        </ScrollView>
-        <View style={{ height: 16 }} />
-        <View
-         
-        >
-          <PrimaryButton
-            title="Создать шаблон"
-            onPress={submitCreate}
-            variant="primary"
-            fullWidth
-            disabled={isCreating}
-          />
-        </View>
-      </SnapBottomSheet>
-
-      <ReminderFrequencyPickerModal
-        visible={reminderPickerFor !== null}
-        value={reminderPickerValue}
-        onClose={() => setReminderPickerFor(null)}
-        onSelect={onReminderPicked}
-        options={pageData?.reminderFrequencies || []}
-      />
 
     </>
   );
 }
 
 const styles = StyleSheet.create({
-  listRoot: { flex: 1 },
+  listRoot: { flex: 1, position: "relative" },
   listContent: {
     flex: 1,
     marginTop: 8,
@@ -1006,6 +1112,52 @@ const styles = StyleSheet.create({
     paddingTop: 8,
   },
   listPad: { padding: 16, paddingBottom: 120, gap: 10 },
+  innerOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: "flex-end",
+    zIndex: 40,
+  },
+  overlayBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+  },
+  createOverlaySheet: {
+    backgroundColor: "#FFFFFF",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    maxHeight: "92%",
+    overflow: "hidden",
+  },
+  createOverlaySheetDark: {
+    backgroundColor: "#202022",
+  },
+  swipeHandleContainer: {
+    alignItems: "center",
+    paddingTop: 12,
+    paddingBottom: 8,
+    width: "100%",
+  },
+  swipeHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: "#E0E0E0",
+    borderRadius: 2,
+  },
+  swipeHandleDark: {
+    backgroundColor: "#404040",
+  },
+  createOverlayHeader: {
+    paddingHorizontal: 4,
+    paddingBottom: 8,
+    alignItems: "flex-start",
+  },
+  createOverlayTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    textAlign: "left",
+  },
   templatesBottomPanel: {
     position: "absolute",
     left: 0,
@@ -1084,7 +1236,7 @@ const styles = StyleSheet.create({
     paddingBottom: 120,
     justifyContent: "center",
   },
-  detailRoot: { flex: 1 },
+  detailRoot: { flex: 1, position: "relative" },
   detailBody: {
     flex: 1,
     marginTop: 8,

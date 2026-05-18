@@ -14,6 +14,13 @@ import {
   setSelectedSubcategory,
   toggleFilterSelection,
 } from "@/features/catalog/catalogSlice";
+import {
+  DEFAULT_PRODUCT_SORT,
+  applyProductSortToParams,
+  getProductSortLabel,
+  PRODUCT_SORT_OPTIONS,
+  type ProductSortId,
+} from "@/features/catalog/productSort";
 import { AddToCartModal } from "@/features/shared/ui/AddToCartModal";
 import { ProductCard } from "@/features/shared/ui/ProductCard";
 import { TownSelectionModal } from "@/features/shared/ui/TownSelectionModal";
@@ -44,6 +51,18 @@ import {
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
+
+const SHELF_LIFE_PERCENT_MAX = 100;
+
+function normalizeShelfLifePercentInput(text: string): string {
+  if (text === "") return "";
+
+  const digitsOnly = text.replace(/\D/g, "");
+  if (digitsOnly === "") return "";
+
+  const parsed = parseInt(digitsOnly, 10);
+  return String(Math.min(SHELF_LIFE_PERCENT_MAX, parsed));
+}
 
 export default function CatalogDetailScreen() {
   const colorScheme = useColorScheme();
@@ -77,8 +96,12 @@ export default function CatalogDetailScreen() {
   const [searchQuery, setSearchQuery] = useState(search || "");
   const [showFilters, setShowFilters] = useState(false);
   const [isOpeningFilters, setIsOpeningFilters] = useState(false);
-  const [sortBy, setSortBy] = useState("alphabet");
+  const [sortBy, setSortBy] = useState<ProductSortId>(DEFAULT_PRODUCT_SORT);
   const [priceRange, setPriceRange] = useState({
+    min: "",
+    max: "",
+  });
+  const [shelfLifeRange, setShelfLifeRange] = useState({
     min: "",
     max: "",
   });
@@ -123,11 +146,7 @@ export default function CatalogDetailScreen() {
     }, []),
   );
 
-  const sortOptions = [
-    { id: "alphabet", label: "По алфавиту" },
-    { id: "priceAsc", label: "Дешевле" },
-    { id: "priceDesc", label: "Дороже" },
-  ];
+  const sortOptions = PRODUCT_SORT_OPTIONS;
   const closeSortModalWithAnimation = useCallback(() => {
     if (isClosingSortModal) return;
 
@@ -166,25 +185,23 @@ export default function CatalogDetailScreen() {
   }, [showSortModal]);
 
   // Обработчик выбора сортировки
-  const handleSortSelect = (sortId: string) => {
+  const handleSortSelect = (sortId: ProductSortId) => {
     setSortBy(sortId);
     closeSortModalWithAnimation();
-    // Перезагружаем товары с новой сортировкой
     setTimeout(() => {
-      loadProducts(false, searchQuery);
+      scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+      loadProducts(false, searchQuery, undefined, undefined, sortId);
     }, 300);
   };
 
-  // Функция для получения текущей сортировки для отображения
-  const getCurrentSortLabel = () => {
-    const option = sortOptions.find((opt) => opt.id === sortBy);
-    return option ? option.label : "По алфавиту";
-  };
+  const getCurrentSortLabel = () => getProductSortLabel(sortBy);
   // Подсчет примененных фильтров
   const appliedFiltersCount =
     selectedFilterIds.length +
     (priceRange.min ? 1 : 0) +
-    (priceRange.max ? 1 : 0);
+    (priceRange.max ? 1 : 0) +
+    (shelfLifeRange.min ? 1 : 0) +
+    (shelfLifeRange.max ? 1 : 0);
 
   const dispatch = useAppDispatch();
   const searchInputRef = useRef<TextInput>(null);
@@ -261,6 +278,7 @@ export default function CatalogDetailScreen() {
       searchText: string = searchQuery,
       forceStorageId?: string,
       forceSubcategoryId?: string | null,
+      sortOverride?: ProductSortId,
     ) => {
       if (isFetchingRef.current || !catalogId) return;
 
@@ -296,6 +314,26 @@ export default function CatalogDetailScreen() {
           params.MaxPrice = maxPrice;
         }
 
+        const minShelfLife = shelfLifeRange.min
+          ? parseFloat(shelfLifeRange.min)
+          : undefined;
+        const maxShelfLife = shelfLifeRange.max
+          ? parseFloat(shelfLifeRange.max)
+          : undefined;
+
+        if (minShelfLife !== undefined && !isNaN(minShelfLife)) {
+          params.MinRemainingShelfLifePercent = Math.min(
+            SHELF_LIFE_PERCENT_MAX,
+            minShelfLife,
+          );
+        }
+        if (maxShelfLife !== undefined && !isNaN(maxShelfLife)) {
+          params.MaxRemainingShelfLifePercent = Math.min(
+            SHELF_LIFE_PERCENT_MAX,
+            maxShelfLife,
+          );
+        }
+
         // Добавляем subCategoryId если выбрана подкатегория
         const effectiveSubcategoryId =
           forceSubcategoryId === undefined
@@ -305,6 +343,8 @@ export default function CatalogDetailScreen() {
         if (effectiveSubcategoryId && effectiveSubcategoryId !== "all") {
           params.subCategoryId = effectiveSubcategoryId;
         }
+
+        applyProductSortToParams(params, sortOverride ?? sortBy);
 
         console.log("Loading products:", {
           isLoadMore,
@@ -334,10 +374,12 @@ export default function CatalogDetailScreen() {
       search,
       dispatch,
       priceRange,
+      shelfLifeRange,
       searchQuery,
       selectedSubcategoryId,
       me?.storageId,
-      isPromo
+      isPromo,
+      sortBy,
     ],
   );
 
@@ -488,6 +530,7 @@ export default function CatalogDetailScreen() {
   const resetFilters = () => {
     dispatch(clearSelectedFilters());
     setPriceRange({ min: "", max: "" });
+    setShelfLifeRange({ min: "", max: "" });
     loadProducts(false, searchQuery);
   };
 
@@ -497,25 +540,6 @@ export default function CatalogDetailScreen() {
     loadProducts(false, searchQuery);
   };
 
-  // Сортировка продуктов
-  const getSortedProducts = useCallback(() => {
-    if (!products || products.length === 0) return [];
-
-    const sorted = [...products];
-
-    switch (sortBy) {
-      case "alphabet":
-        return sorted.sort((a, b) => a.name.localeCompare(b.name));
-      case "priceAsc":
-        return sorted.sort((a, b) => a.pricePerKg - b.pricePerKg);
-      case "priceDesc":
-        return sorted.sort((a, b) => b.pricePerKg - a.pricePerKg);
-      default:
-        return sorted;
-    }
-  }, [products, sortBy]);
-
-  const sortedProducts = getSortedProducts();
   // Рендер элемента фильтра
   const renderFilterItem = (filterOption: any, filterGroupId: string) => (
     <TouchableOpacity
@@ -740,7 +764,7 @@ export default function CatalogDetailScreen() {
                 }}
               />
               {/* Индикатор начальной загрузки */}
-              {isLoading && !isLoadingMore && sortedProducts.length === 0 && (
+              {isLoading && !isLoadingMore && products.length === 0 && (
                 <View style={styles.initialLoadingContainer}>
                   <ActivityIndicator size="large" color="#203686" />
                   <ThemedText style={styles.initialLoadingText}>
@@ -750,9 +774,9 @@ export default function CatalogDetailScreen() {
               )}
 
               {/* Сетка товаров */}
-              {!isLoading && sortedProducts.length > 0 && (
+              {!isLoading && products.length > 0 && (
                 <View style={styles.productsGrid}>
-                  {sortedProducts.map((product) => (
+                  {products.map((product) => (
                     <ProductCard
                       key={`${product.id}`}
                       id={product.id}
@@ -770,7 +794,7 @@ export default function CatalogDetailScreen() {
               )}
 
               {/* Сообщение если товаров нет */}
-              {!isLoading && sortedProducts.length === 0 && (
+              {!isLoading && products.length === 0 && (
                 <View style={styles.emptyContainer}>
                   <Image
                     source={require("../../../assets/icons/png/noItems.png")}
@@ -899,6 +923,45 @@ export default function CatalogDetailScreen() {
                             value={priceRange.max}
                             onChangeText={(text) =>
                               setPriceRange({ ...priceRange, max: text })
+                            }
+                            keyboardType="numeric"
+                          />
+                        </View>
+                      </View>
+                    </View>
+
+                    <View style={styles.filterSection}>
+                      <ThemedText style={styles.filterSectionTitle}>
+                        Остаток срока годности, %
+                      </ThemedText>
+                      <View style={styles.priceInputs}>
+                        <View style={styles.priceInputContainer}>
+                          <AnimatedTextInput
+                            placeholder="От"
+                            placeholderTextColor="#80818B"
+                            value={shelfLifeRange.min}
+                            onChangeText={(text) =>
+                              setShelfLifeRange({
+                                ...shelfLifeRange,
+                                min: normalizeShelfLifePercentInput(text),
+                              })
+                            }
+                            keyboardType="numeric"
+                          />
+                        </View>
+
+                        <View style={styles.priceSeparator} />
+
+                        <View style={styles.priceInputContainer}>
+                          <AnimatedTextInput
+                            placeholder="До"
+                            placeholderTextColor="#80818B"
+                            value={shelfLifeRange.max}
+                            onChangeText={(text) =>
+                              setShelfLifeRange({
+                                ...shelfLifeRange,
+                                max: normalizeShelfLifePercentInput(text),
+                              })
                             }
                             keyboardType="numeric"
                           />
