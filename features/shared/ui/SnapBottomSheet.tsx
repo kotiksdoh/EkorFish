@@ -22,6 +22,10 @@ type SnapBottomSheetProps = {
   /** Выравнивание заголовка (по умолчанию по центру) */
   titleAlign?: "left" | "center";
   onClose: () => void;
+  /** Нажатие по затемнению (по умолчанию — onClose с анимацией) */
+  onBackdropPress?: () => void;
+  /** Второй sheet поверх (на весь экран Modal, не внутри контента) */
+  overlay?: React.ReactNode;
   children: React.ReactNode;
 };
 
@@ -33,6 +37,8 @@ export function SnapBottomSheet({
   title,
   titleAlign = "center",
   onClose,
+  onBackdropPress,
+  overlay,
   children,
 }: SnapBottomSheetProps) {
   const insets = useSafeAreaInsets();
@@ -49,6 +55,8 @@ export function SnapBottomSheet({
     }).start(() => onClose());
   }, [onClose, translateY]);
 
+  const handleBackdropPress = onBackdropPress ?? closeAnimated;
+
   useEffect(() => {
     if (visible) {
       translateY.setValue(MAX_SHEET_HEIGHT);
@@ -57,6 +65,7 @@ export function SnapBottomSheet({
         useNativeDriver: true,
         damping: 22,
         stiffness: 180,
+        overshootClamping: true,
       }).start();
     }
   }, [visible, translateY]);
@@ -90,13 +99,13 @@ export function SnapBottomSheet({
       transparent
       presentationStyle={Platform.OS === "ios" ? "overFullScreen" : undefined}
       statusBarTranslucent
-      onRequestClose={closeAnimated}
+      onRequestClose={handleBackdropPress}
     >
       <View style={styles.backdrop}>
         <TouchableOpacity
           style={StyleSheet.absoluteFill}
           activeOpacity={1}
-          onPress={closeAnimated}
+          onPress={handleBackdropPress}
         />
         <Animated.View
           style={[
@@ -109,9 +118,8 @@ export function SnapBottomSheet({
             },
             isDarkMode && { borderColor: "#252527" },
           ]}
-          {...panResponder.panHandlers}
         >
-          <View style={styles.handleWrap}>
+          <View style={styles.handleWrap} {...panResponder.panHandlers}>
             <View style={styles.handle} />
           </View>
           {title ? (
@@ -124,8 +132,13 @@ export function SnapBottomSheet({
               {title}
             </ThemedText>
           ) : null}
-          {children}
+          <View style={styles.sheetBody}>{children}</View>
         </Animated.View>
+        {overlay ? (
+          <View style={styles.overlaySlot} pointerEvents="box-none">
+            {overlay}
+          </View>
+        ) : null}
       </View>
     </Modal>
   );
@@ -136,6 +149,10 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.45)",
     justifyContent: "flex-end",
+  },
+  overlaySlot: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 50,
   },
   sheet: {
     borderTopLeftRadius: 24,
@@ -166,5 +183,9 @@ const styles = StyleSheet.create({
   titleLeft: {
     textAlign: "left",
     alignSelf: "stretch",
+  },
+  sheetBody: {
+    flexShrink: 1,
+    minHeight: 0,
   },
 });

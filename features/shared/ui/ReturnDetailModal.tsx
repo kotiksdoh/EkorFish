@@ -708,12 +708,13 @@ export const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
           titleAlign="left"
           onClose={closeStatusModal}
         >
-          <View style={styles.statusesListWrapper}>
-            <ScrollView
-              style={styles.statusesList}
-              showsVerticalScrollIndicator={true}
-              contentContainerStyle={styles.statusesListContent}
-            >
+          <ScrollView
+            style={styles.statusesList}
+            showsVerticalScrollIndicator
+            nestedScrollEnabled
+            bounces
+            contentContainerStyle={styles.statusesListContent}
+          >
               {statusList.map((status: any, index: number) => {
                         const currentIndex = getCurrentStatusIndex();
                         const isCurrent = index === currentIndex;
@@ -820,8 +821,7 @@ export const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                           </View>
                         );
               })}
-            </ScrollView>
-          </View>
+          </ScrollView>
         </SnapBottomSheet>
       </Modal>
     </>
@@ -1025,11 +1025,8 @@ const styles = StyleSheet.create({
   modalTitle: { fontSize: 20, fontWeight: "600" },
   productsList: { paddingHorizontal: 16, paddingBottom: 24 },
   // Старые стили карточек состава оставлены неиспользуемыми — можно удалить позже
-  statusesListWrapper: {
-    flex: 1,
-  },
   statusesList: {
-    flex: 1,
+    maxHeight: screenHeight * 0.55,
   },
   statusesListContent: {
     paddingHorizontal: 20,

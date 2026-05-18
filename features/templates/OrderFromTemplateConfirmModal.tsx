@@ -1,18 +1,13 @@
 import { ThemedText } from "@/components/themed-text";
+import { AnimatedStackedSheet } from "@/features/shared/ui/AnimatedStackedSheet";
 import { PrimaryButton } from "@/features/shared/ui/components/PrimartyButton";
 import { getCart } from "@/features/catalog/catalogSlice";
 import { fillCartFromPreset } from "@/features/templates/orderPresetsSlice";
 import { SnapBottomSheet } from "@/features/shared/ui/SnapBottomSheet";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { useRouter } from "expo-router";
-import React, { useMemo, useState } from "react";
-import {
-  StyleSheet,
-  TouchableWithoutFeedback,
-  View,
-} from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import React, { useMemo, useRef, useState } from "react";
+import { StyleSheet, View } from "react-native";
 
 type TemplateSummary = {
   id: string;
@@ -24,6 +19,8 @@ type ContentProps = {
   template: TemplateSummary | null;
   onClose: () => void;
   onCloseTemplates?: () => void;
+  /** Перед анимированным закрытием при переходе к оформлению */
+  onCheckoutAfterClose?: () => void;
 };
 
 function formatMoney(n: number) {
@@ -46,6 +43,7 @@ export function OrderFromTemplateConfirmContent({
   template,
   onClose,
   onCloseTemplates,
+  onCheckoutAfterClose,
 }: ContentProps) {
   const dispatch = useAppDispatch();
   const router = useRouter();
@@ -105,8 +103,8 @@ export function OrderFromTemplateConfirmContent({
           onPress={async () => {
             const ok = await doFillCart();
             if (!ok) return;
+            onCheckoutAfterClose?.();
             onClose();
-            onCloseTemplates?.();
             router.navigate("/shop");
           }}
           variant="third"
@@ -124,42 +122,58 @@ export function OrderFromTemplateConfirmOverlay({
   template,
   onClose,
   onCloseTemplates,
-}: ContentProps & { visible: boolean }) {
-  const insets = useSafeAreaInsets();
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === "dark";
+  onBindCloseRequest,
+}: ContentProps & {
+  visible: boolean;
+  onBindCloseRequest?: (close: (() => void) | null) => void;
+}) {
+  const closeAnimatedRef = useRef<(() => void) | null>(null);
+  const pendingCheckoutRef = useRef(false);
 
-  if (!visible || !template) return null;
+  if (!template) return null;
+
+  const requestClose = () => {
+    if (closeAnimatedRef.current) {
+      closeAnimatedRef.current();
+    } else {
+      onClose();
+    }
+  };
+
+  const handleSheetClosed = () => {
+    onClose();
+    if (pendingCheckoutRef.current) {
+      pendingCheckoutRef.current = false;
+      onCloseTemplates?.();
+    }
+  };
 
   return (
-    <View style={styles.overlayRoot} pointerEvents="box-none">
-      <TouchableWithoutFeedback onPress={onClose}>
-        <View style={styles.overlayBackdrop} />
-      </TouchableWithoutFeedback>
-      <View
-        style={[
-          styles.overlaySheet,
-          isDark && styles.overlaySheetDark,
-          { paddingBottom: 16 + Math.max(insets.bottom, 16) },
-        ]}
+    <AnimatedStackedSheet
+      visible={visible}
+      showBackdrop
+      onClose={handleSheetClosed}
+      onBindCloseRequest={(fn) => {
+        closeAnimatedRef.current = fn;
+        onBindCloseRequest?.(fn);
+      }}
+    >
+      <ThemedText
+        style={styles.overlayTitle}
+        lightColor="#1B1B1C"
+        darkColor="#FBFCFF"
       >
-        <View style={styles.handleWrap}>
-          <View style={[styles.handle, isDark && styles.handleDark]} />
-        </View>
-        <ThemedText
-          style={styles.overlayTitle}
-          lightColor="#1B1B1C"
-          darkColor="#FBFCFF"
-        >
-          Добавить товары в корзину?
-        </ThemedText>
-        <OrderFromTemplateConfirmContent
-          template={template}
-          onClose={onClose}
-          onCloseTemplates={onCloseTemplates}
-        />
-      </View>
-    </View>
+        Добавить товары в корзину?
+      </ThemedText>
+      <OrderFromTemplateConfirmContent
+        template={template}
+        onClose={requestClose}
+        onCheckoutAfterClose={() => {
+          pendingCheckoutRef.current = true;
+        }}
+        onCloseTemplates={onCloseTemplates}
+      />
+    </AnimatedStackedSheet>
   );
 }
 
@@ -207,42 +221,6 @@ const styles = StyleSheet.create({
   },
   buttons: {
     paddingBottom: 8,
-  },
-  overlayRoot: {
-    ...StyleSheet.absoluteFillObject,
-    zIndex: 60,
-    justifyContent: "flex-end",
-  },
-  overlayBackdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0, 0, 0, 0.45)",
-  },
-  overlaySheet: {
-    backgroundColor: "#FFFFFF",
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    borderWidth: 1,
-    borderColor: "#F0F3F7",
-    maxHeight: "92%",
-  },
-  overlaySheetDark: {
-    backgroundColor: "#202022",
-    borderColor: "#323235",
-  },
-  handleWrap: {
-    alignItems: "center",
-    paddingBottom: 8,
-  },
-  handle: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: "#C0C0C5",
-  },
-  handleDark: {
-    backgroundColor: "#404040",
   },
   overlayTitle: {
     fontSize: 18,

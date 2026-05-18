@@ -36,7 +36,10 @@ const AnimatedTextInput: React.FC<AnimatedTextInputProps> = ({
   lightColor,
   darkColor,
   disabled = false,
-  ...props
+  multiline,
+  returnKeyType,
+  onSubmitEditing,
+  ...textInputProps
 }) => {
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === 'dark';
@@ -73,6 +76,14 @@ const AnimatedTextInput: React.FC<AnimatedTextInputProps> = ({
     }
   };
 
+  const handleContainerPress = () => {
+    if (multiline && isFocused) {
+      inputRef.current?.blur();
+      return;
+    }
+    inputRef.current?.focus();
+  };
+
   const handleChangeText = (text: string) => {
     if (onChangeText) {
       onChangeText(text);
@@ -106,7 +117,7 @@ const AnimatedTextInput: React.FC<AnimatedTextInputProps> = ({
   };
 
   return (
-    <TouchableWithoutFeedback onPress={() => inputRef.current?.focus()}>
+    <TouchableWithoutFeedback onPress={handleContainerPress}>
       <ThemedView 
         style={[
           styles.container,
@@ -136,7 +147,13 @@ const AnimatedTextInput: React.FC<AnimatedTextInputProps> = ({
           onBlur={handleBlur}
           maxLength={maxLength}
           textAlignVertical="center"
-          {...props}
+          multiline={multiline}
+          blurOnSubmit={!multiline}
+          returnKeyType={multiline ? "done" : returnKeyType}
+          onSubmitEditing={
+            multiline ? () => inputRef.current?.blur() : onSubmitEditing
+          }
+          {...textInputProps}
         />
       </ThemedView>
     </TouchableWithoutFeedback>

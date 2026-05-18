@@ -29,12 +29,13 @@ import * as Clipboard from "expo-clipboard";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   Animated,
   Dimensions,
+  InteractionManager,
   Linking,
   Modal,
   Platform,
@@ -144,6 +145,12 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
       loadOrderDetails();
     } else {
       setOrderDetails(null);
+      setReorderModalVisible(false);
+      setStatusModalVisible(false);
+      setDocumentsModalVisible(false);
+      setProductsModalVisible(false);
+      setIsReordering(false);
+      setIsCheckingReorder(false);
     }
   }, [visible, orderId]);
 
@@ -344,6 +351,21 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
     }
   };
 
+  const closeModalsAndGoToCart = useCallback(() => {
+    onClose();
+    const finish = () => {
+      onReorderSuccess?.();
+      router.replace("/(tabs)/shop");
+    };
+    if (Platform.OS === "ios") {
+      InteractionManager.runAfterInteractions(() => {
+        setTimeout(finish, 320);
+      });
+    } else {
+      finish();
+    }
+  }, [onClose, onReorderSuccess, router]);
+
   const handleReorder = async () => {
     if (!orderDetails || isReordering) return;
     setIsReordering(true);
@@ -351,16 +373,22 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
       await dispatch(reorderOrder(orderDetails.orderId)).unwrap();
       await dispatch(getCart()).unwrap();
       setReorderModalVisible(false);
-      onClose();
-      onReorderSuccess?.();
-      router.navigate("/shop");
+
+      const proceed = () => {
+        setIsReordering(false);
+        closeModalsAndGoToCart();
+      };
+
+      if (Platform.OS === "ios") {
+        setTimeout(proceed, 280);
+      } else {
+        proceed();
+      }
     } catch (error) {
-      Alert.alert("Ошибка", "Не удалось повторить заказ. Попробуйте позже.");
-    } finally {
       setIsReordering(false);
+      Alert.alert("Ошибка", "Не удалось повторить заказ. Попробуйте позже.");
     }
   };
-  console.log('orderDetails', orderDetails)
   const getManagerPhoneForTelegram = () => {
     return String(companyManager?.phoneNumber || "").replace(/[^\d+]/g, "");
   };
@@ -384,8 +412,6 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
       Alert.alert("Ошибка", "Не удалось открыть Telegram");
     }
   };
-
-  if (!visible) return null;
 
   return (
     <>
@@ -868,12 +894,13 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
         titleAlign="left"
         onClose={closeStatusModal}
       >
-        <View style={styles.statusesListWrapper}>
-          <ScrollView
-            style={styles.statusesList}
-            showsVerticalScrollIndicator={true}
-            contentContainerStyle={styles.statusesListContent}
-          >
+        <ScrollView
+          style={styles.statusesList}
+          showsVerticalScrollIndicator
+          nestedScrollEnabled
+          bounces
+          contentContainerStyle={styles.statusesListContent}
+        >
             {orderDetails?.statuses?.map((status, index) => {
                         const currentIndex = getCurrentStatusIndex();
                         const isCurrent = index === currentIndex;
@@ -988,8 +1015,7 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                           </View>
                         );
             })}
-          </ScrollView>
-        </View>
+        </ScrollView>
       </SnapBottomSheet>
       <SnapBottomSheet
         visible={documentsModalVisible}
@@ -1438,12 +1464,8 @@ const styles = StyleSheet.create({
     textAlign: "right",
   },
   // Стили для списка статусов
-  statusesListWrapper: {
-    flex: 1,
-    // maxHeight: "70%", // Ограничиваем высоту списка статусов
-  },
   statusesList: {
-    flex: 1,
+    maxHeight: screenHeight * 0.55,
   },
   statusesListContent: {
     paddingHorizontal: 20,

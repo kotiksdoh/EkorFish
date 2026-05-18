@@ -114,7 +114,7 @@ export default function OrdersCard({
             darkColor="#FBFCFF"
             style={styles.status}
           >
-            {order.orderStatuses[0]?.name}
+            {order.orderStatuses.at(-1)?.name ?? ""}
           </ThemedText>
           <ArrowIconRight />
         </TouchableOpacity>

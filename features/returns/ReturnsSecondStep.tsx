@@ -14,7 +14,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { ReasonModal } from "./ReasonModal";
+import { ReasonPickerContent } from "./ReasonModal";
 import { SelectedReturnItem } from "./SelectedReturnItem";
 
 interface MyReturnsSecondStepProps {
@@ -152,6 +152,11 @@ export const MyReturnsSecondStep: React.FC<MyReturnsSecondStepProps> = ({
     setReasonModalVisible(true);
   };
 
+  const closeReasonPicker = () => {
+    setReasonModalVisible(false);
+    setCurrentItem(null);
+  };
+
   const handleReasonSelect = (reasonId: number, comment: string) => {
     if (currentItem) {
       dispatch({
@@ -164,8 +169,7 @@ export const MyReturnsSecondStep: React.FC<MyReturnsSecondStepProps> = ({
         },
       });
     }
-    setReasonModalVisible(false);
-    setCurrentItem(null);
+    closeReasonPicker();
   };
 
   const handleNext = () => {
@@ -186,20 +190,42 @@ export const MyReturnsSecondStep: React.FC<MyReturnsSecondStepProps> = ({
   );
 
   return (
-    <>
-      <Modal
-        animationType="slide"
-        transparent={false}
-        visible={visible}
-        onRequestClose={onClose}
-        presentationStyle="fullScreen"
-        statusBarTranslucent={true}
+    <Modal
+      animationType="slide"
+      transparent={false}
+      visible={visible}
+      onRequestClose={() => {
+        if (reasonModalVisible) {
+          closeReasonPicker();
+          return;
+        }
+        onClose();
+      }}
+      presentationStyle="fullScreen"
+      statusBarTranslucent
+    >
+      <ThemedView
+        lightColor="#EBEDF0"
+        darkColor="#040508"
+        style={styles.modalContainer}
       >
-        <ThemedView
-          lightColor="#EBEDF0"
-          darkColor="#040508"
-          style={styles.modalContainer}
-        >
+        {reasonModalVisible && currentItem ? (
+          <ReasonPickerContent
+            onClose={closeReasonPicker}
+            onSelect={handleReasonSelect}
+            selectedReasonId={currentItem.reason}
+            selectedComment={currentItem.comment}
+            reasons={reasons}
+            product={{
+              productName: currentItem.productName,
+              productImage: currentItem.productImage,
+              price: currentItem.price,
+              returnQuantity: currentItem.returnQuantity,
+              measureType: currentItem.measureType,
+            }}
+          />
+        ) : (
+          <>
           <ModalHeader
             title="Заявка на возврат"
             subTitle="Шаг 2 из 3"
@@ -290,28 +316,10 @@ export const MyReturnsSecondStep: React.FC<MyReturnsSecondStepProps> = ({
 
             </ThemedView>
           )}
-        </ThemedView>
-      </Modal>
-
-      <ReasonModal
-        visible={reasonModalVisible}
-        onClose={() => {
-          setReasonModalVisible(false);
-          setCurrentItem(null);
-        }}
-        onSelect={handleReasonSelect}
-        selectedReasonId={currentItem?.reason}
-        selectedComment={currentItem?.comment}
-        reasons={reasons}
-        product={currentItem ? {
-          productName: currentItem.productName,
-          productImage: currentItem.productImage,
-          price: currentItem.price,
-          returnQuantity: currentItem.returnQuantity,
-          measureType: currentItem.measureType,
-        } : undefined}
-      />
-    </>
+          </>
+        )}
+      </ThemedView>
+    </Modal>
   );
 };
 

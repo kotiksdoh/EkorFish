@@ -12,55 +12,53 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-  useColorScheme
+  useColorScheme,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { baseUrl } from "../shared/services/axios";
 
-interface ReasonModalProps {
-  visible: boolean;
+export interface ReasonPickerProduct {
+  productName?: string;
+  productImage?: string;
+  price?: number;
+  returnQuantity?: number;
+  measureType?: string;
+}
+
+export interface ReasonPickerProps {
   onClose: () => void;
   onSelect: (reasonId: number, comment: string) => void;
   selectedReasonId?: number;
   selectedComment?: string;
   reasons: Array<{ reason: number; name: string }>;
-  product?: {
-    productName?: string;
-    productImage?: string;
-    price?: number;
-    returnQuantity?: number;
-    measureType?: string;
-  };
+  product?: ReasonPickerProduct;
 }
 
-export const ReasonModal: React.FC<ReasonModalProps> = ({
-  visible,
+/** Контент выбора причины (без Modal — для inline-оверлея на iOS). */
+export function ReasonPickerContent({
   onClose,
   onSelect,
   selectedReasonId,
   selectedComment,
   reasons,
   product,
-}) => {
+}: ReasonPickerProps) {
   const insets = useSafeAreaInsets();
   const systemTheme = useColorScheme();
   const isDark = systemTheme === "dark";
-  const [selectedReason, setSelectedReason] = useState<number | undefined>(undefined);
+  const [selectedReason, setSelectedReason] = useState<number | undefined>(
+    undefined,
+  );
   const [comment, setComment] = useState(selectedComment || "");
 
   useEffect(() => {
-    if (visible) {
-      setSelectedReason(selectedReasonId);
-    } else {
-      setSelectedReason(undefined);
-      setComment("");
-    }
-  }, [visible, selectedReasonId, selectedComment]);
+    setSelectedReason(selectedReasonId);
+    setComment(selectedComment || "");
+  }, [selectedReasonId, selectedComment]);
 
   const handleSelect = () => {
     if (selectedReason !== undefined) {
       onSelect(selectedReason, comment);
-      onClose();
     }
   };
 
@@ -71,192 +69,182 @@ export const ReasonModal: React.FC<ReasonModalProps> = ({
   };
 
   return (
-    <Modal
-      animationType="slide"
-      transparent={false}
-      visible={visible}
-      onRequestClose={handleClose}
-      presentationStyle={Platform.OS === "ios" ? "overFullScreen" : "fullScreen"}
-      statusBarTranslucent={true}
+    <ThemedView
+      lightColor="#EBEDF0"
+      darkColor="#040508"
+      style={styles.modalContainer}
     >
-      <ThemedView
-        lightColor="#EBEDF0"
-        darkColor="#040508"
-        style={styles.modalContainer}
-      >
-        <ModalHeader
-          title="Причина возврата"
-          showBackButton={true}
-          onBackPress={handleClose}
-        />
+      <ModalHeader
+        title="Причина возврата"
+        showBackButton
+        onBackPress={handleClose}
+      />
 
-        <ScrollView
-          style={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContentContainer}
-        >
-          {product && (
-            <ThemedView
-              darkColor="#151516"
-              lightColor="#FFFFFF"
-              style={[styles.productCard, { marginBottom: 8 }]}
-            >
-              <View style={styles.productCardInner}>
-                {product.productImage && (
-                  <View style={styles.productImageContainer}>
-                    <Image 
-                      source={{ uri: `${baseUrl}/${product.productImage}` }} 
-                      style={styles.productImage}
-                      contentFit="cover"
-                    />
-                  </View>
-                )}
-                <View style={styles.productCardContent}>
-                  <ThemedText
-                    style={styles.productCardName}
-                    numberOfLines={2}
-                    lightColor="#202022"
-                    darkColor="#F2F4F7"
-                  >
-                    {product.productName}
-                  </ThemedText>
-                  <ThemedText
-                    style={styles.productCardPrice}
-                    lightColor="#202022"
-                    darkColor="#F2F4F7"
-                  >
-                    {product.price && product.returnQuantity ? 
-                      `${(product.price * product.returnQuantity).toLocaleString("ru-RU", {
+      <ScrollView
+        style={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContentContainer}
+        keyboardShouldPersistTaps="handled"
+      >
+        {product ? (
+          <ThemedView
+            darkColor="#151516"
+            lightColor="#FFFFFF"
+            style={[styles.productCard, { marginBottom: 8 }]}
+          >
+            <View style={styles.productCardInner}>
+              {product.productImage ? (
+                <View style={styles.productImageContainer}>
+                  <Image
+                    source={{ uri: `${baseUrl}/${product.productImage}` }}
+                    style={styles.productImage}
+                    contentFit="cover"
+                  />
+                </View>
+              ) : null}
+              <View style={styles.productCardContent}>
+                <ThemedText
+                  style={styles.productCardName}
+                  numberOfLines={2}
+                  lightColor="#202022"
+                  darkColor="#F2F4F7"
+                >
+                  {product.productName}
+                </ThemedText>
+                <ThemedText
+                  style={styles.productCardPrice}
+                  lightColor="#202022"
+                  darkColor="#F2F4F7"
+                >
+                  {product.price && product.returnQuantity
+                    ? `${(product.price * product.returnQuantity).toLocaleString("ru-RU", {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,
-                      })} ₽` 
-                      : ''}
-                  </ThemedText>
-                </View>
+                      })} ₽`
+                    : ""}
+                </ThemedText>
               </View>
-            </ThemedView>
-          )}
-
-          {/* Причины */}
-          <ThemedView
-            darkColor="#151516"
-            lightColor="#FFFFFF"
-            style={[styles.sectionContainer, { marginBottom: 8 }]}
-          >
-            <ThemedText
-              style={styles.sectionTitle}
-              lightColor="#202022"
-              darkColor="#F2F4F7"
-            >
-              Выберите причину возврата
-            </ThemedText>
-            <View style={styles.reasonsList}>
-              {reasons?.map((reason) => (
-                <TouchableOpacity
-                  key={reason.reason}
-                  style={[
-                    styles.reasonItem,
-                    isDark && styles.reasonItemDark,
-                  ]}
-                  onPress={() => setSelectedReason(reason.reason)}
-                >
-                  <View
-                    style={[
-                      styles.radioOuter,
-                      selectedReason === reason.reason && styles.radioOuterSelected,
-                      isDark && selectedReason === reason.reason && styles.radioOuterSelectedDark,
-                    ]}
-                  >
-                    {selectedReason === reason.reason && (
-                      <View style={styles.radioInner} />
-                    )}
-                  </View>
-                  <ThemedText
-                    style={[
-                      styles.reasonName,
-                      isDark && styles.reasonNameDark,
-                      selectedReason === reason.reason && styles.reasonNameSelected,
-                      isDark &&
-                        selectedReason === reason.reason &&
-                        styles.reasonNameSelectedDark,
-                    ]}
-                    lightColor="#202022"
-                    darkColor="#F2F4F7"
-                  >
-                    {reason.name}
-                  </ThemedText>
-                </TouchableOpacity>
-              ))}
             </View>
           </ThemedView>
-
-          {/* Комментарий всегда отображается */}
-          <ThemedView
-            darkColor="#151516"
-            lightColor="#FFFFFF"
-            style={styles.sectionContainer}
-          >
-            <ThemedText
-              style={styles.sectionTitle}
-              lightColor="#202022"
-              darkColor="#F2F4F7"
-            >
-              Опишите проблему
-            </ThemedText>
-            {/* <TextInput
-              style={[
-                styles.commentInput,
-                isDark && styles.commentInputDark,
-              ]}
-              placeholder="Опишите причину подробнее..."
-              placeholderTextColor="#80818B"
-              value={comment}
-              onChangeText={setComment}
-              multiline
-              numberOfLines={4}
-              textAlignVertical="top"
-            /> */}
-              <TextInput
-                style={[
-                  styles.commentInput,
-                  isDark && styles.commentInputDark,
-                ]}
-                placeholder="Опишите, что не так с товаром"
-                placeholderTextColor="#80818B"
-                value={comment}
-                onChangeText={setComment}
-                multiline
-                numberOfLines={4}
-                textAlignVertical="top"
-              />
-            </ThemedView>
-        </ScrollView>
+        ) : null}
 
         <ThemedView
           darkColor="#151516"
           lightColor="#FFFFFF"
-          style={[
-            styles.bottomPanel,
-            { paddingBottom: (Platform.OS === "ios" ? 34 : 16) + insets.bottom },
-          ]}
+          style={[styles.sectionContainer, { marginBottom: 8 }]}
         >
-          <TouchableOpacity
-            style={[
-              styles.submitButton,
-              selectedReason === undefined && styles.submitButtonDisabled,
-            ]}
-            disabled={selectedReason === undefined}
-            onPress={handleSelect}
+          <ThemedText
+            style={styles.sectionTitle}
+            lightColor="#202022"
+            darkColor="#F2F4F7"
           >
-            <ThemedText style={styles.submitButtonText}>
-              Выбрать
-            </ThemedText>
-          </TouchableOpacity>
+            Выберите причину возврата
+          </ThemedText>
+          <View style={styles.reasonsList}>
+            {reasons?.map((reason) => (
+              <TouchableOpacity
+                key={reason.reason}
+                style={[styles.reasonItem, isDark && styles.reasonItemDark]}
+                onPress={() => setSelectedReason(reason.reason)}
+              >
+                <View
+                  style={[
+                    styles.radioOuter,
+                    selectedReason === reason.reason && styles.radioOuterSelected,
+                    isDark &&
+                      selectedReason === reason.reason &&
+                      styles.radioOuterSelectedDark,
+                  ]}
+                >
+                  {selectedReason === reason.reason ? (
+                    <View style={styles.radioInner} />
+                  ) : null}
+                </View>
+                <ThemedText
+                  style={[
+                    styles.reasonName,
+                    isDark && styles.reasonNameDark,
+                    selectedReason === reason.reason && styles.reasonNameSelected,
+                    isDark &&
+                      selectedReason === reason.reason &&
+                      styles.reasonNameSelectedDark,
+                  ]}
+                  lightColor="#202022"
+                  darkColor="#F2F4F7"
+                >
+                  {reason.name}
+                </ThemedText>
+              </TouchableOpacity>
+            ))}
+          </View>
         </ThemedView>
+
+        <ThemedView
+          darkColor="#151516"
+          lightColor="#FFFFFF"
+          style={styles.sectionContainer}
+        >
+          <ThemedText
+            style={styles.sectionTitle}
+            lightColor="#202022"
+            darkColor="#F2F4F7"
+          >
+            Опишите проблему
+          </ThemedText>
+          <TextInput
+            style={[styles.commentInput, isDark && styles.commentInputDark]}
+            placeholder="Опишите, что не так с товаром"
+            placeholderTextColor="#80818B"
+            value={comment}
+            onChangeText={setComment}
+            multiline
+            numberOfLines={4}
+            textAlignVertical="top"
+          />
+        </ThemedView>
+      </ScrollView>
+
+      <ThemedView
+        darkColor="#151516"
+        lightColor="#FFFFFF"
+        style={[
+          styles.bottomPanel,
+          { paddingBottom: (Platform.OS === "ios" ? 34 : 16) + insets.bottom },
+        ]}
+      >
+        <TouchableOpacity
+          style={[
+            styles.submitButton,
+            selectedReason === undefined && styles.submitButtonDisabled,
+          ]}
+          disabled={selectedReason === undefined}
+          onPress={handleSelect}
+        >
+          <ThemedText style={styles.submitButtonText}>Выбрать</ThemedText>
+        </TouchableOpacity>
       </ThemedView>
+    </ThemedView>
+  );
+}
+
+/** Отдельный Modal (только если нет родительской modal). */
+export function ReasonModal({
+  visible,
+  ...props
+}: ReasonPickerProps & { visible: boolean }) {
+  return (
+    <Modal
+      animationType="slide"
+      transparent={false}
+      visible={visible}
+      onRequestClose={props.onClose}
+      presentationStyle={Platform.OS === "ios" ? "overFullScreen" : "fullScreen"}
+      statusBarTranslucent
+    >
+      <ReasonPickerContent {...props} />
     </Modal>
   );
-};
+}
 
 const styles = StyleSheet.create({
   modalContainer: {
@@ -269,16 +257,11 @@ const styles = StyleSheet.create({
   scrollContentContainer: {
     paddingBottom: 80,
   },
-  content: {
-    flex: 1,
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 120,
-  },
   productCard: {
     borderRadius: 12,
     padding: 12,
     marginBottom: 8,
+    marginHorizontal: 16,
   },
   productCardInner: {
     flexDirection: "row",
@@ -318,6 +301,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     marginBottom: 8,
+    marginHorizontal: 16,
   },
   sectionTitle: {
     fontSize: 20,
@@ -330,8 +314,6 @@ const styles = StyleSheet.create({
   reasonItem: {
     flexDirection: "row",
     alignItems: "center",
-    // paddingVertical: 14,
-
     gap: 12,
   },
   reasonItemDark: {
@@ -346,7 +328,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "#FBFCFF",
-    marginBottom: 10
+    marginBottom: 10,
   },
   radioOuterSelected: {
     borderColor: "#203686",
@@ -367,7 +349,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#F0F0F0",
     flex: 1,
-    paddingBottom: 10
+    paddingBottom: 10,
   },
   reasonNameDark: {
     borderBottomColor: "#252527",
@@ -377,14 +359,6 @@ const styles = StyleSheet.create({
   },
   reasonNameSelectedDark: {
     color: "#FFFFFF",
-  },
-  commentContainer: {
-    marginTop: 16,
-  },
-  commentLabel: {
-    fontSize: 14,
-    fontWeight: "500",
-    marginBottom: 8,
   },
   commentInput: {
     backgroundColor: "#03051E08",
@@ -412,12 +386,8 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 24,
     paddingHorizontal: 20,
     paddingTop: 12,
-    paddingBottom: Platform.OS === "ios" ? 34 : 16,
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: -2,
-    },
+    shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.05,
     shadowRadius: 8,
     elevation: 5,

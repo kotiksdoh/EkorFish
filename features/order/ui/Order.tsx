@@ -26,13 +26,14 @@ import { useSavedAddress } from "@/features/shared/services/useSavedAddress";
 import { AddressSelectionModal } from "@/features/shared/ui/AddressSelectionModal";
 import { CompanySelectionModal } from "@/features/shared/ui/CompanySelectionModalSmall";
 import { OrderDetailsModal } from "@/features/shared/ui/OrderDetailModal";
+import { AnimatedStackedSheet } from "@/features/shared/ui/AnimatedStackedSheet";
 import { SnapBottomSheet } from "@/features/shared/ui/SnapBottomSheet";
 import { CustomCheckbox } from "@/features/shared/ui/components/CustomCheckBox";
 import AnimatedTextInput from "@/features/shared/ui/components/CustomInput";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { useRouter } from "expo-router";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -1324,8 +1325,18 @@ function DateTimeModal({
   const [availableTimeSlots, setAvailableTimeSlots] = useState<any[]>([]);
   const [months, setMonths] = useState<Date[]>([]);
   const [showTimeModal, setShowTimeModal] = useState(false);
+  const closeTimePickerRef = useRef<(() => void) | null>(null);
 
   const daysOfWeek = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
+
+  const closeTimePicker = useCallback(() => {
+    setShowTimeModal(false);
+  }, []);
+
+  const openTimePicker = useCallback(() => {
+    if (!selectedDate || availableTimeSlots.length === 0) return;
+    setShowTimeModal(true);
+  }, [selectedDate, availableTimeSlots.length]);
 
   // Автоматически выбираем ближайшую дату и время при загрузке
   useEffect(() => {
@@ -1376,8 +1387,8 @@ function DateTimeModal({
   }, [selectedDate, deliverySchedule]);
 
   const handleSheetClose = () => {
-    if (showTimeModal) {
-      setShowTimeModal(false);
+    if (showTimeModal && closeTimePickerRef.current) {
+      closeTimePickerRef.current();
       return;
     }
     onClose();
@@ -1488,7 +1499,11 @@ function DateTimeModal({
   const handleTimeSelect = (timeSlot: any) => {
     const timeString = formatTimeForDisplay(timeSlot);
     setSelectedTime(timeString);
-    setShowTimeModal(false);
+    if (closeTimePickerRef.current) {
+      closeTimePickerRef.current();
+    } else {
+      closeTimePicker();
+    }
   };
 
   const handleConfirm = () => {
@@ -1593,8 +1608,8 @@ function DateTimeModal({
         <TouchableOpacity
           style={styles.dateTimeBlock}
           onPress={() => {
-            if (showTimeModal) {
-              setShowTimeModal(false);
+            if (showTimeModal && closeTimePickerRef.current) {
+              closeTimePickerRef.current();
             }
           }}
         >
@@ -1611,11 +1626,7 @@ function DateTimeModal({
 
         <TouchableOpacity
           style={styles.dateTimeBlock}
-          onPress={() => {
-            if (selectedDate && availableTimeSlots.length > 0) {
-              setShowTimeModal(true);
-            }
-          }}
+          onPress={openTimePicker}
           disabled={!selectedDate || availableTimeSlots.length === 0}
         >
           <ThemedView
@@ -1649,66 +1660,86 @@ function DateTimeModal({
     </ThemedView>
   );
 
+  const timePickerOverlay = (
+    <AnimatedStackedSheet
+      visible={showTimeModal}
+      showBackdrop
+      onClose={closeTimePicker}
+      onBindCloseRequest={(fn) => {
+        closeTimePickerRef.current = fn;
+      }}
+    >
+      <ThemedText
+        style={styles.timeOverlayTitle}
+        lightColor="#1B1B1C"
+        darkColor="#FBFCFF"
+      >
+        Выберите время
+      </ThemedText>
+      <ScrollView
+        style={styles.timeList}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 12 }}
+        showsVerticalScrollIndicator={false}
+        nestedScrollEnabled
+        keyboardShouldPersistTaps="handled"
+      >
+        {availableTimeSlots.map((slot: any, index: number) => {
+          const timeString = formatTimeForDisplay(slot);
+          const isSelected = selectedTime === timeString;
+          const isNearest = isNearestTime(slot);
+
+          return (
+            <TouchableOpacity
+              key={index}
+              style={[
+                styles.timeSlot,
+                isDarkMode && { borderBottomColor: "#323235" },
+              ]}
+              onPress={() => handleTimeSelect(slot)}
+            >
+              <View
+                style={[
+                  styles.radioOuter,
+                  (isSelected || isNearest) && styles.radioOuterSelected,
+                  isDarkMode &&
+                    (isSelected || isNearest) && {
+                      borderColor: "#4C94FF",
+                    },
+                ]}
+              >
+                {(isSelected || isNearest) && (
+                  <View style={styles.radioInner} />
+                )}
+              </View>
+              <ThemedText
+                style={[
+                  styles.timeSlotText,
+                  (isSelected || isNearest) && styles.timeSlotTextSelected,
+                  isDarkMode &&
+                    (isSelected || isNearest) && {
+                      color: "#4C94FF",
+                    },
+                ]}
+              >
+                {timeString}
+              </ThemedText>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+    </AnimatedStackedSheet>
+  );
+
   return (
     <SnapBottomSheet
       visible={visible}
-      title={showTimeModal ? "Выберите время" : "Выберите дату доставки"}
+      title="Выберите дату доставки"
       titleAlign="left"
       onClose={handleSheetClose}
+      onBackdropPress={handleSheetClose}
+      overlay={timePickerOverlay}
     >
-      {showTimeModal ? (
-        <ScrollView
-          style={styles.timeList}
-          contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
-          showsVerticalScrollIndicator={false}
-          nestedScrollEnabled
-          keyboardShouldPersistTaps="handled"
-        >
-          {availableTimeSlots.map((slot: any, index: number) => {
-            const timeString = formatTimeForDisplay(slot);
-            const isSelected = selectedTime === timeString;
-            const isNearest = isNearestTime(slot);
-
-            return (
-              <TouchableOpacity
-                key={index}
-                style={[
-                  styles.timeSlot,
-                  isDarkMode && { borderBottomColor: "#323235" },
-                ]}
-                onPress={() => handleTimeSelect(slot)}
-              >
-                <View
-                  style={[
-                    styles.radioOuter,
-                    (isSelected || isNearest) && styles.radioOuterSelected,
-                    isDarkMode &&
-                      (isSelected || isNearest) && {
-                        borderColor: "#4C94FF",
-                      },
-                  ]}
-                >
-                  {(isSelected || isNearest) && (
-                    <View style={styles.radioInner} />
-                  )}
-                </View>
-                <ThemedText
-                  style={[
-                    styles.timeSlotText,
-                    (isSelected || isNearest) && styles.timeSlotTextSelected,
-                    isDarkMode &&
-                      (isSelected || isNearest) && {
-                        color: "#4C94FF",
-                      },
-                  ]}
-                >
-                  {timeString}
-                </ThemedText>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-      ) : (
+      <View style={styles.dateTimeModalInner}>
         <FlatList
           data={months}
           renderItem={renderMonth}
@@ -1721,9 +1752,9 @@ function DateTimeModal({
             { paddingBottom: 180 + insets.bottom },
           ]}
         />
-      )}
 
-      {bottomPanel}
+        {bottomPanel}
+      </View>
     </SnapBottomSheet>
   );
 }
@@ -2196,6 +2227,17 @@ const styles = StyleSheet.create({
   dateTimeBlockValue: {
     fontSize: 14,
     fontWeight: "500",
+  },
+  dateTimeModalInner: {
+    flex: 1,
+    position: "relative",
+    minHeight: 320,
+  },
+  timeOverlayTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    marginBottom: 12,
+    textAlign: "left",
   },
   timeModalContent: {
     backgroundColor: "#FFFFFF",

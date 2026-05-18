@@ -28,6 +28,7 @@ import {
   Animated,
   Dimensions,
   FlatList,
+  Keyboard,
   Modal,
   Platform,
   ScrollView,
@@ -135,6 +136,22 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
   const [orderConfirmTemplate, setOrderConfirmTemplate] = useState<any | null>(
     null,
   );
+  const closeOrderConfirmRef = useRef<(() => void) | null>(null);
+
+  const closeOrderConfirm = useCallback(() => {
+    closeOrderConfirmRef.current = null;
+    setOrderConfirmOpen(false);
+    setOrderConfirmTemplate(null);
+  }, []);
+
+  const dismissOrderConfirmIfOpen = useCallback(() => {
+    if (orderConfirmOpen && closeOrderConfirmRef.current) {
+      closeOrderConfirmRef.current();
+      return true;
+    }
+    return false;
+  }, [orderConfirmOpen]);
+
   const [reminderPickerFor, setReminderPickerFor] = useState<
     "create" | "edit" | null
   >(null);
@@ -209,6 +226,7 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
   };
 
   const handleCloseAll = () => {
+    if (dismissOrderConfirmIfOpen()) return;
     setDetailId(null);
     setCreateOpen(false);
     setDetailEditing(false);
@@ -216,6 +234,7 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
   };
 
   const handleCloseDetail = () => {
+    if (dismissOrderConfirmIfOpen()) return;
     setDetailId(null);
     setDetailEditing(false);
     dispatch(fetchOrderPresets());
@@ -453,9 +472,14 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
     }
   }, [createOpen, createSheetTranslateY]);
 
+  const dismissKeyboard = useCallback(() => {
+    Keyboard.dismiss();
+  }, []);
+
   const closeCreateWithAnimation = useCallback(() => {
     if (isClosingCreate) return;
 
+    Keyboard.dismiss();
     setIsClosingCreate(true);
     Animated.timing(createSheetTranslateY, {
       toValue: screenHeight,
@@ -469,6 +493,7 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
   }, [createSheetTranslateY, isClosingCreate]);
 
   const handleCreateStackBackdropPress = useCallback(() => {
+    Keyboard.dismiss();
     if (reminderPickerFor === "create") {
       setReminderPickerFor(null);
       return;
@@ -476,20 +501,17 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
     closeCreateWithAnimation();
   }, [reminderPickerFor, closeCreateWithAnimation]);
 
-  const closeOrderConfirm = () => {
-    setOrderConfirmOpen(false);
-    setOrderConfirmTemplate(null);
-  };
-
-  const orderConfirmOverlay =
-    orderConfirmOpen && orderConfirmTemplate ? (
-      <OrderFromTemplateConfirmOverlay
-        visible
-        template={orderConfirmTemplate}
-        onClose={closeOrderConfirm}
-        onCloseTemplates={handleCloseAll}
-      />
-    ) : null;
+  const orderConfirmOverlay = orderConfirmTemplate ? (
+    <OrderFromTemplateConfirmOverlay
+      visible={orderConfirmOpen}
+      template={orderConfirmTemplate}
+      onClose={closeOrderConfirm}
+      onCloseTemplates={handleCloseAll}
+      onBindCloseRequest={(fn) => {
+        closeOrderConfirmRef.current = fn;
+      }}
+    />
+  ) : null;
 
   const onReminderPicked = (v: number) => {
     if (reminderPickerFor === "create") {
@@ -530,7 +552,10 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
     <Modal
       visible={!!detailId}
       animationType="slide"
-      onRequestClose={handleCloseDetail}
+      onRequestClose={() => {
+        if (dismissOrderConfirmIfOpen()) return;
+        handleCloseDetail();
+      }}
       presentationStyle="fullScreen"
       statusBarTranslucent
     >
@@ -597,6 +622,8 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
                     : styles.detailScrollWithEditBottomPanel),
               ]}
               keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
+              onScrollBeginDrag={dismissKeyboard}
             >
               {detailPreset && !detailEditing ? (
               <>
@@ -896,6 +923,7 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
         animationType="slide"
         transparent={false}
         onRequestClose={() => {
+          if (dismissOrderConfirmIfOpen()) return;
           if (createOpen) {
             closeCreateWithAnimation();
             return;
@@ -984,7 +1012,6 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
               </TouchableWithoutFeedback>
 
               {reminderPickerFor !== "create" ? (
-                <TouchableWithoutFeedback>
                   <Animated.View
                     style={[
                       styles.createOverlaySheet,
@@ -1018,9 +1045,16 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
                     </View>
                 <ScrollView
                   keyboardShouldPersistTaps="handled"
+                  keyboardDismissMode="on-drag"
+                  onScrollBeginDrag={dismissKeyboard}
                   showsVerticalScrollIndicator={false}
                   style={{ maxHeight: 420 }}
                 >
+                  <TouchableWithoutFeedback
+                    onPress={dismissKeyboard}
+                    accessible={false}
+                  >
+                    <View>
                   <AnimatedTextInput
                     placeholder="Название"
                     value={cName}
@@ -1037,9 +1071,14 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
                     style={styles.descInputWrap}
                     inputStyle={styles.descInput}
                   />
+                    </View>
+                  </TouchableWithoutFeedback>
                   <TouchableOpacity
                     style={styles.sheetSelectRow}
-                    onPress={() => setReminderPickerFor("create")}
+                    onPress={() => {
+                      dismissKeyboard();
+                      setReminderPickerFor("create");
+                    }}
                     disabled={
                       isLoadingPageData ||
                       !(pageData?.reminderFrequencies?.length)
@@ -1086,7 +1125,6 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
                   disabled={isCreating}
                 />
                   </Animated.View>
-                </TouchableWithoutFeedback>
               ) : null}
 
               {createReminderPickerOverlay}
