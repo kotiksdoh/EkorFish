@@ -763,38 +763,35 @@ export default function CatalogDetailScreen() {
                   loadProducts(false, searchQuery, newStorageId); // ← передаем в loadProducts
                 }}
               />
-              {/* Индикатор начальной загрузки */}
-              {isLoading && !isLoadingMore && products.length === 0 && (
-                <View style={styles.initialLoadingContainer}>
-                  <ActivityIndicator size="large" color="#203686" />
-                  <ThemedText style={styles.initialLoadingText}>
-                    Загрузка товаров...
-                  </ThemedText>
-                </View>
-              )}
-
-              {/* Сетка товаров */}
-              {!isLoading && products.length > 0 && (
-                <View style={styles.productsGrid}>
-                  {products.map((product) => (
-                    <ProductCard
-                      key={`${product.id}`}
-                      id={product.id}
-                      img={product.image}
-                      name={product.name}
-                      kgPrice={product.pricePerKg.toLocaleString("ru-RU")}
-                      fullPrice={product.price.toLocaleString("ru-RU")}
-                      isFrozen={product.isFrozen}
-                      isFavorite={product.isFavorite}
-                      productData={product}
-                      onAddToCartPress={handleAddToCartPress}
+              <View style={styles.productsArea}>
+                {isLoading && !isLoadingMore ? (
+                  <View style={styles.initialLoadingContainer}>
+                    <ActivityIndicator
+                      size="large"
+                      color={isDarkMode ? "#4C94FF" : "#203686"}
                     />
-                  ))}
-                </View>
-              )}
-
-              {/* Сообщение если товаров нет */}
-              {!isLoading && products.length === 0 && (
+                    <ThemedText style={styles.initialLoadingText}>
+                      Загрузка товаров...
+                    </ThemedText>
+                  </View>
+                ) : products.length > 0 ? (
+                  <View style={styles.productsGrid}>
+                    {products.map((product) => (
+                      <ProductCard
+                        key={`${product.id}`}
+                        id={product.id}
+                        img={product.image}
+                        name={product.name}
+                        kgPrice={product.pricePerKg.toLocaleString("ru-RU")}
+                        fullPrice={product.price.toLocaleString("ru-RU")}
+                        isFrozen={product.isFrozen}
+                        isFavorite={product.isFavorite}
+                        productData={product}
+                        onAddToCartPress={handleAddToCartPress}
+                      />
+                    ))}
+                  </View>
+                ) : (
                 <View style={styles.emptyContainer}>
                   <Image
                     source={require("../../../assets/icons/png/noItems.png")}
@@ -816,9 +813,9 @@ export default function CatalogDetailScreen() {
                     {`Попробуйте изменить\nили сбросить фильтры`}
                   </ThemedText>
                 </View>
-              )}
+                )}
+              </View>
 
-              {/* Индикатор загрузки следующей страницы */}
               {isLoadingMore && (
                 <View style={styles.loadingContainer}>
                   <ActivityIndicator size="small" color="#203686" />
@@ -1242,6 +1239,9 @@ const styles = StyleSheet.create({
   subcategoryTextActive: {
     color: "#FFFFFF",
     fontWeight: "600",
+  },
+  productsArea: {
+    minHeight: 120,
   },
   initialLoadingContainer: {
     paddingVertical: 60,

@@ -9,20 +9,22 @@ export const PRODUCT_SORT_OPTIONS: { id: ProductSortId; label: string }[] = [
   { id: "priceDesc", label: "Высокая цена" },
 ];
 
-export function getProductSortQueryParams(
-  sortId: ProductSortId,
-): { name?: "asc" | "desc"; price?: "asc" | "desc" } {
+/** SortBy: 0 — алфавит, 1 — цена. IsDesc: false — asc, true — desc */
+export function getProductSortQueryParams(sortId: ProductSortId): {
+  SortBy: 0 | 1;
+  IsDesc: boolean;
+} {
   switch (sortId) {
     case "nameAsc":
-      return { name: "asc" };
+      return { SortBy: 0, IsDesc: false };
     case "nameDesc":
-      return { name: "desc" };
+      return { SortBy: 0, IsDesc: true };
     case "priceAsc":
-      return { price: "asc" };
+      return { SortBy: 1, IsDesc: false };
     case "priceDesc":
-      return { price: "desc" };
+      return { SortBy: 1, IsDesc: true };
     default:
-      return { name: "asc" };
+      return { SortBy: 0, IsDesc: false };
   }
 }
 

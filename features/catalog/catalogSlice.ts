@@ -291,11 +291,11 @@ export const getProductList = createAsyncThunk(
           payload.params.MaxRemainingShelfLifePercent.toString(),
         );
       }
-      if (payload.params.name) {
-        params.append("name", payload.params.name);
+      if (payload.params.SortBy !== undefined) {
+        params.append("SortBy", String(payload.params.SortBy));
       }
-      if (payload.params.price) {
-        params.append("price", payload.params.price);
+      if (payload.params.IsDesc !== undefined) {
+        params.append("IsDesc", String(payload.params.IsDesc));
       }
       if (payload.params.storageId !== undefined) {
         params.append("storageId", payload.params.storageId.toString());
