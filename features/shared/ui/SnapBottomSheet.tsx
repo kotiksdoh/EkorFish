@@ -13,6 +13,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+
 const SCREEN_HEIGHT = Dimensions.get("window").height;
 const MAX_SHEET_HEIGHT = SCREEN_HEIGHT * 0.92;
 

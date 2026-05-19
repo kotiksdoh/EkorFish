@@ -230,7 +230,12 @@ const PaymentFiltersModal: React.FC<{
                 </TouchableOpacity>
               </View>
 
-              <ScrollView style={styles.modalContent}>
+              <ScrollView
+                style={styles.modalContent}
+                contentContainerStyle={styles.modalContentContainer}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+              >
                 {uniqueFilters.map((filterGroup) => {
                   return (
                     <View key={filterGroup.id} style={styles.filterSection}>
@@ -270,34 +275,40 @@ const PaymentFiltersModal: React.FC<{
                     </View>
                   );
                 })}
-
-                <View style={styles.modalBottomSpacer} />
               </ScrollView>
 
-              {!isMonthYearPairValid && (
-                <ThemedText style={styles.filterValidationText} darkColor="#FF6B6B">
-                  {monthYearError || "Месяц и год даты платежа нужно выбрать вместе"}
-                </ThemedText>
-              )}
-
-              <TouchableOpacity
+              <View
                 style={[
-                  styles.applyButton,
-                  isDarkMode && { backgroundColor: "#3881EE" },
+                  styles.filterModalFooter,
                   {
-                    bottom:
-                      Platform.OS === "android"
-                        ? Math.max(insets.bottom, 24) + 8
-                        : insets.bottom + 8,
+                    paddingBottom: Math.max(insets.bottom, 16) + 8,
                   },
                 ]}
-                onPress={applyFilters}
               >
-                <ThemedText style={styles.applyButtonText}>
-                  Применить{" "}
-                  {appliedFiltersCount > 0 && `(${appliedFiltersCount})`}
-                </ThemedText>
-              </TouchableOpacity>
+                {!isMonthYearPairValid && (
+                  <ThemedText
+                    style={styles.filterValidationText}
+                    lightColor="#E53935"
+                    darkColor="#FF6B6B"
+                  >
+                    {monthYearError ||
+                      "Месяц и год даты платежа нужно выбрать вместе"}
+                  </ThemedText>
+                )}
+
+                <TouchableOpacity
+                  style={[
+                    styles.applyButton,
+                    isDarkMode && { backgroundColor: "#3881EE" },
+                  ]}
+                  onPress={applyFilters}
+                >
+                  <ThemedText style={styles.applyButtonText}>
+                    Применить{" "}
+                    {appliedFiltersCount > 0 && `(${appliedFiltersCount})`}
+                  </ThemedText>
+                </TouchableOpacity>
+              </View>
             </Animated.View>
           </TouchableWithoutFeedback>
         </View>
@@ -879,6 +890,11 @@ const ReconciliationActScreen: React.FC<{ onBack: () => void }> = ({
     }
   };
 
+  const handleSuccessSheetClose = () => {
+    setSuccessSheetVisible(false);
+    onBack();
+  };
+
   return (
     <>
       <View style={styles.fullScreenContent}>
@@ -1114,7 +1130,7 @@ const ReconciliationActScreen: React.FC<{ onBack: () => void }> = ({
         visible={successSheetVisible}
         title="Запрос успешно отправлен"
         titleAlign="left"
-        onClose={() => setSuccessSheetVisible(false)}
+        onClose={handleSuccessSheetClose}
       >
         <View style={styles.successSheetContent}>
           <ThemedText style={styles.successSheetText} darkColor="#FBFCFF80">
@@ -1195,6 +1211,11 @@ const PriceListScreen: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         console.error("Ошибка отправки прайс-листа:", error);
       }
     }
+  };
+
+  const handleSuccessSheetClose = () => {
+    setSuccessSheetVisible(false);
+    onBack();
   };
 
   return (
@@ -1339,7 +1360,7 @@ const PriceListScreen: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         visible={successSheetVisible}
         title="Запрос успешно отправлен"
         titleAlign="left"
-        onClose={() => setSuccessSheetVisible(false)}
+        onClose={handleSuccessSheetClose}
       >
         <View style={styles.successSheetContent}>
           <ThemedText style={styles.successSheetText} darkColor="#FBFCFF80">
@@ -1770,6 +1791,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     maxHeight: "85%",
+    minHeight: 280,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.25,
@@ -1805,23 +1827,26 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   modalContent: {
-    paddingHorizontal: 20,
+    flexGrow: 0,
+    flexShrink: 1,
     maxHeight: "70%",
   },
-  modalBottomSpacer: {
-    height: 100,
+  modalContentContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 8,
+  },
+  filterModalFooter: {
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: "#E8E8E8",
   },
   applyButton: {
     backgroundColor: "#203686",
-    marginHorizontal: 20,
-    marginVertical: 20,
+    marginTop: 8,
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: "center",
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
   },
   applyButtonText: {
     color: "#FFFFFF",
@@ -1830,9 +1855,9 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   filterValidationText: {
-    fontSize: 12,
-    marginHorizontal: 20,
-    marginBottom: 8,
+    fontSize: 13,
+    lineHeight: 18,
+    marginBottom: 4,
   },
 
   // Фильтры

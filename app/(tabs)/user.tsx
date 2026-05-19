@@ -389,7 +389,10 @@ export default function TabTwoScreen() {
                       { backgroundColor: profileData.coverColor },
                     ]}
                   >
-                    <ThemedText style={styles.profileImagePlaceholderText}>
+                    <ThemedText
+                      weight="bold"
+                      style={styles.profileImagePlaceholderText}
+                    >
                       {profileData.name?.charAt(0) || ""}
                       {profileData.surname?.charAt(0) || ""}
                     </ThemedText>
@@ -932,7 +935,8 @@ const styles = StyleSheet.create({
   },
   profileImagePlaceholderText: {
     fontSize: 32,
+    lineHeight: 40,
     color: "#FFFFFF",
-    fontWeight: "600",
+    textAlign: "center",
   },
 });

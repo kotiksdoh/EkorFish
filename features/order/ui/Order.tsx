@@ -35,7 +35,6 @@ import {
 } from "@/features/shared/utils/deliveryAddress";
 import { OrderDetailsModal } from "@/features/shared/ui/OrderDetailModal";
 import { AnimatedStackedSheet } from "@/features/shared/ui/AnimatedStackedSheet";
-import { SnapBottomSheet } from "@/features/shared/ui/SnapBottomSheet";
 import { CustomCheckbox } from "@/features/shared/ui/components/CustomCheckBox";
 import AnimatedTextInput from "@/features/shared/ui/components/CustomInput";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -1416,8 +1415,9 @@ const formatTimeForDisplay = (timeSlot: any) => {
   return `${start} – ${end}`;
 };
 
-// Модалка выбора даты и времени
-// Модалка выбора даты и времени
+const DATE_PICKER_SCREEN_HEIGHT = Dimensions.get("window").height;
+
+// Модалка выбора даты и времени (inline внутри RNModal оформления — без вложенного Modal на iOS)
 function DateTimeModal({
   visible,
   onClose,
@@ -1439,6 +1439,10 @@ function DateTimeModal({
   const [months, setMonths] = useState<Date[]>([]);
   const [showTimeModal, setShowTimeModal] = useState(false);
   const closeTimePickerRef = useRef<(() => void) | null>(null);
+  const [modalTranslateY] = useState(
+    () => new Animated.Value(DATE_PICKER_SCREEN_HEIGHT),
+  );
+  const [isClosing, setIsClosing] = useState(false);
 
   const daysOfWeek = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 
@@ -1480,8 +1484,36 @@ function DateTimeModal({
   useEffect(() => {
     if (!visible) {
       setShowTimeModal(false);
+      modalTranslateY.setValue(DATE_PICKER_SCREEN_HEIGHT);
     }
-  }, [visible]);
+  }, [visible, modalTranslateY]);
+
+  useEffect(() => {
+    if (!visible) return;
+
+    modalTranslateY.setValue(DATE_PICKER_SCREEN_HEIGHT);
+    Animated.spring(modalTranslateY, {
+      toValue: 0,
+      useNativeDriver: true,
+      damping: 20,
+      stiffness: 90,
+      mass: 0.8,
+    }).start();
+  }, [visible, modalTranslateY]);
+
+  const closeDatePickerAnimated = useCallback(() => {
+    if (isClosing) return;
+
+    setIsClosing(true);
+    Animated.timing(modalTranslateY, {
+      toValue: DATE_PICKER_SCREEN_HEIGHT,
+      duration: 250,
+      useNativeDriver: true,
+    }).start(() => {
+      setIsClosing(false);
+      onClose();
+    });
+  }, [isClosing, modalTranslateY, onClose]);
 
   useEffect(() => {
     const today = new Date();
@@ -1504,7 +1536,7 @@ function DateTimeModal({
       closeTimePickerRef.current();
       return;
     }
-    onClose();
+    closeDatePickerAnimated();
   };
 
   const loadTimeSlotsForDate = (dateString: string) => {
@@ -1622,7 +1654,7 @@ function DateTimeModal({
   const handleConfirm = () => {
     if (selectedDate && selectedTime) {
       onConfirm({ date: selectedDate, time: selectedTime });
-      onClose();
+      closeDatePickerAnimated();
     }
   };
 
@@ -1843,32 +1875,55 @@ function DateTimeModal({
     </AnimatedStackedSheet>
   );
 
-  return (
-    <SnapBottomSheet
-      visible={visible}
-      title="Выберите дату доставки"
-      titleAlign="left"
-      onClose={handleSheetClose}
-      onBackdropPress={handleSheetClose}
-      overlay={timePickerOverlay}
-    >
-      <View style={styles.dateTimeModalInner}>
-        <FlatList
-          data={months}
-          renderItem={renderMonth}
-          keyExtractor={(item) => item.toISOString()}
-          showsVerticalScrollIndicator={false}
-          nestedScrollEnabled
-          keyboardShouldPersistTaps="handled"
-          contentContainerStyle={[
-            styles.monthsList,
-            { paddingBottom: 180 + insets.bottom },
-          ]}
-        />
+  if (!visible) {
+    return null;
+  }
 
-        {bottomPanel}
-      </View>
-    </SnapBottomSheet>
+  return (
+    <View style={styles.datePickerOverlay} pointerEvents="box-none">
+      <TouchableOpacity
+        style={StyleSheet.absoluteFill}
+        activeOpacity={1}
+        onPress={handleSheetClose}
+      />
+      <Animated.View
+        style={[
+          styles.datePickerSheet,
+          isDarkMode && { backgroundColor: "#202022" },
+          { transform: [{ translateY: modalTranslateY }] },
+        ]}
+      >
+        <TouchableOpacity
+          style={styles.swipeHandleContainer}
+          activeOpacity={0.7}
+          onPress={handleSheetClose}
+        >
+          <View style={styles.swipeHandle} />
+        </TouchableOpacity>
+
+        <ThemedText style={styles.chooseDateTime}>
+          Выберите дату доставки
+        </ThemedText>
+
+        <View style={styles.dateTimeModalInner}>
+          <FlatList
+            data={months}
+            renderItem={renderMonth}
+            keyExtractor={(item) => item.toISOString()}
+            showsVerticalScrollIndicator={false}
+            nestedScrollEnabled
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={[
+              styles.monthsList,
+              { paddingBottom: 180 + insets.bottom },
+            ]}
+          />
+          {bottomPanel}
+        </View>
+      </Animated.View>
+
+      {timePickerOverlay}
+    </View>
   );
 }
 
@@ -2204,6 +2259,20 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "flex-end",
   },
+  datePickerOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 40,
+    justifyContent: "flex-end",
+    backgroundColor: "rgba(0, 0, 0, 0.45)",
+  },
+  datePickerSheet: {
+    backgroundColor: "#FFFFFF",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    minHeight: "50%",
+    maxHeight: "85%",
+    width: "100%",
+  },
   modalContent: {
     backgroundColor: "#FFFFFF",
     borderTopLeftRadius: 24,
@@ -2344,7 +2413,7 @@ const styles = StyleSheet.create({
   dateTimeModalInner: {
     flex: 1,
     position: "relative",
-    minHeight: 320,
+    minHeight: 360,
   },
   timeOverlayTitle: {
     fontSize: 18,
