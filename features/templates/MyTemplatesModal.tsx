@@ -691,7 +691,10 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
                   inputStyle={styles.descInput}
                 />
                 <TouchableOpacity
-                  style={styles.sheetSelectRow}
+                  style={[
+                    styles.sheetSelectRow,
+                    isDark && styles.sheetSelectRowDark,
+                  ]}
                   onPress={() => setReminderPickerFor("edit")}
                 >
                   <View style={styles.sheetRowIcon}>
@@ -1048,7 +1051,7 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
                   keyboardDismissMode="on-drag"
                   onScrollBeginDrag={dismissKeyboard}
                   showsVerticalScrollIndicator={false}
-                  style={{ maxHeight: 420 }}
+                  style={styles.createOverlayScroll}
                 >
                   <TouchableWithoutFeedback
                     onPress={dismissKeyboard}
@@ -1074,7 +1077,10 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
                     </View>
                   </TouchableWithoutFeedback>
                   <TouchableOpacity
-                    style={styles.sheetSelectRow}
+                    style={[
+                      styles.sheetSelectRow,
+                      isDark && styles.sheetSelectRowDark,
+                    ]}
                     onPress={() => {
                       dismissKeyboard();
                       setReminderPickerFor("create");
@@ -1159,14 +1165,19 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(0, 0, 0, 0.5)",
   },
+  /** Высота sheet «Создание шаблона» — 60% экрана */
   createOverlaySheet: {
     backgroundColor: "#FFFFFF",
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingHorizontal: 16,
     paddingTop: 8,
-    maxHeight: "92%",
+    height: screenHeight * 0.6,
+    maxHeight: screenHeight * 0.6,
     overflow: "hidden",
+  },
+  createOverlayScroll: {
+    flex: 1,
   },
   createOverlaySheetDark: {
     backgroundColor: "#202022",
@@ -1418,6 +1429,9 @@ const styles = StyleSheet.create({
     borderColor: "#F0F3F7",
     marginBottom: 8,
     gap: 6,
+  },
+  sheetSelectRowDark: {
+    borderColor: "#252527",
   },
   sheetRowIcon: {
     width: 36,

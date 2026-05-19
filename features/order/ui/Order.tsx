@@ -810,7 +810,10 @@ export default function CheckoutModal({
         {towns.map((town) => (
           <TouchableOpacity
             key={town.id}
-            style={styles.addressItem}
+            style={[
+              styles.addressItem,
+              isDarkMode && styles.listRowBorderDark,
+            ]}
             onPress={() => handlePickTown(town.id)}
           >
             <View
@@ -1157,7 +1160,10 @@ export default function CheckoutModal({
                     {getAvailablePaymentTypes(selectedMethod).map((type) => (
                       <TouchableOpacity
                         key={type}
-                        style={styles.paymentMethod}
+                        style={[
+                          styles.paymentMethod,
+                          isDarkMode && styles.listRowBorderDark,
+                        ]}
                         onPress={() => setSelectedPaymentType(type)}
                       >
                         <View
@@ -2138,6 +2144,9 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     fontSize: 14,
   },
+  listRowBorderDark: {
+    borderBottomColor: "#252527",
+  },
   paymentMethod: {
     flexDirection: "row",
     alignItems: "center",
@@ -2265,13 +2274,15 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
     backgroundColor: "rgba(0, 0, 0, 0.45)",
   },
+  /** Высота sheet «Выберите дату доставки» (~60–70% экрана) */
   datePickerSheet: {
     backgroundColor: "#FFFFFF",
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    minHeight: "50%",
-    maxHeight: "85%",
     width: "100%",
+    minHeight: "60%",
+    height: "65%",
+    maxHeight: "70%",
   },
   modalContent: {
     backgroundColor: "#FFFFFF",
