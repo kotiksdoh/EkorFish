@@ -60,7 +60,6 @@ export default function OrdersCard({
   onReorderSuccess,
 }: OrdersCardProps) {
   const colorScheme = useColorScheme();
-  //TODO
   const isDarkMode = colorScheme === "dark";
   const [modalVisible, setModalVisible] = useState(false);
 

@@ -17,7 +17,7 @@ export default function AiScreen() {
       }
     >
       <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">TODO</ThemedText>
+        <ThemedText type="title">AI</ThemedText>
       </ThemedView>
     </ParallaxScrollView>
   );

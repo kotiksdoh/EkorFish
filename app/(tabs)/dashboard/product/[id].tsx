@@ -40,7 +40,6 @@ const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 
 export default function ProductDetailScreen() {
   const colorScheme = useColorScheme();
-  //TODO
   const isDarkMode = colorScheme === "dark";
   const { productId, productName } = useLocalSearchParams<{
     productId: string;

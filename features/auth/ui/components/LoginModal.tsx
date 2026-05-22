@@ -293,12 +293,9 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   };
 
   const verifyCode = (code: string) => {
-    debugger;
     dispatch(sendCode({ contact: phoneNumber, verificationCode: code })).then(
       (res: any) => {
-        debugger;
         if (sendCode.fulfilled.match(res)) {
-          //TODO дальнейший сценарий
           // setError(null);
           // onLogin(phoneNumber);
           console.log("res.payload", res.payload);
@@ -946,7 +943,6 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                   <DatePickerWithIcon
                     placeholder="Дата рождения"
                     placeholderTextColor="#80818B"
-                    // TODO
                     value={birthDate}
                     onChangeText={setBirthDate}
                   />
@@ -1376,7 +1372,6 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                   <DatePickerWithIcon
                     placeholder="Дата образования вашей компании"
                     placeholderTextColor="#80818B"
-                    // TODO
                     value={dateCreated}
                     onChangeText={setDateCreated}
                   />

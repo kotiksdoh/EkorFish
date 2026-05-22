@@ -50,7 +50,6 @@ const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 
 export default function HeartScreen() {
   const colorScheme = useColorScheme();
-  //TODO
   const isDarkMode = colorScheme === "dark";
   // Состояния
   const [searchQuery, setSearchQuery] = useState("");

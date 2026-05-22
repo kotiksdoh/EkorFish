@@ -52,7 +52,6 @@ export const ModalHeader: React.FC<ModalHeaderProps> = ({
   belowTitleRow,
 }) => {
   const colorScheme = useColorScheme();
-  //TODO
   const isDarkMode = colorScheme === "dark";
   const [isLiked, setIsLiked] = useState(initialIsFavorite);
   const dispatch = useAppDispatch();

@@ -38,7 +38,6 @@ export const CompanySelectionModal: React.FC<CompanySelectionModalProps> = ({
 }) => {
   const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme();
-  //TODO
   const isDarkMode = colorScheme === "dark";
   const [modalTranslateY] = useState(new Animated.Value(screenHeight));
   const [isClosing, setIsClosing] = useState(false);

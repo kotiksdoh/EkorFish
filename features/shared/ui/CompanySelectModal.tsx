@@ -72,7 +72,6 @@ export const CompanySelectModal: React.FC<CompanySelectModalProps> = ({
   const insets = useSafeAreaInsets();
   const systemTheme = useColorScheme();
   const colorScheme = useColorScheme();
-  //TODO
   const isDarkMode = colorScheme === "dark";
   const currentTheme = systemTheme || "light";
   const isDark = currentTheme === "dark";
@@ -378,7 +377,6 @@ const [contactPerson, setContactPerson] = useState('') */}
                 <DatePickerWithIcon
                   placeholder="Дата образования вашей компании"
                   placeholderTextColor="#80818B"
-                  // TODO
                   value={dateCreated}
                   onChangeText={setDateCreated}
                 />

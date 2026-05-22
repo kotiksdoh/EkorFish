@@ -66,7 +66,6 @@ function normalizeShelfLifePercentInput(text: string): string {
 
 export default function CatalogDetailScreen() {
   const colorScheme = useColorScheme();
-  //TODO
   const isDarkMode = colorScheme === "dark";
   const { catalogId, catalogName, search, isPromo = false, children } = useLocalSearchParams<{
     catalogId: string;

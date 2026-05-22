@@ -106,7 +106,6 @@ export default function CheckoutModal({
 }: CheckoutModalProps) {
   const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme();
-  //TODO
   const isDarkMode = colorScheme === "dark";
   // Состояние для выбранных значений
   const [selectedMethod, setSelectedMethod] = useState<DeliveryMethod>(
@@ -1433,7 +1432,6 @@ function DateTimeModal({
 }: any) {
   const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme();
-  //TODO
   const isDarkMode = colorScheme === "dark";
   const [selectedDate, setSelectedDate] = useState<string>(
     initialDateTime.date || "",

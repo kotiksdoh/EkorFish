@@ -745,17 +745,14 @@ const authSlice = createSlice({
       state.isLoading = true;
     });
     builder.addCase(sendCode.fulfilled, (state, action) => {
-      debugger;
       state.isLoading = false;
       console.log("action", action.payload);
-      debugger;
       if (
         action?.payload?.data?.data?.tokens?.accessToken &&
         action?.payload.data?.data?.tokens?.refreshToken
       ) {
         // Используем async/await
         console.log("action.payload?.data", action.payload?.data);
-        debugger;
         state.predUserData = action.payload?.data?.data;
         (async () => {
           try {

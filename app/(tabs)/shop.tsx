@@ -77,7 +77,6 @@ const CartItemComponent = ({
   onToggleFavorite: (productId: string, isFavorite: boolean) => Promise<void>;
 }) => {
   const colorScheme = useColorScheme();
-  //TODO
   const isDarkMode = colorScheme === "dark";
   const [isFavorite, setIsFavorite] = useState(item.isFavorite);
   const isAvailable = isItemAvailable(item);
@@ -314,7 +313,6 @@ const isItemAvailable = (item: CartItem): boolean => {
 
 export default function ShopScreen() {
   const colorScheme = useColorScheme();
-  //TODO
   const isDarkMode = colorScheme === "dark";
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(false);
