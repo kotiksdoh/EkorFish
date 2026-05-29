@@ -1012,8 +1012,7 @@ const catalogSlice = createSlice({
       const { data, isLoadMore, offset } = action.payload;
       const adaptedProducts = adaptProductsArray(data.data || []);
 
-      if (isLoadMore && offset > 0) {
-        // Для подгрузки добавляем к существующим
+      if (isLoadMore) {
         state.products = [...state.products, ...adaptedProducts];
         state.isLoadingMore = false;
         state.currentPage += 1;

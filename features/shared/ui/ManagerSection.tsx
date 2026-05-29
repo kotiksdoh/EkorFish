@@ -9,11 +9,14 @@ import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { useEffect, useState } from 'react';
 import {
+  openPhoneDialer,
+  openTelegramByPhone,
+} from "@/features/shared/utils/phoneLinking";
+import {
   ActivityIndicator,
   Alert,
   FlatList,
   Image,
-  Linking,
   StyleSheet,
   TouchableOpacity,
   View,
@@ -25,6 +28,7 @@ interface Manager {
   name: string;
   image?: string;
   phoneNumber?: string;
+  phone?: string;
   hasReviewed?: boolean;
 }
 
@@ -40,49 +44,12 @@ interface ManagerCardProps {
 const CurrentManagerCard = ({ manager, onChangePress, onReviewPress }: ManagerCardProps) => {
   const { isDark } = useAppTheme();
 
-  const handleMessage = async () => {
-    if (!manager.phoneNumber) {
-      Alert.alert('Ошибка', 'Номер телефона не указан');
-      return;
-    }
-
-    const phoneNumber = manager.phoneNumber.replace(/[^0-9+]/g, '');
-    const telegramDeepLink = `tg://resolve?phone=${phoneNumber}`;
-    const telegramWebLink = `https://t.me/+${phoneNumber.replace(/^\+/, '')}`;
-
-    try {
-      const canOpenTelegram = await Linking.canOpenURL(telegramDeepLink);
-      if (canOpenTelegram) {
-        await Linking.openURL(telegramDeepLink);
-        return;
-      }
-      await Linking.openURL(telegramWebLink);
-    } catch (error) {
-      console.error('Ошибка при открытии Telegram:', error);
-      Alert.alert('Ошибка', 'Не удалось открыть Telegram');
-    }
+  const handleMessage = () => {
+    void openTelegramByPhone(manager);
   };
 
-  const handleCall = async () => {
-    if (!manager.phoneNumber) {
-      Alert.alert('Ошибка', 'Номер телефона не указан');
-      return;
-    }
-
-    const phoneNumber = manager.phoneNumber.replace(/[^0-9+]/g, '');
-    const url = `tel:${phoneNumber}`;
-    
-    try {
-      const canOpen = await Linking.canOpenURL(url);
-      if (canOpen) {
-        await Linking.openURL(url);
-      } else {
-        Alert.alert('Ошибка', 'Невозможно совершить звонок на этом устройстве');
-      }
-    } catch (error) {
-      console.error('Ошибка при звонке:', error);
-      Alert.alert('Ошибка', 'Не удалось совершить звонок');
-    }
+  const handleCall = () => {
+    void openPhoneDialer(manager);
   };
   return (
     <View style={styles.mainCont}>

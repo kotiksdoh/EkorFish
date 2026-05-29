@@ -31,12 +31,13 @@ import { buildTemplateLineFromProduct } from "@/features/templates/buildTemplate
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
   ActivityIndicator,
   Animated,
   Dimensions,
+  FlatList,
   Image,
   Modal,
   NativeScrollEvent,
@@ -53,6 +54,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 
 const SHELF_LIFE_PERCENT_MAX = 100;
+const BOTTOM_THRESHOLD = Math.max(320, screenHeight * 0.35);
 
 function normalizeShelfLifePercentInput(text: string): string {
   if (text === "") return "";
@@ -188,7 +190,7 @@ export default function CatalogDetailScreen() {
     setSortBy(sortId);
     closeSortModalWithAnimation();
     setTimeout(() => {
-      scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+      flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
       loadProducts(false, searchQuery, undefined, undefined, sortId);
     }, 300);
   };
@@ -205,11 +207,14 @@ export default function CatalogDetailScreen() {
   const dispatch = useAppDispatch();
   const searchInputRef = useRef<TextInput>(null);
   const router = useRouter();
-  const scrollViewRef = useRef<ScrollView>(null);
+  const flatListRef = useRef<FlatList>(null);
   const modalScrollViewRef = useRef<ScrollView>(null);
 
-  // Ref для предотвращения двойных запросов
   const isFetchingRef = useRef(false);
+  const isNearBottomRef = useRef(false);
+  const listViewportHeightRef = useRef(0);
+  const fetchNextPageRef = useRef<() => void>(() => {});
+  const [isPagingMore, setIsPagingMore] = useState(false);
 
   // Функция для закрытия модалки с анимацией
   const closeModalWithAnimation = useCallback(() => {
@@ -281,13 +286,18 @@ export default function CatalogDetailScreen() {
     ) => {
       if (isFetchingRef.current || !catalogId) return;
 
+      if (isLoadMore && !hasMore) return;
+
       isFetchingRef.current = true;
+      if (isLoadMore) {
+        setIsPagingMore(true);
+      }
 
       try {
         const params: any = {
           isFavorite: false,
           categoryId: catalogId,
-          offset: isLoadMore ? (currentPage + 1) * pageSize : 0,
+          offset: isLoadMore ? products.length : 0,
           count: pageSize,
           search: searchText,
           isPromo: isPromo,
@@ -353,23 +363,30 @@ export default function CatalogDetailScreen() {
           params,
         });
 
-        dispatch(
+        await dispatch(
           getProductList({
             params,
             isLoadMore,
           }),
-        );
+        ).unwrap();
       } catch (error) {
         console.error("Ошибка загрузки:", error);
       } finally {
-        setTimeout(() => {
-          isFetchingRef.current = false;
-        }, 500);
+        isFetchingRef.current = false;
+        if (isLoadMore) {
+          setIsPagingMore(false);
+          setTimeout(() => {
+            if (isNearBottomRef.current) {
+              fetchNextPageRef.current();
+            }
+          }, 50);
+        }
       }
     },
     [
       catalogId,
-      currentPage,
+      hasMore,
+      products.length,
       search,
       dispatch,
       priceRange,
@@ -397,7 +414,7 @@ export default function CatalogDetailScreen() {
       const nextSubcategoryId = subcategoryId === "all" ? null : subcategoryId;
       dispatch(setSelectedSubcategory(nextSubcategoryId));
 
-      scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+      flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
 
       // Грузим по явно выбранной подкатегории, без ожидания Redux-state
       void loadProducts(false, searchQuery, undefined, nextSubcategoryId);
@@ -452,36 +469,297 @@ export default function CatalogDetailScreen() {
     );
   };
 
-  // Обработчик прокрутки
+  const fetchNextPage = useCallback(() => {
+    if (!catalogId || !hasMore || isFetchingRef.current || isLoading) {
+      return;
+    }
+    void loadProducts(true, searchQuery);
+  }, [catalogId, hasMore, isLoading, loadProducts, searchQuery]);
+
+  useEffect(() => {
+    fetchNextPageRef.current = fetchNextPage;
+  }, [fetchNextPage]);
+
+  const handleEndReached = useCallback(() => {
+    isNearBottomRef.current = true;
+    fetchNextPage();
+  }, [fetchNextPage]);
+
+  const handleListLayout = useCallback(
+    (event: { nativeEvent: { layout: { height: number } } }) => {
+      listViewportHeightRef.current = event.nativeEvent.layout.height;
+    },
+    [],
+  );
+
   const handleScroll = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-      const nativeEvent = event.nativeEvent;
+      const { layoutMeasurement, contentOffset, contentSize } =
+        event.nativeEvent;
 
-      if (
-        !nativeEvent ||
-        !nativeEvent.layoutMeasurement ||
-        !nativeEvent.contentOffset ||
-        !nativeEvent.contentSize ||
-        isLoading ||
-        isLoadingMore ||
-        !hasMore ||
-        isFetchingRef.current
-      ) {
+      if (!contentSize.height || !layoutMeasurement.height) {
         return;
       }
-
-      const { layoutMeasurement, contentOffset, contentSize } = nativeEvent;
-      const paddingToBottom = 50;
 
       const distanceFromBottom =
         contentSize.height - layoutMeasurement.height - contentOffset.y;
 
-      if (distanceFromBottom < paddingToBottom) {
-        loadProducts(true, searchQuery);
+      isNearBottomRef.current = distanceFromBottom <= BOTTOM_THRESHOLD;
+
+      if (isNearBottomRef.current) {
+        fetchNextPage();
       }
     },
-    [isLoading, isLoadingMore, hasMore, loadProducts, searchQuery],
+    [fetchNextPage],
   );
+
+  const handleContentSizeChange = useCallback(
+    (_width: number, height: number) => {
+      const viewportHeight = listViewportHeightRef.current;
+      if (
+        viewportHeight > 0 &&
+        height <= viewportHeight + 32 &&
+        hasMore &&
+        !isFetchingRef.current &&
+        !isLoading
+      ) {
+        fetchNextPage();
+      }
+    },
+    [fetchNextPage, hasMore, isLoading],
+  );
+
+  const renderProduct = useCallback(
+    ({ item: product }: { item: any }) => (
+      <ProductCard
+        id={product.id}
+        img={product.image}
+        name={product.name}
+        kgPrice={product.pricePerKg.toLocaleString("ru-RU")}
+        fullPrice={product.price.toLocaleString("ru-RU")}
+        isFrozen={product.isFrozen}
+        isFavorite={product.isFavorite}
+        productData={product}
+        onAddToCartPress={handleAddToCartPress}
+      />
+    ),
+    [handleAddToCartPress],
+  );
+
+  const keyExtractor = useCallback(
+    (item: any) => String(item.id),
+    [],
+  );
+
+  const listHeader = useMemo(
+    () => (
+      <>
+        <TemplatePickerBanner />
+        <ThemedView
+          style={styles.themeContainer}
+          lightColor={"#FFFFFF"}
+          darkColor="#040508"
+        >
+          <View style={styles.sortFilterRow}>
+            <TouchableOpacity
+              style={styles.sortButton}
+              onPress={() => setShowSortModal(true)}
+            >
+              <SortIcon
+                stroke={isDarkMode ? "#FBFCFF" : "#1B1B1C"}
+                fill={isDarkMode ? "#FBFCFF" : "#1B1B1C"}
+              />
+              <ThemedText style={styles.sortButtonText}>
+                {getCurrentSortLabel()}
+              </ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.filterButton}
+              onPress={handleOpenFilters}
+            >
+              <View>
+                {appliedFiltersCount > 0 && (
+                  <View style={styles.filterBadge}></View>
+                )}
+                <FilterXsIcon
+                  stroke={isDarkMode ? "#FBFCFF" : "#1B1B1C"}
+                  fill={isDarkMode ? "#FBFCFF" : "#1B1B1C"}
+                />
+              </View>
+              <ThemedText style={styles.filterButtonText}>
+                Фильтры
+              </ThemedText>
+            </TouchableOpacity>
+          </View>
+
+          {subcategoriesFromProps.length > 0 && (
+            <View style={styles.subcategoriesWrapper}>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.subcategoriesContainer}
+                contentContainerStyle={styles.subcategoriesContent}
+              >
+                <TouchableOpacity
+                  key="all"
+                  style={[
+                    styles.subcategoryButton,
+                    selectedSubcategoryId === null &&
+                      styles.subcategoryButtonActive,
+                    isDarkMode &&
+                      !(selectedSubcategoryId === null) && {
+                        backgroundColor: "#202022",
+                      },
+                    isDarkMode &&
+                      selectedSubcategoryId === null && {
+                        backgroundColor: "#3881EE",
+                      },
+                  ]}
+                  onPress={() => handleSubcategorySelect("all")}
+                >
+                  <ThemedText
+                    style={[
+                      styles.subcategoryText,
+                      selectedSubcategoryId === null &&
+                        styles.subcategoryTextActive,
+                      isDarkMode && {
+                        color: "#FBFCFF",
+                      },
+                    ]}
+                  >
+                    Все
+                  </ThemedText>
+                </TouchableOpacity>
+
+                {subcategoriesFromProps.map((subcategory: any) => (
+                  <TouchableOpacity
+                    key={subcategory.id}
+                    style={[
+                      styles.subcategoryButton,
+                      selectedSubcategoryId === subcategory.id &&
+                        styles.subcategoryButtonActive,
+                      isDarkMode &&
+                        !(selectedSubcategoryId === subcategory.id) && {
+                          backgroundColor: "#202022",
+                        },
+                      isDarkMode &&
+                        selectedSubcategoryId === subcategory.id && {
+                          backgroundColor: "#3881EE",
+                        },
+                    ]}
+                    onPress={() => handleSubcategorySelect(subcategory.id)}
+                  >
+                    <ThemedText
+                      style={[
+                        styles.subcategoryText,
+                        selectedSubcategoryId === subcategory.id &&
+                          styles.subcategoryTextActive,
+                        isDarkMode && {
+                          color: "#FBFCFF",
+                        },
+                      ]}
+                    >
+                      {subcategory.name}
+                    </ThemedText>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+
+          {hasAuthToken && (
+            <TouchableOpacity onPress={() => setShowTownModal(true)}>
+              <ThemedView
+                darkColor="#202022"
+                lightColor="#F2F4F7"
+                style={styles.cityContainer}
+              >
+                <ThemedView
+                  darkColor="#151516"
+                  lightColor="#FFFFFF"
+                  style={styles.cityIcon}
+                >
+                  <WarningIcon
+                    stroke={isDarkMode ? "#FBFCFF" : "#1B1B1C"}
+                    fill={isDarkMode ? "#FBFCFF" : "#1B1B1C"}
+                  />
+                </ThemedView>
+                <ThemedText darkColor="#FBFCFF" style={styles.cityText}>
+                  Укажите ваш город, чтобы увидеть наличие товаров
+                </ThemedText>
+                <ThemedText style={styles.arrowIcon}>›</ThemedText>
+              </ThemedView>
+            </TouchableOpacity>
+          )}
+        </ThemedView>
+      </>
+    ),
+    [
+      appliedFiltersCount,
+      getCurrentSortLabel,
+      handleOpenFilters,
+      handleSubcategorySelect,
+      hasAuthToken,
+      isDarkMode,
+      selectedSubcategoryId,
+      sortBy,
+      subcategoriesFromProps,
+    ],
+  );
+
+  const renderListEmpty = useCallback(() => {
+    if (isLoading && !isLoadingMore) {
+      return (
+        <View style={styles.initialLoadingContainer}>
+          <ActivityIndicator
+            size="large"
+            color={isDarkMode ? "#4C94FF" : "#203686"}
+          />
+          <ThemedText style={styles.initialLoadingText}>
+            Загрузка товаров...
+          </ThemedText>
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.emptyContainer}>
+        <Image
+          source={require("../../../assets/icons/png/noItems.png")}
+          style={styles.image}
+          resizeMode="contain"
+        />
+        <ThemedText
+          lightColor="#1B1B1C"
+          darkColor="#FBFCFF"
+          style={styles.emptyText}
+        >
+          Ничего не найдено
+        </ThemedText>
+        <ThemedText
+          lightColor="#80818B"
+          darkColor="#80818B"
+          style={styles.emptyTextSecond}
+        >
+          {`Попробуйте изменить\nили сбросить фильтры`}
+        </ThemedText>
+      </View>
+    );
+  }, [isDarkMode, isLoading, isLoadingMore]);
+
+  const renderListFooter = useCallback(() => {
+    if (!isLoadingMore && !isPagingMore) {
+      return null;
+    }
+
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="small" color="#203686" />
+        <ThemedText style={styles.loadingText}>Загрузка...</ThemedText>
+      </View>
+    );
+  }, [isLoadingMore, isPagingMore]);
 
   // Обработчик поиска
   const handleSearchSubmit = useCallback((submittedText?: string) => {
@@ -491,7 +769,7 @@ export default function CatalogDetailScreen() {
     }
     if (catalogId) {
       console.log("Search submitted:", effectiveSearch);
-      scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+      flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
       loadProducts(false, effectiveSearch);
     }
   }, [catalogId, searchQuery, loadProducts]);
@@ -519,7 +797,7 @@ export default function CatalogDetailScreen() {
     // Перезагружаем товары с новыми фильтрами
     if (catalogId) {
       setTimeout(() => {
-        scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+        flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
         loadProducts(false, searchQuery);
       }, 300);
     }
@@ -587,245 +865,44 @@ export default function CatalogDetailScreen() {
           }
         />
         <View style={styles.mainContainer}>
-          <ScrollView
-            ref={scrollViewRef}
+          <FlatList
+            ref={flatListRef}
+            data={products}
+            renderItem={renderProduct}
+            keyExtractor={keyExtractor}
+            numColumns={2}
             style={styles.container}
             showsVerticalScrollIndicator={false}
-            onScroll={handleScroll}
-            scrollEventThrottle={100}
             contentContainerStyle={styles.scrollContent}
-          >
-        <TemplatePickerBanner />
-            
-            <ThemedView
-              style={styles.themeContainer}
-              lightColor={"#FFFFFF"}
-              darkColor="#040508"
-            >
-              {/* Сортировка и фильтры */}
-              <View style={styles.sortFilterRow}>
-                <TouchableOpacity
-                  style={styles.sortButton}
-                  onPress={() => setShowSortModal(true)} // Открываем модалку
-                >
-                  <SortIcon
-                    stroke={isDarkMode ? "#FBFCFF" : "#1B1B1C"}
-                    fill={isDarkMode ? "#FBFCFF" : "#1B1B1C"}
-                  />
-                  <ThemedText style={styles.sortButtonText}>
-                    {getCurrentSortLabel()}
-                  </ThemedText>
-                </TouchableOpacity>
-
-                {/* Кнопка фильтров остается без изменений */}
-                <TouchableOpacity
-                  style={styles.filterButton}
-                  onPress={handleOpenFilters}
-                >
-                  <View>
-                    {appliedFiltersCount > 0 && (
-                      <View style={styles.filterBadge}></View>
-                    )}
-                    <FilterXsIcon
-                      stroke={isDarkMode ? "#FBFCFF" : "#1B1B1C"}
-                      fill={isDarkMode ? "#FBFCFF" : "#1B1B1C"}
-                    />
-                  </View>
-                  <ThemedText style={styles.filterButtonText}>
-                    Фильтры
-                  </ThemedText>
-                </TouchableOpacity>
-              </View>
-
-              {/* Подкатегории (если они есть) */}
-              {subcategoriesFromProps.length > 0 && (
-                <View style={styles.subcategoriesWrapper}>
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    style={styles.subcategoriesContainer}
-                    contentContainerStyle={styles.subcategoriesContent}
-                  >
-                    {/* Кнопка "Все" */}
-                    <TouchableOpacity
-                      key="all"
-                      style={[
-                        styles.subcategoryButton,
-                        selectedSubcategoryId === null &&
-                          styles.subcategoryButtonActive,
-                        // Для темной темы: фон для невыбранных
-                        isDarkMode &&
-                          !(selectedSubcategoryId === null) && {
-                            backgroundColor: "#202022",
-                          },
-                        // Для темной темы: фон для выбранных
-                        isDarkMode &&
-                          selectedSubcategoryId === null && {
-                            backgroundColor: "#3881EE",
-                          },
-                      ]}
-                      onPress={() => handleSubcategorySelect("all")}
-                    >
-                      <ThemedText
-                        style={[
-                          styles.subcategoryText,
-                          selectedSubcategoryId === null &&
-                            styles.subcategoryTextActive,
-                          // Для темной темы: текст всегда #FBFCFF
-                          isDarkMode && {
-                            color: "#FBFCFF",
-                          },
-                        ]}
-                      >
-                        Все
-                      </ThemedText>
-                    </TouchableOpacity>
-
-                    {/* Подкатегории из props */}
-                    {subcategoriesFromProps.map((subcategory: any) => (
-                      <TouchableOpacity
-                        key={subcategory.id}
-                        style={[
-                          styles.subcategoryButton,
-                          selectedSubcategoryId === subcategory.id &&
-                            styles.subcategoryButtonActive,
-                          // Для темной темы: фон для невыбранных
-                          isDarkMode &&
-                            !(selectedSubcategoryId === subcategory.id) && {
-                              backgroundColor: "#202022",
-                            },
-                          // Для темной темы: фон для выбранных
-                          isDarkMode &&
-                            selectedSubcategoryId === subcategory.id && {
-                              backgroundColor: "#3881EE",
-                            },
-                        ]}
-                        onPress={() => handleSubcategorySelect(subcategory.id)}
-                      >
-                        <ThemedText
-                          style={[
-                            styles.subcategoryText,
-                            selectedSubcategoryId === subcategory.id &&
-                              styles.subcategoryTextActive,
-                            // Для темной темы: текст всегда #FBFCFF
-                            isDarkMode && {
-                              color: "#FBFCFF",
-                            },
-                          ]}
-                        >
-                          {subcategory.name}
-                        </ThemedText>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                </View>
-              )}
-              {/* { !me?.storageId ? */}
-              {hasAuthToken && (
-                <TouchableOpacity onPress={() => setShowTownModal(true)}>
-                  <ThemedView
-                    darkColor="#202022"
-                    lightColor="#F2F4F7"
-                    style={styles.cityContainer}
-                  >
-                    <ThemedView
-                      darkColor="#151516"
-                      lightColor="#FFFFFF"
-                      style={styles.cityIcon}
-                    >
-                      <WarningIcon
-                        stroke={isDarkMode ? "#FBFCFF" : "#1B1B1C"}
-                        fill={isDarkMode ? "#FBFCFF" : "#1B1B1C"}
-                      />
-                    </ThemedView>
-                    <ThemedText darkColor="#FBFCFF" style={styles.cityText}>
-                      Укажите ваш город, чтобы увидеть наличие товаров
-                    </ThemedText>
-                    <ThemedText style={styles.arrowIcon}>›</ThemedText>
-                  </ThemedView>
-                </TouchableOpacity>
-              )}
-
-              {/* : null
-              } */}
-              <TownSelectionModal
-                visible={showTownModal}
-                onClose={() => setShowTownModal(false)}
-                storageId={me?.storageId}
-                onTownSelected={(newStorageId) => {
-                  // ← ПОЛУЧАЕМ НОВЫЙ ID
-                  console.log(
-                    "Получили новый storageId из модалки:",
-                    newStorageId,
-                  );
-                  // Используем новый ID напрямую, не ждем Redux!
-                  loadProducts(false, searchQuery, newStorageId); // ← передаем в loadProducts
-                }}
-              />
-              <View style={styles.productsArea}>
-                {isLoading && !isLoadingMore ? (
-                  <View style={styles.initialLoadingContainer}>
-                    <ActivityIndicator
-                      size="large"
-                      color={isDarkMode ? "#4C94FF" : "#203686"}
-                    />
-                    <ThemedText style={styles.initialLoadingText}>
-                      Загрузка товаров...
-                    </ThemedText>
-                  </View>
-                ) : products.length > 0 ? (
-                  <View style={styles.productsGrid}>
-                    {products.map((product) => (
-                      <ProductCard
-                        key={`${product.id}`}
-                        id={product.id}
-                        img={product.image}
-                        name={product.name}
-                        kgPrice={product.pricePerKg.toLocaleString("ru-RU")}
-                        fullPrice={product.price.toLocaleString("ru-RU")}
-                        isFrozen={product.isFrozen}
-                        isFavorite={product.isFavorite}
-                        productData={product}
-                        onAddToCartPress={handleAddToCartPress}
-                      />
-                    ))}
-                  </View>
-                ) : (
-                <View style={styles.emptyContainer}>
-                  <Image
-                    source={require("../../../assets/icons/png/noItems.png")}
-                    style={styles.image}
-                    resizeMode="contain"
-                  />
-                  <ThemedText
-                    lightColor="#1B1B1C"
-                    darkColor="#FBFCFF"
-                    style={styles.emptyText}
-                  >
-                    Ничего не найдено
-                  </ThemedText>
-                  <ThemedText
-                    lightColor="#80818B"
-                    darkColor="#80818B"
-                    style={styles.emptyTextSecond}
-                  >
-                    {`Попробуйте изменить\nили сбросить фильтры`}
-                  </ThemedText>
-                </View>
-                )}
-              </View>
-
-              {isLoadingMore && (
-                <View style={styles.loadingContainer}>
-                  <ActivityIndicator size="small" color="#203686" />
-                  <ThemedText style={styles.loadingText}>
-                    Загрузка...
-                  </ThemedText>
-                </View>
-              )}
-            </ThemedView>
-          </ScrollView>
+            columnWrapperStyle={styles.columnWrapper}
+            ListHeaderComponent={listHeader}
+            ListEmptyComponent={renderListEmpty}
+            ListFooterComponent={renderListFooter}
+            onLayout={handleListLayout}
+            onScroll={handleScroll}
+            scrollEventThrottle={16}
+            onEndReached={handleEndReached}
+            onEndReachedThreshold={0.2}
+            onContentSizeChange={handleContentSizeChange}
+            initialNumToRender={10}
+            maxToRenderPerBatch={10}
+            windowSize={7}
+            removeClippedSubviews
+          />
         </View>
+
+        <TownSelectionModal
+          visible={showTownModal}
+          onClose={() => setShowTownModal(false)}
+          storageId={me?.storageId}
+          onTownSelected={(newStorageId) => {
+            console.log(
+              "Получили новый storageId из модалки:",
+              newStorageId,
+            );
+            loadProducts(false, searchQuery, newStorageId);
+          }}
+        />
 
         {/* Модальное окно фильтров */}
         <Modal
@@ -1159,11 +1236,16 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
+    paddingBottom: 20,
+  },
+  columnWrapper: {
+    paddingHorizontal: 16,
+    gap: 8,
+    justifyContent: "space-between",
   },
   themeContainer: {
     borderRadius: 24,
     marginTop: 10,
-    minHeight: "100%",
   },
   sortFilterRow: {
     flexDirection: "row",

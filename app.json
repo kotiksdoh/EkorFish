@@ -23,7 +23,8 @@
         "NSAppTransportSecurity": {
           "NSAllowsArbitraryLoads": true
         },
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "LSApplicationQueriesSchemes": ["tel", "tg", "mailto"]
       },
       "supportsTablet": false
     },
@@ -46,6 +47,7 @@
     "plugins": [
       "@react-native-firebase/app",
       "@react-native-firebase/crashlytics",
+      "./plugins/withAndroidLinkingQueries.js",
       "expo-router",
       [
         "expo-splash-screen",
