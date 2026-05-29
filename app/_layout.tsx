@@ -4,6 +4,7 @@ import { ThemedView } from '@/components/themed-view';
 import { SplashScreen } from '@/features/shared/ui/components/splash-screen';
 import { buildAppToastConfig } from '@/features/shared/ui/appToastConfig';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useCrashlytics, useCrashlyticsUser } from '@/hooks/useCrashlytics';
 import { useInitializeApp } from '@/hooks/useInitializeApp';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { ThemeProvider as AppThemeProvider } from '@/contexts/ThemeContext';
@@ -48,6 +49,11 @@ function AppToastHost() {
   );
 }
 
+function CrashlyticsUserSync() {
+  useCrashlyticsUser();
+  return null;
+}
+
 function RootLayoutContent() {
   const { currentTheme } = useTheme();
   const navigationTheme = currentTheme === 'dark' ? DarkTheme : DefaultTheme;
@@ -56,6 +62,7 @@ function RootLayoutContent() {
     <NavigationThemeProvider value={navigationTheme}>
       <SafeAreaProvider>
         <Provider store={store}>
+          <CrashlyticsUserSync />
           <Stack>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
@@ -71,6 +78,7 @@ function RootLayoutContent() {
 function AppContent() {
   const { isReady, error } = useInitializeApp();
   const [isSplashVisible, setIsSplashVisible] = useState(true);
+  useCrashlytics();
   usePushNotifications();
 
   const handleSplashComplete = () => {
