@@ -27,6 +27,7 @@ import CheckoutModal from "@/features/order/ui/Order";
 import { baseUrl } from "@/features/shared/services/axios";
 import { CompanySelectModal } from "@/features/shared/ui/CompanySelectModal";
 import { CompanySelectionModal } from "@/features/shared/ui/CompanySelectionModalSmall";
+import { isIndividualCompany } from "@/features/shared/utils/companyType";
 import { CustomCheckbox } from "@/features/shared/ui/components/CustomCheckBox";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -543,6 +544,52 @@ export default function ShopScreen() {
     });
   };
 
+  const isIndividual = isIndividualCompany(currentCompany);
+  const companyDisplayName =
+    currentCompany?.name || me?.companies?.[0]?.name || "";
+
+  const renderCartCompanyHeader = () => {
+    const content = (
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 8,
+          justifyContent: isIndividual ? "flex-start" : "space-between",
+          paddingHorizontal: 10,
+        }}
+      >
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <IconCompanyNew color={isDarkMode ? "#FBFCFF" : "#1B1B1C"} />
+          <ThemedText
+            darkColor="#FBFCFF"
+            lightColor="#1B1B1C"
+            numberOfLines={1}
+            style={{ maxWidth: 150 }}
+          >
+            {companyDisplayName}
+          </ThemedText>
+        </View>
+        {!isIndividual ? (
+          <ArrowIconRight stroke={isDarkMode ? "#FBFCFF" : "#1B1B1C"} />
+        ) : null}
+      </View>
+    );
+
+    if (isIndividual) {
+      return content;
+    }
+
+    return (
+      <TouchableOpacity
+        onPress={() => setCompanyModalVisible(true)}
+        activeOpacity={0.7}
+      >
+        {content}
+      </TouchableOpacity>
+    );
+  };
+
   // Состояние загрузки
   if (isLoading) {
     return (
@@ -554,37 +601,7 @@ export default function ShopScreen() {
         >
           <ModalHeader
             showBackButton={false}
-            content={
-              <TouchableOpacity
-                onPress={() => {
-                  if (me?.companies?.length > 1) {
-                    console.log("Open company selector");
-                  }
-                }}
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: 8,
-                  justifyContent: "space-between",
-                  paddingHorizontal: 10,
-                }}
-              >
-                <View
-                  style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
-                >
-                  <IconCompanyNew color={isDarkMode ? "#FBFCFF" : "#1B1B1C"} />
-                  <ThemedText
-                    darkColor="#FBFCFF"
-                    lightColor="#1B1B1C"
-                    numberOfLines={1}
-                    style={{ maxWidth: 150 }}
-                  >
-                    {currentCompany?.name || me?.companies?.[0]?.name || ""}
-                  </ThemedText>
-                </View>
-                <ArrowIconRight color={isDarkMode ? "#FBFCFF" : "#1B1B1C"} />
-              </TouchableOpacity>
-            }
+            content={isIndividual ? null : renderCartCompanyHeader()}
           />
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#203686" />
@@ -608,35 +625,7 @@ export default function ShopScreen() {
         >
           <ModalHeader
             showBackButton={false}
-            content={
-              <TouchableOpacity
-                onPress={() => {
-                  setCompanyModalVisible(true);
-                }}
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: 8,
-                  justifyContent: "space-between",
-                  paddingHorizontal: 10,
-                }}
-              >
-                <View
-                  style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
-                >
-                  <IconCompanyNew color={isDarkMode ? "#FBFCFF" : "#1B1B1C"} />
-                  <ThemedText
-                    darkColor="#FBFCFF"
-                    lightColor="#1B1B1C"
-                    numberOfLines={1}
-                    style={{ maxWidth: 150 }}
-                  >
-                    {currentCompany?.name || me?.companies?.[0]?.name || ""}
-                  </ThemedText>
-                </View>
-                <ArrowIconRight stroke={isDarkMode ? "#FBFCFF" : "#1B1B1C"} />
-              </TouchableOpacity>
-            }
+            content={isIndividual ? null : renderCartCompanyHeader()}
           />
           <View style={styles.emptyContainer}>
             <CartIcon width={80} height={80} />
@@ -667,35 +656,7 @@ export default function ShopScreen() {
       >
         <ModalHeader
           showBackButton={false}
-          content={
-            <TouchableOpacity
-              onPress={() => {
-                setCompanyModalVisible(true);
-              }}
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 8,
-                justifyContent: "space-between",
-                paddingHorizontal: 10,
-              }}
-            >
-              <View
-                style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
-              >
-                <IconCompanyNew color={isDarkMode ? "#FBFCFF" : "#1B1B1C"} />
-                <ThemedText
-                  darkColor="#FBFCFF"
-                  lightColor="#1B1B1C"
-                  numberOfLines={1}
-                  style={{ maxWidth: 150 }}
-                >
-                  {currentCompany?.name || me?.companies?.[0]?.name || ""}
-                </ThemedText>
-              </View>
-              <ArrowIconRight stroke={isDarkMode ? "#FBFCFF" : "#1B1B1C"} />
-            </TouchableOpacity>
-          }
+          content={isIndividual ? null : renderCartCompanyHeader()}
         />
 
         <ScrollView

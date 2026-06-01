@@ -6,6 +6,7 @@ import {
   setCompany
 } from "@/features/auth/authSlice";
 import { CompanySelectModal } from "@/features/shared/ui/CompanySelectModal";
+import { isIndividualCompany } from "@/features/shared/utils/companyType";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import React, { useEffect, useMemo, useState } from "react";
@@ -38,6 +39,7 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
   const [displayName, setDisplayName] = useState("");
   const dispatch = useAppDispatch();
   const currentCompany = useAppSelector((state) => state.auth.currentCompany);
+  const isIndividual = isIndividualCompany(currentCompany);
   useEffect(() => {
     if (me) {
       dispatch(loadCompanyFromStorage());
@@ -88,22 +90,37 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
           </View>
         ) : (
           <View style={styles.headerContent}>
-            <TouchableOpacity
-              style={styles.headInfo}
-              onPress={() => setModalVisible(true)}
-              activeOpacity={0.7}
-            >
-              <PersonCircleIcon />
-              <ThemedText
-                lightColor="#FBFCFF"
-                darkColor="#FBFCFF"
-                numberOfLines={1}
-                ellipsizeMode="tail"
-                style={{ maxWidth: 150 }}
+            {isIndividual ? (
+              <View style={styles.headInfo}>
+                <PersonCircleIcon />
+                <ThemedText
+                  lightColor="#FBFCFF"
+                  darkColor="#FBFCFF"
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                  style={{ maxWidth: 150 }}
+                >
+                  {resolvedDisplayName}
+                </ThemedText>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={styles.headInfo}
+                onPress={() => setModalVisible(true)}
+                activeOpacity={0.7}
               >
-                {resolvedDisplayName}
-              </ThemedText>
-            </TouchableOpacity>
+                <PersonCircleIcon />
+                <ThemedText
+                  lightColor="#FBFCFF"
+                  darkColor="#FBFCFF"
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                  style={{ maxWidth: 150 }}
+                >
+                  {resolvedDisplayName}
+                </ThemedText>
+              </TouchableOpacity>
+            )}
             <TouchableOpacity
               style={styles.headInfo}
               onPress={() => setBonusModalVisible(true)}
@@ -120,20 +137,21 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
         )}
       </View>
 
-      <CompanySelectModal
-        visible={modalVisible}
-        onClose={() => setModalVisible(false)}
-        companies={me?.companies || []}
-        selectedCompanyId={currentCompany?.id || me?.companies[0]?.id}
-        onSelectCompany={handleSelectCompany}
-        onAddCompany={
-          onAddCompanyPress ||
-          (() => {
-            // Здесь можно открыть модалку регистрации компании
-            console.log("Add company pressed");
-          })
-        }
-      />
+      {!isIndividual ? (
+        <CompanySelectModal
+          visible={modalVisible}
+          onClose={() => setModalVisible(false)}
+          companies={me?.companies || []}
+          selectedCompanyId={currentCompany?.id || me?.companies[0]?.id}
+          onSelectCompany={handleSelectCompany}
+          onAddCompany={
+            onAddCompanyPress ||
+            (() => {
+              console.log("Add company pressed");
+            })
+          }
+        />
+      ) : null}
       <BonusPage
         visible={bonusModalVisible}
         onClose={() => setBonusModalVisible(false)}

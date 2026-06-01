@@ -88,6 +88,7 @@ interface CategoryState {
   selectedSubcategoryId: string | null; // Добавляем состояние для выбранной подкатегории
   product: any;
   isLoadingProduct: boolean;
+  isNavigatingToProduct: boolean;
 
   cart: any[];
   isLoadingCart: boolean;
@@ -131,6 +132,7 @@ const initialState: CategoryState = {
   selectedSubcategoryId: null, 
   product: null,
   isLoadingProduct: false,
+  isNavigatingToProduct: false,
   isLoadingOrders: false,
 
   returnsStatuses: [],
@@ -826,6 +828,9 @@ const catalogSlice = createSlice({
       state.currentPage = 0;
       state.hasMore = true;
     },
+    setProductNavigationPending: (state, action) => {
+      state.isNavigatingToProduct = action.payload;
+    },
     updateCartItemQuantity: (state, action) => {
       const { cartItemId, quantity } = action.payload;
       const itemIndex = state.cart.findIndex((item) => item.id === cartItemId);
@@ -1098,16 +1103,19 @@ const catalogSlice = createSlice({
 
     builder.addCase(getProduct.pending, (state) => {
       state.isLoadingProduct = true;
+      state.isNavigatingToProduct = true;
     });
 
     builder.addCase(getProduct.fulfilled, (state, action) => {
       console.log("action.payload", action.payload);
       state.product = adaptProductSingleObj(action.payload);
       state.isLoadingProduct = false;
+      state.isNavigatingToProduct = false;
     });
 
     builder.addCase(getProduct.rejected, (state, action) => {
       state.isLoadingProduct = false;
+      state.isNavigatingToProduct = false;
       axiosErrorHandler(action?.payload);
     });
 
@@ -1292,6 +1300,7 @@ export const {
   clearCatalogState,
   updateReturnRequestItem,  
   clearReturnRequests,
-  updateReturnItemReason
+  updateReturnItemReason,
+  setProductNavigationPending,
 } = catalogSlice.actions;
 export default catalogSlice.reducer;

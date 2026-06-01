@@ -415,33 +415,35 @@ export default function TabTwoScreen() {
         {/* Информационные блоки */}
         <ThemedView style={styles.infoCard}>
           <View style={styles.infoContainer}>
-            <TouchableOpacity
-              style={styles.infoRow}
-              onPress={() => setModalVisible(true)}
-            >
-              <ThemedView
-                lightColor="#F2F4F7"
-                darkColor="#202022"
-                style={styles.iconPlaceholder}
+            {!isIndividualSelected ? (
+              <TouchableOpacity
+                style={styles.infoRow}
+                onPress={() => setModalVisible(true)}
               >
-                <IconGeo />
-              </ThemedView>
-              <View
-                style={[
-                  styles.infoContent,
-                  isDarkMode && {
-                    borderColor: "#252527",
-                  },
-                ]}
-              >
-                <ThemedText lightColor="#1B1B1C" style={styles.infoLabel}>
-                  Мои компании
-                </ThemedText>
-                <View style={styles.infoValueContainer}>
-                  <ArrowIconRight />
+                <ThemedView
+                  lightColor="#F2F4F7"
+                  darkColor="#202022"
+                  style={styles.iconPlaceholder}
+                >
+                  <IconGeo />
+                </ThemedView>
+                <View
+                  style={[
+                    styles.infoContent,
+                    isDarkMode && {
+                      borderColor: "#252527",
+                    },
+                  ]}
+                >
+                  <ThemedText lightColor="#1B1B1C" style={styles.infoLabel}>
+                    Мои компании
+                  </ThemedText>
+                  <View style={styles.infoValueContainer}>
+                    <ArrowIconRight />
+                  </View>
                 </View>
-              </View>
-            </TouchableOpacity>
+              </TouchableOpacity>
+            ) : null}
 
             <TouchableOpacity
               style={styles.infoRow}

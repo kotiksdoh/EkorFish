@@ -1,4 +1,4 @@
-import { MenuIcon, ScannerIcon, SearchIcon } from "@/assets/icons/icons";
+import { MenuIcon, SearchIcon } from "@/assets/icons/icons";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import React from "react";
 import {
@@ -86,14 +86,14 @@ const SearchInput: React.FC<SearchInputProps> = ({
 
         {/* Иконка сканера справа */}
         {/* {isActiveButton ? */}
-        <TouchableOpacity
+        {/* <TouchableOpacity
           style={[styles.scannerButton, disabled && styles.buttonDisabled]}
           onPress={onScannerPress}
           disabled={disabled}
           activeOpacity={0.7}
         >
           <ScannerIcon stroke={disabled ? "#A0A0A0" : "#80818B"} />
-        </TouchableOpacity>
+        </TouchableOpacity> */}
         {/* // : <></>
         // } */}
       </View>

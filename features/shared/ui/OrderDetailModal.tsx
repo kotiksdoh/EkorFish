@@ -21,6 +21,7 @@ import {
   reorderOrder,
 } from "@/features/catalog/catalogSlice";
 import { axdef, baseUrl } from "@/features/shared/services/axios";
+import { openTelegramByPhone } from "@/features/shared/utils/phoneLinking";
 import { SnapBottomSheet } from "@/features/shared/ui/SnapBottomSheet";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAppDispatch } from "@/store/hooks";
@@ -389,28 +390,8 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
       Alert.alert("Ошибка", "Не удалось повторить заказ. Попробуйте позже.");
     }
   };
-  const getManagerPhoneForTelegram = () => {
-    return String(companyManager?.phoneNumber || "").replace(/[^\d+]/g, "");
-  };
-
-  const handleMessageManager = async () => {
-    const normalizedPhone = getManagerPhoneForTelegram();
-    if (!normalizedPhone) return;
-
-    const telegramDeepLink = `tg://resolve?phone=${normalizedPhone}`;
-    const telegramWebLink = `https://t.me/+${normalizedPhone.replace(/^\+/, "")}`;
-
-    try {
-      const canOpenTelegram = await Linking.canOpenURL(telegramDeepLink);
-      if (canOpenTelegram) {
-        await Linking.openURL(telegramDeepLink);
-        return;
-      }
-      await Linking.openURL(telegramWebLink);
-    } catch (error) {
-      console.error("Error opening Telegram:", error);
-      Alert.alert("Ошибка", "Не удалось открыть Telegram");
-    }
+  const handleMessageManager = () => {
+    void openTelegramByPhone(companyManager);
   };
 
   return (

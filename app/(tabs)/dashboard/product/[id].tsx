@@ -2,7 +2,11 @@ import { CheckCircleIcon, CloseCircleIcon } from "@/assets/icons/icons";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { ModalHeader } from "@/features/auth/ui/Header";
-import { AddToCart, getProduct } from "@/features/catalog/catalogSlice"; // Импортируем AddToCart
+import {
+  AddToCart,
+  getProduct,
+  setProductNavigationPending,
+} from "@/features/catalog/catalogSlice";
 import { AutoSlider } from "@/features/home";
 import { buildTemplateLineFromProduct } from "@/features/templates/buildTemplateLine";
 import { TemplatePickerBanner } from "@/features/templates/TemplatePickerBanner";
@@ -79,7 +83,11 @@ export default function ProductDetailScreen() {
         setHasAuthToken(Boolean(token));
       };
       checkAuthToken();
-    }, []),
+
+      return () => {
+        dispatch(setProductNavigationPending(false));
+      };
+    }, [dispatch]),
   );
 
   useEffect(() => {

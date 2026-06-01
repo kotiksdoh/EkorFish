@@ -46,6 +46,7 @@ import { formatDate } from "../services/utils";
 import { CompanySelectionModal } from "./CompanySelectionModalSmall";
 import { CompanySelectModal } from "./CompanySelectModal";
 import AnimatedTextInput from "./components/CustomInput";
+import { isIndividualCompany } from "@/features/shared/utils/companyType";
 import { PrimaryButton } from "./components/PrimartyButton";
 import { SnapBottomSheet } from "./SnapBottomSheet";
 
@@ -756,6 +757,8 @@ const ReconciliationActScreen: React.FC<{ onBack: () => void }> = ({
   const isDark = colorScheme === "dark";
 
   const companies = useAppSelector((state) => state.auth.me.companies) || [];
+  const currentCompany = useAppSelector((state) => state.auth.currentCompany);
+  const isIndividual = isIndividualCompany(currentCompany);
 
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
@@ -812,7 +815,7 @@ const ReconciliationActScreen: React.FC<{ onBack: () => void }> = ({
     if (startDate && endDate && startDate > endDate) {
       newErrors.endDate = "Дата окончания не может быть раньше даты начала";
     }
-    if (!selectedCompany) {
+    if (!isIndividual && !selectedCompany) {
       newErrors.company = "Выберите компанию";
     }
     const emailRegex = /^[^\s@]+@([^\s@.,]+\.)+[^\s@.,]{2,}$/;
@@ -837,6 +840,12 @@ const ReconciliationActScreen: React.FC<{ onBack: () => void }> = ({
   const handleOpenRegisterModal = () => {
     setRegisterModalVisible(true);
   };
+
+  useEffect(() => {
+    if (isIndividual && currentCompany) {
+      setSelectedCompany(currentCompany);
+    }
+  }, [isIndividual, currentCompany]);
 
   // Функции для дата-пикеров
   const showStartPicker = () => {
@@ -874,15 +883,24 @@ const ReconciliationActScreen: React.FC<{ onBack: () => void }> = ({
   const handleSendReconciliationAct = async () => {
     if (validateForm()) {
       try {
-        await dispatch(
-          postReconciliationActThunk({
-            dateFrom: formatDateForBackend(startDate),
-            dateTo: formatDateForBackend(endDate),
-            companyId: selectedCompany.id,
-            comment,
-            email,
-          }),
-        ).unwrap();
+        const payload: {
+          dateFrom: string;
+          dateTo: string;
+          comment: string;
+          email: string;
+          companyId?: string;
+        } = {
+          dateFrom: formatDateForBackend(startDate),
+          dateTo: formatDateForBackend(endDate),
+          comment,
+          email,
+        };
+
+        if (!isIndividual && selectedCompany?.id) {
+          payload.companyId = selectedCompany.id;
+        }
+
+        await dispatch(postReconciliationActThunk(payload)).unwrap();
         setSuccessSheetVisible(true);
       } catch (error) {
         console.error("Ошибка отправки акта-сверки:", error);
@@ -988,44 +1006,45 @@ const ReconciliationActScreen: React.FC<{ onBack: () => void }> = ({
               </View>
             </View>
 
-            {/* Выбор компании */}
-            <View style={styles.fieldWrapper}>
-              <TouchableOpacity
-                onPress={() => setCompanyModalVisible(true)}
-                style={[
-                  styles.companySelector,
-                  isDark && styles.companySelectorDark,
-                  errors.company && styles.companySelectorError,
-                ]}
-              >
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: 8,
-                    flex: 1,
-                  }}
+            {!isIndividual ? (
+              <View style={styles.fieldWrapper}>
+                <TouchableOpacity
+                  onPress={() => setCompanyModalVisible(true)}
+                  style={[
+                    styles.companySelector,
+                    isDark && styles.companySelectorDark,
+                    errors.company && styles.companySelectorError,
+                  ]}
                 >
-                  <ThemedText
-                    darkColor="#FBFCFF"
-                    lightColor="#1B1B1C"
-                    numberOfLines={1}
-                    style={[
-                      styles.companySelectorText,
-                      !selectedCompany && styles.companySelectorPlaceholder,
-                    ]}
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 8,
+                      flex: 1,
+                    }}
                   >
-                    {selectedCompany?.name || "Выберите компанию"}
+                    <ThemedText
+                      darkColor="#FBFCFF"
+                      lightColor="#1B1B1C"
+                      numberOfLines={1}
+                      style={[
+                        styles.companySelectorText,
+                        !selectedCompany && styles.companySelectorPlaceholder,
+                      ]}
+                    >
+                      {selectedCompany?.name || "Выберите компанию"}
+                    </ThemedText>
+                  </View>
+                  <ArrowIconRight stroke={isDark ? "#FBFCFF" : "#1B1B1C"} />
+                </TouchableOpacity>
+                {errors.company && (
+                  <ThemedText style={styles.errorText} darkColor="#FF6B6B">
+                    {errors.company}
                   </ThemedText>
-                </View>
-                <ArrowIconRight stroke={isDark ? "#FBFCFF" : "#1B1B1C"} />
-              </TouchableOpacity>
-              {errors.company && (
-                <ThemedText style={styles.errorText} darkColor="#FF6B6B">
-                  {errors.company}
-                </ThemedText>
-              )}
-            </View>
+                )}
+              </View>
+            ) : null}
 
             {/* Email */}
             <View style={styles.fieldWrapper}>
@@ -1150,6 +1169,8 @@ const PriceListScreen: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   const isDark = colorScheme === "dark";
 
   const companies = useAppSelector((state) => state.auth.me.companies) || [];
+  const currentCompany = useAppSelector((state) => state.auth.currentCompany);
+  const isIndividual = isIndividualCompany(currentCompany);
 
   const [selectedCompany, setSelectedCompany] = useState<any>(null);
   const [email, setEmail] = useState("");
@@ -1169,7 +1190,7 @@ const PriceListScreen: React.FC<{ onBack: () => void }> = ({ onBack }) => {
       email?: string;
     } = {};
 
-    if (!selectedCompany) {
+    if (!isIndividual && !selectedCompany) {
       newErrors.company = "Выберите компанию";
     }
 
@@ -1197,15 +1218,22 @@ const PriceListScreen: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     setRegisterModalVisible(true);
   };
 
+  useEffect(() => {
+    if (isIndividual && currentCompany) {
+      setSelectedCompany(currentCompany);
+    }
+  }, [isIndividual, currentCompany]);
+
   const handleSendPriceList = async () => {
     if (validateForm()) {
       try {
-        await dispatch(
-          postPriceListThunk({
-            companyId: selectedCompany.id,
-            email,
-          }),
-        ).unwrap();
+        const payload: { email: string; companyId?: string } = { email };
+
+        if (!isIndividual && selectedCompany?.id) {
+          payload.companyId = selectedCompany.id;
+        }
+
+        await dispatch(postPriceListThunk(payload)).unwrap();
         setSuccessSheetVisible(true);
       } catch (error) {
         console.error("Ошибка отправки прайс-листа:", error);
@@ -1252,44 +1280,45 @@ const PriceListScreen: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                 Заполните форму
               </ThemedText>
 
-            {/* Выбор компании */}
-            <View style={styles.fieldWrapper}>
-              <TouchableOpacity
-                onPress={() => setCompanyModalVisible(true)}
-                style={[
-                  styles.companySelector,
-                  isDark && styles.companySelectorDark,
-                  errors.company && styles.companySelectorError,
-                ]}
-              >
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: 8,
-                    flex: 1,
-                  }}
+            {!isIndividual ? (
+              <View style={styles.fieldWrapper}>
+                <TouchableOpacity
+                  onPress={() => setCompanyModalVisible(true)}
+                  style={[
+                    styles.companySelector,
+                    isDark && styles.companySelectorDark,
+                    errors.company && styles.companySelectorError,
+                  ]}
                 >
-                  <ThemedText
-                    darkColor="#FBFCFF"
-                    lightColor="#1B1B1C"
-                    numberOfLines={1}
-                    style={[
-                      styles.companySelectorText,
-                      !selectedCompany && styles.companySelectorPlaceholder,
-                    ]}
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 8,
+                      flex: 1,
+                    }}
                   >
-                    {selectedCompany?.name || "Выберите компанию"}
+                    <ThemedText
+                      darkColor="#FBFCFF"
+                      lightColor="#1B1B1C"
+                      numberOfLines={1}
+                      style={[
+                        styles.companySelectorText,
+                        !selectedCompany && styles.companySelectorPlaceholder,
+                      ]}
+                    >
+                      {selectedCompany?.name || "Выберите компанию"}
+                    </ThemedText>
+                  </View>
+                  <ArrowIconRight stroke={isDark ? "#FBFCFF" : "#1B1B1C"} />
+                </TouchableOpacity>
+                {errors.company && (
+                  <ThemedText style={styles.errorText} darkColor="#FF6B6B">
+                    {errors.company}
                   </ThemedText>
-                </View>
-                <ArrowIconRight stroke={isDark ? "#FBFCFF" : "#1B1B1C"} />
-              </TouchableOpacity>
-              {errors.company && (
-                <ThemedText style={styles.errorText} darkColor="#FF6B6B">
-                  {errors.company}
-                </ThemedText>
-              )}
-            </View>
+                )}
+              </View>
+            ) : null}
 
             {/* Email */}
             <View style={styles.fieldWrapper}>
@@ -1384,6 +1413,7 @@ export const MyFinanceModal: React.FC<MyFinanceProps> = ({
   const loading = useAppSelector((state) => state.auth.isLoadingPayments);
   const currentCompany = useAppSelector((state) => state.auth.currentCompany);
   const payments = useAppSelector((state) => state.auth.payments);
+  const isIndividual = isIndividualCompany(currentCompany);
 
   const [showPaymentsHistory, setShowPaymentsHistory] =
     useState<boolean>(false);
@@ -1567,6 +1597,7 @@ export const MyFinanceModal: React.FC<MyFinanceProps> = ({
                   </ThemedText>
                 </View>
 
+                {!isIndividual ? (
                 <View style={styles.companyLimit}>
                   <ThemedText style={styles.companyLimitTitle}>
                     Лимит организации
@@ -1605,6 +1636,7 @@ export const MyFinanceModal: React.FC<MyFinanceProps> = ({
                     </ThemedText>
                   </View>
                 </View>
+                ) : null}
               </View>
             </ThemedView>
           )}

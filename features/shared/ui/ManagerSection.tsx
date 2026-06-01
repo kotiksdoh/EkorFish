@@ -7,10 +7,11 @@ import { axdef, baseUrl } from '@/features/shared/services/axios';
 import { useAppTheme } from '@/hooks/use-theme-color';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   openPhoneDialer,
   openTelegramByPhone,
+  resolveManagerContact,
 } from "@/features/shared/utils/phoneLinking";
 import {
   ActivityIndicator,
@@ -43,13 +44,27 @@ interface ManagerCardProps {
 // Карточка для отображения текущего менеджера (с кнопками)
 const CurrentManagerCard = ({ manager, onChangePress, onReviewPress }: ManagerCardProps) => {
   const { isDark } = useAppTheme();
+  const isActionInProgressRef = useRef(false);
+
+  const runContactAction = async (action: () => Promise<void>) => {
+    if (isActionInProgressRef.current) {
+      return;
+    }
+
+    isActionInProgressRef.current = true;
+    try {
+      await action();
+    } finally {
+      isActionInProgressRef.current = false;
+    }
+  };
 
   const handleMessage = () => {
-    void openTelegramByPhone(manager);
+    void runContactAction(() => openTelegramByPhone(manager));
   };
 
   const handleCall = () => {
-    void openPhoneDialer(manager);
+    void runContactAction(() => openPhoneDialer(manager));
   };
   return (
     <View style={styles.mainCont}>
@@ -249,6 +264,10 @@ export const ManagerSection = () => {
     null;
   const activeCompany = currentCompany || fallbackCompany;
   const currentManager = activeCompany?.manager || null;
+  const resolvedManager = useMemo(
+    () => resolveManagerContact(currentManager, managers),
+    [currentManager, managers],
+  );
 
   // Загружаем список менеджеров:
   // 1) при явном открытии списка
@@ -319,7 +338,9 @@ export const ManagerSection = () => {
         updatedCompany &&
         (
           updatedCompany.manager?.id !== currentCompany?.manager?.id ||
-          updatedCompany.manager?.hasReviewed !== currentCompany?.manager?.hasReviewed
+          updatedCompany.manager?.hasReviewed !== currentCompany?.manager?.hasReviewed ||
+          updatedCompany.manager?.phoneNumber !== currentCompany?.manager?.phoneNumber ||
+          updatedCompany.manager?.phone !== currentCompany?.manager?.phone
         )
       ) {
         dispatch(setCompany(updatedCompany));
@@ -330,6 +351,8 @@ export const ManagerSection = () => {
     currentCompany?.id,
     currentCompany?.manager?.id,
     currentCompany?.manager?.hasReviewed,
+    currentCompany?.manager?.phoneNumber,
+    currentCompany?.manager?.phone,
     dispatch,
     isAuthorized,
     isCompanyHydrated,
@@ -400,20 +423,20 @@ export const ManagerSection = () => {
   };
 
   // Если есть текущий менеджер и не показываем список выбора
-  if (currentManager && !showManagerList) {
+  if (resolvedManager && !showManagerList) {
     return (
       <>
         <CurrentManagerCard
-          manager={currentManager}
+          manager={resolvedManager}
           onChangePress={() => setShowManagerList(true)}
           onReviewPress={() => setShowReviewModal(true)}
         />
         <ManagerReviewModal
           visible={showReviewModal}
           onClose={() => setShowReviewModal(false)}
-          managerId={currentManager.id}
-          managerName={currentManager.name}
-          managerImage={currentManager.image}
+          managerId={resolvedManager.id}
+          managerName={resolvedManager.name}
+          managerImage={resolvedManager.image}
         />
       </>
     );

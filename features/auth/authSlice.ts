@@ -424,7 +424,7 @@ export const postReconciliationActThunk = createAsyncThunk(
     payload: {
       dateFrom: string;
       dateTo: string;
-      companyId: string;
+      companyId?: string;
       comment: string;
       email: string;
     },
@@ -447,7 +447,7 @@ export const postPriceListThunk = createAsyncThunk(
   "user/postPriceListThunk",
   async (
     payload: {
-      companyId: string;
+      companyId?: string;
       email: string;
     },
     { rejectWithValue },

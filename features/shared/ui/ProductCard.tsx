@@ -3,7 +3,11 @@ import { useTemplatePicker } from "@/features/templates/TemplatePickerContext";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { LoginModal } from "@/features/auth/ui/components/LoginModal";
-import { putFavorite, putUnFavorite } from "@/features/catalog/catalogSlice";
+import {
+  putFavorite,
+  putUnFavorite,
+  setProductNavigationPending,
+} from "@/features/catalog/catalogSlice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
@@ -62,6 +66,14 @@ const ProductCardComponent: React.FC<ProductCardProps> = ({
   const dispatch = useAppDispatch();
   const router = useRouter();
   const cartItems = useAppSelector((state) => state.catalog.cart);
+  const isNavigatingToProduct = useAppSelector(
+    (state) => state.catalog.isNavigatingToProduct,
+  );
+  const isLoadingProduct = useAppSelector(
+    (state) => state.catalog.isLoadingProduct,
+  );
+  const isProductNavigationLocked =
+    isNavigatingToProduct || isLoadingProduct;
   const { pickingForTemplateId, getExistingTemplateLinesForProduct, liveTemplateItems } =
     useTemplatePicker();
   const isTemplatePick = !!pickingForTemplateId;
@@ -193,13 +205,22 @@ const ProductCardComponent: React.FC<ProductCardProps> = ({
     return total.toString();
   }, [templateLinesForProduct]);
 
-  const toProductDetail = () => {
-    if (!isDis && id && name) {
-      router.push(
-        `dashboard/product/${encodeURIComponent(id)}?productId=${id}&productName=${encodeURIComponent(name)}` as any,
-      );
+  const toProductDetail = useCallback(() => {
+    if (isDis || !id || !name || isProductNavigationLocked) {
+      return;
     }
-  };
+    dispatch(setProductNavigationPending(true));
+    router.push(
+      `dashboard/product/${encodeURIComponent(id)}?productId=${id}&productName=${encodeURIComponent(name)}` as any,
+    );
+  }, [
+    dispatch,
+    id,
+    isDis,
+    isProductNavigationLocked,
+    name,
+    router,
+  ]);
 
   // Определяем, является ли URL валидным
   const isValidImageUrl = useCallback((url: string): boolean => {
@@ -247,9 +268,12 @@ const ProductCardComponent: React.FC<ProductCardProps> = ({
       <TouchableOpacity
         onPress={toProductDetail}
         activeOpacity={0.9}
-        style={[styles.cardTouchable, fullWidth && {
-          width: '100%'
-        }]}
+        disabled={isDis || isProductNavigationLocked}
+        style={[
+          styles.cardTouchable,
+          fullWidth && { width: "100%" },
+          (isDis || isProductNavigationLocked) && styles.cardDisabled,
+        ]}
       >
         <ThemedView lightColor="#FFFFFF" style={styles.container}>
           <View style={styles.imageContainer}>
@@ -408,6 +432,9 @@ const styles = StyleSheet.create({
   cardTouchable: {
     width: "48.5%",
     marginBottom: 12,
+  },
+  cardDisabled: {
+    opacity: 0.55,
   },
   container: {
     flexDirection: "column",

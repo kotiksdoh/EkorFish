@@ -1,14 +1,24 @@
 import { ArrowIconRight, LogoIcon, SupportEmailIcon, SupportPhoneIcon, SupportTelegramIcon } from "@/assets/icons/icons";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { getHeplListThunk } from "@/features/auth/authSlice";
+import { getHeplListThunk, getMyParams } from "@/features/auth/authSlice";
 import { ModalHeader } from "@/features/auth/ui/Header";
+import { openPhoneDialer } from "@/features/shared/utils/phoneLinking";
+import {
+  getAppVersionInfo,
+  loadAppAboutDynamicInfo,
+} from "@/features/shared/utils/appAboutInfo";
+import {
+  getSupportContactsFromParams,
+  normalizeTelegramUrl,
+} from "@/features/shared/utils/supportParams";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { useRouter } from "expo-router";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Linking,
   Modal,
   StyleSheet,
@@ -46,28 +56,29 @@ interface HelpProps {
 type ScreenState = 'main' | 'helpList' | 'about' | 'helpContent';
 type SupportModalState = 'hidden' | 'visible';
 
-const SUPPORT_CONFIG = {
-  phone: "+7 (999) 123-45-67",
-  telegram: "https://t.me/support_bot",
-  email: "support@example.com",
-};
-
-const ABOUT_CONFIG = {
-  version: "1.2.3",
-  build: "456",
-  lastUpdate: "12.12.2024",
-  cacheSize: "245 МБ",
-};
-
 export const HelpModal: React.FC<HelpProps> = ({ visible, onClose }) => {
   const systemTheme = useColorScheme();
   const isDark = systemTheme === "dark";
 
   const helpList = useAppSelector((state) => state.auth.helpList);
   const loading = useAppSelector((state) => state.auth.isLoadingHelp);
+  const authParams = useAppSelector((state) => state.auth.params);
 
   const dispatch = useAppDispatch();
   const router = useRouter();
+
+  const supportContacts = useMemo(
+    () => getSupportContactsFromParams(authParams),
+    [authParams],
+  );
+
+  useEffect(() => {
+    if (!visible) {
+      return;
+    }
+
+    void dispatch(getMyParams(""));
+  }, [visible, dispatch]);
 
   const [screenState, setScreenState] = useState<ScreenState>('main');
   const [supportModalState, setSupportModalState] = useState<SupportModalState>('hidden');
@@ -75,6 +86,37 @@ export const HelpModal: React.FC<HelpProps> = ({ visible, onClose }) => {
     type: string;
     currentHtml: string;
   } | null>(null);
+  const versionInfo = useMemo(() => getAppVersionInfo(), []);
+  const [aboutInfo, setAboutInfo] = useState({
+    lastUpdate: "Загрузка...",
+    cacheSize: "Загрузка...",
+  });
+
+  useEffect(() => {
+    if (screenState !== "about") {
+      return;
+    }
+
+    let isMounted = true;
+
+    const loadAboutInfo = async () => {
+      setAboutInfo({
+        lastUpdate: "Загрузка...",
+        cacheSize: "Загрузка...",
+      });
+
+      const dynamicInfo = await loadAppAboutDynamicInfo();
+      if (isMounted) {
+        setAboutInfo(dynamicInfo);
+      }
+    };
+
+    void loadAboutInfo();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [screenState]);
 
   const handleBack = useCallback(() => {
     if (currentHelpObject) {
@@ -123,16 +165,37 @@ export const HelpModal: React.FC<HelpProps> = ({ visible, onClose }) => {
   }, []);
 
   const handlePhonePress = useCallback(() => {
-    Linking.openURL(`tel:${SUPPORT_CONFIG.phone.replace(/[^\d+]/g, "")}`);
-  }, []);
+    void openPhoneDialer({ phoneNumber: supportContacts.phone });
+  }, [supportContacts.phone]);
 
-  const handleTelegramPress = useCallback(() => {
-    Linking.openURL(SUPPORT_CONFIG.telegram);
-  }, []);
+  const handleTelegramPress = useCallback(async () => {
+    const telegramUrl = normalizeTelegramUrl(supportContacts.telegram);
+    if (!telegramUrl) {
+      Alert.alert("Ошибка", "Контакт Telegram не указан");
+      return;
+    }
 
-  const handleEmailPress = useCallback(() => {
-    Linking.openURL(`mailto:${SUPPORT_CONFIG.email}`);
-  }, []);
+    try {
+      await Linking.openURL(telegramUrl);
+    } catch (error) {
+      console.error("Ошибка при открытии Telegram:", error);
+      Alert.alert("Ошибка", "Не удалось открыть Telegram");
+    }
+  }, [supportContacts.telegram]);
+
+  const handleEmailPress = useCallback(async () => {
+    if (!supportContacts.email) {
+      Alert.alert("Ошибка", "Email не указан");
+      return;
+    }
+
+    try {
+      await Linking.openURL(`mailto:${supportContacts.email}`);
+    } catch (error) {
+      console.error("Ошибка при открытии почты:", error);
+      Alert.alert("Ошибка", "Не удалось открыть почтовое приложение");
+    }
+  }, [supportContacts.email]);
 
   const handleFaqPress = useCallback(() => {
     setSupportModalState('hidden');
@@ -219,9 +282,15 @@ export const HelpModal: React.FC<HelpProps> = ({ visible, onClose }) => {
     <ThemedView lightColor="#FFFFFF" darkColor="#151516" style={styles.aboutContainer}>
       <LogoIcon />
       <View style={styles.aboutInfo}>
-        <ThemedText darkColor="#FBFCFF">Версия: {ABOUT_CONFIG.version} (build {ABOUT_CONFIG.build})</ThemedText>
-        <ThemedText darkColor="#FBFCFF">Последнее обновление: {ABOUT_CONFIG.lastUpdate}</ThemedText>
-        <ThemedText darkColor="#FBFCFF">Размер кэша: {ABOUT_CONFIG.cacheSize}</ThemedText>
+        <ThemedText darkColor="#FBFCFF">
+          Версия: {versionInfo.version} (build {versionInfo.build})
+        </ThemedText>
+        <ThemedText darkColor="#FBFCFF">
+          Последнее обновление: {aboutInfo.lastUpdate}
+        </ThemedText>
+        <ThemedText darkColor="#FBFCFF">
+          Размер кэша: {aboutInfo.cacheSize}
+        </ThemedText>
       </View>
       <View style={styles.aboutLinks}>
         <ThemedText darkColor="#4C94FF">Лицензионное соглашение</ThemedText>

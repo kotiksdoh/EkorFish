@@ -21,6 +21,16 @@ const withAndroidLinkingQueries = (config) => {
             action: [{ $: { "android:name": "android.intent.action.VIEW" } }],
             data: [{ $: { "android:scheme": "tg" } }],
           },
+          {
+            action: [{ $: { "android:name": "android.intent.action.VIEW" } }],
+            category: [{ $: { "android:name": "android.intent.category.BROWSABLE" } }],
+            data: [{ $: { "android:scheme": "https", "android:host": "t.me" } }],
+          },
+          {
+            action: [{ $: { "android:name": "android.intent.action.VIEW" } }],
+            category: [{ $: { "android:name": "android.intent.category.BROWSABLE" } }],
+            data: [{ $: { "android:scheme": "https", "android:host": "telegram.me" } }],
+          },
         ],
       },
     ];
