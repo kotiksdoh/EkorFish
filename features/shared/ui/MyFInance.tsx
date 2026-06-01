@@ -30,6 +30,7 @@ import {
   ActivityIndicator,
   Animated,
   Dimensions,
+  KeyboardAvoidingView,
   Modal,
   NativeScrollEvent,
   NativeSyntheticEvent,
@@ -40,6 +41,7 @@ import {
   TouchableWithoutFeedback,
   View,
 } from "react-native";
+import { useKeyboardAwareScroll } from "@/features/shared/hooks/useKeyboardAwareScroll";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { formatDate } from "../services/utils";
@@ -913,6 +915,14 @@ const ReconciliationActScreen: React.FC<{ onBack: () => void }> = ({
     onBack();
   };
 
+  const footerPadding = Math.max(insets.bottom, 24) + 16;
+  const {
+    scrollRef,
+    keyboardHeight,
+    handleScroll,
+    onInputFocus: handleCommentFocus,
+  } = useKeyboardAwareScroll({ enabled: true });
+
   return (
     <>
       <View style={styles.fullScreenContent}>
@@ -927,11 +937,24 @@ const ReconciliationActScreen: React.FC<{ onBack: () => void }> = ({
           darkColor="#151516"
           style={styles.requestMainContainer}
         >
+          <KeyboardAvoidingView
+            style={styles.requestKeyboardAvoiding}
+            behavior={Platform.OS === "ios" ? "padding" : undefined}
+            keyboardVerticalOffset={Platform.OS === "ios" ? 8 : 0}
+          >
           <ScrollView
+            ref={scrollRef}
             showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+            onScroll={handleScroll}
+            scrollEventThrottle={16}
             contentContainerStyle={[
               styles.scrollContent,
-              { paddingBottom: Math.max(insets.bottom, 24) + 100 },
+              {
+                paddingBottom:
+                  footerPadding + 100 + (keyboardHeight > 0 ? 24 : 0),
+              },
             ]}
           >
             <ThemedView
@@ -1073,11 +1096,9 @@ const ReconciliationActScreen: React.FC<{ onBack: () => void }> = ({
               <AnimatedTextInput
                 placeholder="Комментарий"
                 placeholderTextColor="#80818B"
-                multiline
-                numberOfLines={4}
-                textAlignVertical="top"
                 value={comment}
                 onChangeText={setComment}
+                onFocus={handleCommentFocus}
               />
             </View>
             </ThemedView>
@@ -1087,7 +1108,7 @@ const ReconciliationActScreen: React.FC<{ onBack: () => void }> = ({
           <View
             style={[
               styles.bottomPanel,
-              { paddingBottom: Math.max(insets.bottom, 24) + 16 },
+              { paddingBottom: footerPadding },
             ]}
           >
             <ThemedText style={styles.infoText} darkColor="#FBFCFF80">
@@ -1102,6 +1123,7 @@ const ReconciliationActScreen: React.FC<{ onBack: () => void }> = ({
               fullWidth
             />
           </View>
+          </KeyboardAvoidingView>
         </ThemedView>
       </View>
 
@@ -1945,6 +1967,9 @@ const styles = StyleSheet.create({
     marginTop: 8,
     overflow: "hidden",
     position: "relative",
+  },
+  requestKeyboardAvoiding: {
+    flex: 1,
   },
   paymentsPreviewContainer: {
     borderRadius: 16,

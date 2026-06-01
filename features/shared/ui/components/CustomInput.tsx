@@ -39,6 +39,8 @@ const AnimatedTextInput: React.FC<AnimatedTextInputProps> = ({
   multiline,
   returnKeyType,
   onSubmitEditing,
+  onFocus: onFocusProp,
+  onBlur: onBlurProp,
   ...textInputProps
 }) => {
   const colorScheme = useColorScheme();
@@ -56,16 +58,17 @@ const AnimatedTextInput: React.FC<AnimatedTextInputProps> = ({
     }).start();
   }, [value, animatedValue]);
 
-  const handleFocus = () => {
+  const handleFocus: TextInputProps["onFocus"] = (event) => {
     setIsFocused(true);
     Animated.timing(animatedValue, {
       toValue: 1,
       duration: 200,
       useNativeDriver: false,
     }).start();
+    onFocusProp?.(event);
   };
 
-  const handleBlur = () => {
+  const handleBlur: TextInputProps["onBlur"] = (event) => {
     setIsFocused(false);
     if (!value) {
       Animated.timing(animatedValue, {
@@ -74,6 +77,7 @@ const AnimatedTextInput: React.FC<AnimatedTextInputProps> = ({
         useNativeDriver: false,
       }).start();
     }
+    onBlurProp?.(event);
   };
 
   const handleContainerPress = () => {

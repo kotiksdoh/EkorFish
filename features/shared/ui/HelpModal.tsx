@@ -21,10 +21,12 @@ import {
   Alert,
   Linking,
   Modal,
+  ScrollView,
   StyleSheet,
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
 import { PrimaryButton } from "./components/PrimartyButton";
 import { SnapBottomSheet } from "./SnapBottomSheet";
@@ -57,8 +59,10 @@ type ScreenState = 'main' | 'helpList' | 'about' | 'helpContent';
 type SupportModalState = 'hidden' | 'visible';
 
 export const HelpModal: React.FC<HelpProps> = ({ visible, onClose }) => {
+  const insets = useSafeAreaInsets();
   const systemTheme = useColorScheme();
   const isDark = systemTheme === "dark";
+  const scrollBottomPadding = Math.max(insets.bottom, 16) + 24;
 
   const helpList = useAppSelector((state) => state.auth.helpList);
   const loading = useAppSelector((state) => state.auth.isLoadingHelp);
@@ -241,7 +245,15 @@ export const HelpModal: React.FC<HelpProps> = ({ visible, onClose }) => {
   );
 
   const renderHelpListScreen = () => (
-    <ThemedView lightColor="transparent" darkColor="transparent" style={styles.contentContainer}>
+    <ScrollView
+      style={styles.scrollContainer}
+      contentContainerStyle={[
+        styles.scrollContent,
+        { paddingBottom: scrollBottomPadding },
+      ]}
+      showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
+    >
       <ThemedView lightColor="#FFFFFF" darkColor="#151516" style={styles.helpListCard}>
         {helpList.map((helpObj) => (
           <View style={styles.helpSection} key={helpObj.type}>
@@ -275,7 +287,7 @@ export const HelpModal: React.FC<HelpProps> = ({ visible, onClose }) => {
           </View>
         ))}
       </ThemedView>
-    </ThemedView>
+    </ScrollView>
   );
 
   const renderAboutScreen = () => (
@@ -320,7 +332,14 @@ export const HelpModal: React.FC<HelpProps> = ({ visible, onClose }) => {
       titleAlign="left"
       onClose={() => setSupportModalState('hidden')}
     >
-      <View style={styles.supportContent}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={[
+          styles.supportContent,
+          { paddingBottom: Math.max(insets.bottom, 16) },
+        ]}
+      >
         <ThemedText>Выберите удобный способ связи</ThemedText>
 
         <View style={styles.contactRow}>
@@ -356,7 +375,7 @@ export const HelpModal: React.FC<HelpProps> = ({ visible, onClose }) => {
             style={styles.supportActionButton}
           />
         </View>
-      </View>
+      </ScrollView>
     </SnapBottomSheet>
   );
 
@@ -403,8 +422,14 @@ const styles = StyleSheet.create({
   contentContainer: {
     flex: 1,
     borderRadius: 16,
-    // padding: 16,
     marginTop: 8,
+  },
+  scrollContainer: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingTop: 8,
   },
   mainMenuCard: {
     borderRadius: 16,
@@ -459,7 +484,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   supportContent: {
-    paddingBottom: 8,
     gap: 24,
   },
   contactRow: {

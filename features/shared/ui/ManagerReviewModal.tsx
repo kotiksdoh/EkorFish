@@ -5,17 +5,22 @@ import { createReview, getManagerReviewOptions, getMyInfo, setCompany } from '@/
 import { useAppTheme } from '@/hooks/use-theme-color';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { Image } from "expo-image";
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
+    Keyboard,
+    KeyboardAvoidingView,
     Modal,
+    Platform,
     ScrollView,
     StyleSheet,
     TouchableOpacity,
     TouchableWithoutFeedback,
     View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useKeyboardAwareScroll } from '@/features/shared/hooks/useKeyboardAwareScroll';
 import Svg, { Path } from "react-native-svg";
 import { baseUrl } from '../services/axios';
 import { CustomCheckbox } from './components/CustomCheckBox';
@@ -42,7 +47,15 @@ const StarIcon = ({ filled, onPress, size = 40 }: { filled: boolean; onPress: ()
 );
 
 // Компонент экрана благодарности
-const ThankYouScreen = ({ managerName, onClose }: { managerName: string; onClose: () => void }) => {
+const ThankYouScreen = ({
+    managerName,
+    onClose,
+    bottomInset,
+}: {
+    managerName: string;
+    onClose: () => void;
+    bottomInset: number;
+}) => {
     return (
         <View style={styles.thankYouContainer}>
             <View style={styles.thankYouContent}>
@@ -56,7 +69,7 @@ const ThankYouScreen = ({ managerName, onClose }: { managerName: string; onClose
                 </ThemedText>
             </View>
 
-            <View style={styles.buttonContainer}>
+            <View style={[styles.buttonContainer, { paddingBottom: bottomInset }]}>
                 <PrimaryButton
                     title="Закрыть"
                     onPress={onClose}
@@ -78,15 +91,30 @@ export const ManagerReviewModal: React.FC<ManagerReviewModalProps> = ({
     managerImage,
 }) => {
     const { isDark } = useAppTheme();
+    const insets = useSafeAreaInsets();
     const dispatch = useAppDispatch();
-    const { reviewOptions, isLoadingManagerReviewOption } = useAppSelector((state) => state.auth);
-    const { currentCompany } = useAppSelector((state) => state.auth);
-
+    const bottomInset = Math.max(insets.bottom, 16);
+    const footerPadding = bottomInset + 16;
+    const scrollBottomPadding = useMemo(
+        () => footerPadding + 72,
+        [footerPadding],
+    );
     const [rating, setRating] = useState(0);
     const [selectedOptions, setSelectedOptions] = useState<number[]>([]);
     const [comment, setComment] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showThankYou, setShowThankYou] = useState(false);
+    const {
+        scrollRef,
+        keyboardHeight,
+        handleScroll,
+        onInputFocus: handleCommentFocus,
+        androidKeyboardMargin,
+    } = useKeyboardAwareScroll({
+        enabled: visible && !showThankYou,
+    });
+    const { reviewOptions, isLoadingManagerReviewOption } = useAppSelector((state) => state.auth);
+    const { currentCompany } = useAppSelector((state) => state.auth);
 
     useEffect(() => {
         if (visible) {
@@ -103,6 +131,7 @@ export const ManagerReviewModal: React.FC<ManagerReviewModalProps> = ({
     }, [visible]);
 
     const handleClose = () => {
+        Keyboard.dismiss();
         resetForm();
         setShowThankYou(false);
         onClose();
@@ -192,6 +221,9 @@ export const ManagerReviewModal: React.FC<ManagerReviewModalProps> = ({
                                 styles.modalContainer,
                                 showThankYou && styles.modalContainerCompact,
                                 isDark && styles.modalContainerDark,
+                                androidKeyboardMargin > 0 && {
+                                    marginBottom: androidKeyboardMargin,
+                                },
                             ]}
                         >
                             {/* Защелка для свайпа */}
@@ -204,15 +236,35 @@ export const ManagerReviewModal: React.FC<ManagerReviewModalProps> = ({
                             </TouchableOpacity>
 
                             {showThankYou ? (
-                                // Экран благодарности
-                                <ThankYouScreen managerName={managerName} onClose={handleClose} />
+                                <ThankYouScreen
+                                    managerName={managerName}
+                                    onClose={handleClose}
+                                    bottomInset={footerPadding}
+                                />
                             ) : (
                                 // Форма оценки
                                 <>
+                                    <KeyboardAvoidingView
+                                        style={styles.keyboardAvoiding}
+                                        behavior={Platform.OS === "ios" ? "padding" : undefined}
+                                        keyboardVerticalOffset={Platform.OS === "ios" ? 12 : 0}
+                                    >
                                     <ScrollView
+                                        ref={scrollRef}
                                         style={styles.scrollView}
                                         showsVerticalScrollIndicator={false}
-                                        contentContainerStyle={styles.scrollContent}
+                                        keyboardShouldPersistTaps="handled"
+                                        keyboardDismissMode="on-drag"
+                                        onScroll={handleScroll}
+                                        scrollEventThrottle={16}
+                                        contentContainerStyle={[
+                                            styles.scrollContent,
+                                            {
+                                                paddingBottom:
+                                                    scrollBottomPadding +
+                                                    (keyboardHeight > 0 ? 24 : 0),
+                                            },
+                                        ]}
                                     >
                                         {/* Заголовок */}
                                         <ThemedText style={styles.modalTitle}>
@@ -309,6 +361,7 @@ export const ManagerReviewModal: React.FC<ManagerReviewModalProps> = ({
                                                 value={comment}
                                                 onChangeText={setComment}
                                                 multiline
+                                                onFocus={handleCommentFocus}
                                                 style={[
                                                     styles.commentInput,
                                                     isDark && styles.commentInputDark,
@@ -317,8 +370,14 @@ export const ManagerReviewModal: React.FC<ManagerReviewModalProps> = ({
                                         </View>
                                     </ScrollView>
 
-                                    {/* Кнопка отправки */}
-                                    <View style={styles.buttonContainer}>
+                                    <View
+                                        style={[
+                                            styles.buttonContainer,
+                                            styles.buttonContainerFixed,
+                                            { paddingBottom: footerPadding },
+                                            isDark && styles.buttonContainerFixedDark,
+                                        ]}
+                                    >
                                         <PrimaryButton
                                             title={isSubmitting ? "Отправка..." : "Поставить оценку"}
                                             onPress={handleSubmit}
@@ -330,6 +389,7 @@ export const ManagerReviewModal: React.FC<ManagerReviewModalProps> = ({
                                             loading={isSubmitting}
                                         />
                                     </View>
+                                    </KeyboardAvoidingView>
                                 </>
                             )}
                         </View>
@@ -375,12 +435,14 @@ const styles = StyleSheet.create({
     swipeHandleDark: {
         backgroundColor: "#4A4A50",
     },
+    keyboardAvoiding: {
+        flex: 1,
+    },
     scrollView: {
         flex: 1,
     },
     scrollContent: {
         paddingHorizontal: 20,
-        paddingBottom: 20,
     },
     modalTitle: {
         fontSize: 24,
@@ -473,7 +535,7 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     commentContainer: {
-        marginBottom: 24,
+        marginBottom: 8,
     },
     commentInput: {
         minHeight: 100,
@@ -490,14 +552,20 @@ const styles = StyleSheet.create({
     },
     buttonContainer: {
         paddingHorizontal: 20,
-        paddingVertical: 16,
-        backgroundColor: 'transparent'
+        paddingTop: 12,
+        backgroundColor: "transparent",
+    },
+    buttonContainerFixed: {
+        borderTopWidth: 1,
+        borderTopColor: "#F0F3F7",
+    },
+    buttonContainerFixedDark: {
+        borderTopColor: "#3A3A3F",
     },
     // Стили для экрана благодарности
     thankYouContainer: {
         flex: 1,
-        justifyContent: 'space-between',
-        paddingBottom: 20,
+        justifyContent: "space-between",
     },
     thankYouContent: {
         flex: 1,

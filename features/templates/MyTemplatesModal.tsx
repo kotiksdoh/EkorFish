@@ -29,6 +29,7 @@ import {
   Dimensions,
   FlatList,
   Keyboard,
+  KeyboardAvoidingView,
   Modal,
   Platform,
   ScrollView,
@@ -39,6 +40,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useKeyboardAwareScroll } from "@/features/shared/hooks/useKeyboardAwareScroll";
 
 import { OrderFromTemplateConfirmOverlay } from "./OrderFromTemplateConfirmModal";
 import { ReminderFrequencyPickerOverlay } from "./ReminderFrequencyPickerModal";
@@ -163,6 +165,15 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
   const [cName, setCName] = useState("");
   const [cDesc, setCDesc] = useState("");
   const [cReminder, setCReminder] = useState<number | null>(null);
+  const {
+    scrollRef: createScrollRef,
+    keyboardHeight: createKeyboardHeight,
+    handleScroll: handleCreateScroll,
+    onInputFocus: handleCreateDescFocus,
+    androidKeyboardMargin: createAndroidKeyboardMargin,
+  } = useKeyboardAwareScroll({
+    enabled: createOpen && reminderPickerFor !== "create",
+  });
   const [isClosingCreate, setIsClosingCreate] = useState(false);
   const createSheetTranslateY = useRef(new Animated.Value(screenHeight)).current;
 
@@ -1022,6 +1033,7 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
                       {
                         paddingBottom: 16 + Math.max(insets.bottom, 16),
                         transform: [{ translateY: createSheetTranslateY }],
+                        marginBottom: createAndroidKeyboardMargin,
                       },
                     ]}
                   >
@@ -1046,12 +1058,23 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
                         Создание шаблона
                       </ThemedText>
                     </View>
+                <KeyboardAvoidingView
+                  style={styles.createKeyboardAvoiding}
+                  behavior={Platform.OS === "ios" ? "padding" : undefined}
+                  keyboardVerticalOffset={Platform.OS === "ios" ? 12 : 0}
+                >
                 <ScrollView
+                  ref={createScrollRef}
                   keyboardShouldPersistTaps="handled"
                   keyboardDismissMode="on-drag"
                   onScrollBeginDrag={dismissKeyboard}
+                  onScroll={handleCreateScroll}
+                  scrollEventThrottle={16}
                   showsVerticalScrollIndicator={false}
                   style={styles.createOverlayScroll}
+                  contentContainerStyle={{
+                    paddingBottom: createKeyboardHeight > 0 ? 24 : 8,
+                  }}
                 >
                   <TouchableWithoutFeedback
                     onPress={dismissKeyboard}
@@ -1071,6 +1094,7 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
                     onChangeText={setCDesc}
                     multiline
                     textAlignVertical="top"
+                    onFocus={handleCreateDescFocus}
                     style={styles.descInputWrap}
                     inputStyle={styles.descInput}
                   />
@@ -1130,6 +1154,7 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
                   fullWidth
                   disabled={isCreating}
                 />
+                </KeyboardAvoidingView>
                   </Animated.View>
               ) : null}
 
@@ -1177,6 +1202,9 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   createOverlayScroll: {
+    flex: 1,
+  },
+  createKeyboardAvoiding: {
     flex: 1,
   },
   createOverlaySheetDark: {

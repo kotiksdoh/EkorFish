@@ -47,6 +47,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
   const menuIconDisabledColor = "#A0A0A0"; // Серый для disabled состояния
 
   const textColor = isDarkMode ? "#FFFFFF" : "#1B1B1C";
+  const searchBackgroundColor = isDarkMode ? "#ECEFFA0D" : "#03051E08";
 
   return (
     <View
@@ -59,7 +60,13 @@ const SearchInput: React.FC<SearchInputProps> = ({
       ]}
     >
       {/* Основной контейнер поиска */}
-      <View style={[styles.searchContainer, disabled && styles.disabled]}>
+      <View
+        style={[
+          styles.searchContainer,
+          { backgroundColor: searchBackgroundColor },
+          disabled && styles.disabled,
+        ]}
+      >
         {/* Иконка поиска слева */}
         <View style={styles.searchIcon}>
           <SearchIcon stroke={disabled ? "#A0A0A0" : "#80818B"} />
@@ -130,7 +137,6 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#03051E08",
     borderRadius: 12,
     height: 48,
     paddingHorizontal: 12,
