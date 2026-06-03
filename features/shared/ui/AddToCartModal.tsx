@@ -30,12 +30,35 @@ interface PurchaseOption {
   step: number;
 }
 
+interface ProductStock {
+  id?: string;
+  name?: string;
+  stockInfo?: string;
+  quantity?: number;
+}
+
 interface Product {
   id: string;
   name: string;
   purchaseOptions: PurchaseOption[];
   measureType: string;
   image: string;
+  stocks?: ProductStock[];
+  originalProduct?: { stocks?: ProductStock[] };
+}
+
+/** Первый склад: quantity — потолок; нет stocks/quantity — без лимита */
+export function getMaxQuantityFromStocks(product: Product | null): number | null {
+  if (!product) return null;
+
+  const stocks = product.stocks ?? product.originalProduct?.stocks;
+  if (!Array.isArray(stocks) || stocks.length === 0) return null;
+
+  const rawQuantity = stocks[0]?.quantity;
+  if (rawQuantity === undefined || rawQuantity === null) return null;
+
+  const qty = Number(rawQuantity);
+  return Number.isFinite(qty) ? qty : null;
 }
 
 interface AddToCartModalProps {
@@ -197,13 +220,14 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
   );
 
   const handleIncreaseQuantity = useCallback(() => {
-    if (!selectedOption) return;
+    if (!selectedOption || !product) return;
 
     const newQuantity = quantity + selectedOption.step;
-    if (newQuantity <= selectedOption.maxQuantity) {
+    const maxStockQuantity = getMaxQuantityFromStocks(product);
+    if (maxStockQuantity === null || newQuantity <= maxStockQuantity) {
       setQuantity(parseFloat(newQuantity.toFixed(2)));
     }
-  }, [quantity, selectedOption]);
+  }, [quantity, selectedOption, product]);
 
   const handleDecreaseQuantity = useCallback(() => {
     if (!selectedOption) return;
@@ -230,9 +254,15 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
 
   if (!product || !visible) return null;
 
+  const maxStockQuantity = getMaxQuantityFromStocks(product);
+  const isAtMaxStock =
+    maxStockQuantity !== null && quantity >= maxStockQuantity;
   const totalPrice = selectedOption ? selectedOption.price * quantity : 0;
   const isAddToCartDisabled =
-    !selectedOption || selectedOption.maxQuantity <= 0 || quantity <= 0;
+    !selectedOption ||
+    quantity <= 0 ||
+    (maxStockQuantity !== null &&
+      (maxStockQuantity <= 0 || quantity > maxStockQuantity));
   const optionsCount = product.purchaseOptions.length;
 
   // Динамический расчет ширины табов с учетом отступов
@@ -413,11 +443,10 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
             <TouchableOpacity
               style={[
                 styles.quantityButton,
-                quantity >= selectedOption.maxQuantity &&
-                  styles.quantityButtonDisabled,
+                isAtMaxStock && styles.quantityButtonDisabled,
               ]}
               onPress={handleIncreaseQuantity}
-              disabled={quantity >= selectedOption.maxQuantity}
+              disabled={isAtMaxStock}
             >
               <ThemedText style={styles.quantityButtonText}>+</ThemedText>
             </TouchableOpacity>

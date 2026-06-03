@@ -554,12 +554,6 @@ export default function CatalogDetailScreen() {
   const listHeader = useMemo(
     () => (
       <>
-        <TemplatePickerBanner />
-        <ThemedView
-          style={styles.themeContainer}
-          lightColor={"#FFFFFF"}
-          darkColor="#040508"
-        >
           <View style={styles.sortFilterRow}>
             <TouchableOpacity
               style={styles.sortButton}
@@ -692,7 +686,7 @@ export default function CatalogDetailScreen() {
               </ThemedView>
             </TouchableOpacity>
           )}
-        </ThemedView>
+          <View style={styles.productsListTopSpacer} />
       </>
     ),
     [
@@ -865,30 +859,37 @@ export default function CatalogDetailScreen() {
           }
         />
         <View style={styles.mainContainer}>
-          <FlatList
-            ref={flatListRef}
-            data={products}
-            renderItem={renderProduct}
-            keyExtractor={keyExtractor}
-            numColumns={2}
-            style={styles.container}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.scrollContent}
-            columnWrapperStyle={styles.columnWrapper}
-            ListHeaderComponent={listHeader}
-            ListEmptyComponent={renderListEmpty}
-            ListFooterComponent={renderListFooter}
-            onLayout={handleListLayout}
-            onScroll={handleScroll}
-            scrollEventThrottle={16}
-            onEndReached={handleEndReached}
-            onEndReachedThreshold={0.2}
-            onContentSizeChange={handleContentSizeChange}
-            initialNumToRender={10}
-            maxToRenderPerBatch={10}
-            windowSize={7}
-            removeClippedSubviews
-          />
+          <TemplatePickerBanner />
+          <ThemedView
+            style={styles.themeContainer}
+            lightColor={"#FFFFFF"}
+            darkColor="#040508"
+          >
+            <FlatList
+              ref={flatListRef}
+              data={products}
+              renderItem={renderProduct}
+              keyExtractor={keyExtractor}
+              numColumns={2}
+              style={styles.container}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.scrollContent}
+              columnWrapperStyle={styles.columnWrapper}
+              ListHeaderComponent={listHeader}
+              ListEmptyComponent={renderListEmpty}
+              ListFooterComponent={renderListFooter}
+              onLayout={handleListLayout}
+              onScroll={handleScroll}
+              scrollEventThrottle={16}
+              onEndReached={handleEndReached}
+              onEndReachedThreshold={0.2}
+              onContentSizeChange={handleContentSizeChange}
+              initialNumToRender={10}
+              maxToRenderPerBatch={10}
+              windowSize={7}
+              removeClippedSubviews
+            />
+          </ThemedView>
         </View>
 
         <TownSelectionModal
@@ -1243,9 +1244,14 @@ const styles = StyleSheet.create({
     gap: 8,
     justifyContent: "space-between",
   },
+  productsListTopSpacer: {
+    height: 16,
+  },
   themeContainer: {
+    flex: 1,
     borderRadius: 24,
     marginTop: 10,
+    overflow: "hidden",
   },
   sortFilterRow: {
     flexDirection: "row",

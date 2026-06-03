@@ -17,6 +17,12 @@ interface ServerProduct {
     dateTo: string;
     isFavorite: boolean;
     images: string[];
+    stocks?: Array<{
+      id?: string;
+      name?: string;
+      stockInfo?: string;
+      quantity?: number;
+    }>;
   }
   
   interface AdaptedProduct {
@@ -35,6 +41,7 @@ interface ServerProduct {
     dateFrom?: string;
     dateTo?: string;
     isFavorite?: boolean;
+    stocks?: ServerProduct["stocks"];
   }
   
   export const adaptProductFromServer = (serverProduct: ServerProduct): AdaptedProduct => {
@@ -61,6 +68,7 @@ interface ServerProduct {
       dateFrom: serverProduct.dateFrom,
       dateTo: serverProduct.dateTo,
       isFavorite: serverProduct.isFavorite,
+      stocks: serverProduct.stocks,
     };
   };
   
