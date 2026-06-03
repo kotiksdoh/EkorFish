@@ -263,7 +263,6 @@ export default function ProductDetailScreen() {
     if (!linesForBottomBar.length) return null;
     return linesForBottomBar.reduce((sum, item) => sum + item.quantity, 0);
   }, [linesForBottomBar]);
-  console.log("product?.images", product?.images);
   return (
     <SafeAreaProvider>
       <ThemedView

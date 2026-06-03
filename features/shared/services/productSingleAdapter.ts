@@ -2,13 +2,16 @@ import { baseUrl } from "./axios";
 
   
   export const adaptProductSingleFromServer = (serverProduct: any): any => {
+    const firstImagePath = serverProduct?.images?.[0] || "";
+    const image = firstImagePath
+      ? `${baseUrl}/${String(firstImagePath).replace(/^\//, "")}`
+      : "";
 
-  
     const adptImg = () => {
-        const images = serverProduct?.images?.map((item: string, index: number) => 
+        const images = serverProduct?.images?.map((item: string) => 
             (
                 {
-                    imageUrl: `${baseUrl}/${item || ''}`
+                    imageUrl: `${baseUrl}/${String(item || "").replace(/^\//, "")}`
                 }
             )
         ) || [];
@@ -19,6 +22,7 @@ import { baseUrl } from "./axios";
   
     return {
       ...serverProduct,
+      image,
       images: adptImg(),
     };
   };
