@@ -2,6 +2,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   Image,
   Platform,
   ScrollView,
@@ -63,6 +64,7 @@ export default function TabTwoScreen() {
   const me = useAppSelector((state) => state.auth.me);
   const dispatch = useAppDispatch();
   const router = useRouter();
+  const [authChecked, setAuthChecked] = useState(false);
   const [loginModalVisible, setLoginModalVisible] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
@@ -92,6 +94,11 @@ export default function TabTwoScreen() {
   const [storedCompany, setStoredCompany] = useState<StoredCompany | null>(null);
 
   useEffect(() => {
+    if (!hasAuthToken) {
+      setStoredCompany(null);
+      return;
+    }
+
     const loadStoredCompany = async () => {
       try {
         const rawCompany = await AsyncStorage.getItem("company");
@@ -108,7 +115,7 @@ export default function TabTwoScreen() {
     };
 
     loadStoredCompany();
-  }, [currentCompany]);
+  }, [currentCompany, hasAuthToken]);
 
   // Загружаем сохраненные данные профиля
   useEffect(() => {
@@ -194,7 +201,7 @@ export default function TabTwoScreen() {
 
   // Обновляем данные когда меняется me
   useEffect(() => {
-    if (me) {
+    if (me && hasAuthToken) {
       const isIndividualCompany = storedCompany?.type === "individual";
       const individualProfile = me.individualProfile;
       const nameParts = getDisplayName().split(" ");
@@ -209,40 +216,60 @@ export default function TabTwoScreen() {
         phone: me?.login || me?.phoneNumber || "",
       }));
     }
-  }, [me, storedCompany, currentCompany]);
+  }, [me, storedCompany, currentCompany, hasAuthToken]);
 
-  const handleClosePress = () => {
+  const handleClosePress = async () => {
+    const token = await AsyncStorage.getItem("token");
+    if (token) {
+      setHasAuthToken(true);
+      setAuthChecked(true);
+      setLoginModalVisible(false);
+      return;
+    }
     router.replace("/");
     setLoginModalVisible(false);
   };
 
-  const handleLogin = (phoneNumber: string) => {
+  const handleLogin = async (phoneNumber: string) => {
     console.log("Login with:", phoneNumber);
-    setLoginModalVisible(false);
+    const token = await AsyncStorage.getItem("token");
+    setHasAuthToken(Boolean(token));
+    setAuthChecked(true);
+    setLoginModalVisible(!token);
   };
 
   useFocusEffect(
     useCallback(() => {
+      let cancelled = false;
+
       const checkTokenAndLoad = async () => {
         const token = await AsyncStorage.getItem("token");
-        setHasAuthToken(Boolean(token));
-        if (!token) {
-          console.log("No token found - showing login modal");
-          setLoginModalVisible(true);
-        } else {
-          setLoginModalVisible(false);
-        }
+        if (cancelled) return;
+
+        const authenticated = Boolean(token);
+        setHasAuthToken(authenticated);
+        setLoginModalVisible(!authenticated);
+        setAuthChecked(true);
       };
-      checkTokenAndLoad();
-    }, []),
+
+      if (!hasAuthToken) {
+        setAuthChecked(false);
+      }
+
+      void checkTokenAndLoad();
+
+      return () => {
+        cancelled = true;
+      };
+    }, [hasAuthToken]),
   );
 
   useFocusEffect(
     useCallback(() => {
-      if (resumeDetailTemplateId) {
+      if (resumeDetailTemplateId && hasAuthToken && authChecked) {
         setTemplatesModalVisible(true);
       }
-    }, [resumeDetailTemplateId]),
+    }, [resumeDetailTemplateId, hasAuthToken, authChecked]),
   );
 
   useFocusEffect(
@@ -313,6 +340,10 @@ export default function TabTwoScreen() {
   };
 
   const getDisplayName = () => {
+    if (!authChecked || !hasAuthToken) {
+      return "";
+    }
+
     if (storedCompany?.name) {
       return storedCompany.name;
     }
@@ -333,12 +364,15 @@ export default function TabTwoScreen() {
     return `${profile.lastName || ""} ${profile.firstName || ""} ${profile.patronymic || ""}`.trim();
   };
 
-  const isIndividualSelected = storedCompany?.type === "individual";
+  const isIndividualSelected =
+    hasAuthToken && storedCompany?.type === "individual";
   const profileTitle = getDisplayName();
-  const profileSubtitle = me?.login || "";
+  const profileSubtitle = hasAuthToken ? me?.login || "" : "";
+  const showProfileContent = authChecked && hasAuthToken;
 
   return (
     <>
+      {showProfileContent ? (
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
         {/* Используем View с градиентом и дополнительными настройками для Android */}
         <View style={styles.gradientWrapper}>
@@ -650,6 +684,20 @@ export default function TabTwoScreen() {
           </View>
         </ThemedView>
       </ScrollView>
+      ) : (
+        <ThemedView
+          lightColor="#EBEDF0"
+          darkColor="#040508"
+          style={styles.authGate}
+        >
+          {!authChecked ? (
+            <ActivityIndicator
+              size="large"
+              color={isDarkMode ? "#4C94FF" : "#203686"}
+            />
+          ) : null}
+        </ThemedView>
+      )}
 
       <LoginModal
         visible={loginModalVisible}
@@ -659,7 +707,7 @@ export default function TabTwoScreen() {
       />
 
       <CompanySelectModal
-        visible={modalVisible}
+        visible={modalVisible && showProfileContent}
         onClose={() => setModalVisible(false)}
         companies={me?.companies || []}
         selectedCompanyId={me?.companies[0]?.id}
@@ -668,7 +716,7 @@ export default function TabTwoScreen() {
       />
 
       <ProfileEditModal
-        visible={editModalVisible}
+        visible={editModalVisible && showProfileContent}
         onClose={() => setEditModalVisible(false)}
         onSave={handleSaveProfile}
         initialData={profileData}
@@ -676,32 +724,32 @@ export default function TabTwoScreen() {
       />
 
       <MyOrdersModal
-        visible={myOrderModalVisible}
+        visible={myOrderModalVisible && showProfileContent}
         onClose={() => setMyOrderModalVisible(false)}
       />
 
       <MyReturnsModal
-        visible={returnsModalVisible}
+        visible={returnsModalVisible && showProfileContent}
         onClose={() => setReturnsModalVisible(false)}
       />
 
       <MyTemplatesModal
-        visible={templatesModalVisible}
+        visible={templatesModalVisible && showProfileContent}
         onClose={() => setTemplatesModalVisible(false)}
       />
 
       <MyFinanceModal
-        visible={financeModalVisible}
+        visible={financeModalVisible && showProfileContent}
         onClose={() => setFinanceModalVisible(false)}
       />
 
       <MySettingsModal
-        visible={settingsModalVisible}
+        visible={settingsModalVisible && showProfileContent}
         onClose={() => setSettingsModalVisible(false)}
       />
 
       <HelpModal
-        visible={helpModalVisible}
+        visible={helpModalVisible && showProfileContent}
         onClose={() => setHelpModalVisible(false)}
       />
 
@@ -718,6 +766,11 @@ export default function TabTwoScreen() {
 }
 
 const styles = StyleSheet.create({
+  authGate: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   headerImage: {
     color: "#808080",
     bottom: -90,
