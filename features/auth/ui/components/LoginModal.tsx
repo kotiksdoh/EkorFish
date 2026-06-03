@@ -510,10 +510,10 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   const handleSearchCompany = () => {
     dispatch(searchCompany({ search: inn })).then((res: any) => {
       if (searchCompany.rejected.match(res)) {
-        setCurrentScreen(ScreensScenario.COMPANY_PICK);
-      } else {
-        setCurrentScreen(ScreensScenario.COMPANY_PICK);
+        setCurrentScreen(ScreensScenario.COMPANY_REG);
+        return;
       }
+      setCurrentScreen(ScreensScenario.COMPANY_PICK);
     });
   };
   const systemTheme = useColorScheme();
