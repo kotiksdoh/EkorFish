@@ -27,7 +27,9 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { WebView } from "react-native-webview";
+import type { LegalDocumentId } from "@/features/shared/legal/buildLegalHtml";
+import { HtmlContentViewer } from "@/features/shared/ui/HtmlContentViewer";
+import { getLegalDocumentTitle, LegalDocumentViewer } from "@/features/shared/ui/LegalDocumentViewer";
 import { PrimaryButton } from "./components/PrimartyButton";
 import { SnapBottomSheet } from "./SnapBottomSheet";
 
@@ -55,7 +57,7 @@ interface HelpProps {
   onClose: () => void;
 }
 
-type ScreenState = 'main' | 'helpList' | 'about' | 'helpContent';
+type ScreenState = 'main' | 'helpList' | 'about' | 'helpContent' | 'legalDocument';
 type SupportModalState = 'hidden' | 'visible';
 
 export const HelpModal: React.FC<HelpProps> = ({ visible, onClose }) => {
@@ -88,8 +90,10 @@ export const HelpModal: React.FC<HelpProps> = ({ visible, onClose }) => {
   const [supportModalState, setSupportModalState] = useState<SupportModalState>('hidden');
   const [currentHelpObject, setCurrentHelpObject] = useState<{
     type: string;
+    title: string;
     currentHtml: string;
   } | null>(null);
+  const [legalDocumentId, setLegalDocumentId] = useState<LegalDocumentId | null>(null);
   const versionInfo = useMemo(() => getAppVersionInfo(), []);
   const [aboutInfo, setAboutInfo] = useState({
     lastUpdate: "Загрузка...",
@@ -126,6 +130,9 @@ export const HelpModal: React.FC<HelpProps> = ({ visible, onClose }) => {
     if (currentHelpObject) {
       setCurrentHelpObject(null);
       setScreenState('helpList');
+    } else if (screenState === 'legalDocument') {
+      setLegalDocumentId(null);
+      setScreenState('about');
     } else if (screenState === 'helpList') {
       setScreenState('main');
     } else if (screenState === 'about') {
@@ -135,10 +142,18 @@ export const HelpModal: React.FC<HelpProps> = ({ visible, onClose }) => {
     }
   }, [currentHelpObject, screenState, onClose]);
 
+  const openLegalDocument = useCallback((documentId: LegalDocumentId) => {
+    setLegalDocumentId(documentId);
+    setScreenState('legalDocument');
+  }, []);
+
   const handleCloseAll = useCallback(() => {
     if (currentHelpObject) {
       setCurrentHelpObject(null);
       setScreenState('helpList');
+    } else if (screenState === 'legalDocument') {
+      setLegalDocumentId(null);
+      setScreenState('about');
     } else if (screenState !== 'main') {
       setScreenState('main');
     } else if (supportModalState === 'visible') {
@@ -161,10 +176,14 @@ export const HelpModal: React.FC<HelpProps> = ({ visible, onClose }) => {
   }, [helpList.length, dispatch]);
 
   const onCkickHelp = useCallback((
-    helpItem: { type: string; items: { title: string; htmlText: string }[] },
-    currentHtml: string,
+    helpObj: { type: string; items: { title: string; htmlText: string }[] },
+    helpItem: { title: string; htmlText: string },
   ) => {
-    setCurrentHelpObject({ type: helpItem.type, currentHtml });
+    setCurrentHelpObject({
+      type: helpObj.type,
+      title: helpItem.title,
+      currentHtml: helpItem.htmlText,
+    });
     setScreenState('helpContent');
   }, []);
 
@@ -208,14 +227,17 @@ export const HelpModal: React.FC<HelpProps> = ({ visible, onClose }) => {
 
   const getHeaderTitle = useCallback(() => {
     if (currentHelpObject) {
-      return currentHelpObject.type[0].toUpperCase() + currentHelpObject.type.slice(1);
+      return currentHelpObject.title;
+    }
+    if (screenState === 'legalDocument' && legalDocumentId) {
+      return getLegalDocumentTitle(legalDocumentId);
     }
     switch (screenState) {
       case 'helpList': return "Помощь";
       case 'about': return "О приложении";
       default: return "Помощь и приложение";
     }
-  }, [currentHelpObject, screenState]);
+  }, [currentHelpObject, screenState, legalDocumentId]);
 
   const renderMainScreen = () => (
     <ThemedView lightColor="transparent" darkColor="transparent" style={styles.contentContainer}>
@@ -268,7 +290,7 @@ export const HelpModal: React.FC<HelpProps> = ({ visible, onClose }) => {
             {helpObj.items.map((helpItem) => (
               <TouchableOpacity
                 key={helpItem.title}
-                onPress={() => onCkickHelp(helpObj, helpItem.htmlText)}
+                onPress={() => onCkickHelp(helpObj, helpItem)}
                 activeOpacity={0.7}
               >
                 <View
@@ -305,22 +327,49 @@ export const HelpModal: React.FC<HelpProps> = ({ visible, onClose }) => {
         </ThemedText>
       </View>
       <View style={styles.aboutLinks}>
-        <ThemedText darkColor="#4C94FF">Лицензионное соглашение</ThemedText>
-        <ThemedText darkColor="#4C94FF">Пользовательское соглашение</ThemedText>
-        <ThemedText darkColor="#4C94FF">Политика конфиденциальности</ThemedText>
+        <TouchableOpacity
+          onPress={() => openLegalDocument('license')}
+          activeOpacity={0.7}
+        >
+          <ThemedText lightColor="#203686" darkColor="#4C94FF" style={styles.legalLink}>
+            Лицензионное соглашение
+          </ThemedText>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => openLegalDocument('userAgreement')}
+          activeOpacity={0.7}
+        >
+          <ThemedText lightColor="#203686" darkColor="#4C94FF" style={styles.legalLink}>
+            Пользовательское соглашение
+          </ThemedText>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => openLegalDocument('privacy')}
+          activeOpacity={0.7}
+        >
+          <ThemedText lightColor="#203686" darkColor="#4C94FF" style={styles.legalLink}>
+            Политика конфиденциальности
+          </ThemedText>
+        </TouchableOpacity>
       </View>
+    </ThemedView>
+  );
+
+  const renderLegalDocumentScreen = () => (
+    <ThemedView lightColor="#FFFFFF" darkColor="#151516" style={styles.contentContainer}>
+      {legalDocumentId && (
+        <LegalDocumentViewer
+          documentId={legalDocumentId}
+          operatorEmail={supportContacts.email}
+        />
+      )}
     </ThemedView>
   );
 
   const renderHelpContentScreen = () => (
     <ThemedView lightColor="#FFFFFF" darkColor="#151516" style={styles.contentContainer}>
       {currentHelpObject && (
-        <WebView
-          originWhitelist={["*"]}
-          source={{ html: currentHelpObject.currentHtml }}
-          javaScriptEnabled={true}
-          style={styles.webView}
-        />
+        <HtmlContentViewer html={currentHelpObject.currentHtml} />
       )}
     </ThemedView>
   );
@@ -393,6 +442,7 @@ export const HelpModal: React.FC<HelpProps> = ({ visible, onClose }) => {
       case 'main': return renderMainScreen();
       case 'helpList': return renderHelpListScreen();
       case 'about': return renderAboutScreen();
+      case 'legalDocument': return renderLegalDocumentScreen();
       case 'helpContent': return renderHelpContentScreen();
       default: return renderMainScreen();
     }
@@ -469,6 +519,10 @@ const styles = StyleSheet.create({
   aboutLinks: {
     alignItems: "center",
     gap: 28,
+  },
+  legalLink: {
+    fontSize: 15,
+    fontWeight: "500",
   },
   webView: {
     flex: 1,

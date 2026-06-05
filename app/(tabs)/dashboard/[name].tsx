@@ -133,6 +133,9 @@ export default function CatalogDetailScreen() {
   const selectedSubcategoryId = useAppSelector(
     (state) => state.catalog.selectedSubcategoryId,
   );
+  const activeProductListMode = useAppSelector(
+    (state) => state.catalog.activeProductListMode,
+  );
   const [showSortModal, setShowSortModal] = useState(false);
   const sortModalTranslateY = useRef(new Animated.Value(screenHeight)).current;
   const [isClosingSortModal, setIsClosingSortModal] = useState(false);
@@ -408,6 +411,29 @@ export default function CatalogDetailScreen() {
     void loadProducts(false, initialSearchQuery);
     dispatch(getCategoryFilters(catalogId));
   }, [catalogId, dispatch, isPromo, me?.storageId, search]);
+
+  // После вкладки «Избранное» в Redux остаётся тот же список — перегружаем каталог
+  useFocusEffect(
+    useCallback(() => {
+      if (!catalogId || activeProductListMode !== "favorites") {
+        return;
+      }
+
+      const initialSearchQuery =
+        typeof search === "string" ? decodeURIComponent(search).trim() : "";
+
+      dispatch(clearProducts());
+      void loadProducts(false, initialSearchQuery);
+      dispatch(getCategoryFilters(catalogId));
+    }, [
+      activeProductListMode,
+      catalogId,
+      dispatch,
+      loadProducts,
+      search,
+    ]),
+  );
+
   // Обработчик смены подкатегории
   const handleSubcategorySelect = useCallback(
     (subcategoryId: string | null) => {
@@ -470,11 +496,24 @@ export default function CatalogDetailScreen() {
   };
 
   const fetchNextPage = useCallback(() => {
-    if (!catalogId || !hasMore || isFetchingRef.current || isLoading) {
+    if (
+      !catalogId ||
+      !hasMore ||
+      isFetchingRef.current ||
+      isLoadingMore ||
+      isPagingMore
+    ) {
       return;
     }
     void loadProducts(true, searchQuery);
-  }, [catalogId, hasMore, isLoading, loadProducts, searchQuery]);
+  }, [
+    catalogId,
+    hasMore,
+    isLoadingMore,
+    isPagingMore,
+    loadProducts,
+    searchQuery,
+  ]);
 
   useEffect(() => {
     fetchNextPageRef.current = fetchNextPage;
@@ -521,12 +560,13 @@ export default function CatalogDetailScreen() {
         height <= viewportHeight + 32 &&
         hasMore &&
         !isFetchingRef.current &&
-        !isLoading
+        !isLoadingMore &&
+        !isPagingMore
       ) {
         fetchNextPage();
       }
     },
-    [fetchNextPage, hasMore, isLoading],
+    [fetchNextPage, hasMore, isLoadingMore, isPagingMore],
   );
 
   const renderProduct = useCallback(
@@ -553,7 +593,11 @@ export default function CatalogDetailScreen() {
 
   const listHeader = useMemo(
     () => (
-      <>
+      <ThemedView
+        style={styles.themeContainerHeader}
+        lightColor={"#FFFFFF"}
+        darkColor="#040508"
+      >
           <View style={styles.sortFilterRow}>
             <TouchableOpacity
               style={styles.sortButton}
@@ -687,7 +731,7 @@ export default function CatalogDetailScreen() {
             </TouchableOpacity>
           )}
           <View style={styles.productsListTopSpacer} />
-      </>
+      </ThemedView>
     ),
     [
       appliedFiltersCount,
@@ -860,36 +904,35 @@ export default function CatalogDetailScreen() {
         />
         <View style={styles.mainContainer}>
           <TemplatePickerBanner />
-          <ThemedView
-            style={styles.themeContainer}
-            lightColor={"#FFFFFF"}
-            darkColor="#040508"
-          >
-            <FlatList
-              ref={flatListRef}
-              data={products}
-              renderItem={renderProduct}
-              keyExtractor={keyExtractor}
-              numColumns={2}
-              style={styles.container}
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={styles.scrollContent}
-              columnWrapperStyle={styles.columnWrapper}
-              ListHeaderComponent={listHeader}
-              ListEmptyComponent={renderListEmpty}
-              ListFooterComponent={renderListFooter}
-              onLayout={handleListLayout}
-              onScroll={handleScroll}
-              scrollEventThrottle={16}
-              onEndReached={handleEndReached}
-              onEndReachedThreshold={0.2}
-              onContentSizeChange={handleContentSizeChange}
-              initialNumToRender={10}
-              maxToRenderPerBatch={10}
-              windowSize={7}
-              removeClippedSubviews
-            />
-          </ThemedView>
+          <FlatList
+            ref={flatListRef}
+            data={products}
+            renderItem={renderProduct}
+            keyExtractor={keyExtractor}
+            numColumns={2}
+            style={styles.container}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={[
+              styles.scrollContent,
+              styles.productsListContent,
+              isDarkMode
+                ? styles.productsListContentDark
+                : styles.productsListContentLight,
+            ]}
+            columnWrapperStyle={styles.columnWrapper}
+            ListHeaderComponent={listHeader}
+            ListEmptyComponent={renderListEmpty}
+            ListFooterComponent={renderListFooter}
+            onLayout={handleListLayout}
+            onScroll={handleScroll}
+            scrollEventThrottle={16}
+            onEndReached={handleEndReached}
+            onEndReachedThreshold={0.35}
+            onContentSizeChange={handleContentSizeChange}
+            initialNumToRender={10}
+            maxToRenderPerBatch={10}
+            windowSize={7}
+          />
         </View>
 
         <TownSelectionModal
@@ -1237,7 +1280,17 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: 20,
+    paddingBottom: 32,
+  },
+  productsListContent: {
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+  },
+  productsListContentLight: {
+    backgroundColor: "#FFFFFF",
+  },
+  productsListContentDark: {
+    backgroundColor: "#040508",
   },
   columnWrapper: {
     paddingHorizontal: 16,
@@ -1247,11 +1300,10 @@ const styles = StyleSheet.create({
   productsListTopSpacer: {
     height: 16,
   },
-  themeContainer: {
-    flex: 1,
-    borderRadius: 24,
+  themeContainerHeader: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     marginTop: 10,
-    overflow: "hidden",
   },
   sortFilterRow: {
     flexDirection: "row",
@@ -1364,9 +1416,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   loadingContainer: {
-    paddingVertical: 20,
+    paddingVertical: 24,
+    paddingBottom: 32,
     alignItems: "center",
     justifyContent: "center",
+    minHeight: 72,
   },
   loadingText: {
     marginTop: 8,

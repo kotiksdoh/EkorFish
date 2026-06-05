@@ -75,10 +75,18 @@ interface ReturnRequestDetail {
   totalAmount: number;
   totalWeight: number;
 }
+type ProductListMode = "favorites" | "catalog";
+
+function getProductListMode(params: { isFavorite?: boolean }): ProductListMode {
+  return params?.isFavorite === true ? "favorites" : "catalog";
+}
+
 interface CategoryState {
   isLoading: boolean;
   isLoadingMore: boolean;
   isLoadingFilters: boolean;
+  /** Режим активного списка — отсекает ответы API после смены каталог ↔ избранное */
+  activeProductListMode: ProductListMode | null;
   products: any[];
   totalCount: number;
   currentPage: number;
@@ -123,6 +131,7 @@ const initialState: CategoryState = {
   isLoading: false,
   isLoadingMore: false,
   isLoadingFilters: false,
+  activeProductListMode: null,
   products: [],
   totalCount: 0,
   currentPage: 0,
@@ -258,8 +267,12 @@ export const getProductList = createAsyncThunk(
         params.append("categoryId", payload.params.categoryId);
       }
 
-      // Добавляем подкатегорию если выбрана (кроме 'all')
-      if (selectedSubcategoryId && selectedSubcategoryId !== "all") {
+      // Подкатегория только для каталога, не для избранного
+      if (
+        payload.params.isFavorite !== true &&
+        selectedSubcategoryId &&
+        selectedSubcategoryId !== "all"
+      ) {
         params.append("subCategoryId", selectedSubcategoryId);
       }
 
@@ -782,6 +795,7 @@ const catalogSlice = createSlice({
     clearProducts: (state) => {
       state.isLoading = false;
       state.isLoadingMore = false;
+      state.activeProductListMode = null;
       state.products = [];
       state.totalCount = 0;
       state.currentPage = 0;
@@ -1006,6 +1020,12 @@ const catalogSlice = createSlice({
     });
     builder.addCase(getProductList.pending, (state, action) => {
       const isLoadMore = action.meta.arg?.isLoadMore || false;
+      const requestMode = getProductListMode(action.meta.arg?.params ?? {});
+
+      if (!isLoadMore) {
+        state.activeProductListMode = requestMode;
+      }
+
       if (isLoadMore) {
         state.isLoadingMore = true;
       } else {
@@ -1014,7 +1034,18 @@ const catalogSlice = createSlice({
     });
 
     builder.addCase(getProductList.fulfilled, (state, action) => {
-      const { data, isLoadMore, offset } = action.payload;
+      const requestMode = getProductListMode(action.meta.arg?.params ?? {});
+
+      if (
+        state.activeProductListMode !== null &&
+        requestMode !== state.activeProductListMode
+      ) {
+        state.isLoading = false;
+        state.isLoadingMore = false;
+        return;
+      }
+
+      const { data, isLoadMore } = action.payload;
       const adaptedProducts = adaptProductsArray(data.data || []);
 
       if (isLoadMore) {

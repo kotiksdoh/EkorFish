@@ -259,13 +259,14 @@ export default function HeartScreen() {
       sortOverride?: ProductSortId,
     ) => {
       if (isFetchingRef.current) return;
+      if (isLoadMore && !hasMore) return;
 
       isFetchingRef.current = true;
 
       try {
         const params: any = {
           isFavorite: true,
-          offset: isLoadMore ? (currentPage + 1) * pageSize : 0,
+          offset: isLoadMore ? products.length : 0,
           count: pageSize,
           storageId: me?.storageId,
           isPromo: false,
@@ -323,7 +324,16 @@ export default function HeartScreen() {
         }, 500);
       }
     },
-    [currentPage, dispatch, me?.storageId, priceRange, searchQuery, selectedFilterIds, sortBy],
+    [
+      dispatch,
+      hasMore,
+      me?.storageId,
+      priceRange,
+      products.length,
+      searchQuery,
+      selectedFilterIds,
+      sortBy,
+    ],
   );
 
   // Загрузка фильтров для избранного
@@ -458,7 +468,9 @@ export default function HeartScreen() {
 
   const getCurrentSortLabel = () => getProductSortLabel(sortBy);
 
-  const displayProducts = hasToken ? products : [];
+  const displayProducts = hasToken
+    ? products.filter((product) => product.isFavorite === true)
+    : [];
 
   // Рендер элемента группы фильтров в горизонтальном списке
   const renderFilterGroupItem = (filterGroup: any) => {

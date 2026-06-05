@@ -21,7 +21,10 @@ import SmartInput from "@/features/shared/ui/components/SmartInput";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { syncPushTokenToBackend } from "@/hooks/usePushNotifications";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import React, { useEffect, useRef, useState } from "react";
+import type { LegalDocumentId } from "@/features/shared/legal/buildLegalHtml";
+import { LegalDocumentModal } from "@/features/shared/ui/LegalDocumentModal";
+import { getSupportContactsFromParams } from "@/features/shared/utils/supportParams";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Image,
   KeyboardAvoidingView,
@@ -82,6 +85,9 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 }) => {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [legalDocumentId, setLegalDocumentId] = useState<LegalDocumentId | null>(
+    null,
+  );
   const [confirmationCode, setConfirmationCode] = useState(["", "", "", ""]);
   const [timer, setTimer] = useState(60);
   const [isTimerActive, setIsTimerActive] = useState(false);
@@ -131,6 +137,11 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   };
   const company = useAppSelector((state) => state.auth.company);
   const predUserData = useAppSelector((state) => state.auth.predUserData);
+  const authParams = useAppSelector((state) => state.auth.params);
+  const supportContacts = useMemo(
+    () => getSupportContactsFromParams(authParams),
+    [authParams],
+  );
   // const company = {
   //   id: 1,
   //   inn: 1111,
@@ -634,6 +645,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                           lightColor="#203686"
                           darkColor="#4C94FF"
                           style={styles.checkboxLink}
+                          onPress={() => setLegalDocumentId("privacy")}
                         >
                           Политику конфиденциальности
                         </ThemedText>
@@ -642,6 +654,9 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                           lightColor="#203686"
                           darkColor="#4C94FF"
                           style={styles.checkboxLink}
+                          onPress={() =>
+                            setLegalDocumentId("personalDataConsent")
+                          }
                         >
                           Согласие на обработку персональных данных
                         </ThemedText>
@@ -1456,6 +1471,12 @@ export const LoginModal: React.FC<LoginModalProps> = ({
           <></>
         )}
       </SafeAreaProvider>
+      <LegalDocumentModal
+        visible={legalDocumentId !== null}
+        documentId={legalDocumentId}
+        operatorEmail={supportContacts.email}
+        onClose={() => setLegalDocumentId(null)}
+      />
     </Modal>
   );
 };
