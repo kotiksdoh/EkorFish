@@ -98,7 +98,6 @@ const CatalogCardComponent: React.FC<CatalogCardProps> = ({
 const styles = StyleSheet.create({
   touchableContainer: {
     width: "31%", // Переносим ширину сюда
-    marginBottom: 12,
   },
   container: {
     flexDirection: "column",
@@ -106,7 +105,7 @@ const styles = StyleSheet.create({
     height: 159,
     borderRadius: 8,
     overflow: "hidden",
-    marginBottom: 12,
+    marginBottom: 1,
     // shadowColor: '#000',
     shadowOffset: {
       width: 0,

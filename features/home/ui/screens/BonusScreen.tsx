@@ -31,7 +31,7 @@ const { height: screenHeight } = Dimensions.get("window");
 const PAGE_SIZE = 10;
 
 interface BonusTransaction {
-  id: string;
+  id?: string | number;
   orderNumber: string;
   orderAmount: number;
   date: string;
@@ -68,6 +68,18 @@ function getBonusTransactionTitle(item: BonusTransaction): string {
 
 function shouldShowOrderAmount(item: BonusTransaction): boolean {
   return getOrderNumber(item) !== null;
+}
+
+function getBonusHistoryItemKey(
+  item: BonusTransaction,
+  index: number,
+  dateKey: string,
+): string {
+  const idPart =
+    item.id !== null && item.id !== undefined && String(item.id).length > 0
+      ? String(item.id)
+      : "no-id";
+  return `${dateKey}-${idPart}-${index}`;
 }
 
 export const BonusPage: React.FC<BonusPageProps> = ({
@@ -372,13 +384,13 @@ export const BonusPage: React.FC<BonusPageProps> = ({
               </View>
             ) : (
               // Группированное отображение первых записей
-              groupedFirstThree.map(([date, items]) => (
-                <View key={date} style={styles.compactDateGroup}>
+              groupedFirstThree.map(([date, items], groupIndex) => (
+                <View key={`compact-group-${date}-${groupIndex}`} style={styles.compactDateGroup}>
                   <ThemedText lightColor="#80818B" darkColor="#FBFCFF80" style={styles.compactDateTitle}>
                     {date}
                   </ThemedText>
-                  {items.map((item) => (
-                    <View key={item.id} style={styles.compactHistoryItem}>
+                  {items.map((item, index) => (
+                    <View key={getBonusHistoryItemKey(item, index, date)} style={styles.compactHistoryItem}>
                       <View style={styles.compactHistoryLeft}>
                         <ThemedText style={styles.compactHistoryOrder}>
                           {getBonusTransactionTitle(item)}
@@ -459,13 +471,13 @@ export const BonusPage: React.FC<BonusPageProps> = ({
                     </View>
                   ) : (
                     <>
-                      {Object.entries(groupedFullHistory).map(([date, items]) => (
-                        <View key={date} style={styles.dateGroup}>
+                      {Object.entries(groupedFullHistory).map(([date, items], groupIndex) => (
+                        <View key={`full-group-${date}-${groupIndex}`} style={styles.dateGroup}>
                           <ThemedText style={styles.dateGroupTitle} lightColor="#80818B" darkColor="#FBFCFF80">
                             {date}
                           </ThemedText>
-                          {items.map((item) => (
-                            <View key={item.id} style={styles.fullHistoryItem}>
+                          {items.map((item, index) => (
+                            <View key={getBonusHistoryItemKey(item, index, date)} style={styles.fullHistoryItem}>
                               <View style={styles.fullHistoryItemLeft}>
                                 <ThemedText
                                   style={styles.fullHistoryOrder}

@@ -16,9 +16,9 @@ import {
 } from "@/features/catalog/catalogSlice";
 import {
   DEFAULT_PRODUCT_SORT,
+  PRODUCT_SORT_OPTIONS,
   applyProductSortToParams,
   getProductSortLabel,
-  PRODUCT_SORT_OPTIONS,
   type ProductSortId,
 } from "@/features/catalog/productSort";
 import { AddToCartModal } from "@/features/shared/ui/AddToCartModal";
@@ -28,11 +28,11 @@ import AnimatedTextInput from "@/features/shared/ui/components/CustomInput";
 import { TemplatePickerBanner } from "@/features/templates/TemplatePickerBanner";
 import { useTemplatePicker } from "@/features/templates/TemplatePickerContext";
 import { buildTemplateLineFromProduct } from "@/features/templates/buildTemplateLine";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
   ActivityIndicator,
   Animated,
@@ -50,7 +50,10 @@ import {
   TouchableWithoutFeedback,
   View,
 } from "react-native";
-import { SafeAreaProvider } from "react-native-safe-area-context";
+import {
+  SafeAreaProvider,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 
@@ -97,7 +100,6 @@ export default function CatalogDetailScreen() {
   // Состояния
   const [searchQuery, setSearchQuery] = useState(search || "");
   const [showFilters, setShowFilters] = useState(false);
-  const [isOpeningFilters, setIsOpeningFilters] = useState(false);
   const [sortBy, setSortBy] = useState<ProductSortId>(DEFAULT_PRODUCT_SORT);
   const [priceRange, setPriceRange] = useState({
     min: "",
@@ -128,6 +130,9 @@ export default function CatalogDetailScreen() {
   const hasMore = useAppSelector((state) => state.catalog.hasMore);
   const currentPage = useAppSelector((state) => state.catalog.currentPage);
   const filters = useAppSelector((state) => state.catalog.filters);
+  const filtersCategoryId = useAppSelector(
+    (state) => state.catalog.filtersCategoryId,
+  );
   const selectedFilterIds = useAppSelector(
     (state) => state.catalog.selectedFilterIds,
   );
@@ -212,6 +217,8 @@ export default function CatalogDetailScreen() {
     (shelfLifeRange.max ? 1 : 0);
 
   const dispatch = useAppDispatch();
+  const insets = useSafeAreaInsets();
+  const filtersFooterPadding = Math.max(insets.bottom, 16);
   const searchInputRef = useRef<TextInput>(null);
   const router = useRouter();
   const flatListRef = useRef<FlatList>(null);
@@ -239,9 +246,11 @@ export default function CatalogDetailScreen() {
   );
   const autoFillAtCountRef = useRef(-1);
   const activeCategoryIdRef = useRef(activeCategoryId);
+  const selectedSubcategoryIdRef = useRef<string | null>(selectedSubcategoryId);
   const [isPagingMore, setIsPagingMore] = useState(false);
 
   activeCategoryIdRef.current = activeCategoryId;
+  selectedSubcategoryIdRef.current = selectedSubcategoryId;
 
   useEffect(() => {
     catalogIdRef.current = catalogId;
@@ -266,6 +275,17 @@ export default function CatalogDetailScreen() {
     [catalogId],
   );
 
+  const animateFiltersModalOpen = useCallback(() => {
+    modalTranslateY.setValue(screenHeight);
+    Animated.spring(modalTranslateY, {
+      toValue: 0,
+      useNativeDriver: true,
+      damping: 22,
+      stiffness: 180,
+      mass: 0.85,
+    }).start();
+  }, [modalTranslateY]);
+
   // Функция для закрытия модалки с анимацией
   const closeModalWithAnimation = useCallback(() => {
     if (isClosing) return;
@@ -273,13 +293,14 @@ export default function CatalogDetailScreen() {
     setIsClosing(true);
     Animated.timing(modalTranslateY, {
       toValue: screenHeight,
-      duration: 250,
+      duration: 280,
       useNativeDriver: true,
     }).start(() => {
       setShowFilters(false);
       setIsClosing(false);
+      modalTranslateY.setValue(screenHeight);
     });
-  }, [isClosing]);
+  }, [isClosing, modalTranslateY]);
 
   // Обработчик нажатия на overlay
   const handleOverlayPress = useCallback(() => {
@@ -290,40 +311,40 @@ export default function CatalogDetailScreen() {
 
   // Эффект для анимации появления модалки
   useEffect(() => {
-    if (showFilters) {
-      modalTranslateY.setValue(screenHeight);
-      Animated.spring(modalTranslateY, {
-        toValue: 0,
-        useNativeDriver: true,
-        damping: 20,
-        stiffness: 90,
-        mass: 0.8,
-      }).start();
-    } else {
-      modalTranslateY.setValue(screenHeight);
+    if (showFilters && !isClosing) {
+      animateFiltersModalOpen();
     }
-  }, [showFilters]);
+  }, [animateFiltersModalOpen, isClosing, showFilters]);
 
   // Простой обработчик свайпа для защелки
   const handleSwipeHandlePress = useCallback(() => {
     closeModalWithAnimation();
   }, [closeModalWithAnimation]);
 
-  const handleOpenFilters = useCallback(async () => {
-    setShowFilters(true);
-
-    // Подгружаем фильтры при открытии, если их еще нет.
-    if (!catalogId || isLoadingFilters || filters.length > 0) {
+  const handleOpenFilters = useCallback(() => {
+    if (showFilters || isClosing) {
       return;
     }
 
-    try {
-      setIsOpeningFilters(true);
-      await dispatch(getCategoryFilters(catalogId));
-    } finally {
-      setIsOpeningFilters(false);
+    modalTranslateY.setValue(screenHeight);
+    setShowFilters(true);
+
+    if (!catalogId || isLoadingFilters) {
+      return;
     }
-  }, [catalogId, dispatch, filters.length, isLoadingFilters]);
+
+    if (filtersCategoryId !== String(catalogId)) {
+      void dispatch(getCategoryFilters(catalogId));
+    }
+  }, [
+    catalogId,
+    dispatch,
+    filtersCategoryId,
+    isClosing,
+    isLoadingFilters,
+    modalTranslateY,
+    showFilters,
+  ]);
 
   // Загрузка продуктов
   const loadProducts = useCallback(
@@ -404,11 +425,10 @@ export default function CatalogDetailScreen() {
           );
         }
 
-        // Добавляем subCategoryId если выбрана подкатегория
         const effectiveSubcategoryId =
-          forceSubcategoryId === undefined
-            ? selectedSubcategoryId
-            : forceSubcategoryId;
+          forceSubcategoryId !== undefined
+            ? forceSubcategoryId
+            : selectedSubcategoryIdRef.current;
 
         if (effectiveSubcategoryId && effectiveSubcategoryId !== "all") {
           params.subCategoryId = effectiveSubcategoryId;
@@ -486,11 +506,12 @@ export default function CatalogDetailScreen() {
 
     setSearchQuery(initialSearchQuery);
     dispatch(clearSelectedSubcategory());
+    selectedSubcategoryIdRef.current = null;
     dispatch(clearSelectedFilters());
     setPriceRange({ min: "", max: "" });
     setShelfLifeRange({ min: "", max: "" });
     dispatch(clearProducts());
-    void loadProductsRef.current(false, initialSearchQuery);
+    void loadProductsRef.current(false, initialSearchQuery, undefined, null);
     dispatch(getCategoryFilters(catalogId));
   }, [catalogId, clearPaginationTimeout, dispatch, search]);
 
@@ -526,18 +547,33 @@ export default function CatalogDetailScreen() {
     }, [activeProductListMode, catalogId, clearPaginationTimeout]),
   );
 
+  const isCategoryListPending =
+    Boolean(catalogId) && activeCategoryId !== String(catalogId);
+
+  const isSubcategorySwitching =
+    (isLoading && !isLoadingMore) || isCategoryListPending;
+
   // Обработчик смены подкатегории
   const handleSubcategorySelect = useCallback(
     (subcategoryId: string | null) => {
+      if (isSubcategorySwitching) {
+        return;
+      }
+
       const nextSubcategoryId = subcategoryId === "all" ? null : subcategoryId;
+      if (nextSubcategoryId === selectedSubcategoryIdRef.current) {
+        return;
+      }
+
+      loadGenerationRef.current += 1;
       dispatch(setSelectedSubcategory(nextSubcategoryId));
+      selectedSubcategoryIdRef.current = nextSubcategoryId;
 
       flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
 
-      // Грузим по явно выбранной подкатегории, без ожидания Redux-state
       void loadProducts(false, searchQuery, undefined, nextSubcategoryId);
     },
-    [dispatch, loadProducts, searchQuery],
+    [dispatch, isSubcategorySwitching, loadProducts, searchQuery],
   );
 
   const displayProducts = useMemo(() => {
@@ -547,9 +583,6 @@ export default function CatalogDetailScreen() {
     }
     return products;
   }, [products, catalogId, activeCategoryId]);
-
-  const isCategoryListPending =
-    Boolean(catalogId) && activeCategoryId !== String(catalogId);
 
   const [existingCartItem, setExistingCartItem] = useState<any>(null);
 
@@ -769,6 +802,7 @@ export default function CatalogDetailScreen() {
               >
                 <TouchableOpacity
                   key="all"
+                  disabled={isSubcategorySwitching}
                   style={[
                     styles.subcategoryButton,
                     selectedSubcategoryId === null &&
@@ -781,6 +815,7 @@ export default function CatalogDetailScreen() {
                       selectedSubcategoryId === null && {
                         backgroundColor: "#3881EE",
                       },
+                    isSubcategorySwitching && styles.subcategoryButtonDisabled,
                   ]}
                   onPress={() => handleSubcategorySelect("all")}
                 >
@@ -801,6 +836,7 @@ export default function CatalogDetailScreen() {
                 {subcategoriesFromProps.map((subcategory: any) => (
                   <TouchableOpacity
                     key={subcategory.id}
+                    disabled={isSubcategorySwitching}
                     style={[
                       styles.subcategoryButton,
                       selectedSubcategoryId === subcategory.id &&
@@ -813,6 +849,7 @@ export default function CatalogDetailScreen() {
                         selectedSubcategoryId === subcategory.id && {
                           backgroundColor: "#3881EE",
                         },
+                      isSubcategorySwitching && styles.subcategoryButtonDisabled,
                     ]}
                     onPress={() => handleSubcategorySelect(subcategory.id)}
                   >
@@ -868,6 +905,7 @@ export default function CatalogDetailScreen() {
       handleSubcategorySelect,
       hasAuthToken,
       isDarkMode,
+      isSubcategorySwitching,
       selectedSubcategoryId,
       sortBy,
       subcategoriesFromProps,
@@ -1088,7 +1126,7 @@ export default function CatalogDetailScreen() {
 
         {/* Модальное окно фильтров */}
         <Modal
-          visible={showFilters}
+          visible={showFilters || isClosing}
           animationType="none"
           transparent={true}
           onRequestClose={closeModalWithAnimation}
@@ -1136,20 +1174,13 @@ export default function CatalogDetailScreen() {
                     </TouchableOpacity>
                   </View>
 
-                  {((isLoadingFilters || isOpeningFilters) && filters.length === 0) ? (
-                    <View style={styles.filtersFullScreenLoadingContainer}>
-                      <ActivityIndicator size="large" color="#203686" />
-                      <ThemedText style={styles.filtersLoadingText}>
-                        Загружаем фильтры...
-                      </ThemedText>
-                    </View>
-                  ) : (
-                    <ScrollView
+                  <ScrollView
                       ref={modalScrollViewRef}
                       style={styles.modalContent}
                       showsVerticalScrollIndicator={true}
                       bounces={true}
                       scrollEventThrottle={16}
+                      nestedScrollEnabled
                     >
                     {/* Фильтр по цене */}
                     <View style={styles.filterSection}>
@@ -1263,28 +1294,39 @@ export default function CatalogDetailScreen() {
                       </View>
                     )}
 
-                    {/* Добавляем отступ внизу чтобы контент не прилипал к кнопке */}
-                      <View style={styles.modalBottomSpacer} />
+                    <View
+                      style={[
+                        styles.modalBottomSpacer,
+                        { height: 72 + filtersFooterPadding },
+                      ]}
+                    />
                     </ScrollView>
-                  )}
 
-                  {/* Кнопка применения */}
-                  <TouchableOpacity
+                  <ThemedView
+                    lightColor="#FFFFFF"
+                    darkColor="#202022"
                     style={[
-                      styles.applyButton,
-                      isDarkMode && {
-                        backgroundColor: "#3881EE",
-                      },
+                      styles.applyButtonContainer,
+                      { paddingBottom: filtersFooterPadding },
                     ]}
-                    onPress={applyFilters}
                   >
-                    <ThemedText style={styles.applyButtonText}>
-                      Применить{" "}
-                      {appliedFiltersCount > 0
-                        ? `(${appliedFiltersCount})`
-                        : ""}
-                    </ThemedText>
-                  </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[
+                        styles.applyButton,
+                        isDarkMode && {
+                          backgroundColor: "#3881EE",
+                        },
+                      ]}
+                      onPress={applyFilters}
+                    >
+                      <ThemedText style={styles.applyButtonText}>
+                        Применить{" "}
+                        {appliedFiltersCount > 0
+                          ? `(${appliedFiltersCount})`
+                          : ""}
+                      </ThemedText>
+                    </TouchableOpacity>
+                  </ThemedView>
                 </Animated.View>
               </TouchableWithoutFeedback>
             </View>
@@ -1412,13 +1454,18 @@ const styles = StyleSheet.create({
   },
   mainContainer: {
     flex: 1,
+   
   },
   container: {
     flex: 1,
+    paddingTop: 8,
+
   },
   scrollContent: {
     flexGrow: 1,
     paddingBottom: 32,
+    borderRadius: 24
+  
   },
   productsListContent: {
     borderBottomLeftRadius: 24,
@@ -1507,6 +1554,9 @@ const styles = StyleSheet.create({
   },
   subcategoryButtonActive: {
     backgroundColor: "#203686",
+  },
+  subcategoryButtonDisabled: {
+    opacity: 0.45,
   },
   subcategoryText: {
     fontFamily: "Montserrat",
@@ -1620,10 +1670,10 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     paddingHorizontal: 20,
-    maxHeight: "70%",
+    maxHeight: screenHeight * 0.62,
   },
   modalBottomSpacer: {
-    height: 100,
+    height: 72,
   },
   filterSection: {
     marginTop: 24,
@@ -1682,17 +1732,19 @@ const styles = StyleSheet.create({
     fontFamily: "Montserrat",
     fontSize: 14,
   },
-  applyButton: {
-    backgroundColor: "#203686",
-    marginHorizontal: 20,
-    marginVertical: 20,
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: "center",
+  applyButtonContainer: {
     position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+  },
+  applyButton: {
+    backgroundColor: "#203686",
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: "center",
   },
   applyButtonText: {
     color: "#FFFFFF",

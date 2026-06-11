@@ -88,10 +88,23 @@ function normalizeCategoryId(categoryId: unknown): string | null {
   return String(categoryId);
 }
 
+function normalizeSubcategoryId(subcategoryId: unknown): string | null {
+  if (
+    subcategoryId === undefined ||
+    subcategoryId === null ||
+    subcategoryId === "" ||
+    subcategoryId === "all"
+  ) {
+    return null;
+  }
+  return String(subcategoryId);
+}
+
 function isStaleProductListResponse(
   state: CategoryState,
   requestMode: ProductListMode,
   requestCategoryId: string | null,
+  requestSubcategoryId?: unknown,
 ): boolean {
   if (
     state.activeProductListMode !== null &&
@@ -101,7 +114,14 @@ function isStaleProductListResponse(
   }
 
   if (requestMode === "catalog") {
-    return requestCategoryId !== state.activeCategoryId;
+    if (requestCategoryId !== state.activeCategoryId) {
+      return true;
+    }
+
+    return (
+      normalizeSubcategoryId(requestSubcategoryId) !==
+      normalizeSubcategoryId(state.selectedSubcategoryId)
+    );
   }
 
   return false;
@@ -122,6 +142,7 @@ interface CategoryState {
   currentPage: number;
   hasMore: boolean;
   filters: CategoryFilter[];
+  filtersCategoryId: string | null;
   selectedFilterIds: string[];
   selectedSubcategoryId: string | null; // Добавляем состояние для выбранной подкатегории
   product: any;
@@ -130,6 +151,7 @@ interface CategoryState {
 
   cart: any[];
   isLoadingCart: boolean;
+  updatingCartItemIds: string[];
   isLoadingOrders: boolean;
   orders: any[];
 
@@ -169,6 +191,7 @@ const initialState: CategoryState = {
   currentPage: 0,
   hasMore: true,
   filters: [],
+  filtersCategoryId: null,
   selectedFilterIds: [],
   selectedSubcategoryId: null, 
   product: null,
@@ -181,6 +204,7 @@ const initialState: CategoryState = {
   returnableOrdersLoading: false,
   orders: [],
   cart: [],
+  updatingCartItemIds: [],
 
   isLoadingCart: false,
   order: null,
@@ -283,7 +307,7 @@ export const getProductList = createAsyncThunk(
   ) => {
     try {
       const state = getState() as { catalog: CategoryState };
-      const { selectedFilterIds, selectedSubcategoryId } = state.catalog;
+      const { selectedFilterIds } = state.catalog;
       const params = new URLSearchParams();
 
       // Добавляем основные параметры
@@ -296,15 +320,12 @@ export const getProductList = createAsyncThunk(
         params.append("categoryId", payload.params.categoryId);
       }
 
-      // Подкатегория: приоритет у params (явный выбор), иначе Redux
-      const subCategoryId =
-        payload.params.subCategoryId ?? selectedSubcategoryId;
       if (
         payload.params.isFavorite !== true &&
-        subCategoryId &&
-        subCategoryId !== "all"
+        payload.params.subCategoryId &&
+        payload.params.subCategoryId !== "all"
       ) {
-        params.append("subCategoryId", subCategoryId);
+        params.append("subCategoryId", payload.params.subCategoryId);
       }
 
       if (payload.params.offset !== undefined) {
@@ -1079,9 +1100,15 @@ const catalogSlice = createSlice({
       const requestCategoryId = normalizeCategoryId(
         action.meta.arg?.params?.categoryId,
       );
+      const requestSubcategoryId = action.meta.arg?.params?.subCategoryId;
 
       if (
-        isStaleProductListResponse(state, requestMode, requestCategoryId)
+        isStaleProductListResponse(
+          state,
+          requestMode,
+          requestCategoryId,
+          requestSubcategoryId,
+        )
       ) {
         state.isLoading = false;
         state.isLoadingMore = false;
@@ -1126,9 +1153,15 @@ const catalogSlice = createSlice({
       const requestCategoryId = normalizeCategoryId(
         action.meta.arg?.params?.categoryId,
       );
+      const requestSubcategoryId = action.meta.arg?.params?.subCategoryId;
 
       if (
-        isStaleProductListResponse(state, requestMode, requestCategoryId)
+        isStaleProductListResponse(
+          state,
+          requestMode,
+          requestCategoryId,
+          requestSubcategoryId,
+        )
       ) {
         return;
       }
@@ -1140,12 +1173,17 @@ const catalogSlice = createSlice({
     });
 
     // Обработчики для фильтров
-    builder.addCase(getCategoryFilters.pending, (state) => {
+    builder.addCase(getCategoryFilters.pending, (state, action) => {
       state.isLoadingFilters = true;
+      const requestCategoryId = String(action.meta.arg ?? "");
+      if (requestCategoryId && requestCategoryId !== state.filtersCategoryId) {
+        state.filters = [];
+      }
     });
 
     builder.addCase(getCategoryFilters.fulfilled, (state, action) => {
       state.filters = action.payload || [];
+      state.filtersCategoryId = String(action.meta.arg ?? "");
       state.isLoadingFilters = false;
     });
 
@@ -1322,12 +1360,35 @@ const catalogSlice = createSlice({
       state.cart = state.cart.filter((item) => !cartItemIds.includes(item.id));
     });
 
+    builder.addCase(updateCartItemQuantitys.pending, (state, action) => {
+      const cartItemId = String(action.meta.arg?.cartItemId ?? "");
+      if (
+        cartItemId &&
+        !state.updatingCartItemIds.includes(cartItemId)
+      ) {
+        state.updatingCartItemIds.push(cartItemId);
+      }
+    });
+
     builder.addCase(updateCartItemQuantitys.fulfilled, (state, action) => {
+      const cartItemId = String(action.meta.arg?.cartItemId ?? "");
+      state.updatingCartItemIds = state.updatingCartItemIds.filter(
+        (id) => id !== cartItemId,
+      );
+
       const updatedItem = action.payload;
       const index = state.cart.findIndex((item) => item.id === updatedItem.id);
       if (index !== -1) {
         state.cart[index] = updatedItem;
       }
+    });
+
+    builder.addCase(updateCartItemQuantitys.rejected, (state, action) => {
+      const cartItemId = String(action.meta.arg?.cartItemId ?? "");
+      state.updatingCartItemIds = state.updatingCartItemIds.filter(
+        (id) => id !== cartItemId,
+      );
+      axiosErrorHandler(action?.payload);
     });
 
     builder.addCase(toggleCartItemFavorite.fulfilled, (state, action) => {

@@ -111,8 +111,8 @@ function SpecialOffersComponent({
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
         >
-          {promoProducts.map((item) => (
-            <View key={item.id} style={[styles.productWrapper, { width: cardWidth }]}>
+          {promoProducts.map((item, index) => (
+            <View key={item.id ?? `promo-${index}`} style={[styles.productWrapper, { width: cardWidth }]}>
               <ProductCard
                 id={item.id}
                 img={item.image}
@@ -123,8 +123,8 @@ function SpecialOffersComponent({
                 isFavorite={item.isFavorite}
                 productData={item}
                 fullWidth={true}
+                returnTo="home"
                 onAddToCartPress={handleAddToCartPress}
-
               />
             </View>
           ))}

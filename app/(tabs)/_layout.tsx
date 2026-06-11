@@ -44,8 +44,10 @@ export default function TabLayout() {
         <Tabs.Screen
           name="dashboard"
           listeners={{
-            tabPress: () => {
+            tabPress: (event) => {
+              event.preventDefault();
               router.dismissTo("/dashboard");
+              router.navigate("/dashboard");
             },
           }}
           options={{

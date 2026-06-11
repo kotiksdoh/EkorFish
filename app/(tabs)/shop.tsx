@@ -65,6 +65,7 @@ interface CartItem {
 const CartItemComponent = ({
   item,
   isSelected,
+  isQuantityUpdating,
   onToggleSelect,
   onUpdateQuantity,
   onRemove,
@@ -72,6 +73,7 @@ const CartItemComponent = ({
 }: {
   item: CartItem;
   isSelected: boolean;
+  isQuantityUpdating: boolean;
   onToggleSelect: () => void;
   onUpdateQuantity: (newQuantity: number) => void;
   onRemove: () => void;
@@ -256,7 +258,9 @@ const CartItemComponent = ({
                 onUpdateQuantity(item.quantity - item.purchaseOptionStep)
               }
               disabled={
-                !isAvailable || item.quantity <= item.purchaseOptionStep
+                isQuantityUpdating ||
+                !isAvailable ||
+                item.quantity <= item.purchaseOptionStep
               }
             >
               <ThemedText
@@ -287,7 +291,7 @@ const CartItemComponent = ({
               onPress={() =>
                 onUpdateQuantity(item.quantity + item.purchaseOptionStep)
               }
-              disabled={!isAvailable}
+              disabled={isQuantityUpdating || !isAvailable}
             >
               <ThemedText
                 style={[
@@ -300,6 +304,23 @@ const CartItemComponent = ({
                 +
               </ThemedText>
             </TouchableOpacity>
+
+            {isQuantityUpdating ? (
+              <View
+                pointerEvents="none"
+                style={[
+                  styles.quantityPendingOverlay,
+                  isDarkMode
+                    ? styles.quantityPendingOverlayDark
+                    : styles.quantityPendingOverlayLight,
+                ]}
+              >
+                <ActivityIndicator
+                  size="small"
+                  color={isDarkMode ? "#FBFCFF" : "#203686"}
+                />
+              </View>
+            ) : null}
           </ThemedView>
         </View>
       </View>
@@ -322,6 +343,9 @@ export default function ShopScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const cartItems = useAppSelector((state) => state.catalog.cart) as CartItem[];
+  const updatingCartItemIds = useAppSelector(
+    (state) => state.catalog.updatingCartItemIds,
+  );
   const currentCompany = useAppSelector((state) => state.auth.currentCompany);
   const me = useAppSelector((state) => state.auth.me);
   const [companyModalVisible, setCompanyModalVisible] = useState(false);
@@ -468,6 +492,7 @@ export default function ShopScreen() {
     maxQuantity: number,
   ) => {
     if (newQuantity < minQuantity || newQuantity > maxQuantity) return;
+    if (updatingCartItemIds.includes(cartItemId)) return;
 
     try {
       await dispatch(
@@ -708,6 +733,7 @@ export default function ShopScreen() {
                   key={item.id}
                   item={item}
                   isSelected={selectedItems.has(item.id)}
+                  isQuantityUpdating={updatingCartItemIds.includes(item.id)}
                   onToggleSelect={() => toggleSelectItem(item.id)}
                   onUpdateQuantity={(newQuantity) =>
                     handleUpdateQuantity(
@@ -1195,8 +1221,21 @@ const styles = StyleSheet.create({
     backgroundColor: "#F5F5F5",
     borderRadius: 8,
     paddingHorizontal: 6,
-    // padding: 4,
     marginLeft: 4,
+    position: "relative",
+    overflow: "hidden",
+  },
+  quantityPendingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: 8,
+  },
+  quantityPendingOverlayLight: {
+    backgroundColor: "rgba(255, 255, 255, 0.55)",
+  },
+  quantityPendingOverlayDark: {
+    backgroundColor: "rgba(0, 0, 0, 0.28)",
   },
   quantityButton: {
     // width: 28,

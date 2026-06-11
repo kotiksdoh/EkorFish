@@ -7,7 +7,7 @@ import {
   getProduct,
   setProductNavigationPending,
 } from "@/features/catalog/catalogSlice";
-import { ProductImageSlider } from "@/features/catalog/ui/components/ProductImageSlider";
+import { ProductDetailGallery } from "@/features/catalog/ui/components/ProductDetailGallery";
 import { buildTemplateLineFromProduct } from "@/features/templates/buildTemplateLine";
 import { TemplatePickerBanner } from "@/features/templates/TemplatePickerBanner";
 import { useTemplatePicker } from "@/features/templates/TemplatePickerContext";
@@ -21,6 +21,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
   ActivityIndicator,
   Animated,
+  BackHandler,
   Dimensions,
   LayoutAnimation,
   LayoutChangeEvent,
@@ -46,10 +47,27 @@ const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 export default function ProductDetailScreen() {
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === "dark";
-  const { productId, productName } = useLocalSearchParams<{
+  const params = useLocalSearchParams<{
     productId: string;
     productName?: string;
+    returnTo?: string;
   }>();
+  const productId = Array.isArray(params.productId)
+    ? params.productId[0]
+    : params.productId;
+  const productName = Array.isArray(params.productName)
+    ? params.productName[0]
+    : params.productName;
+  const returnTo = Array.isArray(params.returnTo)
+    ? params.returnTo[0]
+    : params.returnTo;
+  const cameFromHomeRef = useRef(false);
+
+  useEffect(() => {
+    if (returnTo === "home") {
+      cameFromHomeRef.current = true;
+    }
+  }, [returnTo]);
 
   const [isExpanded, setIsExpanded] = useState(false);
   const [selectedPurchaseOptionIndex, setSelectedPurchaseOptionIndex] =
@@ -218,9 +236,34 @@ export default function ProductDetailScreen() {
     dispatch(getProduct(productId));
   }, [productId, dispatch]);
 
-  const handleBack = () => {
-    router.back();
-  };
+  const handleBack = useCallback(() => {
+    if (cameFromHomeRef.current) {
+      if (router.canDismiss()) {
+        router.dismiss();
+      } else {
+        router.dismissTo("/dashboard");
+      }
+      requestAnimationFrame(() => {
+        router.replace("/");
+      });
+      return;
+    }
+    if (router.canGoBack()) {
+      router.back();
+      return;
+    }
+    router.replace("/dashboard");
+  }, [router]);
+
+  useFocusEffect(
+    useCallback(() => {
+      const subscription = BackHandler.addEventListener("hardwareBackPress", () => {
+        handleBack();
+        return true;
+      });
+      return () => subscription.remove();
+    }, [handleBack]),
+  );
 
   const toggleExpanded = () => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -314,16 +357,18 @@ export default function ProductDetailScreen() {
             style={styles.container}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.scrollContent}
+            nestedScrollEnabled
           >
             <ThemedView
               style={styles.themeContainer}
               lightColor={"#FFFFFF"}
               darkColor="#040508"
             >
-              <ProductImageSlider
+              <ProductDetailGallery
+                key={String(product?.id ?? productId)}
                 items={productSliderItems}
                 autoPlayInterval={4000}
-                showIndicators={true}
+                showIndicators={productSliderItems.length > 1}
               />
 
               <View style={styles.productNameWrapper}>

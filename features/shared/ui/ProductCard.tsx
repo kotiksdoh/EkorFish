@@ -18,6 +18,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
   ActivityIndicator,
   StyleSheet,
@@ -39,6 +40,7 @@ interface ProductCardProps {
   onAddToCartPress?: (product: any) => void;
   isDis?: boolean;
   fullWidth?: boolean;
+  returnTo?: "home" | "catalog";
 }
 
 // Заглушка для изображения
@@ -57,6 +59,7 @@ const ProductCardComponent: React.FC<ProductCardProps> = ({
   onAddToCartPress,
   isDis = false,
   fullWidth = false,
+  returnTo,
 }) => {
   const [isImageLoading, setIsImageLoading] = useState(false);
   const [imageError, setImageError] = useState(false);
@@ -75,6 +78,9 @@ const ProductCardComponent: React.FC<ProductCardProps> = ({
   );
   const isProductNavigationLocked =
     isNavigatingToProduct || isLoadingProduct;
+  const colorScheme = useColorScheme();
+  const isDarkMode = colorScheme === "dark";
+  const showNavigationLockOverlay = isProductNavigationLocked && !isDis;
   const { pickingForTemplateId, getExistingTemplateLinesForProduct, liveTemplateItems } =
     useTemplatePicker();
   const isTemplatePick = !!pickingForTemplateId;
@@ -210,8 +216,19 @@ const ProductCardComponent: React.FC<ProductCardProps> = ({
       return;
     }
     dispatch(setProductNavigationPending(true));
+
+    if (returnTo === "home") {
+      router.dismissTo("/dashboard");
+      requestAnimationFrame(() => {
+        router.push(
+          `/(tabs)/dashboard/product/${encodeURIComponent(id)}?productId=${id}&productName=${encodeURIComponent(name)}&returnTo=home` as any,
+        );
+      });
+      return;
+    }
+
     router.push(
-      `dashboard/product/${encodeURIComponent(id)}?productId=${id}&productName=${encodeURIComponent(name)}` as any,
+      `/(tabs)/dashboard/product/${encodeURIComponent(id)}?productId=${id}&productName=${encodeURIComponent(name)}` as any,
     );
   }, [
     dispatch,
@@ -219,6 +236,7 @@ const ProductCardComponent: React.FC<ProductCardProps> = ({
     isDis,
     isProductNavigationLocked,
     name,
+    returnTo,
     router,
   ]);
 
@@ -264,12 +282,12 @@ const ProductCardComponent: React.FC<ProductCardProps> = ({
     <>
       <TouchableOpacity
         onPress={toProductDetail}
-        activeOpacity={0.9}
+        activeOpacity={isDarkMode ? 0.9 : 0.97}
         disabled={isDis || isProductNavigationLocked}
         style={[
           styles.cardTouchable,
           fullWidth && { width: "100%" },
-          (isDis || isProductNavigationLocked) && styles.cardDisabled,
+          isDis && styles.cardDisabled,
         ]}
       >
         <ThemedView lightColor="#FFFFFF" style={styles.container}>
@@ -415,6 +433,18 @@ const ProductCardComponent: React.FC<ProductCardProps> = ({
               </TouchableOpacity>
             </View>
           </View>
+
+          {showNavigationLockOverlay ? (
+            <View
+              pointerEvents="none"
+              style={[
+                styles.navigationLockOverlay,
+                isDarkMode
+                  ? styles.navigationLockOverlayDark
+                  : styles.navigationLockOverlayLight,
+              ]}
+            />
+          ) : null}
         </ThemedView>
       </TouchableOpacity>
       {loginModalVisible ? (
@@ -443,6 +473,17 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     overflow: "hidden",
     elevation: 3,
+    position: "relative",
+  },
+  navigationLockOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 8,
+  },
+  navigationLockOverlayLight: {
+    backgroundColor: "rgba(255, 255, 255, 0.42)",
+  },
+  navigationLockOverlayDark: {
+    backgroundColor: "rgba(0, 0, 0, 0.22)",
   },
   imageContainer: {
     position: "relative",
