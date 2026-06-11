@@ -11,7 +11,8 @@ export default function FeedLayout() {
     <Stack.Screen 
       name="[name]" 
       options={{ 
-        headerShown: false 
+        headerShown: false,
+        animation: 'simple_push',
       }} 
     />
     <Stack.Screen 

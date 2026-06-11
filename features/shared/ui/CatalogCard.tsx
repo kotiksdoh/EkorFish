@@ -3,7 +3,7 @@ import { ThemedView } from "@/components/themed-view";
 import { Image as ExpoImage } from "expo-image";
 import { useRouter } from "expo-router";
 
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useMemo, useRef } from "react";
 import {
   StyleSheet,
   TouchableOpacity,
@@ -14,7 +14,6 @@ interface CatalogCardProps {
   id: number;
   img?: any;
   name: string;
-  children?: any[];
 }
 
 const PLACEHOLDER_IMAGE = require("@/assets/icons/png/noImage.png");
@@ -23,18 +22,28 @@ const CatalogCardComponent: React.FC<CatalogCardProps> = ({
   id,
   img,
   name,
-  children,
 }) => {
   const router = useRouter();
-  const handlePress = () => {
-    if (id && name) {
-      const childrenString = children ? JSON.stringify(children) : "[]";
+  const isNavigatingRef = useRef(false);
 
-      //@ts-ignore
-      router.push(
-        `dashboard/${encodeURIComponent(name)}?catalogId=${id}&catalogName=${encodeURIComponent(name)}&children=${encodeURIComponent(childrenString)}&isPromo=false`,
-      );
-    }
+  const handlePress = () => {
+    if (!id || !name || isNavigatingRef.current) return;
+
+    isNavigatingRef.current = true;
+
+    router.push({
+      pathname: "/dashboard/[name]",
+      params: {
+        name,
+        catalogId: String(id),
+        catalogName: name,
+        isPromo: "false",
+      },
+    });
+
+    setTimeout(() => {
+      isNavigatingRef.current = false;
+    }, 1500);
   };
 
   const isValidImageUrl = useCallback((url: string): boolean => {
@@ -58,7 +67,7 @@ const CatalogCardComponent: React.FC<CatalogCardProps> = ({
     // >
     <TouchableOpacity
       onPress={handlePress}
-      activeOpacity={0.7}
+      activeOpacity={0.85}
       style={styles.touchableContainer}
     >
       <ThemedView

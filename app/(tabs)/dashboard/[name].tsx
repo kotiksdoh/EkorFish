@@ -78,25 +78,41 @@ export default function CatalogDetailScreen() {
     catalogId: string;
     catalogName: string;
     search?: string;
-    isPromo: boolean
-    children?: string; // Добавляем children
+    isPromo: boolean;
+    children?: string;
   }>();
 
-  // Парсим children из строки
-  const parsedChildren = children
-    ? JSON.parse(decodeURIComponent(children))
-    : [];
+  const categories = useAppSelector((state) => state.auth.categories);
   const cartItems = useAppSelector((state) => state.catalog.cart);
   const me = useAppSelector((state) => state.auth.me);
   const templatePicker = useTemplatePicker();
 
-  // Преобразуем в массив подкатегорий
-  const subcategoriesFromProps = parsedChildren.map((child: any) => ({
-    id: child.id,
-    name: child.name,
-    description: child.description || "",
-    imageUrl: child.imageUrl || "",
-  }));
+  const subcategoriesFromProps = useMemo(() => {
+    const mapChild = (child: any) => ({
+      id: child.id,
+      name: child.name,
+      description: child.description || "",
+      imageUrl: child.imageUrl || "",
+    });
+
+    const category = categories.find(
+      (item) => String(item.id) === String(catalogId),
+    );
+    if (category?.children?.length) {
+      return category.children.map(mapChild);
+    }
+
+    if (!children || typeof children !== "string") {
+      return [];
+    }
+
+    try {
+      const parsedChildren = JSON.parse(decodeURIComponent(children));
+      return Array.isArray(parsedChildren) ? parsedChildren.map(mapChild) : [];
+    } catch {
+      return [];
+    }
+  }, [catalogId, categories, children]);
 
   // Состояния
   const [searchQuery, setSearchQuery] = useState(search || "");
@@ -521,7 +537,9 @@ export default function CatalogDetailScreen() {
     setShelfLifeRange({ min: "", max: "" });
     dispatch(clearProducts());
     void loadProductsRef.current(false, initialSearchQuery, undefined, null);
-    dispatch(getCategoryFilters(catalogId));
+    queueMicrotask(() => {
+      dispatch(getCategoryFilters(catalogId));
+    });
   }, [catalogId, clearPaginationTimeout, dispatch, search]);
 
   loadProductsRef.current = loadProducts;
@@ -529,7 +547,7 @@ export default function CatalogDetailScreen() {
 
   useEffect(() => {
     resetAndLoadCategoryRef.current();
-  }, [catalogId, isPromo, me?.storageId, search]);
+  }, [catalogId, isPromo, search]);
 
   useFocusEffect(
     useCallback(() => {
@@ -1125,11 +1143,8 @@ export default function CatalogDetailScreen() {
           onClose={() => setShowTownModal(false)}
           storageId={me?.storageId}
           onTownSelected={(newStorageId) => {
-            console.log(
-              "Получили новый storageId из модалки:",
-              newStorageId,
-            );
-            loadProducts(false, searchQuery, newStorageId);
+            flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
+            void loadProducts(false, searchQuery, newStorageId);
           }}
         />
 

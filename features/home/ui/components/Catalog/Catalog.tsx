@@ -26,7 +26,6 @@ export default function Catalog() {
             id={item.id}
             img={item.imageUrl}
             name={item.name}
-            children={item.children}
           />
         ))}
       </View>

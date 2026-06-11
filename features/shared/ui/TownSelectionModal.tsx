@@ -85,11 +85,12 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
       stiffness: 180,
       mass: 0.85,
     }).start();
-  }, [visible, dispatch, embedded, storageId, me?.storageId, modalTranslateY]);
+  }, [visible, dispatch, embedded, modalTranslateY]);
 
-  const closeModalWithAnimation = () => {
+  const closeModalWithAnimation = (onClosed?: () => void) => {
     if (embedded || selectionOnly) {
       onClose();
+      onClosed?.();
       return;
     }
 
@@ -104,6 +105,7 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
       setIsClosing(false);
       modalTranslateY.setValue(screenHeight);
       onClose();
+      onClosed?.();
     });
   };
 
@@ -135,8 +137,9 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
         }),
       );
       await dispatch(getMyInfo(""));
-      onTownSelected(selectedTownId);
-      closeModalWithAnimation();
+      closeModalWithAnimation(() => {
+        onTownSelected(selectedTownId);
+      });
     } catch (error) {
       console.error("Error updating town:", error);
     } finally {
