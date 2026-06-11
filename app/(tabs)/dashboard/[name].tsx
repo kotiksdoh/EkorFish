@@ -43,6 +43,7 @@ import {
   Modal,
   NativeScrollEvent,
   NativeSyntheticEvent,
+  Platform,
   ScrollView,
   StyleSheet,
   TextInput,
@@ -160,19 +161,24 @@ export default function CatalogDetailScreen() {
   );
 
   const sortOptions = PRODUCT_SORT_OPTIONS;
-  const closeSortModalWithAnimation = useCallback(() => {
-    if (isClosingSortModal) return;
+  const closeSortModalWithAnimation = useCallback(
+    (onClosed?: () => void) => {
+      if (isClosingSortModal) return;
 
-    setIsClosingSortModal(true);
-    Animated.timing(sortModalTranslateY, {
-      toValue: screenHeight,
-      duration: 250,
-      useNativeDriver: true,
-    }).start(() => {
-      setShowSortModal(false);
-      setIsClosingSortModal(false);
-    });
-  }, [isClosingSortModal]);
+      setIsClosingSortModal(true);
+      Animated.timing(sortModalTranslateY, {
+        toValue: screenHeight,
+        duration: 280,
+        useNativeDriver: true,
+      }).start(() => {
+        setShowSortModal(false);
+        setIsClosingSortModal(false);
+        sortModalTranslateY.setValue(screenHeight);
+        onClosed?.();
+      });
+    },
+    [isClosingSortModal, sortModalTranslateY],
+  );
 
   // Обработчик нажатия на overlay сортировки
   const handleSortOverlayPress = useCallback(() => {
@@ -181,30 +187,31 @@ export default function CatalogDetailScreen() {
     }
   }, [isClosingSortModal, closeSortModalWithAnimation]);
 
+  const animateSortModalOpen = useCallback(() => {
+    sortModalTranslateY.setValue(screenHeight);
+    Animated.spring(sortModalTranslateY, {
+      toValue: 0,
+      useNativeDriver: true,
+      damping: 22,
+      stiffness: 180,
+      mass: 0.85,
+    }).start();
+  }, [sortModalTranslateY]);
+
   // Эффект для анимации появления модалки сортировки
   useEffect(() => {
-    if (showSortModal) {
-      sortModalTranslateY.setValue(screenHeight);
-      Animated.spring(sortModalTranslateY, {
-        toValue: 0,
-        useNativeDriver: true,
-        damping: 20,
-        stiffness: 90,
-        mass: 0.8,
-      }).start();
-    } else {
-      sortModalTranslateY.setValue(screenHeight);
+    if (showSortModal && !isClosingSortModal) {
+      animateSortModalOpen();
     }
-  }, [showSortModal]);
+  }, [animateSortModalOpen, isClosingSortModal, showSortModal]);
 
   // Обработчик выбора сортировки
   const handleSortSelect = (sortId: ProductSortId) => {
-    setSortBy(sortId);
-    closeSortModalWithAnimation();
-    setTimeout(() => {
+    closeSortModalWithAnimation(() => {
+      setSortBy(sortId);
       flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
       loadProducts(false, searchQuery, undefined, undefined, sortId);
-    }, 300);
+    });
   };
 
   const getCurrentSortLabel = () => getProductSortLabel(sortBy);
@@ -219,6 +226,8 @@ export default function CatalogDetailScreen() {
   const dispatch = useAppDispatch();
   const insets = useSafeAreaInsets();
   const filtersFooterPadding = Math.max(insets.bottom, 16);
+  const sortModalBottomPadding =
+    Math.max(insets.bottom, Platform.OS === "android" ? 28 : 16) + 12;
   const searchInputRef = useRef<TextInput>(null);
   const router = useRouter();
   const flatListRef = useRef<FlatList>(null);
@@ -1346,10 +1355,10 @@ export default function CatalogDetailScreen() {
           }
         />
         <Modal
-          visible={showSortModal}
+          visible={showSortModal || isClosingSortModal}
           animationType="none"
           transparent={true}
-          onRequestClose={closeSortModalWithAnimation}
+          onRequestClose={() => closeSortModalWithAnimation()}
           presentationStyle="overFullScreen"
           statusBarTranslucent={true}
         >
@@ -1392,6 +1401,9 @@ export default function CatalogDetailScreen() {
 
                   <ScrollView
                     style={styles.sortOptionsContainer}
+                    contentContainerStyle={{
+                      paddingBottom: sortModalBottomPadding,
+                    }}
                     showsVerticalScrollIndicator={false}
                   >
                     {sortOptions.map((option) => (

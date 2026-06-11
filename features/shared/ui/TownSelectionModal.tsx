@@ -4,7 +4,7 @@ import { ModalHeader } from "@/features/auth/ui/Header";
 import { getMyInfo, getTowns, updateUserTown } from "@/features/auth/authSlice";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Animated,
@@ -19,6 +19,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const { height: screenHeight } = Dimensions.get("window");
+const MODAL_TOP_GAP = 100;
 
 interface TownSelectionModalProps {
   visible: boolean;
@@ -51,9 +52,20 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
   const [isUpdating, setIsUpdating] = useState(false);
   const [modalTranslateY] = useState(new Animated.Value(screenHeight));
   const [isClosing, setIsClosing] = useState(false);
+  const wasVisibleRef = useRef(false);
+
+  const footerBottomPadding = Math.max(insets.bottom, 48) + 16;
 
   useEffect(() => {
-    if (!visible) return;
+    if (!visible) {
+      wasVisibleRef.current = false;
+      return;
+    }
+
+    const justOpened = !wasVisibleRef.current;
+    wasVisibleRef.current = true;
+
+    if (!justOpened) return;
 
     if (storageId) {
       setSelectedTownId(storageId);
@@ -69,11 +81,11 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
     Animated.spring(modalTranslateY, {
       toValue: 0,
       useNativeDriver: true,
-      damping: 20,
-      stiffness: 90,
-      mass: 0.8,
+      damping: 22,
+      stiffness: 180,
+      mass: 0.85,
     }).start();
-  }, [visible, dispatch, embedded, storageId, me?.storageId]);
+  }, [visible, dispatch, embedded, storageId, me?.storageId, modalTranslateY]);
 
   const closeModalWithAnimation = () => {
     if (embedded || selectionOnly) {
@@ -86,10 +98,11 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
     setIsClosing(true);
     Animated.timing(modalTranslateY, {
       toValue: screenHeight,
-      duration: 250,
+      duration: 280,
       useNativeDriver: true,
     }).start(() => {
       setIsClosing(false);
+      modalTranslateY.setValue(screenHeight);
       onClose();
     });
   };
@@ -120,12 +133,10 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
         updateUserTown({
           storageId: selectedTownId,
         }),
-      ).then(() => dispatch(getMyInfo("")));
-
-      setTimeout(() => {
-        closeModalWithAnimation();
-        onTownSelected(selectedTownId);
-      }, 300);
+      );
+      await dispatch(getMyInfo(""));
+      onTownSelected(selectedTownId);
+      closeModalWithAnimation();
     } catch (error) {
       console.error("Error updating town:", error);
     } finally {
@@ -136,7 +147,9 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
   const townList = (
     <ScrollView
       style={[styles.modalContent, embedded && styles.modalContentEmbedded]}
-      contentContainerStyle={embedded ? styles.scrollContentEmbedded : undefined}
+      contentContainerStyle={
+        embedded ? styles.scrollContentEmbedded : styles.scrollContent
+      }
       showsVerticalScrollIndicator={false}
     >
       {isLoadingTowns ? (
@@ -186,7 +199,6 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
         </>
       )}
 
-      {!embedded && <View style={styles.modalBottomSpacer} />}
     </ScrollView>
   );
 
@@ -195,10 +207,8 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
       darkColor="#202022"
       lightColor="#FFFFFF"
       style={[
-        embedded ? styles.applyButtonContainerEmbedded : styles.applyButtonContainer,
-        {
-          paddingBottom: Math.max(insets.bottom, 16) + (embedded ? 8 : 30),
-        },
+        styles.applyButtonContainer,
+        { paddingBottom: footerBottomPadding },
       ]}
     >
       <TouchableOpacity
@@ -221,7 +231,7 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
     </ThemedView>
   );
 
-  if (!visible) {
+  if (!visible && !isClosing) {
     return null;
   }
 
@@ -251,11 +261,12 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
 
   return (
     <Modal
-      visible={visible}
+      visible={visible || isClosing}
       animationType="none"
       transparent={true}
       onRequestClose={closeModalWithAnimation}
       statusBarTranslucent={true}
+      presentationStyle="overFullScreen"
     >
       <TouchableWithoutFeedback onPress={handleOverlayPress}>
         <View style={styles.modalOverlay}>
@@ -303,21 +314,21 @@ const styles = StyleSheet.create({
   },
   embeddedContent: {
     flex: 1,
-    marginTop: 16,
+    marginTop: 8,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
   },
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "flex-end",
+    paddingTop: MODAL_TOP_GAP,
   },
   modalContainer: {
+    flex: 1,
     backgroundColor: "#FFFFFF",
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    maxHeight: "85%",
-    minHeight: "80%",
+    overflow: "hidden",
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
@@ -352,19 +363,19 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   modalContent: {
+    flex: 1,
     paddingHorizontal: 20,
-    maxHeight: "70%",
   },
   modalContentEmbedded: {
     flex: 1,
-    maxHeight: undefined,
     paddingTop: 8,
   },
-  scrollContentEmbedded: {
-    paddingBottom: 100,
+  scrollContent: {
+    flexGrow: 1,
   },
-  modalBottomSpacer: {
-    height: 80,
+  scrollContentEmbedded: {
+    flexGrow: 1,
+    paddingBottom: 24,
   },
   townItem: {
     paddingVertical: 16,
@@ -419,14 +430,6 @@ const styles = StyleSheet.create({
     color: "#80818B",
   },
   applyButtonContainer: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-  },
-  applyButtonContainerEmbedded: {
     paddingHorizontal: 20,
     paddingTop: 12,
   },

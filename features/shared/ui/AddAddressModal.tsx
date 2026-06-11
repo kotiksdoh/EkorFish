@@ -1,4 +1,5 @@
 import { Modal } from "react-native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AddAddressFormPanel } from "./AddAddressFormPanel";
 
 interface AddAddressModalProps {
@@ -25,13 +26,15 @@ export const AddAddressModal: React.FC<AddAddressModalProps> = ({
       statusBarTranslucent
       presentationStyle="fullScreen"
     >
-      <AddAddressFormPanel
-        companyId={companyId}
-        onBack={onClose}
-        onSuccess={(address) => {
-          onSuccess(address);
-        }}
-      />
+      <SafeAreaProvider>
+        <AddAddressFormPanel
+          companyId={companyId}
+          onBack={onClose}
+          onSuccess={(address) => {
+            onSuccess(address);
+          }}
+        />
+      </SafeAreaProvider>
     </Modal>
   );
 };

@@ -85,108 +85,118 @@ export function AddAddressFormPanel({ companyId, onBack, onSuccess }: Props) {
 
   return (
     <ThemedView
-      lightColor="#FFFFFF"
-      darkColor="#151516"
+      lightColor="#EBEDF0"
+      darkColor="#040508"
       style={styles.root}
     >
-      <ModalHeader title="Новый адрес" showBackButton onBackPress={onBack} />
+      <ModalHeader
+        title="Добавить адрес доставки"
+        showBackButton
+        onBackPress={onBack}
+      />
 
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 8 : 0}
+      <ThemedView
+        lightColor="#FFFFFF"
+        darkColor="#151516"
+        style={styles.contentSheet}
       >
-        <ScrollView
+        <KeyboardAvoidingView
           style={styles.flex}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          keyboardVerticalOffset={Platform.OS === "ios" ? 8 : 0}
         >
-          <ThemedText
-            style={styles.contentTitle}
-            lightColor="#1B1B1C"
-            darkColor="#F2F4F7"
+          <ScrollView
+            style={styles.flex}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
           >
-            Введите адрес доставки
-          </ThemedText>
+            <ThemedText
+              style={styles.contentTitle}
+              lightColor="#1B1B1C"
+              darkColor="#F2F4F7"
+            >
+              Новый адрес
+            </ThemedText>
 
-          <View style={styles.formContainer}>
-            <AnimatedTextInput
-              placeholder="Адрес *"
-              value={formData.address}
-              onChangeText={(value) =>
-                setFormData((prev) => ({ ...prev, address: value }))
-              }
-            />
-            <View style={styles.rowFields}>
-              <View style={styles.halfWidthField}>
-                <AnimatedTextInput
-                  placeholder="Квартира"
-                  value={formData.apartment}
-                  onChangeText={(value) =>
-                    setFormData((prev) => ({ ...prev, apartment: value }))
-                  }
-                />
+            <View style={styles.formContainer}>
+              <AnimatedTextInput
+                placeholder="Адрес"
+                value={formData.address}
+                onChangeText={(value) =>
+                  setFormData((prev) => ({ ...prev, address: value }))
+                }
+              />
+              <View style={styles.rowFields}>
+                <View style={styles.halfWidthField}>
+                  <AnimatedTextInput
+                    placeholder="Квартира"
+                    value={formData.apartment}
+                    onChangeText={(value) =>
+                      setFormData((prev) => ({ ...prev, apartment: value }))
+                    }
+                  />
+                </View>
+                <View style={styles.halfWidthField}>
+                  <AnimatedTextInput
+                    placeholder="Этаж"
+                    value={formData.floor}
+                    onChangeText={(value) =>
+                      setFormData((prev) => ({ ...prev, floor: value }))
+                    }
+                  />
+                </View>
               </View>
-              <View style={styles.halfWidthField}>
-                <AnimatedTextInput
-                  placeholder="Этаж"
-                  value={formData.floor}
-                  onChangeText={(value) =>
-                    setFormData((prev) => ({ ...prev, floor: value }))
-                  }
-                />
+              <View style={styles.rowFields}>
+                <View style={styles.halfWidthField}>
+                  <AnimatedTextInput
+                    placeholder="Подъезд"
+                    value={formData.entrance}
+                    onChangeText={(value) =>
+                      setFormData((prev) => ({ ...prev, entrance: value }))
+                    }
+                  />
+                </View>
+                <View style={styles.halfWidthField}>
+                  <AnimatedTextInput
+                    placeholder="Домофон"
+                    value={formData.intercom}
+                    onChangeText={(value) =>
+                      setFormData((prev) => ({ ...prev, intercom: value }))
+                    }
+                  />
+                </View>
               </View>
+              <AnimatedTextInput
+                placeholder="Комментарий"
+                value={formData.comment}
+                onChangeText={(value) =>
+                  setFormData((prev) => ({ ...prev, comment: value }))
+                }
+                multiline
+                style={styles.commentInputWrap}
+              />
             </View>
-            <View style={styles.rowFields}>
-              <View style={styles.halfWidthField}>
-                <AnimatedTextInput
-                  placeholder="Подъезд"
-                  value={formData.entrance}
-                  onChangeText={(value) =>
-                    setFormData((prev) => ({ ...prev, entrance: value }))
-                  }
-                />
-              </View>
-              <View style={styles.halfWidthField}>
-                <AnimatedTextInput
-                  placeholder="Домофон"
-                  value={formData.intercom}
-                  onChangeText={(value) =>
-                    setFormData((prev) => ({ ...prev, intercom: value }))
-                  }
-                />
-              </View>
-            </View>
-            <AnimatedTextInput
-              placeholder="Комментарий"
-              value={formData.comment}
-              onChangeText={(value) =>
-                setFormData((prev) => ({ ...prev, comment: value }))
-              }
-              multiline
-              style={styles.commentInputWrap}
-            />
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+          </ScrollView>
+        </KeyboardAvoidingView>
 
-      <View
-        style={[
-          styles.footer,
-          { paddingBottom: Math.max(insets.bottom, 16) + 8 },
-        ]}
-      >
-        <PrimaryButton
-          title="Сохранить адрес"
-          onPress={handleSave}
-          variant="primary"
-          size="md"
-          loading={isAddingAddress}
-          disabled={!formData.address.trim() || !companyId || isAddingAddress}
-          fullWidth
-        />
-      </View>
+        <View
+          style={[
+            styles.footer,
+            { paddingBottom: Math.max(insets.bottom, 48) + 16 },
+          ]}
+        >
+          <PrimaryButton
+            title="Сохранить адрес"
+            onPress={handleSave}
+            variant="primary"
+            size="md"
+            loading={isAddingAddress}
+            disabled={!formData.address.trim() || !companyId || isAddingAddress}
+            fullWidth
+          />
+        </View>
+      </ThemedView>
     </ThemedView>
   );
 }
@@ -195,6 +205,13 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
   },
+  contentSheet: {
+    flex: 1,
+    marginTop: 8,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    overflow: "hidden",
+  },
   flex: {
     flex: 1,
   },
@@ -202,7 +219,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingHorizontal: 16,
     paddingTop: 16,
-    paddingBottom: 24,
+    paddingBottom: 16,
   },
   contentTitle: {
     fontSize: 20,
@@ -224,8 +241,5 @@ const styles = StyleSheet.create({
   },
   footer: {
     paddingHorizontal: 16,
-    paddingTop: 12,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: "#E8E8E8",
   },
 });

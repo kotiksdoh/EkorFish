@@ -37,6 +37,7 @@ import {
   Modal,
   NativeScrollEvent,
   NativeSyntheticEvent,
+  Platform,
   ScrollView,
   StyleSheet,
   TextInput,
@@ -44,7 +45,10 @@ import {
   TouchableWithoutFeedback,
   View,
 } from "react-native";
-import { SafeAreaProvider } from "react-native-safe-area-context";
+import {
+  SafeAreaProvider,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 
@@ -90,6 +94,9 @@ export default function HeartScreen() {
   );
   
   const dispatch = useAppDispatch();
+  const insets = useSafeAreaInsets();
+  const sortModalBottomPadding =
+    Math.max(insets.bottom, Platform.OS === "android" ? 28 : 16) + 12;
   const templatePicker = useTemplatePicker();
   const searchInputRef = useRef<TextInput>(null);
   const router = useRouter();
@@ -140,19 +147,24 @@ export default function HeartScreen() {
   const sortOptions = PRODUCT_SORT_OPTIONS;
 
   // Функция для закрытия модалки сортировки с анимацией
-  const closeSortModalWithAnimation = useCallback(() => {
-    if (isClosingSortModal) return;
+  const closeSortModalWithAnimation = useCallback(
+    (onClosed?: () => void) => {
+      if (isClosingSortModal) return;
 
-    setIsClosingSortModal(true);
-    Animated.timing(sortModalTranslateY, {
-      toValue: screenHeight,
-      duration: 250,
-      useNativeDriver: true,
-    }).start(() => {
-      setShowSortModal(false);
-      setIsClosingSortModal(false);
-    });
-  }, [isClosingSortModal]);
+      setIsClosingSortModal(true);
+      Animated.timing(sortModalTranslateY, {
+        toValue: screenHeight,
+        duration: 280,
+        useNativeDriver: true,
+      }).start(() => {
+        setShowSortModal(false);
+        setIsClosingSortModal(false);
+        sortModalTranslateY.setValue(screenHeight);
+        onClosed?.();
+      });
+    },
+    [isClosingSortModal, sortModalTranslateY],
+  );
 
   // Функция для закрытия модалки фильтров с анимацией
   const closeFilterModalWithAnimation = useCallback(() => {
@@ -193,21 +205,23 @@ export default function HeartScreen() {
     }, [])
   );
   
+  const animateSortModalOpen = useCallback(() => {
+    sortModalTranslateY.setValue(screenHeight);
+    Animated.spring(sortModalTranslateY, {
+      toValue: 0,
+      useNativeDriver: true,
+      damping: 22,
+      stiffness: 180,
+      mass: 0.85,
+    }).start();
+  }, [sortModalTranslateY]);
+
   // Эффект для анимации появления модалки сортировки
   useEffect(() => {
-    if (showSortModal) {
-      sortModalTranslateY.setValue(screenHeight);
-      Animated.spring(sortModalTranslateY, {
-        toValue: 0,
-        useNativeDriver: true,
-        damping: 20,
-        stiffness: 90,
-        mass: 0.8,
-      }).start();
-    } else {
-      sortModalTranslateY.setValue(screenHeight);
+    if (showSortModal && !isClosingSortModal) {
+      animateSortModalOpen();
     }
-  }, [showSortModal]);
+  }, [animateSortModalOpen, isClosingSortModal, showSortModal]);
 
   // Эффект для анимации появления модалки фильтров
   useEffect(() => {
@@ -425,12 +439,11 @@ export default function HeartScreen() {
   }, [searchQuery, loadProducts]);
 
   const handleSortSelect = (sortId: ProductSortId) => {
-    setSortBy(sortId);
-    closeSortModalWithAnimation();
-    setTimeout(() => {
+    closeSortModalWithAnimation(() => {
+      setSortBy(sortId);
       scrollViewRef.current?.scrollTo({ y: 0, animated: false });
       loadProducts(false, searchQuery, sortId);
-    }, 300);
+    });
   };
 
   // Обработчик переключения фильтра
@@ -647,10 +660,11 @@ export default function HeartScreen() {
 
         {/* Модальное окно сортировки */}
         <Modal
-          visible={showSortModal}
+          visible={showSortModal || isClosingSortModal}
           animationType="none"
           transparent={true}
-          onRequestClose={closeSortModalWithAnimation}
+          onRequestClose={() => closeSortModalWithAnimation()}
+          presentationStyle="overFullScreen"
           statusBarTranslucent={true}
         >
           <TouchableWithoutFeedback onPress={handleSortOverlayPress}>
@@ -685,7 +699,13 @@ export default function HeartScreen() {
                     </TouchableOpacity>
                   </View>
 
-                  <View style={styles.sortOptionsContainer}>
+                  <ScrollView
+                    style={styles.sortOptionsContainer}
+                    contentContainerStyle={{
+                      paddingBottom: sortModalBottomPadding,
+                    }}
+                    showsVerticalScrollIndicator={false}
+                  >
                     {sortOptions.map((option) => (
                       <TouchableOpacity
                         key={option.id}
@@ -729,7 +749,7 @@ export default function HeartScreen() {
                         </View>
                       </TouchableOpacity>
                     ))}
-                  </View>
+                  </ScrollView>
                 </Animated.View>
               </TouchableWithoutFeedback>
             </View>
