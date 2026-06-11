@@ -7,7 +7,7 @@ import {
   getProduct,
   setProductNavigationPending,
 } from "@/features/catalog/catalogSlice";
-import { AutoSlider } from "@/features/home";
+import { ProductImageSlider } from "@/features/catalog/ui/components/ProductImageSlider";
 import { buildTemplateLineFromProduct } from "@/features/templates/buildTemplateLine";
 import { TemplatePickerBanner } from "@/features/templates/TemplatePickerBanner";
 import { useTemplatePicker } from "@/features/templates/TemplatePickerContext";
@@ -19,6 +19,7 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
+  ActivityIndicator,
   Animated,
   Dimensions,
   LayoutAnimation,
@@ -67,8 +68,20 @@ export default function ProductDetailScreen() {
 
   const router = useRouter();
   const dispatch = useAppDispatch();
-  const product = useAppSelector((state) => state.catalog.product);
+  const storedProduct = useAppSelector((state) => state.catalog.product);
+  const activeProductId = useAppSelector((state) => state.catalog.activeProductId);
+  const isLoadingProduct = useAppSelector((state) => state.catalog.isLoadingProduct);
   const cartItems = useAppSelector((state) => state.catalog.cart);
+
+  const product = useMemo(() => {
+    if (!productId || String(activeProductId) !== String(productId)) {
+      return null;
+    }
+    if (!storedProduct || String(storedProduct.id) !== String(productId)) {
+      return null;
+    }
+    return storedProduct;
+  }, [storedProduct, productId, activeProductId]);
   const templatePicker = useTemplatePicker();
   const selectedPurchaseOption =
     product?.purchaseOptions?.[selectedPurchaseOptionIndex];
@@ -194,16 +207,16 @@ export default function ProductDetailScreen() {
     setIsCartModalVisible(false);
   };
 
-  const loadProduct = () => {
-    dispatch(getProduct(productId));
-  };
-
   useEffect(() => {
-    if (productId) {
-      console.log("Initial load for product:", productId);
-      loadProduct();
-    }
-  }, [productId]);
+    if (!productId) return;
+
+    setIsExpanded(false);
+    setSelectedPurchaseOptionIndex(0);
+    setSelectedTab("description");
+    setIsCartModalVisible(false);
+    setExistingCartItem(null);
+    dispatch(getProduct(productId));
+  }, [productId, dispatch]);
 
   const handleBack = () => {
     router.back();
@@ -263,6 +276,17 @@ export default function ProductDetailScreen() {
     if (!linesForBottomBar.length) return null;
     return linesForBottomBar.reduce((sum, item) => sum + item.quantity, 0);
   }, [linesForBottomBar]);
+
+  const productSliderItems = useMemo(
+    () =>
+      (product?.images ?? []).map(
+        (image: { imageUrl?: string }, index: number) => ({
+          id: `product-${product?.id ?? "unknown"}-${index}`,
+          imageUrl: image.imageUrl ?? "",
+        }),
+      ),
+    [product?.images, product?.id],
+  );
   return (
     <SafeAreaProvider>
       <ThemedView
@@ -280,6 +304,12 @@ export default function ProductDetailScreen() {
         />
 
         <View style={styles.mainContainer}>
+          {!product && isLoadingProduct ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#1B1B1C" />
+            </View>
+          ) : (
+          <>
           <ScrollView
             style={styles.container}
             showsVerticalScrollIndicator={false}
@@ -290,11 +320,10 @@ export default function ProductDetailScreen() {
               lightColor={"#FFFFFF"}
               darkColor="#040508"
             >
-              <AutoSlider
-                items={product?.images || []}
+              <ProductImageSlider
+                items={productSliderItems}
                 autoPlayInterval={4000}
                 showIndicators={true}
-                isProduct={true}
               />
 
               <View style={styles.productNameWrapper}>
@@ -604,6 +633,8 @@ export default function ProductDetailScreen() {
               </View>
             </TouchableOpacity>
           </View>
+          </>
+          )}
 
           {/* Модалка добавления в корзину */}
           <AddToCartModal
@@ -626,6 +657,11 @@ export default function ProductDetailScreen() {
 }
 
 const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   safeArea: {
     flex: 1,
   },

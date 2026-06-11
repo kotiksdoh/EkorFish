@@ -58,10 +58,11 @@ const ProductCardComponent: React.FC<ProductCardProps> = ({
   isDis = false,
   fullWidth = false,
 }) => {
-  const [isImageLoading, setIsImageLoading] = useState(true);
+  const [isImageLoading, setIsImageLoading] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [isLiked, setIsLiked] = useState(isFavorite);
   const imageLoadTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const isMountedRef = useRef(true);
 
   const dispatch = useAppDispatch();
   const router = useRouter();
@@ -124,9 +125,10 @@ const ProductCardComponent: React.FC<ProductCardProps> = ({
     }
   };
 
-  // Очищаем таймаут при размонтировании
   useEffect(() => {
+    isMountedRef.current = true;
     return () => {
+      isMountedRef.current = false;
       if (imageLoadTimeoutRef.current) {
         clearTimeout(imageLoadTimeoutRef.current);
       }
@@ -134,25 +136,22 @@ const ProductCardComponent: React.FC<ProductCardProps> = ({
   }, []);
 
   const handleImageLoadStart = useCallback(() => {
+    if (!isMountedRef.current) return;
     setIsImageLoading(true);
-    // Не сбрасываем imageError здесь: иначе после 404 снова подставляется тот же uri → бесконечные запросы / мигание.
 
     if (imageLoadTimeoutRef.current) {
       clearTimeout(imageLoadTimeoutRef.current);
     }
 
+    // Только убираем спиннер — не подменяем фото заглушкой при медленной сети.
     imageLoadTimeoutRef.current = setTimeout(() => {
-      setIsImageLoading((loading) => {
-        if (loading) {
-          setImageError(true);
-          return false;
-        }
-        return loading;
-      });
-    }, 10000);
-  }, [img]);
+      if (!isMountedRef.current) return;
+      setIsImageLoading(false);
+    }, 30000);
+  }, []);
 
-  const handleImageLoadEnd = useCallback(() => {
+  const handleImageLoaded = useCallback(() => {
+    if (!isMountedRef.current) return;
     setIsImageLoading(false);
     setImageError(false);
     if (imageLoadTimeoutRef.current) {
@@ -161,12 +160,13 @@ const ProductCardComponent: React.FC<ProductCardProps> = ({
   }, []);
 
   const handleImageError = useCallback(() => {
+    if (!isMountedRef.current) return;
     setIsImageLoading(false);
     setImageError(true);
     if (imageLoadTimeoutRef.current) {
       clearTimeout(imageLoadTimeoutRef.current);
     }
-  }, [img]);
+  }, []);
 
   const cartItemsForProduct = useMemo(() => {
     if (!productData?.purchaseOptions) return [];
@@ -245,20 +245,17 @@ const ProductCardComponent: React.FC<ProductCardProps> = ({
     return img;
   }, [img, isValidImageUrl]);
 
-  const showPlaceholder =
-    !img ||
-    imageError ||
-    (typeof img === "string" && !isValidImageUrl(img));
+  const hasValidImageUrl =
+    Boolean(img) &&
+    (typeof img !== "string" || isValidImageUrl(img));
 
-  // Только смена img сбрасывает загрузку/ошибку (не showPlaceholder — иначе петля с imageError).
+  const showPlaceholder = !hasValidImageUrl || imageError;
+
+  // Смена img сбрасывает ошибку; loading включается в onLoadStart (кэш может не вызвать start).
   useEffect(() => {
     setImageError(false);
-    if (!img || (typeof img === "string" && !isValidImageUrl(img as string))) {
-      setIsImageLoading(false);
-    } else {
-      setIsImageLoading(true);
-    }
-  }, [img, isValidImageUrl]);
+    setIsImageLoading(false);
+  }, [img]);
 
   const stockInfo = productData?.originalProduct?.stocks?.[0]?.stockInfo;
   const isOutOfStock = stockInfo === "Нет в наличии" || false;
@@ -288,8 +285,12 @@ const ProductCardComponent: React.FC<ProductCardProps> = ({
               style={styles.image}
               contentFit="cover"
               cachePolicy="memory-disk"
+              recyclingKey={
+                typeof img === "string" && !showPlaceholder ? img : undefined
+              }
               onLoadStart={!showPlaceholder ? handleImageLoadStart : undefined}
-              onLoadEnd={!showPlaceholder ? handleImageLoadEnd : undefined}
+              onLoad={!showPlaceholder ? handleImageLoaded : undefined}
+              onLoadEnd={!showPlaceholder ? handleImageLoaded : undefined}
               onError={!showPlaceholder ? handleImageError : undefined}
             />
 

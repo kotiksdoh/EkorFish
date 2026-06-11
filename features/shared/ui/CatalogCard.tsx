@@ -1,7 +1,5 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { getProductList } from "@/features/catalog/catalogSlice";
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { Image as ExpoImage } from "expo-image";
 import { useRouter } from "expo-router";
 
@@ -28,26 +26,10 @@ const CatalogCardComponent: React.FC<CatalogCardProps> = ({
   children,
 }) => {
   const router = useRouter();
-  const dispatch = useAppDispatch();
-  const me = useAppSelector((state) => state.auth.me);
   const handlePress = () => {
     if (id && name) {
-      // Преобразуем children в строку для передачи через URL
       const childrenString = children ? JSON.stringify(children) : "[]";
 
-      dispatch(
-        getProductList({
-          params: {
-            isFavorite: false,
-            categoryId: id, // Раскомментируйте
-            offset: 0,
-            count: 10,
-            storageId: me?.storageId,
-          },
-        }),
-      );
-
-      // Передаем children как параметр
       //@ts-ignore
       router.push(
         `dashboard/${encodeURIComponent(name)}?catalogId=${id}&catalogName=${encodeURIComponent(name)}&children=${encodeURIComponent(childrenString)}&isPromo=false`,

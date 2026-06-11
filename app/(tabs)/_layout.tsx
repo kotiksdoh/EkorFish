@@ -1,5 +1,5 @@
 // app/(tabs)/_layout.tsx
-import { Tabs } from 'expo-router';
+import { router, Tabs } from 'expo-router';
 import React, { useEffect } from 'react';
 import '../../global.css';
 
@@ -43,6 +43,11 @@ export default function TabLayout() {
         />
         <Tabs.Screen
           name="dashboard"
+          listeners={{
+            tabPress: () => {
+              router.dismissTo("/dashboard");
+            },
+          }}
           options={{
             tabBarIcon: ({ color, focused }) =>             
               <SvgIcon 

@@ -53,7 +53,10 @@ interface ServerProduct {
     const pricePerKg = packageOption?.price || 0;
     const price = pricePerKg * (packageOption?.step || 1);
   
-    const image = `${baseUrl}/${serverProduct.images?.[0]|| ''}` 
+    const rawImagePath = serverProduct.images?.[0];
+    const image = rawImagePath
+      ? `${baseUrl}/${String(rawImagePath).replace(/^\//, "")}`
+      : "";
   
     return {
       id: serverProduct.id, 

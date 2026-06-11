@@ -36,6 +36,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
   ActivityIndicator,
   Animated,
+  BackHandler,
   Dimensions,
   FlatList,
   Image,
@@ -136,6 +137,9 @@ export default function CatalogDetailScreen() {
   const activeProductListMode = useAppSelector(
     (state) => state.catalog.activeProductListMode,
   );
+  const activeCategoryId = useAppSelector(
+    (state) => state.catalog.activeCategoryId,
+  );
   const [showSortModal, setShowSortModal] = useState(false);
   const sortModalTranslateY = useRef(new Animated.Value(screenHeight)).current;
   const [isClosingSortModal, setIsClosingSortModal] = useState(false);
@@ -213,11 +217,54 @@ export default function CatalogDetailScreen() {
   const flatListRef = useRef<FlatList>(null);
   const modalScrollViewRef = useRef<ScrollView>(null);
 
+  const catalogIdRef = useRef(catalogId);
+  const isScreenFocusedRef = useRef(false);
+  const loadGenerationRef = useRef(0);
   const isFetchingRef = useRef(false);
   const isNearBottomRef = useRef(false);
   const listViewportHeightRef = useRef(0);
   const fetchNextPageRef = useRef<() => void>(() => {});
+  const loadProductsRef = useRef<
+    (
+      isLoadMore?: boolean,
+      searchText?: string,
+      forceStorageId?: string,
+      forceSubcategoryId?: string | null,
+      sortOverride?: ProductSortId,
+    ) => Promise<void>
+  >(async () => {});
+  const resetAndLoadCategoryRef = useRef<() => void>(() => {});
+  const paginationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+  const autoFillAtCountRef = useRef(-1);
+  const activeCategoryIdRef = useRef(activeCategoryId);
   const [isPagingMore, setIsPagingMore] = useState(false);
+
+  activeCategoryIdRef.current = activeCategoryId;
+
+  useEffect(() => {
+    catalogIdRef.current = catalogId;
+  }, [catalogId]);
+
+  const clearPaginationTimeout = useCallback(() => {
+    if (paginationTimeoutRef.current) {
+      clearTimeout(paginationTimeoutRef.current);
+      paginationTimeoutRef.current = null;
+    }
+  }, []);
+
+  const isLoadContextValid = useCallback(
+    (generationAtStart: number, requireFocus = true) => {
+      return (
+        (!requireFocus || isScreenFocusedRef.current) &&
+        loadGenerationRef.current === generationAtStart &&
+        catalogIdRef.current === catalogId &&
+        Boolean(catalogId)
+      );
+    },
+    [catalogId],
+  );
 
   // Функция для закрытия модалки с анимацией
   const closeModalWithAnimation = useCallback(() => {
@@ -287,20 +334,31 @@ export default function CatalogDetailScreen() {
       forceSubcategoryId?: string | null,
       sortOverride?: ProductSortId,
     ) => {
-      if (isFetchingRef.current || !catalogId) return;
+      const generationAtStart = loadGenerationRef.current;
+
+      if (
+        !isLoadContextValid(generationAtStart, isLoadMore) ||
+        isFetchingRef.current
+      ) {
+        return;
+      }
 
       if (isLoadMore && !hasMore) return;
 
       isFetchingRef.current = true;
+      clearPaginationTimeout();
       if (isLoadMore) {
         setIsPagingMore(true);
       }
 
+      const requestCategoryId = String(catalogId);
+      const requestOffset = isLoadMore ? products.length : 0;
+
       try {
         const params: any = {
           isFavorite: false,
-          categoryId: catalogId,
-          offset: isLoadMore ? products.length : 0,
+          categoryId: requestCategoryId,
+          offset: requestOffset,
           count: pageSize,
           search: searchText,
           isPromo: isPromo,
@@ -358,39 +416,50 @@ export default function CatalogDetailScreen() {
 
         applyProductSortToParams(params, sortOverride ?? sortBy);
 
-        console.log("Loading products:", {
-          isLoadMore,
-          offset: params.offset,
-          search: searchText,
-          subcategoryId: effectiveSubcategoryId,
-          params,
-        });
+        if (!isLoadContextValid(generationAtStart, isLoadMore)) {
+          return;
+        }
 
-        await dispatch(
+        const result = await dispatch(
           getProductList({
             params,
             isLoadMore,
           }),
         ).unwrap();
+
+        if (!isLoadContextValid(generationAtStart, isLoadMore)) {
+          return;
+        }
+
+        const loadedCount = result?.data?.data?.length ?? 0;
+        const canRequestMore = loadedCount >= pageSize;
+        if (isLoadMore && canRequestMore) {
+          paginationTimeoutRef.current = setTimeout(() => {
+            paginationTimeoutRef.current = null;
+            if (
+              isLoadContextValid(generationAtStart, true) &&
+              isNearBottomRef.current &&
+              !isFetchingRef.current
+            ) {
+              fetchNextPageRef.current();
+            }
+          }, 50);
+        }
       } catch (error) {
         console.error("Ошибка загрузки:", error);
       } finally {
         isFetchingRef.current = false;
         if (isLoadMore) {
           setIsPagingMore(false);
-          setTimeout(() => {
-            if (isNearBottomRef.current) {
-              fetchNextPageRef.current();
-            }
-          }, 50);
         }
       }
     },
     [
       catalogId,
+      clearPaginationTimeout,
       hasMore,
+      isLoadContextValid,
       products.length,
-      search,
       dispatch,
       priceRange,
       shelfLifeRange,
@@ -402,36 +471,59 @@ export default function CatalogDetailScreen() {
     ],
   );
 
-  useEffect(() => {
+  const resetAndLoadCategory = useCallback(() => {
     if (!catalogId) return;
+
+    loadGenerationRef.current += 1;
+    isFetchingRef.current = false;
+    isNearBottomRef.current = false;
+    autoFillAtCountRef.current = -1;
+    clearPaginationTimeout();
+    setIsPagingMore(false);
+
     const initialSearchQuery =
       typeof search === "string" ? decodeURIComponent(search).trim() : "";
 
+    setSearchQuery(initialSearchQuery);
+    dispatch(clearSelectedSubcategory());
+    dispatch(clearSelectedFilters());
+    setPriceRange({ min: "", max: "" });
+    setShelfLifeRange({ min: "", max: "" });
     dispatch(clearProducts());
-    void loadProducts(false, initialSearchQuery);
+    void loadProductsRef.current(false, initialSearchQuery);
     dispatch(getCategoryFilters(catalogId));
-  }, [catalogId, dispatch, isPromo, me?.storageId, search]);
+  }, [catalogId, clearPaginationTimeout, dispatch, search]);
 
-  // После вкладки «Избранное» в Redux остаётся тот же список — перегружаем каталог
+  loadProductsRef.current = loadProducts;
+  resetAndLoadCategoryRef.current = resetAndLoadCategory;
+
+  useEffect(() => {
+    resetAndLoadCategoryRef.current();
+  }, [catalogId, isPromo, me?.storageId, search]);
+
   useFocusEffect(
     useCallback(() => {
-      if (!catalogId || activeProductListMode !== "favorites") {
-        return;
+      isScreenFocusedRef.current = true;
+
+      if (catalogId) {
+        const activeCat = activeCategoryIdRef.current;
+        if (
+          activeProductListMode === "favorites" ||
+          (activeCat !== null && activeCat !== String(catalogId))
+        ) {
+          resetAndLoadCategoryRef.current();
+        }
       }
 
-      const initialSearchQuery =
-        typeof search === "string" ? decodeURIComponent(search).trim() : "";
-
-      dispatch(clearProducts());
-      void loadProducts(false, initialSearchQuery);
-      dispatch(getCategoryFilters(catalogId));
-    }, [
-      activeProductListMode,
-      catalogId,
-      dispatch,
-      loadProducts,
-      search,
-    ]),
+      return () => {
+        isScreenFocusedRef.current = false;
+        loadGenerationRef.current += 1;
+        isFetchingRef.current = false;
+        isNearBottomRef.current = false;
+        clearPaginationTimeout();
+        setIsPagingMore(false);
+      };
+    }, [activeProductListMode, catalogId, clearPaginationTimeout]),
   );
 
   // Обработчик смены подкатегории
@@ -448,11 +540,16 @@ export default function CatalogDetailScreen() {
     [dispatch, loadProducts, searchQuery],
   );
 
-  // Эффект для сброса выбранной подкатегории при монтировании
-  useEffect(() => {
-    // При первом открытии сбрасываем выбранную подкатегорию
-    dispatch(setSelectedSubcategory(null));
-  }, [dispatch]);
+  const displayProducts = useMemo(() => {
+    if (!catalogId) return [];
+    if (activeCategoryId !== String(catalogId)) {
+      return [];
+    }
+    return products;
+  }, [products, catalogId, activeCategoryId]);
+
+  const isCategoryListPending =
+    Boolean(catalogId) && activeCategoryId !== String(catalogId);
 
   const [existingCartItem, setExistingCartItem] = useState<any>(null);
 
@@ -497,8 +594,12 @@ export default function CatalogDetailScreen() {
 
   const fetchNextPage = useCallback(() => {
     if (
+      !isScreenFocusedRef.current ||
       !catalogId ||
       !hasMore ||
+      isCategoryListPending ||
+      isLoading ||
+      displayProducts.length === 0 ||
       isFetchingRef.current ||
       isLoadingMore ||
       isPagingMore
@@ -508,7 +609,10 @@ export default function CatalogDetailScreen() {
     void loadProducts(true, searchQuery);
   }, [
     catalogId,
+    displayProducts.length,
     hasMore,
+    isCategoryListPending,
+    isLoading,
     isLoadingMore,
     isPagingMore,
     loadProducts,
@@ -520,6 +624,9 @@ export default function CatalogDetailScreen() {
   }, [fetchNextPage]);
 
   const handleEndReached = useCallback(() => {
+    if (!isScreenFocusedRef.current) {
+      return;
+    }
     isNearBottomRef.current = true;
     fetchNextPage();
   }, [fetchNextPage]);
@@ -533,6 +640,10 @@ export default function CatalogDetailScreen() {
 
   const handleScroll = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      if (!isScreenFocusedRef.current) {
+        return;
+      }
+
       const { layoutMeasurement, contentOffset, contentSize } =
         event.nativeEvent;
 
@@ -554,19 +665,36 @@ export default function CatalogDetailScreen() {
 
   const handleContentSizeChange = useCallback(
     (_width: number, height: number) => {
+      if (!isScreenFocusedRef.current) {
+        return;
+      }
+
       const viewportHeight = listViewportHeightRef.current;
       if (
         viewportHeight > 0 &&
         height <= viewportHeight + 32 &&
         hasMore &&
+        displayProducts.length > 0 &&
+        displayProducts.length !== autoFillAtCountRef.current &&
+        !isCategoryListPending &&
+        !isLoading &&
         !isFetchingRef.current &&
         !isLoadingMore &&
         !isPagingMore
       ) {
+        autoFillAtCountRef.current = displayProducts.length;
         fetchNextPage();
       }
     },
-    [fetchNextPage, hasMore, isLoadingMore, isPagingMore],
+    [
+      displayProducts.length,
+      fetchNextPage,
+      hasMore,
+      isCategoryListPending,
+      isLoading,
+      isLoadingMore,
+      isPagingMore,
+    ],
   );
 
   const renderProduct = useCallback(
@@ -747,7 +875,7 @@ export default function CatalogDetailScreen() {
   );
 
   const renderListEmpty = useCallback(() => {
-    if (isLoading && !isLoadingMore) {
+    if ((isLoading && !isLoadingMore) || isCategoryListPending) {
       return (
         <View style={styles.initialLoadingContainer}>
           <ActivityIndicator
@@ -784,7 +912,7 @@ export default function CatalogDetailScreen() {
         </ThemedText>
       </View>
     );
-  }, [isDarkMode, isLoading, isLoadingMore]);
+  }, [isCategoryListPending, isDarkMode, isLoading, isLoadingMore]);
 
   const renderListFooter = useCallback(() => {
     if (!isLoadingMore && !isPagingMore) {
@@ -812,11 +940,20 @@ export default function CatalogDetailScreen() {
     }
   }, [catalogId, searchQuery, loadProducts]);
 
-  // Обработчик возврата
-  const handleBack = () => {
-    // router.back();
-    router.navigate("/dashboard");
-  };
+  const handleBack = useCallback(() => {
+    clearPaginationTimeout();
+    router.dismissTo("/dashboard");
+  }, [clearPaginationTimeout, router]);
+
+  useFocusEffect(
+    useCallback(() => {
+      const subscription = BackHandler.addEventListener("hardwareBackPress", () => {
+        handleBack();
+        return true;
+      });
+      return () => subscription.remove();
+    }, [handleBack]),
+  );
 
   // Переключение выбора фильтра
   const handleFilterToggle = (filterOptionId: string) => {
@@ -906,7 +1043,7 @@ export default function CatalogDetailScreen() {
           <TemplatePickerBanner />
           <FlatList
             ref={flatListRef}
-            data={products}
+            data={displayProducts}
             renderItem={renderProduct}
             keyExtractor={keyExtractor}
             numColumns={2}
@@ -931,7 +1068,8 @@ export default function CatalogDetailScreen() {
             onContentSizeChange={handleContentSizeChange}
             initialNumToRender={10}
             maxToRenderPerBatch={10}
-            windowSize={7}
+            windowSize={11}
+            removeClippedSubviews={false}
           />
         </View>
 

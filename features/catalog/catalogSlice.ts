@@ -81,12 +81,42 @@ function getProductListMode(params: { isFavorite?: boolean }): ProductListMode {
   return params?.isFavorite === true ? "favorites" : "catalog";
 }
 
+function normalizeCategoryId(categoryId: unknown): string | null {
+  if (categoryId === undefined || categoryId === null || categoryId === "") {
+    return null;
+  }
+  return String(categoryId);
+}
+
+function isStaleProductListResponse(
+  state: CategoryState,
+  requestMode: ProductListMode,
+  requestCategoryId: string | null,
+): boolean {
+  if (
+    state.activeProductListMode !== null &&
+    requestMode !== state.activeProductListMode
+  ) {
+    return true;
+  }
+
+  if (requestMode === "catalog") {
+    return requestCategoryId !== state.activeCategoryId;
+  }
+
+  return false;
+}
+
 interface CategoryState {
   isLoading: boolean;
   isLoadingMore: boolean;
   isLoadingFilters: boolean;
   /** Режим активного списка — отсекает ответы API после смены каталог ↔ избранное */
   activeProductListMode: ProductListMode | null;
+  /** Текущая категория списка — отсекает ответы после смены категории */
+  activeCategoryId: string | null;
+  /** Текущий товар на экране деталки — отсекает ответы после смены товара */
+  activeProductId: string | null;
   products: any[];
   totalCount: number;
   currentPage: number;
@@ -132,6 +162,8 @@ const initialState: CategoryState = {
   isLoadingMore: false,
   isLoadingFilters: false,
   activeProductListMode: null,
+  activeCategoryId: null,
+  activeProductId: null,
   products: [],
   totalCount: 0,
   currentPage: 0,
@@ -252,12 +284,9 @@ export const getProductList = createAsyncThunk(
     try {
       const state = getState() as { catalog: CategoryState };
       const { selectedFilterIds, selectedSubcategoryId } = state.catalog;
-      console.log("params", payload.params);
-      // Создаем параметры
       const params = new URLSearchParams();
 
       // Добавляем основные параметры
-      console.log("payload.params.isFavorite", payload.params.isFavorite);
       // if(payload.params.isFavorite)
       // params.append('isFavorite', 'false');
       if (payload.params.isFavorite !== undefined) {
@@ -267,13 +296,15 @@ export const getProductList = createAsyncThunk(
         params.append("categoryId", payload.params.categoryId);
       }
 
-      // Подкатегория только для каталога, не для избранного
+      // Подкатегория: приоритет у params (явный выбор), иначе Redux
+      const subCategoryId =
+        payload.params.subCategoryId ?? selectedSubcategoryId;
       if (
         payload.params.isFavorite !== true &&
-        selectedSubcategoryId &&
-        selectedSubcategoryId !== "all"
+        subCategoryId &&
+        subCategoryId !== "all"
       ) {
-        params.append("subCategoryId", selectedSubcategoryId);
+        params.append("subCategoryId", subCategoryId);
       }
 
       if (payload.params.offset !== undefined) {
@@ -321,8 +352,6 @@ export const getProductList = createAsyncThunk(
           params.append("ProductFilterIds", filterId);
         });
       }
-
-      console.log("API params:", params.toString());
 
       const data = await axdef.get("/api/Catalog/product/list", {
         params: params,
@@ -793,9 +822,10 @@ const catalogSlice = createSlice({
       return initialState;
     },
     clearProducts: (state) => {
-      state.isLoading = false;
+      state.isLoading = true;
       state.isLoadingMore = false;
       state.activeProductListMode = null;
+      state.activeCategoryId = null;
       state.products = [];
       state.totalCount = 0;
       state.currentPage = 0;
@@ -844,6 +874,12 @@ const catalogSlice = createSlice({
     },
     setProductNavigationPending: (state, action) => {
       state.isNavigatingToProduct = action.payload;
+    },
+    clearProduct: (state) => {
+      state.product = null;
+      state.activeProductId = null;
+      state.isLoadingProduct = false;
+      state.isNavigatingToProduct = false;
     },
     updateCartItemQuantity: (state, action) => {
       const { cartItemId, quantity } = action.payload;
@@ -1021,9 +1057,14 @@ const catalogSlice = createSlice({
     builder.addCase(getProductList.pending, (state, action) => {
       const isLoadMore = action.meta.arg?.isLoadMore || false;
       const requestMode = getProductListMode(action.meta.arg?.params ?? {});
+      const requestCategoryId = normalizeCategoryId(
+        action.meta.arg?.params?.categoryId,
+      );
 
       if (!isLoadMore) {
         state.activeProductListMode = requestMode;
+        state.activeCategoryId =
+          requestMode === "catalog" ? requestCategoryId : null;
       }
 
       if (isLoadMore) {
@@ -1035,10 +1076,12 @@ const catalogSlice = createSlice({
 
     builder.addCase(getProductList.fulfilled, (state, action) => {
       const requestMode = getProductListMode(action.meta.arg?.params ?? {});
+      const requestCategoryId = normalizeCategoryId(
+        action.meta.arg?.params?.categoryId,
+      );
 
       if (
-        state.activeProductListMode !== null &&
-        requestMode !== state.activeProductListMode
+        isStaleProductListResponse(state, requestMode, requestCategoryId)
       ) {
         state.isLoading = false;
         state.isLoadingMore = false;
@@ -1049,9 +1092,18 @@ const catalogSlice = createSlice({
       const adaptedProducts = adaptProductsArray(data.data || []);
 
       if (isLoadMore) {
-        state.products = [...state.products, ...adaptedProducts];
+        const existingIds = new Set(
+          state.products.map((product: { id?: string | number }) => product.id),
+        );
+        const uniqueProducts = adaptedProducts.filter(
+          (product: { id?: string | number }) => !existingIds.has(product.id),
+        );
+        state.products = [...state.products, ...uniqueProducts];
         state.isLoadingMore = false;
         state.currentPage += 1;
+        if (uniqueProducts.length === 0) {
+          state.hasMore = false;
+        }
       } else {
         // Для первой загрузки или поиска заменяем
         state.products = adaptedProducts;
@@ -1059,23 +1111,31 @@ const catalogSlice = createSlice({
         state.currentPage = 0;
       }
 
-      // Проверяем, есть ли еще данные
+      const pageSize = Number(action.meta.arg?.params?.count) || 10;
       const loadedCount = adaptedProducts.length;
-      state.hasMore = loadedCount === 10;
+      if (isLoadMore) {
+        state.hasMore = loadedCount >= pageSize && state.hasMore;
+      } else {
+        state.hasMore = loadedCount >= pageSize;
+      }
 
-      console.log(
-        "Products loaded:",
-        adaptedProducts.length,
-        "Total:",
-        state.products.length,
-        "Has more:",
-        state.hasMore,
-      );
     });
 
     builder.addCase(getProductList.rejected, (state, action) => {
+      const requestMode = getProductListMode(action.meta.arg?.params ?? {});
+      const requestCategoryId = normalizeCategoryId(
+        action.meta.arg?.params?.categoryId,
+      );
+
+      if (
+        isStaleProductListResponse(state, requestMode, requestCategoryId)
+      ) {
+        return;
+      }
+
       state.isLoading = false;
       state.isLoadingMore = false;
+      state.hasMore = false;
       axiosErrorHandler(action?.payload);
     });
 
@@ -1132,19 +1192,29 @@ const catalogSlice = createSlice({
       axiosErrorHandler(action?.payload);
     });
 
-    builder.addCase(getProduct.pending, (state) => {
+    builder.addCase(getProduct.pending, (state, action) => {
+      const requestProductId = String(action.meta.arg ?? "");
+      state.activeProductId = requestProductId;
+      state.product = null;
       state.isLoadingProduct = true;
       state.isNavigatingToProduct = true;
     });
 
     builder.addCase(getProduct.fulfilled, (state, action) => {
-      console.log("action.payload", action.payload);
+      const requestProductId = String(action.meta.arg ?? "");
+      if (requestProductId !== state.activeProductId) {
+        return;
+      }
       state.product = adaptProductSingleObj(action.payload);
       state.isLoadingProduct = false;
       state.isNavigatingToProduct = false;
     });
 
     builder.addCase(getProduct.rejected, (state, action) => {
+      const requestProductId = String(action.meta.arg ?? "");
+      if (requestProductId !== state.activeProductId) {
+        return;
+      }
       state.isLoadingProduct = false;
       state.isNavigatingToProduct = false;
       axiosErrorHandler(action?.payload);
@@ -1333,5 +1403,6 @@ export const {
   clearReturnRequests,
   updateReturnItemReason,
   setProductNavigationPending,
+  clearProduct,
 } = catalogSlice.actions;
 export default catalogSlice.reducer;
