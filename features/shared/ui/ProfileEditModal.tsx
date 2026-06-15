@@ -107,6 +107,34 @@ const DARK_COLORS = [
   },
 ];
 
+const ALL_COVER_COLORS = [...LIGHT_COLORS, ...DARK_COLORS];
+
+function resolveColorIdForTheme(
+  savedId: string,
+  themeColors: typeof LIGHT_COLORS,
+): string {
+  const paletteIndex = ALL_COVER_COLORS.findIndex((color) => color.id === savedId);
+  if (paletteIndex >= 0) {
+    return themeColors[paletteIndex % themeColors.length]?.id ?? themeColors[0].id;
+  }
+  return themeColors[0].id;
+}
+
+function resolveColorIdFromHex(
+  hex: string | undefined,
+  themeColors: typeof LIGHT_COLORS,
+): string | null {
+  if (!hex) return null;
+  const normalized = hex.trim().toUpperCase();
+  const matchedIndex = ALL_COVER_COLORS.findIndex(
+    (color) =>
+      color.preview.toUpperCase() === normalized ||
+      color.gradient[0].toUpperCase() === normalized,
+  );
+  if (matchedIndex < 0) return null;
+  return themeColors[matchedIndex % themeColors.length]?.id ?? null;
+}
+
 export const ProfileEditModal = ({
   visible,
   onClose,
@@ -127,9 +155,11 @@ export const ProfileEditModal = ({
   const [mail, setMail] = useState('');
   const [avatar, setAvatar] = useState<string | null>(initialData.avatar || null);
   const [selectedColorId, setSelectedColorId] = useState(colors[0].id);
+  const [pickerColorId, setPickerColorId] = useState(colors[0].id);
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
   const [isIndividualProfile, setIsIndividualProfile] = useState(false);
+  const wasVisibleRef = useRef(false);
   
   const modalTranslateY = useRef(new Animated.Value(screenHeight)).current;
   const colorPickerTranslateY = useRef(new Animated.Value(screenHeight)).current;
@@ -195,19 +225,25 @@ export const ProfileEditModal = ({
     });
   };
 
+  const openColorPicker = () => {
+    setPickerColorId(selectedColorId);
+    setShowColorPicker(true);
+  };
+
   useEffect(() => {
     const loadSavedData = async () => {
       try {
         const savedColorId = await AsyncStorage.getItem('profileCoverColorId');
         const savedAvatar = await AsyncStorage.getItem('profileAvatar');
         const storedCompany = await AsyncStorage.getItem("company");
-        
+
+        let nextColorId = resolveColorIdFromHex(initialData.coverColor, colors);
         if (savedColorId) {
-          const colorExists = colors.some(c => c.id === savedColorId);
-          if (colorExists) {
-            setSelectedColorId(savedColorId);
-          }
+          nextColorId = resolveColorIdForTheme(savedColorId, colors);
         }
+        setSelectedColorId(nextColorId);
+        setPickerColorId(nextColorId);
+        
         if (savedAvatar) setAvatar(savedAvatar);
 
         if (storedCompany) {
@@ -221,16 +257,20 @@ export const ProfileEditModal = ({
       }
     };
     
-    if (visible) {
-      loadSavedData();
+    if (visible && !wasVisibleRef.current) {
+      void loadSavedData();
       setName(initialData.name || "");
       setSurname(initialData.surname || "");
       setPhone(initialData.phone || "");
       setMail(initialData.phone || "");
-    } else {
+    }
+
+    if (!visible) {
       setShowColorPicker(false);
     }
-  }, [visible, initialData, colors]);
+
+    wasVisibleRef.current = visible;
+  }, [visible, initialData.name, initialData.surname, initialData.phone, initialData.coverColor, colors]);
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -265,6 +305,7 @@ export const ProfileEditModal = ({
 
   const handleColorSelect = async (colorId: string) => {
     setSelectedColorId(colorId);
+    setPickerColorId(colorId);
     await AsyncStorage.setItem('profileCoverColorId', colorId);
     closeColorPickerWithAnimation();
   };
@@ -374,7 +415,7 @@ export const ProfileEditModal = ({
                         editable={false}
                       />
          
-                        <TouchableOpacity style={styles.colorPickerCont} onPress={() => setShowColorPicker(true)}>
+                        <TouchableOpacity style={styles.colorPickerCont} onPress={openColorPicker}>
                           
                         <ThemedText style={styles.colorPickerLabel}>Изменить цвет обложки</ThemedText>
                         <View style={styles.colorPickerRight}>
@@ -437,17 +478,14 @@ export const ProfileEditModal = ({
                           </View>
 
                           <View style={styles.colorsGrid}>
-                            {colors.map((color) => (
+                            {colors.map((color) => {
+                              const isSelected = pickerColorId === color.id;
+                              return (
                               <TouchableOpacity
                                 key={color.id}
-                                style={[
-                                  styles.colorOption,
-                                  selectedColorId === color.id && styles.selectedColorOption,
-                                  isDarkMode && selectedColorId === color.id && {
-                                      borderColor: '#3881EE'
-                                  }
-                                ]}
-                                onPress={() => setSelectedColorId(color.id)}
+                                style={styles.colorOption}
+                                onPress={() => setPickerColorId(color.id)}
+                                activeOpacity={0.85}
                               >
                                 <LinearGradient
                                   colors={color.gradient}
@@ -455,8 +493,17 @@ export const ProfileEditModal = ({
                                   end={{ x: 1, y: 0 }}
                                   style={styles.colorOptionGradient}
                                 />
+                                {isSelected ? (
+                                  <View
+                                    style={[
+                                      styles.colorOptionSelectedRing,
+                                      isDarkMode && styles.colorOptionSelectedRingDark,
+                                    ]}
+                                  />
+                                ) : null}
                               </TouchableOpacity>
-                            ))}
+                            );
+                            })}
                           </View>
 
                           <View
@@ -469,7 +516,7 @@ export const ProfileEditModal = ({
                           >
                             <PrimaryButton
                               title="Применить"
-                              onPress={() => handleColorSelect(selectedColorId)}
+                              onPress={() => handleColorSelect(pickerColorId)}
                               variant="primary"
                               size="md"
                               fullWidth
@@ -632,17 +679,26 @@ const styles = StyleSheet.create({
   colorOption: {
     width: 40,
     height: 40,
-    borderRadius: 30,
-    overflow: 'hidden',
+    borderRadius: 20,
+    position: "relative",
   },
   colorOptionGradient: {
-    width: '100%',
-    height: '100%',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
   },
-  selectedColorOption: {
+  colorOptionSelectedRing: {
+    position: "absolute",
+    top: -3,
+    left: -3,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
     borderWidth: 3,
-    borderColor: '#203686',
-    borderRadius: 33,
+    borderColor: "#203686",
+  },
+  colorOptionSelectedRingDark: {
+    borderColor: "#3881EE",
   },
   buttonsContainer: {
     paddingHorizontal: 20,
