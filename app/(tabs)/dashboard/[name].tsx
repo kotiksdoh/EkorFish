@@ -613,6 +613,10 @@ export default function CatalogDetailScreen() {
     return products;
   }, [products, catalogId, activeCategoryId]);
 
+  const showInitialLoader =
+    isCategoryListPending ||
+    (isLoading && !isLoadingMore && displayProducts.length === 0);
+
   const [existingCartItem, setExistingCartItem] = useState<any>(null);
 
   const handleAddToCartPress = (product: any) => {
@@ -1138,6 +1142,24 @@ export default function CatalogDetailScreen() {
             windowSize={11}
             removeClippedSubviews={false}
           />
+          {showInitialLoader ? (
+            <View
+              style={[
+                styles.fullScreenLoader,
+                isDarkMode
+                  ? styles.fullScreenLoaderDark
+                  : styles.fullScreenLoaderLight,
+              ]}
+            >
+              <ActivityIndicator
+                size="large"
+                color={isDarkMode ? "#4C94FF" : "#203686"}
+              />
+              <ThemedText style={styles.initialLoadingText}>
+                Загрузка товаров...
+              </ThemedText>
+            </View>
+          ) : null}
         </View>
 
         <TownSelectionModal
@@ -1607,6 +1629,18 @@ const styles = StyleSheet.create({
     paddingVertical: 60,
     alignItems: "center",
     justifyContent: "center",
+  },
+  fullScreenLoader: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 10,
+  },
+  fullScreenLoaderLight: {
+    backgroundColor: "#EBEDF0",
+  },
+  fullScreenLoaderDark: {
+    backgroundColor: "#040508",
   },
   initialLoadingText: {
     marginTop: 12,

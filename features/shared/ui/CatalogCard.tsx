@@ -43,7 +43,7 @@ const CatalogCardComponent: React.FC<CatalogCardProps> = ({
 
     setTimeout(() => {
       isNavigatingRef.current = false;
-    }, 1500);
+    }, 400);
   };
 
   const isValidImageUrl = useCallback((url: string): boolean => {

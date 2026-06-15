@@ -896,6 +896,15 @@ const catalogSlice = createSlice({
     setProductNavigationPending: (state, action) => {
       state.isNavigatingToProduct = action.payload;
     },
+    setProductPreview: (
+      state,
+      action: { payload: { productId: string; preview: any } },
+    ) => {
+      state.activeProductId = action.payload.productId;
+      state.product = action.payload.preview;
+      state.isLoadingProduct = true;
+      state.isNavigatingToProduct = true;
+    },
     clearProduct: (state) => {
       state.product = null;
       state.activeProductId = null;
@@ -1233,7 +1242,12 @@ const catalogSlice = createSlice({
     builder.addCase(getProduct.pending, (state, action) => {
       const requestProductId = String(action.meta.arg ?? "");
       state.activeProductId = requestProductId;
-      state.product = null;
+      if (
+        !state.product ||
+        String(state.product.id) !== requestProductId
+      ) {
+        state.product = null;
+      }
       state.isLoadingProduct = true;
       state.isNavigatingToProduct = true;
     });
@@ -1464,6 +1478,7 @@ export const {
   clearReturnRequests,
   updateReturnItemReason,
   setProductNavigationPending,
+  setProductPreview,
   clearProduct,
 } = catalogSlice.actions;
 export default catalogSlice.reducer;

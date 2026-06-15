@@ -3,11 +3,7 @@ import { useTemplatePicker } from "@/features/templates/TemplatePickerContext";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { LoginModal } from "@/features/auth/ui/components/LoginModal";
-import {
-  putFavorite,
-  putUnFavorite,
-  setProductNavigationPending,
-} from "@/features/catalog/catalogSlice";
+import { putFavorite, putUnFavorite } from "@/features/catalog/catalogSlice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
@@ -70,17 +66,9 @@ const ProductCardComponent: React.FC<ProductCardProps> = ({
   const dispatch = useAppDispatch();
   const router = useRouter();
   const cartItems = useAppSelector((state) => state.catalog.cart);
-  const isNavigatingToProduct = useAppSelector(
-    (state) => state.catalog.isNavigatingToProduct,
-  );
-  const isLoadingProduct = useAppSelector(
-    (state) => state.catalog.isLoadingProduct,
-  );
-  const isProductNavigationLocked =
-    isNavigatingToProduct || isLoadingProduct;
+  const isNavigatingRef = useRef(false);
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === "dark";
-  const showNavigationLockOverlay = isProductNavigationLocked && !isDis;
   const { pickingForTemplateId, getExistingTemplateLinesForProduct, liveTemplateItems } =
     useTemplatePicker();
   const isTemplatePick = !!pickingForTemplateId;
@@ -212,33 +200,23 @@ const ProductCardComponent: React.FC<ProductCardProps> = ({
   }, [templateLinesForProduct]);
 
   const toProductDetail = useCallback(() => {
-    if (isDis || !id || !name || isProductNavigationLocked) {
-      return;
-    }
-    dispatch(setProductNavigationPending(true));
-
-    if (returnTo === "home") {
-      router.dismissTo("/dashboard");
-      requestAnimationFrame(() => {
-        router.push(
-          `/(tabs)/dashboard/product/${encodeURIComponent(id)}?productId=${id}&productName=${encodeURIComponent(name)}&returnTo=home` as any,
-        );
-      });
+    if (isDis || !id || !name || isNavigatingRef.current) {
       return;
     }
 
-    router.push(
-      `/(tabs)/dashboard/product/${encodeURIComponent(id)}?productId=${id}&productName=${encodeURIComponent(name)}` as any,
-    );
-  }, [
-    dispatch,
-    id,
-    isDis,
-    isProductNavigationLocked,
-    name,
-    returnTo,
-    router,
-  ]);
+    isNavigatingRef.current = true;
+
+    const productPath =
+      returnTo === "home"
+        ? `/(tabs)/dashboard/product/${encodeURIComponent(id)}?productId=${id}&returnTo=home`
+        : `/(tabs)/dashboard/product/${encodeURIComponent(id)}?productId=${id}`;
+
+    router.push(productPath as any);
+
+    setTimeout(() => {
+      isNavigatingRef.current = false;
+    }, 400);
+  }, [id, isDis, name, returnTo, router]);
 
   // Определяем, является ли URL валидным
   const isValidImageUrl = useCallback((url: string): boolean => {
@@ -283,7 +261,7 @@ const ProductCardComponent: React.FC<ProductCardProps> = ({
       <TouchableOpacity
         onPress={toProductDetail}
         activeOpacity={isDarkMode ? 0.9 : 0.97}
-        disabled={isDis || isProductNavigationLocked}
+        disabled={isDis}
         style={[
           styles.cardTouchable,
           fullWidth && { width: "100%" },
@@ -434,17 +412,6 @@ const ProductCardComponent: React.FC<ProductCardProps> = ({
             </View>
           </View>
 
-          {showNavigationLockOverlay ? (
-            <View
-              pointerEvents="none"
-              style={[
-                styles.navigationLockOverlay,
-                isDarkMode
-                  ? styles.navigationLockOverlayDark
-                  : styles.navigationLockOverlayLight,
-              ]}
-            />
-          ) : null}
         </ThemedView>
       </TouchableOpacity>
       {loginModalVisible ? (
@@ -474,16 +441,6 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     elevation: 3,
     position: "relative",
-  },
-  navigationLockOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    borderRadius: 8,
-  },
-  navigationLockOverlayLight: {
-    backgroundColor: "rgba(255, 255, 255, 0.42)",
-  },
-  navigationLockOverlayDark: {
-    backgroundColor: "rgba(0, 0, 0, 0.22)",
   },
   imageContainer: {
     position: "relative",

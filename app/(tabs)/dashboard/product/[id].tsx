@@ -347,9 +347,12 @@ export default function ProductDetailScreen() {
         />
 
         <View style={styles.mainContainer}>
-          {!product && isLoadingProduct ? (
+          {isLoadingProduct ? (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#1B1B1C" />
+              <ActivityIndicator
+                size="large"
+                color={isDarkMode ? "#4C94FF" : "#1B1B1C"}
+              />
             </View>
           ) : (
           <>
