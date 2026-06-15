@@ -10,7 +10,7 @@ import {
   getCategoryFilters,
   getProductList,
   resetPagination,
-  toggleFilterSelection,
+  setSelectedFilters,
 } from "@/features/catalog/catalogSlice";
 import {
   DEFAULT_PRODUCT_SORT,
@@ -53,6 +53,8 @@ import {
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 
+const normalizeFilterId = (id: string | number) => String(id);
+
 export default function HeartScreen() {
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === "dark";
@@ -88,21 +90,37 @@ export default function HeartScreen() {
   const hasMore = useAppSelector((state) => state.catalog.hasMore);
   const currentPage = useAppSelector((state) => state.catalog.currentPage);
   const filters = useAppSelector((state) => state.catalog.filters);
+  const filtersCategoryId = useAppSelector(
+    (state) => state.catalog.filtersCategoryId,
+  );
   const selectedFilterIds = useAppSelector(
     (state) => state.catalog.selectedFilterIds,
   );
+  const [draftFilterIds, setDraftFilterIds] = useState<string[]>([]);
   
   const dispatch = useAppDispatch();
   const insets = useSafeAreaInsets();
   const sortModalBottomPadding =
     Math.max(insets.bottom, Platform.OS === "android" ? 28 : 16) + 12;
+  const filterModalBottomPadding = Math.max(insets.bottom, 12);
+  const filterListMaxHeight = Math.round(screenHeight * 0.7 - 108);
   const templatePicker = useTemplatePicker();
   const searchInputRef = useRef<TextInput>(null);
   const router = useRouter();
   const scrollViewRef = useRef<ScrollView>(null);
   const [hasToken, setHasToken] = useState<boolean | null>(null);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   // Ref для предотвращения двойных запросов
   const isFetchingRef = useRef(false);
+  const filtersLengthRef = useRef(filters.length);
+  const filtersCategoryIdRef = useRef(filtersCategoryId);
+  const isLoadingFiltersRef = useRef(isLoadingFilters);
+  const productsLengthRef = useRef(products.length);
+
+  filtersLengthRef.current = filters.length;
+  filtersCategoryIdRef.current = filtersCategoryId;
+  isLoadingFiltersRef.current = isLoadingFilters;
+  productsLengthRef.current = products.length;
 
   const handleAddToCartPress = (product: any) => {
     const cartItemsForProduct =
@@ -158,21 +176,17 @@ export default function HeartScreen() {
   // Проверка, есть ли в группе выбранные фильтры
   const hasSelectedFiltersInGroup = (filterGroup: any) => {
     return filterGroup.filterOptions.some((option: any) =>
-      selectedFilterIds.includes(option.id),
+      selectedFilterIds.includes(normalizeFilterId(option.id)),
     );
   };
 
   // Подсчет выбранных фильтров в группе
   const countSelectedFiltersInGroup = (filterGroup: any) => {
     return filterGroup.filterOptions.filter((option: any) =>
-      selectedFilterIds.includes(option.id),
+      selectedFilterIds.includes(normalizeFilterId(option.id)),
     ).length;
   };
 
-  // Проверка выбран ли фильтр
-  const isFilterSelected = (filterOptionId: string) => {
-    return selectedFilterIds.includes(filterOptionId);
-  };
   const me = useAppSelector((state) => state.auth.me);
 
   // Загрузка продуктов ИЗБРАННОГО
@@ -181,6 +195,7 @@ export default function HeartScreen() {
       isLoadMore: boolean = false,
       searchText: string = searchQuery,
       sortOverride?: ProductSortId,
+      filterIdsOverride?: string[],
     ) => {
       if (isFetchingRef.current) return;
       if (isLoadMore && !hasMore) return;
@@ -188,6 +203,8 @@ export default function HeartScreen() {
       isFetchingRef.current = true;
 
       try {
+        const effectiveFilterIds = filterIdsOverride ?? selectedFilterIds;
+
         const params: any = {
           isFavorite: true,
           offset: isLoadMore ? products.length : 0,
@@ -215,24 +232,15 @@ export default function HeartScreen() {
           params.MaxPrice = maxPrice;
         }
 
-        // Добавляем выбранные фильтры если они есть
-        if (selectedFilterIds.length > 0) {
-          params.FilterIds = selectedFilterIds.join(",");
+        if (effectiveFilterIds.length > 0) {
+          params.FilterIds = effectiveFilterIds.join(",");
         }
 
         applyProductSortToParams(params, sortOverride ?? sortBy);
 
-        console.log("Loading favorite products:", {
-          isLoadMore,
-          offset: params.offset,
-          search: searchText,
-          filters: selectedFilterIds,
-          params,
-        });
         const token = await AsyncStorage.getItem("token");
         if (!token) {
-          console.log("No token found - skipping favorites loading");
-          return; // Выходим, если нет токена
+          return;
         }
         dispatch(
           getProductList({
@@ -272,37 +280,75 @@ export default function HeartScreen() {
   const handleFilterSheetClose = useCallback(() => {
     setShowFilterModal(false);
     setSelectedFilterGroup(null);
-    scrollViewRef.current?.scrollTo({ y: 0, animated: false });
-    void loadProductsRef.current(false, searchQuery);
-  }, [searchQuery]);
+  }, []);
+
+  const applyFilterDraft = useCallback(() => {
+    const idsToApply = draftFilterIds.map(normalizeFilterId);
+    filterSheetRef.current?.close(() => {
+      dispatch(setSelectedFilters(idsToApply));
+      scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+      void loadProductsRef.current(false, searchQuery, undefined, idsToApply);
+    });
+  }, [dispatch, draftFilterIds, searchQuery]);
 
   const handleFilterGroupPress = (filterGroup: any) => {
+    setDraftFilterIds(selectedFilterIds.map(normalizeFilterId));
     setSelectedFilterGroup(filterGroup);
     setShowFilterModal(true);
   };
 
   useFocusEffect(
     useCallback(() => {
+      let cancelled = false;
+
       const checkTokenAndLoad = async () => {
         const token = await AsyncStorage.getItem("token");
-        if (!token) {
+        if (cancelled) {
           return;
         }
 
-        const alreadyLoadedFavorites =
-          activeProductListModeRef.current === "favorites" && products.length > 0;
+        if (!token) {
+          setHasToken(false);
+          return;
+        }
 
-        if (!alreadyLoadedFavorites) {
+        setHasToken(true);
+
+        const favoritesReady =
+          activeProductListModeRef.current === "favorites" &&
+          productsLengthRef.current > 0;
+
+        if (!favoritesReady) {
+          setHasLoadedOnce(false);
           dispatch(resetPagination());
           void loadProductsRef.current(false, "");
         }
 
-        dispatch(getCategoryFilters(null));
+        const favoriteFiltersLoaded =
+          filtersCategoryIdRef.current === "" &&
+          filtersLengthRef.current > 0;
+        if (!favoriteFiltersLoaded && !isLoadingFiltersRef.current) {
+          dispatch(getCategoryFilters(null));
+        }
       };
 
       void checkTokenAndLoad();
-    }, [dispatch, products.length]),
+
+      return () => {
+        cancelled = true;
+      };
+    }, [dispatch]),
   );
+
+  useEffect(() => {
+    if (
+      activeProductListMode === "favorites" &&
+      !isLoading &&
+      !isLoadingMore
+    ) {
+      setHasLoadedOnce(true);
+    }
+  }, [activeProductListMode, isLoading, isLoadingMore]);
 
   // Обработчик прокрутки
   const handleScroll = useCallback(
@@ -355,21 +401,27 @@ export default function HeartScreen() {
     });
   };
 
-  // Обработчик переключения фильтра
-  const handleFilterToggle = (filterOptionId: string) => {
-    dispatch(toggleFilterSelection(filterOptionId));
+  // Обработчик переключения фильтра (только черновик до «Готово»)
+  const handleFilterToggle = (filterOptionId: string | number) => {
+    const id = normalizeFilterId(filterOptionId);
+    setDraftFilterIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
+    );
   };
 
-  // Сброс фильтров в текущей группе
+  const isDraftFilterSelected = (filterOptionId: string | number) =>
+    draftFilterIds.includes(normalizeFilterId(filterOptionId));
+
+  // Сброс фильтров в текущей группе (черновик)
   const resetCurrentGroupFilters = () => {
-    if (selectedFilterGroup) {
-      selectedFilterGroup.filterOptions.forEach((option: any) => {
-        if (isFilterSelected(option.id)) {
-          dispatch(toggleFilterSelection(option.id));
-        }
-      });
-      closeFilterModal();
-    }
+    if (!selectedFilterGroup) return;
+
+    const groupOptionIds = new Set(
+      selectedFilterGroup.filterOptions.map((option: any) => String(option.id)),
+    );
+    setDraftFilterIds((prev) =>
+      prev.filter((id) => !groupOptionIds.has(String(id))),
+    );
   };
 
   // Сброс всех фильтров
@@ -381,9 +433,27 @@ export default function HeartScreen() {
 
   const getCurrentSortLabel = () => getProductSortLabel(sortBy);
 
-  const displayProducts = hasToken
-    ? products.filter((product) => product.isFavorite === true)
-    : [];
+  const isFavoritesMode = activeProductListMode === "favorites";
+  const displayProducts =
+    hasToken && isFavoritesMode ? products : [];
+
+  const showInitialLoading =
+    hasToken !== false &&
+    displayProducts.length === 0 &&
+    (!hasLoadedOnce || isLoading);
+
+  const showEmptyState =
+    hasToken === true &&
+    hasLoadedOnce &&
+    !isLoading &&
+    !isLoadingMore &&
+    displayProducts.length === 0;
+
+  const showProductsRefreshing =
+    isFavoritesMode &&
+    isLoading &&
+    !isLoadingMore &&
+    hasLoadedOnce;
 
   // Рендер элемента группы фильтров в горизонтальном списке
   const renderFilterGroupItem = (filterGroup: any) => {
@@ -494,7 +564,7 @@ export default function HeartScreen() {
               </View>
 
               <View style={styles.productsArea}>
-                {isLoading && !isLoadingMore ? (
+                {showInitialLoading ? (
                   <View style={styles.initialLoadingContainer}>
                     <ActivityIndicator
                       size="large"
@@ -505,23 +575,38 @@ export default function HeartScreen() {
                     </ThemedText>
                   </View>
                 ) : displayProducts.length > 0 ? (
-                  <View style={styles.productsGrid}>
-                    {displayProducts.map((product) => (
-                      <ProductCard
-                        key={`${product.id}`}
-                        id={product.id}
-                        img={product.image}
-                        name={product.name}
-                        kgPrice={product.pricePerKg.toLocaleString("ru-RU")}
-                        fullPrice={product.price.toLocaleString("ru-RU")}
-                        isFrozen={product.isFrozen}
-                        isFavorite={product.isFavorite}
-                        productData={product}
-                        onAddToCartPress={handleAddToCartPress}
-                      />
-                    ))}
+                  <View style={styles.productsGridWrapper}>
+                    <View style={styles.productsGrid}>
+                      {displayProducts.map((product) => (
+                        <ProductCard
+                          key={String(product.id)}
+                          id={product.id}
+                          img={product.image}
+                          name={product.name}
+                          kgPrice={product.pricePerKg.toLocaleString("ru-RU")}
+                          fullPrice={product.price.toLocaleString("ru-RU")}
+                          isFrozen={product.isFrozen}
+                          isFavorite={product.isFavorite}
+                          productData={product}
+                          onAddToCartPress={handleAddToCartPress}
+                        />
+                      ))}
+                    </View>
+                    {showProductsRefreshing ? (
+                      <View
+                        style={[
+                          styles.productsRefreshingOverlay,
+                          isDarkMode && styles.productsRefreshingOverlayDark,
+                        ]}
+                      >
+                        <ActivityIndicator
+                          size="large"
+                          color={isDarkMode ? "#4C94FF" : "#203686"}
+                        />
+                      </View>
+                    ) : null}
                   </View>
-                ) : (
+                ) : showEmptyState ? (
                 <View style={styles.emptyContainer}>
                   <Image
                     source={require("@/assets/icons/png/noItems.png")}
@@ -543,7 +628,7 @@ export default function HeartScreen() {
                     {`Добавляйте товары в избранное, \nчтобы вернуться к ним позже`}
                   </ThemedText>
                 </View>
-                )}
+                ) : null}
               </View>
 
               {isLoadingMore && (
@@ -635,6 +720,7 @@ export default function HeartScreen() {
           visible={showFilterModal}
           onClose={handleFilterSheetClose}
           isDarkMode={isDarkMode}
+          maxHeight="70%"
         >
           <TouchableOpacity
             style={styles.swipeHandleContainer}
@@ -653,14 +739,22 @@ export default function HeartScreen() {
               {selectedFilterGroup?.name || "Фильтры"}
             </ThemedText>
 
-            <TouchableOpacity onPress={() => closeFilterModal()}>
+            <TouchableOpacity onPress={applyFilterDraft}>
               <ThemedText style={styles.modalCloseText}>Готово</ThemedText>
             </TouchableOpacity>
           </View>
 
           <ScrollView
-            style={styles.filterOptionsContainer}
+            style={[
+              styles.filterOptionsContainer,
+              { maxHeight: filterListMaxHeight },
+            ]}
+            contentContainerStyle={{
+              paddingBottom: filterModalBottomPadding,
+            }}
             showsVerticalScrollIndicator
+            bounces={false}
+            nestedScrollEnabled
           >
             {selectedFilterGroup?.filterOptions.map((option: any) => (
               <TouchableOpacity
@@ -671,21 +765,21 @@ export default function HeartScreen() {
                 <View
                   style={[
                     styles.radioOuter,
-                    isFilterSelected(option.id) && styles.radioOuterSelected,
+                    isDraftFilterSelected(option.id) && styles.radioOuterSelected,
                     isDarkMode &&
-                      isFilterSelected(option.id) && {
+                      isDraftFilterSelected(option.id) && {
                         borderColor: "#4C94FF",
                       },
                   ]}
                 >
-                  {isFilterSelected(option.id) && (
+                  {isDraftFilterSelected(option.id) && (
                     <View style={styles.radioInner} />
                   )}
                 </View>
                 <ThemedText
                   style={[
                     styles.filterOptionText,
-                    isFilterSelected(option.id) &&
+                    isDraftFilterSelected(option.id) &&
                       styles.filterOptionTextSelected,
                   ]}
                 >
@@ -798,8 +892,23 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     paddingHorizontal: 16,
     gap: 8,
-    minHeight: 200,
     paddingBottom: 20,
+  },
+  productsGridWrapper: {
+    position: "relative",
+  },
+  productsRefreshingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.72)",
+    borderRadius: 12,
+    marginHorizontal: 16,
+    marginTop: 8,
+    minHeight: 160,
+  },
+  productsRefreshingOverlayDark: {
+    backgroundColor: "rgba(4, 5, 8, 0.72)",
   },
   emptyContainer: {
     paddingVertical: 60,
@@ -917,7 +1026,7 @@ const styles = StyleSheet.create({
   filterOptionsContainer: {
     paddingHorizontal: 20,
     paddingVertical: 16,
-    maxHeight: "60%",
+    flexShrink: 1,
   },
   filterOptionItem: {
     flexDirection: "row",

@@ -35,6 +35,8 @@ type BottomSheetModalProps = {
   isDarkMode?: boolean;
   maxHeight?: ViewStyle["maxHeight"];
   sheetStyle?: ViewStyle;
+  /** Sheet height follows content instead of stretching to maxHeight */
+  fitContent?: boolean;
 };
 
 export const BottomSheetModal = forwardRef<
@@ -48,6 +50,7 @@ export const BottomSheetModal = forwardRef<
     isDarkMode = false,
     maxHeight = "70%",
     sheetStyle,
+    fitContent = false,
   },
   ref,
 ) {
@@ -111,7 +114,10 @@ export const BottomSheetModal = forwardRef<
               style={[
                 styles.sheet,
                 isDarkMode && styles.sheetDark,
-                { maxHeight, transform: [{ translateY }] },
+                fitContent
+                  ? styles.sheetFitContent
+                  : { maxHeight },
+                { transform: [{ translateY }] },
                 sheetStyle,
               ]}
             >
@@ -134,6 +140,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
+    overflow: "hidden",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.25,
@@ -142,5 +149,8 @@ const styles = StyleSheet.create({
   },
   sheetDark: {
     backgroundColor: "#202022",
+  },
+  sheetFitContent: {
+    alignSelf: "stretch",
   },
 });
