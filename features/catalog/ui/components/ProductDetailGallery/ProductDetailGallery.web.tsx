@@ -26,6 +26,11 @@ export const ProductDetailGallery: React.FC<ProductDetailGalleryProps> = ({
   autoPlayInterval = 4000,
   showIndicators = true,
 }) => {
+  const galleryItems =
+    items.length > 0
+      ? items
+      : [{ id: "gallery-placeholder", imageUrl: "" }];
+
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
   const [galleryWidth, setGalleryWidth] = useState(0);
@@ -44,10 +49,10 @@ export const ProductDetailGallery: React.FC<ProductDetailGalleryProps> = ({
 
   const clampIndex = useCallback(
     (index: number) => {
-      if (items.length <= 0) return 0;
-      return Math.max(0, Math.min(index, items.length - 1));
+      if (galleryItems.length <= 0) return 0;
+      return Math.max(0, Math.min(index, galleryItems.length - 1));
     },
-    [items.length],
+    [galleryItems.length],
   );
 
   const clearAutoplayTimer = useCallback(() => {
@@ -80,16 +85,16 @@ export const ProductDetailGallery: React.FC<ProductDetailGalleryProps> = ({
   );
 
   const goToNextSlide = useCallback(() => {
-    if (items.length <= 1 || isUserInteractingRef.current || !isScreenFocused) {
+    if (galleryItems.length <= 1 || isUserInteractingRef.current || !isScreenFocused) {
       return;
     }
     const nextIndex =
-      currentIndexRef.current < items.length - 1
+      currentIndexRef.current < galleryItems.length - 1
         ? currentIndexRef.current + 1
         : 0;
     setCurrentIndex(nextIndex);
     scrollToPage(nextIndex);
-  }, [isScreenFocused, items.length, scrollToPage]);
+  }, [isScreenFocused, galleryItems.length, scrollToPage]);
 
   const handleLayout = useCallback((event: LayoutChangeEvent) => {
     const nextWidth = Math.round(event.nativeEvent.layout.width);
@@ -113,7 +118,7 @@ export const ProductDetailGallery: React.FC<ProductDetailGalleryProps> = ({
     if (
       isAutoPlaying &&
       isScreenFocused &&
-      items.length > 1 &&
+      galleryItems.length > 1 &&
       !isUserInteractingRef.current
     ) {
       timerRef.current = setTimeout(goToNextSlide, autoPlayInterval);
@@ -126,7 +131,7 @@ export const ProductDetailGallery: React.FC<ProductDetailGalleryProps> = ({
     goToNextSlide,
     isAutoPlaying,
     isScreenFocused,
-    items.length,
+    galleryItems.length,
   ]);
 
   useEffect(
@@ -137,7 +142,7 @@ export const ProductDetailGallery: React.FC<ProductDetailGalleryProps> = ({
   );
 
   useEffect(() => {
-    const nextItemsKey = items.map((item) => item.id).join("|");
+    const nextItemsKey = galleryItems.map((item) => item.id).join("|");
     if (nextItemsKey === itemsKeyRef.current) return;
 
     itemsKeyRef.current = nextItemsKey;
@@ -147,7 +152,7 @@ export const ProductDetailGallery: React.FC<ProductDetailGalleryProps> = ({
     requestAnimationFrame(() => {
       flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
     });
-  }, [items]);
+  }, [galleryItems]);
 
   const handleScrollBegin = useCallback(() => {
     if (resumeTimerRef.current) {
@@ -217,16 +222,12 @@ export const ProductDetailGallery: React.FC<ProductDetailGalleryProps> = ({
     [galleryWidth],
   );
 
-  if (items.length === 0) {
-    return <View style={styles.container} onLayout={handleLayout} />;
-  }
-
   return (
     <View style={styles.container} onLayout={handleLayout}>
       {galleryWidth > 0 ? (
         <FlatList
           ref={flatListRef}
-          data={items}
+          data={galleryItems}
           renderItem={renderItem}
           keyExtractor={keyExtractor}
           horizontal
@@ -244,10 +245,10 @@ export const ProductDetailGallery: React.FC<ProductDetailGalleryProps> = ({
         />
       ) : null}
 
-      {showIndicators && items.length > 1 ? (
+      {showIndicators && galleryItems.length > 1 ? (
         <View style={styles.indicatorsContainer} pointerEvents="box-none">
           <View style={styles.indicatorsWrapper}>
-            {items.map((_, index) => (
+            {galleryItems.map((_, index) => (
               <TouchableOpacity
                 key={`gallery-indicator-${index}`}
                 onPress={() => handleIndicatorPress(index)}

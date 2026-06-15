@@ -8,17 +8,23 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Animated,
+  ActivityIndicator,
   Dimensions,
   Image,
   PanResponder,
   Platform,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
 } from "react-native";
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get("window");
 const MODAL_HEIGHT = SCREEN_HEIGHT * 0.44;
+const PLACEHOLDER_IMAGE = require("@/assets/icons/png/noImage.png");
+
+function hasValidProductImage(image?: string | null): boolean {
+  if (!image || typeof image !== "string") return false;
+  return image.length > 10 && !image.endsWith("/") && image.startsWith("http");
+}
 
 interface PurchaseOption {
   id: string;
@@ -112,6 +118,8 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
   const [selectedOption, setSelectedOption] = useState<PurchaseOption | null>(
     null,
   );
+  const [isImageLoading, setIsImageLoading] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
   const translateY = useRef(new Animated.Value(MODAL_HEIGHT)).current;
 
@@ -130,6 +138,9 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
 
   useEffect(() => {
     if (visible && product) {
+      const hasImage = hasValidProductImage(product.image);
+      setImageError(false);
+      setIsImageLoading(hasImage);
       if (existingCartItem && existingCartItem?.length > 0) {
         const firstCartItem = existingCartItem[0];
         const option = product.purchaseOptions.find(
@@ -165,6 +176,8 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
       setSelectedTab("");
       setQuantity(0);
       setSelectedOption(null);
+      setIsImageLoading(false);
+      setImageError(false);
     }
   }, [visible, product, existingCartItem]);
 
@@ -284,6 +297,9 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
     return 12;
   };
 
+  const showProductPlaceholder =
+    !hasValidProductImage(product.image) || imageError;
+
   return (
     <Animated.View
       style={[
@@ -303,17 +319,46 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
       </View>
 
       <View style={styles.header}>
-        {product.image && product.image.length > 0 ? (
+        <View style={styles.productImageWrapper}>
           <Image
-            source={{ uri: product.image }}
+            source={
+              showProductPlaceholder
+                ? PLACEHOLDER_IMAGE
+                : { uri: product.image }
+            }
             style={styles.productImage}
-            resizeMode="cover"
+            resizeMode={showProductPlaceholder ? "contain" : "cover"}
+            onLoadStart={
+              showProductPlaceholder ? undefined : () => setIsImageLoading(true)
+            }
+            onLoadEnd={
+              showProductPlaceholder ? undefined : () => setIsImageLoading(false)
+            }
+            onError={
+              showProductPlaceholder
+                ? undefined
+                : () => {
+                    setImageError(true);
+                    setIsImageLoading(false);
+                  }
+            }
           />
-        ) : (
-          <View style={[styles.productImage, styles.noImage]}>
-            <Text style={styles.noImageText}>Нет фото</Text>
-          </View>
-        )}
+          {!showProductPlaceholder && isImageLoading ? (
+            <View
+              style={[
+                styles.productImageLoading,
+                isDarkMode
+                  ? styles.productImageLoadingDark
+                  : styles.productImageLoadingLight,
+              ]}
+            >
+              <ActivityIndicator
+                size="small"
+                color={isDarkMode ? "#4C94FF" : "#203686"}
+              />
+            </View>
+          ) : null}
+        </View>
         <View style={styles.productInfo}>
           <ThemedText
             style={styles.productName}
@@ -486,20 +531,28 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 20,
   },
+  productImageWrapper: {
+    width: 71,
+    height: 55,
+    marginRight: 12,
+    position: "relative",
+  },
   productImage: {
     width: 71,
     height: 55,
     borderRadius: 8,
-    marginRight: 12,
   },
-  noImage: {
-    backgroundColor: "#F5F5F5",
-    justifyContent: "center",
+  productImageLoading: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 8,
     alignItems: "center",
+    justifyContent: "center",
   },
-  noImageText: {
-    fontSize: 10,
-    color: "#80818B",
+  productImageLoadingLight: {
+    backgroundColor: "#F5F5F5",
+  },
+  productImageLoadingDark: {
+    backgroundColor: "#151516",
   },
   productInfo: {
     flex: 1,
