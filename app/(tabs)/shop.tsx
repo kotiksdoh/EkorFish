@@ -84,9 +84,17 @@ const CartItemComponent = ({
   const [isFavorite, setIsFavorite] = useState(item.isFavorite);
   const isAvailable = isItemAvailable(item);
 
-  // Определяем стили для stockInfo в зависимости от наличия
-  const stockInfoBackgroundColor = !isAvailable ? "#FF860526" : "#1B1B1C";
-  const stockInfoTextColor = !isAvailable ? "#FF8605" : "#FFFFFF";
+  // Стили stockInfo: в светлой теме — чёрный текст на сером фоне
+  const stockInfoBackgroundColor = !isAvailable
+    ? "#FF860526"
+    : isDarkMode
+      ? "#2E2E32"
+      : "#EBEDF0";
+  const stockInfoTextColor = !isAvailable
+    ? "#FF8605"
+    : isDarkMode
+      ? "#FBFCFF"
+      : "#1B1B1C";
 
   const handleToggleFavorite = async () => {
     try {
@@ -196,9 +204,10 @@ const CartItemComponent = ({
             ]}
           >
             <ThemedText
-              lightColor="#202022"
-              darkColor="#F2F4F7"
+              lightColor={stockInfoTextColor}
+              darkColor={stockInfoTextColor}
               style={styles.stockInfoText}
+              numberOfLines={2}
             >
               {item.stockInfo}
             </ThemedText>

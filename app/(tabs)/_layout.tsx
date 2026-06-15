@@ -1,24 +1,20 @@
 // app/(tabs)/_layout.tsx
-import { router, Tabs } from 'expo-router';
-import React, { useEffect } from 'react';
+import { Tabs } from 'expo-router';
+import React from 'react';
 import '../../global.css';
 
 import { TemplatePickerProvider } from '@/features/templates/TemplatePickerContext';
 import { HapticTab } from '@/components/haptic-tab';
 import { SvgIcon } from '@/components/ui/custom-icon';
 import { Colors } from '@/constants/theme';
-import { useAppTheme } from '@/hooks/use-theme-color'; // Изменяем импорт
+import { useAppTheme } from '@/hooks/use-theme-color';
 import { useAppSelector } from '@/store/hooks';
 import { View } from 'react-native';
 import { StyleSheet } from 'react-native';
 
 export default function TabLayout() {
-  const { currentTheme } = useAppTheme(); // Используем наш хук вместо useColorScheme
+  const { currentTheme } = useAppTheme();
   const cart = useAppSelector((state) => state.catalog.cart);
-  
-  useEffect(() => {
-    console.log('cart', cart)
-  }, [cart])
 
   return (
     <TemplatePickerProvider>
@@ -43,13 +39,6 @@ export default function TabLayout() {
         />
         <Tabs.Screen
           name="dashboard"
-          listeners={{
-            tabPress: (event) => {
-              event.preventDefault();
-              router.dismissTo("/dashboard");
-              router.navigate("/dashboard");
-            },
-          }}
           options={{
             tabBarIcon: ({ color, focused }) =>             
               <SvgIcon 

@@ -843,16 +843,17 @@ const catalogSlice = createSlice({
       return initialState;
     },
     clearProducts: (state) => {
-      state.isLoading = true;
       state.isLoadingMore = false;
-      state.activeProductListMode = null;
-      state.activeCategoryId = null;
       state.products = [];
       state.totalCount = 0;
       state.currentPage = 0;
       state.hasMore = true;
       state.selectedFilterIds = [];
       state.selectedSubcategoryId = null;
+    },
+    interruptProductListLoading: (state) => {
+      state.isLoading = false;
+      state.isLoadingMore = false;
     },
     resetPagination: (state) => {
       state.products = [];
@@ -1463,6 +1464,7 @@ const catalogSlice = createSlice({
 export const {
   clearProducts,
   resetPagination,
+  interruptProductListLoading,
   toggleFilterSelection,
   clearSelectedFilters,
   setSelectedFilters,

@@ -9,7 +9,6 @@ import {
 } from "@/features/catalog/catalogSlice";
 import { ProductDetailGallery } from "@/features/catalog/ui/components/ProductDetailGallery";
 import { buildTemplateLineFromProduct } from "@/features/templates/buildTemplateLine";
-import { TemplatePickerBanner } from "@/features/templates/TemplatePickerBanner";
 import { useTemplatePicker } from "@/features/templates/TemplatePickerContext";
 import { AddToCartModal } from "@/features/shared/ui/AddToCartModal";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -233,8 +232,23 @@ export default function ProductDetailScreen() {
     setSelectedTab("description");
     setIsCartModalVisible(false);
     setExistingCartItem(null);
-    dispatch(getProduct(productId));
-  }, [productId, dispatch]);
+
+    const isSameProduct = String(activeProductId) === String(productId);
+    const hasProductData =
+      storedProduct && String(storedProduct.id) === String(productId);
+    const alreadyHandled =
+      isSameProduct && (isLoadingProduct || hasProductData);
+
+    if (!alreadyHandled) {
+      dispatch(getProduct(productId));
+    }
+  }, [
+    productId,
+    dispatch,
+    activeProductId,
+    storedProduct,
+    isLoadingProduct,
+  ]);
 
   const handleBack = useCallback(() => {
     if (cameFromHomeRef.current) {
@@ -343,7 +357,6 @@ export default function ProductDetailScreen() {
           isProduct={true}
           productId={productId}
           isFavorite={product?.isFavorite}
-          belowTitleRow={<TemplatePickerBanner />}
         />
 
         <View style={styles.mainContainer}>
@@ -671,9 +684,7 @@ export default function ProductDetailScreen() {
                 </View>
                 <ThemedText style={styles.addToCartText}>
                   {templatePicker.pickingForTemplateId
-                    ? linesForBottomBar.length > 0
-                      ? `${linesForBottomBar.length} поз. в шаблоне`
-                      : "Добавить в шаблон"
+                    ? "Добавить в шаблон"
                     : cartItemsForProduct.length > 0
                       ? `${cartItemsForProduct.length} товар(а) в корзине`
                       : "Добавить в корзину"}
@@ -941,7 +952,7 @@ const styles = StyleSheet.create({
     top: -8,
     right: -8,
     backgroundColor: "#FF3B30",
-    borderRadius: 12,
+    borderRadius: 10,
     minWidth: 20,
     height: 20,
     justifyContent: "center",
@@ -953,5 +964,9 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "700",
     fontFamily: "Montserrat",
+    lineHeight: 12,
+    textAlign: "center",
+    textAlignVertical: "center",
+    includeFontPadding: false,
   },
 });

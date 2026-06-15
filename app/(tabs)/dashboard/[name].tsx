@@ -6,11 +6,12 @@ import { ModalHeader } from "@/features/auth/ui/Header";
 import SearchInput from "@/features/auth/ui/components/SearchInput";
 import {
   AddToCart,
-  clearProducts,
   clearSelectedFilters,
   clearSelectedSubcategory,
   getCategoryFilters,
   getProductList,
+  interruptProductListLoading,
+  resetPagination,
   setSelectedSubcategory,
   toggleFilterSelection,
 } from "@/features/catalog/catalogSlice";
@@ -22,14 +23,14 @@ import {
   type ProductSortId,
 } from "@/features/catalog/productSort";
 import { AddToCartModal } from "@/features/shared/ui/AddToCartModal";
+import {
+  BottomSheetModal,
+  type BottomSheetModalRef,
+} from "@/features/shared/ui/BottomSheetModal";
 import { ProductCard } from "@/features/shared/ui/ProductCard";
 import { TownSelectionModal } from "@/features/shared/ui/TownSelectionModal";
 import AnimatedTextInput from "@/features/shared/ui/components/CustomInput";
 import { TemplatePickerBanner } from "@/features/templates/TemplatePickerBanner";
-import {
-  animateBottomSheetClose,
-  animateBottomSheetOpen,
-} from "@/features/shared/utils/bottomSheetModalAnimation";
 import { useTemplatePicker } from "@/features/templates/TemplatePickerContext";
 import { buildTemplateLineFromProduct } from "@/features/templates/buildTemplateLine";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -39,12 +40,10 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Animated,
   BackHandler,
   Dimensions,
   FlatList,
   Image,
-  Modal,
   NativeScrollEvent,
   NativeSyntheticEvent,
   Platform,
@@ -52,7 +51,6 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  TouchableWithoutFeedback,
   View,
 } from "react-native";
 import {
@@ -137,10 +135,8 @@ export default function CatalogDetailScreen() {
   const [hasAuthToken, setHasAuthToken] = useState(false);
   const pageSize = 10;
 
-  // Анимация для свайпа модалки
-  const modalTranslateY = useRef(new Animated.Value(screenHeight)).current;
-  const filtersOverlayOpacity = useRef(new Animated.Value(0)).current;
-  const [isClosing, setIsClosing] = useState(false);
+  const sortSheetRef = useRef<BottomSheetModalRef>(null);
+  const filtersSheetRef = useRef<BottomSheetModalRef>(null);
 
   // Получаем состояние из Redux
   const products = useAppSelector((state) => state.catalog.products);
@@ -168,9 +164,6 @@ export default function CatalogDetailScreen() {
     (state) => state.catalog.activeCategoryId,
   );
   const [showSortModal, setShowSortModal] = useState(false);
-  const sortModalTranslateY = useRef(new Animated.Value(screenHeight)).current;
-  const sortOverlayOpacity = useRef(new Animated.Value(0)).current;
-  const [isClosingSortModal, setIsClosingSortModal] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -183,53 +176,12 @@ export default function CatalogDetailScreen() {
   );
 
   const sortOptions = PRODUCT_SORT_OPTIONS;
-  const closeSortModalWithAnimation = useCallback(
-    (onClosed?: () => void) => {
-      if (isClosingSortModal) return;
 
-      setIsClosingSortModal(true);
-      animateBottomSheetClose(
-        sortModalTranslateY,
-        sortOverlayOpacity,
-        screenHeight,
-        () => {
-          setShowSortModal(false);
-          setIsClosingSortModal(false);
-          onClosed?.();
-        },
-      );
-    },
-    [isClosingSortModal, sortModalTranslateY, sortOverlayOpacity],
-  );
-
-  // Обработчик нажатия на overlay сортировки
-  const handleSortOverlayPress = useCallback(() => {
-    if (!isClosingSortModal) {
-      closeSortModalWithAnimation();
-    }
-  }, [isClosingSortModal, closeSortModalWithAnimation]);
-
-  const animateSortModalOpen = useCallback(() => {
-    animateBottomSheetOpen(
-      sortModalTranslateY,
-      sortOverlayOpacity,
-      screenHeight,
-    );
-  }, [sortModalTranslateY, sortOverlayOpacity]);
-
-  // Эффект для анимации появления модалки сортировки
-  useEffect(() => {
-    if (showSortModal && !isClosingSortModal) {
-      animateSortModalOpen();
-    }
-  }, [animateSortModalOpen, isClosingSortModal, showSortModal]);
-
-  // Обработчик выбора сортировки
   const handleSortSelect = (sortId: ProductSortId) => {
-    closeSortModalWithAnimation(() => {
+    sortSheetRef.current?.close(() => {
       setSortBy(sortId);
       flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
-      loadProducts(false, searchQuery, undefined, undefined, sortId);
+      void loadProductsRef.current(false, searchQuery, undefined, undefined, sortId);
     });
   };
 
@@ -275,10 +227,12 @@ export default function CatalogDetailScreen() {
   const autoFillAtCountRef = useRef(-1);
   const activeCategoryIdRef = useRef(activeCategoryId);
   const selectedSubcategoryIdRef = useRef<string | null>(selectedSubcategoryId);
+  const activeProductListModeRef = useRef(activeProductListMode);
   const [isPagingMore, setIsPagingMore] = useState(false);
 
   activeCategoryIdRef.current = activeCategoryId;
   selectedSubcategoryIdRef.current = selectedSubcategoryId;
+  activeProductListModeRef.current = activeProductListMode;
 
   useEffect(() => {
     catalogIdRef.current = catalogId;
@@ -303,56 +257,11 @@ export default function CatalogDetailScreen() {
     [catalogId],
   );
 
-  const animateFiltersModalOpen = useCallback(() => {
-    animateBottomSheetOpen(
-      modalTranslateY,
-      filtersOverlayOpacity,
-      screenHeight,
-    );
-  }, [modalTranslateY, filtersOverlayOpacity]);
-
-  // Функция для закрытия модалки с анимацией
-  const closeModalWithAnimation = useCallback(() => {
-    if (isClosing) return;
-
-    setIsClosing(true);
-    animateBottomSheetClose(
-      modalTranslateY,
-      filtersOverlayOpacity,
-      screenHeight,
-      () => {
-        setShowFilters(false);
-        setIsClosing(false);
-      },
-    );
-  }, [filtersOverlayOpacity, isClosing, modalTranslateY]);
-
-  // Обработчик нажатия на overlay
-  const handleOverlayPress = useCallback(() => {
-    if (!isClosing) {
-      closeModalWithAnimation();
-    }
-  }, [isClosing, closeModalWithAnimation]);
-
-  // Эффект для анимации появления модалки
-  useEffect(() => {
-    if (showFilters && !isClosing) {
-      animateFiltersModalOpen();
-    }
-  }, [animateFiltersModalOpen, isClosing, showFilters]);
-
-  // Простой обработчик свайпа для защелки
-  const handleSwipeHandlePress = useCallback(() => {
-    closeModalWithAnimation();
-  }, [closeModalWithAnimation]);
-
   const handleOpenFilters = useCallback(() => {
-    if (showFilters || isClosing) {
+    if (showFilters) {
       return;
     }
 
-    modalTranslateY.setValue(screenHeight);
-    filtersOverlayOpacity.setValue(0);
     setShowFilters(true);
 
     if (!catalogId || isLoadingFilters) {
@@ -362,16 +271,7 @@ export default function CatalogDetailScreen() {
     if (filtersCategoryId !== String(catalogId)) {
       void dispatch(getCategoryFilters(catalogId));
     }
-  }, [
-    catalogId,
-    dispatch,
-    filtersCategoryId,
-    isClosing,
-    isLoadingFilters,
-    modalTranslateY,
-    filtersOverlayOpacity,
-    showFilters,
-  ]);
+  }, [catalogId, dispatch, filtersCategoryId, isLoadingFilters, showFilters]);
 
   // Загрузка продуктов
   const loadProducts = useCallback(
@@ -537,7 +437,7 @@ export default function CatalogDetailScreen() {
     dispatch(clearSelectedFilters());
     setPriceRange({ min: "", max: "" });
     setShelfLifeRange({ min: "", max: "" });
-    dispatch(clearProducts());
+    dispatch(resetPagination());
     void loadProductsRef.current(false, initialSearchQuery, undefined, null);
     queueMicrotask(() => {
       dispatch(getCategoryFilters(catalogId));
@@ -548,7 +448,10 @@ export default function CatalogDetailScreen() {
   resetAndLoadCategoryRef.current = resetAndLoadCategory;
 
   useEffect(() => {
-    resetAndLoadCategoryRef.current();
+    const frame = requestAnimationFrame(() => {
+      resetAndLoadCategoryRef.current();
+    });
+    return () => cancelAnimationFrame(frame);
   }, [catalogId, isPromo, search]);
 
   useFocusEffect(
@@ -557,8 +460,9 @@ export default function CatalogDetailScreen() {
 
       if (catalogId) {
         const activeCat = activeCategoryIdRef.current;
+        const listMode = activeProductListModeRef.current;
         if (
-          activeProductListMode === "favorites" ||
+          listMode === "favorites" ||
           (activeCat !== null && activeCat !== String(catalogId))
         ) {
           resetAndLoadCategoryRef.current();
@@ -567,13 +471,13 @@ export default function CatalogDetailScreen() {
 
       return () => {
         isScreenFocusedRef.current = false;
-        loadGenerationRef.current += 1;
         isFetchingRef.current = false;
         isNearBottomRef.current = false;
         clearPaginationTimeout();
         setIsPagingMore(false);
+        dispatch(interruptProductListLoading());
       };
-    }, [activeProductListMode, catalogId, clearPaginationTimeout]),
+    }, [catalogId, clearPaginationTimeout, dispatch]),
   );
 
   const isCategoryListPending =
@@ -1038,15 +942,10 @@ export default function CatalogDetailScreen() {
 
   // Применение фильтров
   const applyFilters = () => {
-    closeModalWithAnimation();
-
-    // Перезагружаем товары с новыми фильтрами
-    if (catalogId) {
-      setTimeout(() => {
-        flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
-        loadProducts(false, searchQuery);
-      }, 300);
-    }
+    filtersSheetRef.current?.close(() => {
+      flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
+      void loadProducts(false, searchQuery);
+    });
   };
 
   // Сброс фильтров
@@ -1098,7 +997,6 @@ export default function CatalogDetailScreen() {
           title={catalogName !== "undefined" ? catalogName : "Каталог"}
           showBackButton={true}
           onBackPress={handleBack}
-          // belowTitleRow={<TemplatePickerBanner />}
           content={
             <SearchInput
               value={searchQuery}
@@ -1172,216 +1070,184 @@ export default function CatalogDetailScreen() {
           }}
         />
 
-        {/* Модальное окно фильтров */}
-        <Modal
-          visible={showFilters || isClosing}
-          animationType="none"
-          transparent={true}
-          onRequestClose={closeModalWithAnimation}
-          presentationStyle="overFullScreen"
-          statusBarTranslucent={true}
+        <BottomSheetModal
+          ref={filtersSheetRef}
+          visible={showFilters}
+          onClose={() => setShowFilters(false)}
+          isDarkMode={isDarkMode}
+          maxHeight="85%"
         >
-          <TouchableWithoutFeedback onPress={handleOverlayPress}>
-            <Animated.View
-              style={[styles.modalOverlay, { opacity: filtersOverlayOpacity }]}
-            >
-              <TouchableWithoutFeedback>
-                <Animated.View
-                  style={[
-                    styles.modalContainer,
-                    isDarkMode
-                      ? {
-                          backgroundColor: "#202022",
-                        }
-                      : {
-                          backgroundColor: "#FFFFFF",
-                        },
-                    {
-                      transform: [{ translateY: modalTranslateY }],
-                    },
-                  ]}
-                >
-                  {/* Защелка для свайпа */}
-                  <TouchableOpacity
-                    style={styles.swipeHandleContainer}
-                    activeOpacity={0.7}
-                    onPress={handleSwipeHandlePress}
+          <TouchableOpacity
+            style={styles.swipeHandleContainer}
+            activeOpacity={0.7}
+            onPress={() => filtersSheetRef.current?.close()}
+          >
+            <View style={styles.swipeHandle} />
+          </TouchableOpacity>
+
+          <View style={styles.modalHeader}>
+            <ThemedText style={styles.modalTitle}>Фильтры</ThemedText>
+
+            <TouchableOpacity onPress={resetFilters}>
+              <ThemedText
+                lightColor="#203686"
+                darkColor="#4C94FF"
+                style={styles.modalResetText}
+              >
+                Сбросить
+              </ThemedText>
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView
+            ref={modalScrollViewRef}
+            style={styles.modalContent}
+            showsVerticalScrollIndicator
+            bounces
+            scrollEventThrottle={16}
+            nestedScrollEnabled
+          >
+            <View style={styles.filterSection}>
+              <ThemedText style={styles.filterSectionTitle}>
+                Цена за кг
+              </ThemedText>
+              <View style={styles.priceInputs}>
+                <View style={styles.priceInputContainer}>
+                  <AnimatedTextInput
+                    placeholder="От"
+                    placeholderTextColor="#80818B"
+                    value={priceRange.min}
+                    onChangeText={(text) =>
+                      setPriceRange({ ...priceRange, min: text })
+                    }
+                    keyboardType="numeric"
+                  />
+                </View>
+
+                <View style={styles.priceSeparator} />
+
+                <View style={styles.priceInputContainer}>
+                  <AnimatedTextInput
+                    placeholder="До"
+                    placeholderTextColor="#80818B"
+                    value={priceRange.max}
+                    onChangeText={(text) =>
+                      setPriceRange({ ...priceRange, max: text })
+                    }
+                    keyboardType="numeric"
+                  />
+                </View>
+              </View>
+            </View>
+
+            <View style={styles.filterSection}>
+              <ThemedText style={styles.filterSectionTitle}>
+                Остаток срока годности, %
+              </ThemedText>
+              <View style={styles.priceInputs}>
+                <View style={styles.priceInputContainer}>
+                  <AnimatedTextInput
+                    placeholder="От"
+                    placeholderTextColor="#80818B"
+                    value={shelfLifeRange.min}
+                    onChangeText={(text) =>
+                      setShelfLifeRange({
+                        ...shelfLifeRange,
+                        min: normalizeShelfLifePercentInput(text),
+                      })
+                    }
+                    keyboardType="numeric"
+                  />
+                </View>
+
+                <View style={styles.priceSeparator} />
+
+                <View style={styles.priceInputContainer}>
+                  <AnimatedTextInput
+                    placeholder="До"
+                    placeholderTextColor="#80818B"
+                    value={shelfLifeRange.max}
+                    onChangeText={(text) =>
+                      setShelfLifeRange({
+                        ...shelfLifeRange,
+                        max: normalizeShelfLifePercentInput(text),
+                      })
+                    }
+                    keyboardType="numeric"
+                  />
+                </View>
+              </View>
+            </View>
+
+            {isLoadingFilters && (
+              <View style={styles.filtersLoadingContainer}>
+                <ActivityIndicator size="small" color="#203686" />
+                <ThemedText style={styles.filtersLoadingText}>
+                  Загрузка фильтров...
+                </ThemedText>
+              </View>
+            )}
+
+            {!isLoadingFilters &&
+              filters.length > 0 &&
+              filters.map((filterGroup) => (
+                <View key={filterGroup.id} style={styles.filterSection}>
+                  <ThemedText
+                    darkColor="#FBFCFF"
+                    style={styles.filterSectionTitle}
                   >
-                    <View style={styles.swipeHandle} />
-                  </TouchableOpacity>
+                    {filterGroup.name}
+                  </ThemedText>
 
-                  <View style={styles.modalHeader}>
-                    <ThemedText style={styles.modalTitle}>Фильтры</ThemedText>
-
-                    <TouchableOpacity onPress={resetFilters}>
-                      <ThemedText
-                        lightColor="#203686"
-                        darkColor="#4C94FF"
-                        style={styles.modalResetText}
-                      >
-                        Сбросить
-                      </ThemedText>
-                    </TouchableOpacity>
+                  <View style={styles.filterItems}>
+                    {filterGroup.filterOptions.map((option) =>
+                      renderFilterItem(option, filterGroup.id),
+                    )}
                   </View>
+                </View>
+              ))}
 
-                  <ScrollView
-                      ref={modalScrollViewRef}
-                      style={styles.modalContent}
-                      showsVerticalScrollIndicator={true}
-                      bounces={true}
-                      scrollEventThrottle={16}
-                      nestedScrollEnabled
-                    >
-                    {/* Фильтр по цене */}
-                    <View style={styles.filterSection}>
-                      <ThemedText style={styles.filterSectionTitle}>
-                        Цена за кг
-                      </ThemedText>
-                      <View style={styles.priceInputs}>
-                        <View style={styles.priceInputContainer}>
-                          <AnimatedTextInput
-                            placeholder="От"
-                            placeholderTextColor="#80818B"
-                            value={priceRange.min}
-                            onChangeText={(text) =>
-                              setPriceRange({ ...priceRange, min: text })
-                            }
-                            keyboardType="numeric"
-                          />
-                        </View>
+            {!isLoadingFilters && filters.length === 0 && (
+              <View style={styles.noFiltersContainer}>
+                <ThemedText style={styles.noFiltersText}>
+                  Нет доступных фильтров
+                </ThemedText>
+              </View>
+            )}
 
-                        <View style={styles.priceSeparator} />
+            <View
+              style={[
+                styles.modalBottomSpacer,
+                { height: 72 + filtersFooterPadding },
+              ]}
+            />
+          </ScrollView>
 
-                        <View style={styles.priceInputContainer}>
-                          <AnimatedTextInput
-                            placeholder="До"
-                            placeholderTextColor="#80818B"
-                            value={priceRange.max}
-                            onChangeText={(text) =>
-                              setPriceRange({ ...priceRange, max: text })
-                            }
-                            keyboardType="numeric"
-                          />
-                        </View>
-                      </View>
-                    </View>
+          <ThemedView
+            lightColor="#FFFFFF"
+            darkColor="#202022"
+            style={[
+              styles.applyButtonContainer,
+              { paddingBottom: filtersFooterPadding },
+            ]}
+          >
+            <TouchableOpacity
+              style={[
+                styles.applyButton,
+                isDarkMode && {
+                  backgroundColor: "#3881EE",
+                },
+              ]}
+              onPress={applyFilters}
+            >
+              <ThemedText style={styles.applyButtonText}>
+                Применить{" "}
+                {appliedFiltersCount > 0 ? `(${appliedFiltersCount})` : ""}
+              </ThemedText>
+            </TouchableOpacity>
+          </ThemedView>
+        </BottomSheetModal>
 
-                    <View style={styles.filterSection}>
-                      <ThemedText style={styles.filterSectionTitle}>
-                        Остаток срока годности, %
-                      </ThemedText>
-                      <View style={styles.priceInputs}>
-                        <View style={styles.priceInputContainer}>
-                          <AnimatedTextInput
-                            placeholder="От"
-                            placeholderTextColor="#80818B"
-                            value={shelfLifeRange.min}
-                            onChangeText={(text) =>
-                              setShelfLifeRange({
-                                ...shelfLifeRange,
-                                min: normalizeShelfLifePercentInput(text),
-                              })
-                            }
-                            keyboardType="numeric"
-                          />
-                        </View>
-
-                        <View style={styles.priceSeparator} />
-
-                        <View style={styles.priceInputContainer}>
-                          <AnimatedTextInput
-                            placeholder="До"
-                            placeholderTextColor="#80818B"
-                            value={shelfLifeRange.max}
-                            onChangeText={(text) =>
-                              setShelfLifeRange({
-                                ...shelfLifeRange,
-                                max: normalizeShelfLifePercentInput(text),
-                              })
-                            }
-                            keyboardType="numeric"
-                          />
-                        </View>
-                      </View>
-                    </View>
-
-                    {/* Индикатор загрузки фильтров */}
-                    {isLoadingFilters && (
-                      <View style={styles.filtersLoadingContainer}>
-                        <ActivityIndicator size="small" color="#203686" />
-                        <ThemedText style={styles.filtersLoadingText}>
-                          Загрузка фильтров...
-                        </ThemedText>
-                      </View>
-                    )}
-
-                    {/* Динамические фильтры с бекенда */}
-                    {!isLoadingFilters &&
-                      filters.length > 0 &&
-                      filters.map((filterGroup) => (
-                        <View key={filterGroup.id} style={styles.filterSection}>
-                          <ThemedText
-                            darkColor="#FBFCFF"
-                            style={styles.filterSectionTitle}
-                          >
-                            {filterGroup.name}
-                          </ThemedText>
-
-                          <View style={styles.filterItems}>
-                            {filterGroup.filterOptions.map((option) =>
-                              renderFilterItem(option, filterGroup.id),
-                            )}
-                          </View>
-                        </View>
-                      ))}
-
-                    {/* Сообщение если нет фильтров */}
-                    {!isLoadingFilters && filters.length === 0 && (
-                      <View style={styles.noFiltersContainer}>
-                        <ThemedText style={styles.noFiltersText}>
-                          Нет доступных фильтров
-                        </ThemedText>
-                      </View>
-                    )}
-
-                    <View
-                      style={[
-                        styles.modalBottomSpacer,
-                        { height: 72 + filtersFooterPadding },
-                      ]}
-                    />
-                    </ScrollView>
-
-                  <ThemedView
-                    lightColor="#FFFFFF"
-                    darkColor="#202022"
-                    style={[
-                      styles.applyButtonContainer,
-                      { paddingBottom: filtersFooterPadding },
-                    ]}
-                  >
-                    <TouchableOpacity
-                      style={[
-                        styles.applyButton,
-                        isDarkMode && {
-                          backgroundColor: "#3881EE",
-                        },
-                      ]}
-                      onPress={applyFilters}
-                    >
-                      <ThemedText style={styles.applyButtonText}>
-                        Применить{" "}
-                        {appliedFiltersCount > 0
-                          ? `(${appliedFiltersCount})`
-                          : ""}
-                      </ThemedText>
-                    </TouchableOpacity>
-                  </ThemedView>
-                </Animated.View>
-              </TouchableWithoutFeedback>
-            </Animated.View>
-          </TouchableWithoutFeedback>
-        </Modal>
         <AddToCartModal
           visible={showAddToCartModal}
           onClose={() => {
@@ -1395,109 +1261,75 @@ export default function CatalogDetailScreen() {
             templatePicker.pickingForTemplateId ? "template" : "cart"
           }
         />
-        <Modal
-          visible={showSortModal || isClosingSortModal}
-          animationType="none"
-          transparent={true}
-          onRequestClose={() => closeSortModalWithAnimation()}
-          presentationStyle="overFullScreen"
-          statusBarTranslucent={true}
+        <BottomSheetModal
+          ref={sortSheetRef}
+          visible={showSortModal}
+          onClose={() => setShowSortModal(false)}
+          isDarkMode={isDarkMode}
         >
-          <TouchableWithoutFeedback onPress={handleSortOverlayPress}>
-            <Animated.View
-              style={[styles.modalOverlay, { opacity: sortOverlayOpacity }]}
-            >
-              <TouchableWithoutFeedback>
-                <Animated.View
-                  style={[
-                    styles.modalContainer,
-                    isDarkMode && {
-                      backgroundColor: "#202022",
-                    },
-                    {
-                      transform: [{ translateY: sortModalTranslateY }],
-                    },
-                  ]}
-                >
-                  {/* Защелка для свайпа */}
-                  <TouchableOpacity
-                    style={styles.swipeHandleContainer}
-                    activeOpacity={0.7}
-                    onPress={closeSortModalWithAnimation}
+          <TouchableOpacity
+            style={styles.swipeHandleContainer}
+            activeOpacity={0.7}
+            onPress={() => sortSheetRef.current?.close()}
+          >
+            <View style={styles.swipeHandle} />
+          </TouchableOpacity>
+
+          <View style={styles.modalHeader}>
+            <ThemedText style={styles.modalTitle}>Сортировка</ThemedText>
+          </View>
+
+          <ScrollView
+            style={styles.sortOptionsContainer}
+            contentContainerStyle={{
+              paddingBottom: sortModalBottomPadding,
+            }}
+            showsVerticalScrollIndicator={false}
+          >
+            {sortOptions.map((option) => (
+              <TouchableOpacity
+                key={option.id}
+                style={[
+                  styles.sortOptionItem,
+                  isDarkMode && {
+                    borderBottomColor: "#323235",
+                  },
+                ]}
+                onPress={() => handleSortSelect(option.id)}
+              >
+                <View style={styles.sortOptionItemContent}>
+                  <View
+                    style={[
+                      styles.sortOptionRadio,
+                      sortBy === option.id && styles.sortOptionRadioSelected,
+                      isDarkMode &&
+                        sortBy === option.id && {
+                          borderColor: "#4C94FF",
+                        },
+                    ]}
                   >
-                    <View style={styles.swipeHandle} />
-                  </TouchableOpacity>
-
-                  <View style={styles.modalHeader}>
-                    <TouchableOpacity>
-                      {/* Пустая слева для симметрии */}
-                    </TouchableOpacity>
-
-                    <ThemedText style={styles.modalTitle}>
-                      Сортировка
-                    </ThemedText>
-
-                    <TouchableOpacity onPress={closeSortModalWithAnimation}>
-                      {/* Пустая справа для симметрии */}
-                    </TouchableOpacity>
-                  </View>
-
-                  <ScrollView
-                    style={styles.sortOptionsContainer}
-                    contentContainerStyle={{
-                      paddingBottom: sortModalBottomPadding,
-                    }}
-                    showsVerticalScrollIndicator={false}
-                  >
-                    {sortOptions.map((option) => (
-                      <TouchableOpacity
-                        key={option.id}
+                    {sortBy === option.id && (
+                      <View
                         style={[
-                          styles.sortOptionItem,
-                          isDarkMode && {
-                            borderBottomColor: "#323235",
-                          },
+                          styles.sortOptionRadioInner,
+                          isDarkMode && { backgroundColor: "#FFFFFF" },
                         ]}
-                        onPress={() => handleSortSelect(option.id)}
-                      >
-                        <View style={styles.sortOptionItemContent}>
-                          <View
-                            style={[
-                              styles.sortOptionRadio,
-                              sortBy === option.id &&
-                                styles.sortOptionRadioSelected,
-                              isDarkMode &&
-                                sortBy === option.id && {
-                                  borderColor: "#4C94FF",
-                                },
-                            ]}
-                          >
-                            {sortBy === option.id && (
-                              <View
-                                style={[
-                                  styles.sortOptionRadioInner,
-                                  isDarkMode && { backgroundColor: "#FFFFFF" },
-                                ]}
-                              />
-                            )}
-                          </View>
-                          <ThemedText
-                            style={[
-                              styles.sortOptionText,
-                              isDarkMode && { color: "#FBFCFF" },
-                            ]}
-                          >
-                            {option.label}
-                          </ThemedText>
-                        </View>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                </Animated.View>
-              </TouchableWithoutFeedback>
-            </Animated.View>
-          </TouchableWithoutFeedback>
-        </Modal>
+                      />
+                    )}
+                  </View>
+                  <ThemedText
+                    style={[
+                      styles.sortOptionText,
+                      isDarkMode && { color: "#FBFCFF" },
+                    ]}
+                  >
+                    {option.label}
+                  </ThemedText>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </BottomSheetModal>
       </ThemedView>
     </SafeAreaProvider>
   );
@@ -1681,25 +1513,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
     fontSize: 14,
     color: "#80818B",
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "flex-end",
-  },
-  modalContainer: {
-    backgroundColor: "#FFFFFF",
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    maxHeight: "85%",
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: -2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
   },
   swipeHandleContainer: {
     alignItems: "center",

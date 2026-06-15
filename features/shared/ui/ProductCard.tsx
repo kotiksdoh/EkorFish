@@ -3,7 +3,8 @@ import { useTemplatePicker } from "@/features/templates/TemplatePickerContext";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { LoginModal } from "@/features/auth/ui/components/LoginModal";
-import { putFavorite, putUnFavorite } from "@/features/catalog/catalogSlice";
+import { putFavorite, putUnFavorite, getProduct, setProductPreview } from "@/features/catalog/catalogSlice";
+import { buildProductPreviewFromList } from "@/features/shared/services/productSingleAdapter";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
@@ -213,10 +214,19 @@ const ProductCardComponent: React.FC<ProductCardProps> = ({
 
     router.push(productPath as any);
 
+    queueMicrotask(() => {
+      const productIdStr = String(id);
+      const preview = buildProductPreviewFromList(productData);
+      if (preview) {
+        dispatch(setProductPreview({ productId: productIdStr, preview }));
+      }
+      dispatch(getProduct(productIdStr));
+    });
+
     setTimeout(() => {
       isNavigatingRef.current = false;
     }, 400);
-  }, [id, isDis, name, returnTo, router]);
+  }, [dispatch, id, isDis, name, productData, returnTo, router]);
 
   // Определяем, является ли URL валидным
   const isValidImageUrl = useCallback((url: string): boolean => {
@@ -500,7 +510,7 @@ const styles = StyleSheet.create({
     top: -8,
     right: -8,
     backgroundColor: "#FF3B30",
-    borderRadius: 12,
+    borderRadius: 10,
     minWidth: 20,
     height: 20,
     justifyContent: "center",
@@ -513,6 +523,10 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "700",
     fontFamily: "Montserrat",
+    lineHeight: 12,
+    textAlign: "center",
+    textAlignVertical: "center",
+    includeFontPadding: false,
   },
   infoContainer: {
     padding: 12,

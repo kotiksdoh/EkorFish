@@ -6,10 +6,10 @@ import SearchInput from "@/features/auth/ui/components/SearchInput";
 import { ModalHeader } from "@/features/auth/ui/Header";
 import {
   AddToCart,
-  clearProducts,
   clearSelectedFilters,
   getCategoryFilters,
   getProductList,
+  resetPagination,
   toggleFilterSelection,
 } from "@/features/catalog/catalogSlice";
 import {
@@ -20,12 +20,12 @@ import {
   type ProductSortId,
 } from "@/features/catalog/productSort";
 import { AddToCartModal } from "@/features/shared/ui/AddToCartModal";
+import {
+  BottomSheetModal,
+  type BottomSheetModalRef,
+} from "@/features/shared/ui/BottomSheetModal";
 import { ProductCard } from "@/features/shared/ui/ProductCard";
 import { buildTemplateLineFromProduct } from "@/features/templates/buildTemplateLine";
-import {
-  animateBottomSheetClose,
-  animateBottomSheetOpen,
-} from "@/features/shared/utils/bottomSheetModalAnimation";
 import { TemplatePickerBanner } from "@/features/templates/TemplatePickerBanner";
 import { useTemplatePicker } from "@/features/templates/TemplatePickerContext";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -35,10 +35,8 @@ import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Animated,
   Dimensions,
   Image,
-  Modal,
   NativeScrollEvent,
   NativeSyntheticEvent,
   Platform,
@@ -46,7 +44,6 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  TouchableWithoutFeedback,
   View,
 } from "react-native";
 import {
@@ -72,15 +69,8 @@ export default function HeartScreen() {
 
   const pageSize = 10;
 
-  // Анимация для модалок
-  const sortModalTranslateY = useRef(new Animated.Value(screenHeight)).current;
-  const sortOverlayOpacity = useRef(new Animated.Value(0)).current;
-  const filterModalTranslateY = useRef(
-    new Animated.Value(screenHeight),
-  ).current;
-  const filterOverlayOpacity = useRef(new Animated.Value(0)).current;
-  const [isClosingSortModal, setIsClosingSortModal] = useState(false);
-  const [isClosingFilterModal, setIsClosingFilterModal] = useState(false);
+  const sortSheetRef = useRef<BottomSheetModalRef>(null);
+  const filterSheetRef = useRef<BottomSheetModalRef>(null);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [existingCartItem, setExistingCartItem] = useState<any>(null);
   const [showAddToCartModal, setShowAddToCartModal] = useState(false);
@@ -89,6 +79,9 @@ export default function HeartScreen() {
   const products = useAppSelector((state) => state.catalog.products);
   const isLoading = useAppSelector((state) => state.catalog.isLoading);
   const isLoadingMore = useAppSelector((state) => state.catalog.isLoadingMore);
+  const activeProductListMode = useAppSelector(
+    (state) => state.catalog.activeProductListMode,
+  );
   const isLoadingFilters = useAppSelector(
     (state) => state.catalog.isLoadingFilters,
   );
@@ -152,56 +145,6 @@ export default function HeartScreen() {
 
   const sortOptions = PRODUCT_SORT_OPTIONS;
 
-  // Функция для закрытия модалки сортировки с анимацией
-  const closeSortModalWithAnimation = useCallback(
-    (onClosed?: () => void) => {
-      if (isClosingSortModal) return;
-
-      setIsClosingSortModal(true);
-      animateBottomSheetClose(
-        sortModalTranslateY,
-        sortOverlayOpacity,
-        screenHeight,
-        () => {
-          setShowSortModal(false);
-          setIsClosingSortModal(false);
-          onClosed?.();
-        },
-      );
-    },
-    [isClosingSortModal, sortModalTranslateY, sortOverlayOpacity],
-  );
-
-  // Функция для закрытия модалки фильтров с анимацией
-  const closeFilterModalWithAnimation = useCallback(() => {
-    if (isClosingFilterModal) return;
-
-    setIsClosingFilterModal(true);
-    animateBottomSheetClose(
-      filterModalTranslateY,
-      filterOverlayOpacity,
-      screenHeight,
-      () => {
-        setShowFilterModal(false);
-        setSelectedFilterGroup(null);
-        setIsClosingFilterModal(false);
-      },
-    );
-  }, [filterModalTranslateY, filterOverlayOpacity, isClosingFilterModal]);
-
-  // Обработчики нажатия на overlay
-  const handleSortOverlayPress = useCallback(() => {
-    if (!isClosingSortModal) {
-      closeSortModalWithAnimation();
-    }
-  }, [isClosingSortModal, closeSortModalWithAnimation]);
-
-  const handleFilterOverlayPress = useCallback(() => {
-    if (!isClosingFilterModal) {
-      closeFilterModalWithAnimation();
-    }
-  }, [isClosingFilterModal, closeFilterModalWithAnimation]);
-  
   useFocusEffect(
     useCallback(() => {
       const checkToken = async () => {
@@ -209,44 +152,8 @@ export default function HeartScreen() {
         setHasToken(!!token);
       };
       checkToken();
-    }, [])
+    }, []),
   );
-  
-  const animateSortModalOpen = useCallback(() => {
-    animateBottomSheetOpen(
-      sortModalTranslateY,
-      sortOverlayOpacity,
-      screenHeight,
-    );
-  }, [sortModalTranslateY, sortOverlayOpacity]);
-
-  const animateFilterModalOpen = useCallback(() => {
-    animateBottomSheetOpen(
-      filterModalTranslateY,
-      filterOverlayOpacity,
-      screenHeight,
-    );
-  }, [filterModalTranslateY, filterOverlayOpacity]);
-
-  // Эффект для анимации появления модалки сортировки
-  useEffect(() => {
-    if (showSortModal && !isClosingSortModal) {
-      animateSortModalOpen();
-    }
-  }, [animateSortModalOpen, isClosingSortModal, showSortModal]);
-
-  // Эффект для анимации появления модалки фильтров
-  useEffect(() => {
-    if (showFilterModal && !isClosingFilterModal) {
-      animateFilterModalOpen();
-    }
-  }, [animateFilterModalOpen, isClosingFilterModal, showFilterModal]);
-
-  // Обработчик открытия модалки фильтра
-  const handleFilterGroupPress = (filterGroup: any) => {
-    setSelectedFilterGroup(filterGroup);
-    setShowFilterModal(true);
-  };
 
   // Проверка, есть ли в группе выбранные фильтры
   const hasSelectedFiltersInGroup = (filterGroup: any) => {
@@ -353,49 +260,48 @@ export default function HeartScreen() {
     ],
   );
 
-  // Загрузка фильтров для избранного
-  // useEffect(() => {
-  //   console.log("Loading filters for favorites");
-  //   dispatch(getCategoryFilters(null));
-  // }, [dispatch]);
+  const loadProductsRef = useRef(loadProducts);
+  loadProductsRef.current = loadProducts;
+  const activeProductListModeRef = useRef(activeProductListMode);
+  activeProductListModeRef.current = activeProductListMode;
 
-  // // Эффект для начальной загрузки продуктов
-  // useEffect(() => {
-  //   dispatch(clearProducts());
-  //   console.log("Initial load for favorites");
-  //   loadProducts(false, "");
-  // }, []);
+  const closeFilterModal = useCallback(() => {
+    filterSheetRef.current?.close();
+  }, []);
+
+  const handleFilterSheetClose = useCallback(() => {
+    setShowFilterModal(false);
+    setSelectedFilterGroup(null);
+    scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+    void loadProductsRef.current(false, searchQuery);
+  }, [searchQuery]);
+
+  const handleFilterGroupPress = (filterGroup: any) => {
+    setSelectedFilterGroup(filterGroup);
+    setShowFilterModal(true);
+  };
 
   useFocusEffect(
     useCallback(() => {
       const checkTokenAndLoad = async () => {
         const token = await AsyncStorage.getItem("token");
         if (!token) {
-          console.log("No token found - skipping favorites loading");
-          return; // Выходим, если нет токена
+          return;
         }
 
-        console.log("Heart screen focused - loading favorites");
+        const alreadyLoadedFavorites =
+          activeProductListModeRef.current === "favorites" && products.length > 0;
 
-        // Очищаем предыдущие товары
-        dispatch(clearProducts());
+        if (!alreadyLoadedFavorites) {
+          dispatch(resetPagination());
+          void loadProductsRef.current(false, "");
+        }
 
-        // Загружаем избранное
-        loadProducts(false, "");
-
-        // Загружаем фильтры для избранного
         dispatch(getCategoryFilters(null));
       };
 
-      checkTokenAndLoad();
-
-      // Опционально: функция очистки при уходе с экрана
-      return () => {
-        console.log("Heart screen unfocused");
-        // Можно отменить запросы если нужно
-        // isFetchingRef.current = false;
-      };
-    }, [dispatch]), // Добавьте необходимые зависимости
+      void checkTokenAndLoad();
+    }, [dispatch, products.length]),
   );
 
   // Обработчик прокрутки
@@ -442,7 +348,7 @@ export default function HeartScreen() {
   }, [searchQuery, loadProducts]);
 
   const handleSortSelect = (sortId: ProductSortId) => {
-    closeSortModalWithAnimation(() => {
+    sortSheetRef.current?.close(() => {
       setSortBy(sortId);
       scrollViewRef.current?.scrollTo({ y: 0, animated: false });
       loadProducts(false, searchQuery, sortId);
@@ -452,7 +358,6 @@ export default function HeartScreen() {
   // Обработчик переключения фильтра
   const handleFilterToggle = (filterOptionId: string) => {
     dispatch(toggleFilterSelection(filterOptionId));
-    applyFilters();
   };
 
   // Сброс фильтров в текущей группе
@@ -463,16 +368,8 @@ export default function HeartScreen() {
           dispatch(toggleFilterSelection(option.id));
         }
       });
+      closeFilterModal();
     }
-  };
-
-  // Применение фильтров
-  const applyFilters = () => {
-    // Перезагружаем товары с новыми фильтрами
-    setTimeout(() => {
-      scrollViewRef.current?.scrollTo({ y: 0, animated: false });
-      loadProducts(false, searchQuery);
-    }, 300);
   };
 
   // Сброс всех фильтров
@@ -531,7 +428,6 @@ export default function HeartScreen() {
       >
         <ModalHeader
           showBackButton={false}
-          belowTitleRow={<TemplatePickerBanner />}
           content={
             <SearchInput
               value={searchQuery}
@@ -546,6 +442,7 @@ export default function HeartScreen() {
         />
 
         <View style={styles.mainContainer}>
+          <TemplatePickerBanner />
           <ScrollView
             ref={scrollViewRef}
             style={styles.container}
@@ -661,199 +558,144 @@ export default function HeartScreen() {
           </ScrollView>
         </View>
 
-        {/* Модальное окно сортировки */}
-        <Modal
-          visible={showSortModal || isClosingSortModal}
-          animationType="none"
-          transparent={true}
-          onRequestClose={() => closeSortModalWithAnimation()}
-          presentationStyle="overFullScreen"
-          statusBarTranslucent={true}
+        <BottomSheetModal
+          ref={sortSheetRef}
+          visible={showSortModal}
+          onClose={() => setShowSortModal(false)}
+          isDarkMode={isDarkMode}
         >
-          <TouchableWithoutFeedback onPress={handleSortOverlayPress}>
-            <Animated.View
-              style={[styles.modalOverlay, { opacity: sortOverlayOpacity }]}
-            >
-              <TouchableWithoutFeedback>
-                <Animated.View
-                  style={[
-                    styles.modalContainer,
-                    isDarkMode && {
-                      backgroundColor: "#202022",
-                    },
-                    {
-                      transform: [{ translateY: sortModalTranslateY }],
-                    },
-                  ]}
-                >
-                  {/* Защелка для свайпа */}
-                  <TouchableOpacity
-                    style={styles.swipeHandleContainer}
-                    activeOpacity={0.7}
-                    onPress={closeSortModalWithAnimation}
-                  >
-                    <View style={styles.swipeHandle} />
-                  </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.swipeHandleContainer}
+            activeOpacity={0.7}
+            onPress={() => sortSheetRef.current?.close()}
+          >
+            <View style={styles.swipeHandle} />
+          </TouchableOpacity>
 
-                  <View style={styles.modalHeader}>
-                    <ThemedText style={styles.modalTitle}>
-                      Показывать сначала
-                    </ThemedText>
-                    <TouchableOpacity onPress={closeSortModalWithAnimation}>
-                      {/* <ThemedText style={styles.modalCloseText}>Готово</ThemedText> */}
-                    </TouchableOpacity>
-                  </View>
+          <View style={styles.modalHeader}>
+            <ThemedText style={styles.modalTitle}>
+              Показывать сначала
+            </ThemedText>
+          </View>
 
-                  <ScrollView
-                    style={styles.sortOptionsContainer}
-                    contentContainerStyle={{
-                      paddingBottom: sortModalBottomPadding,
-                    }}
-                    showsVerticalScrollIndicator={false}
+          <ScrollView
+            style={styles.sortOptionsContainer}
+            contentContainerStyle={{
+              paddingBottom: sortModalBottomPadding,
+            }}
+            showsVerticalScrollIndicator={false}
+          >
+            {sortOptions.map((option) => (
+              <TouchableOpacity
+                key={option.id}
+                style={[
+                  styles.sortOptionItem,
+                  isDarkMode && {
+                    borderBottomColor: "#323235",
+                  },
+                ]}
+                onPress={() => handleSortSelect(option.id)}
+              >
+                <View style={styles.sortOptionItemContent}>
+                  <View
+                    style={[
+                      styles.sortOptionRadio,
+                      sortBy === option.id && styles.sortOptionRadioSelected,
+                      isDarkMode &&
+                        sortBy === option.id && {
+                          borderColor: "#4C94FF",
+                        },
+                    ]}
                   >
-                    {sortOptions.map((option) => (
-                      <TouchableOpacity
-                        key={option.id}
+                    {sortBy === option.id && (
+                      <View
                         style={[
-                          styles.sortOptionItem,
-                          isDarkMode && {
-                            borderBottomColor: "#323235",
-                          },
+                          styles.sortOptionRadioInner,
+                          isDarkMode && { backgroundColor: "#FFFFFF" },
                         ]}
-                        onPress={() => handleSortSelect(option.id)}
-                      >
-                        <View style={styles.sortOptionItemContent}>
-                          <View
-                            style={[
-                              styles.sortOptionRadio,
-                              sortBy === option.id &&
-                                styles.sortOptionRadioSelected,
-                              isDarkMode &&
-                                sortBy === option.id && {
-                                  borderColor: "#4C94FF",
-                                },
-                            ]}
-                          >
-                            {sortBy === option.id && (
-                              <View
-                                style={[
-                                  styles.sortOptionRadioInner,
-                                  isDarkMode && { backgroundColor: "#FFFFFF" },
-                                ]}
-                              />
-                            )}
-                          </View>
-                          <ThemedText
-                            style={[
-                              styles.sortOptionText,
-                              isDarkMode && { color: "#FBFCFF" },
-                            ]}
-                          >
-                            {option.label}
-                          </ThemedText>
-                        </View>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                </Animated.View>
-              </TouchableWithoutFeedback>
-            </Animated.View>
-          </TouchableWithoutFeedback>
-        </Modal>
+                      />
+                    )}
+                  </View>
+                  <ThemedText
+                    style={[
+                      styles.sortOptionText,
+                      isDarkMode && { color: "#FBFCFF" },
+                    ]}
+                  >
+                    {option.label}
+                  </ThemedText>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </BottomSheetModal>
 
-        {/* Модальное окно фильтров */}
-        <Modal
-          visible={showFilterModal || isClosingFilterModal}
-          animationType="none"
-          transparent={true}
-          onRequestClose={closeFilterModalWithAnimation}
-          statusBarTranslucent={true}
+        <BottomSheetModal
+          ref={filterSheetRef}
+          visible={showFilterModal}
+          onClose={handleFilterSheetClose}
+          isDarkMode={isDarkMode}
         >
-          <TouchableWithoutFeedback onPress={handleFilterOverlayPress}>
-            <Animated.View
-              style={[styles.modalOverlay, { opacity: filterOverlayOpacity }]}
-            >
-              <TouchableWithoutFeedback>
-                <Animated.View
+          <TouchableOpacity
+            style={styles.swipeHandleContainer}
+            activeOpacity={0.7}
+            onPress={() => closeFilterModal()}
+          >
+            <View style={styles.swipeHandle} />
+          </TouchableOpacity>
+
+          <View style={styles.modalHeader}>
+            <TouchableOpacity onPress={resetCurrentGroupFilters}>
+              <ThemedText style={styles.modalResetText} />
+            </TouchableOpacity>
+
+            <ThemedText style={styles.modalTitle}>
+              {selectedFilterGroup?.name || "Фильтры"}
+            </ThemedText>
+
+            <TouchableOpacity onPress={() => closeFilterModal()}>
+              <ThemedText style={styles.modalCloseText}>Готово</ThemedText>
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView
+            style={styles.filterOptionsContainer}
+            showsVerticalScrollIndicator
+          >
+            {selectedFilterGroup?.filterOptions.map((option: any) => (
+              <TouchableOpacity
+                key={option.id}
+                style={styles.filterOptionItem}
+                onPress={() => handleFilterToggle(option.id)}
+              >
+                <View
                   style={[
-                    styles.modalContainer,
-                    isDarkMode && {
-                      backgroundColor: "#202022",
-                    },
-                    {
-                      transform: [{ translateY: filterModalTranslateY }],
-                    },
+                    styles.radioOuter,
+                    isFilterSelected(option.id) && styles.radioOuterSelected,
+                    isDarkMode &&
+                      isFilterSelected(option.id) && {
+                        borderColor: "#4C94FF",
+                      },
                   ]}
                 >
-                  {/* Защелка для свайпа */}
-                  <TouchableOpacity
-                    style={styles.swipeHandleContainer}
-                    activeOpacity={0.7}
-                    onPress={closeFilterModalWithAnimation}
-                  >
-                    <View style={styles.swipeHandle} />
-                  </TouchableOpacity>
+                  {isFilterSelected(option.id) && (
+                    <View style={styles.radioInner} />
+                  )}
+                </View>
+                <ThemedText
+                  style={[
+                    styles.filterOptionText,
+                    isFilterSelected(option.id) &&
+                      styles.filterOptionTextSelected,
+                  ]}
+                >
+                  {option.value}
+                </ThemedText>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </BottomSheetModal>
 
-                  <View style={styles.modalHeader}>
-                    <TouchableOpacity onPress={resetCurrentGroupFilters}>
-                      <ThemedText style={styles.modalResetText}>
-                        {/* {selectedFilterGroup && countSelectedFiltersInGroup(selectedFilterGroup) > 0 ? 'Сбросить' : ''} */}
-                      </ThemedText>
-                    </TouchableOpacity>
-
-                    <ThemedText style={styles.modalTitle}>
-                      {selectedFilterGroup?.name || "Фильтры"}
-                    </ThemedText>
-
-                    <TouchableOpacity onPress={closeFilterModalWithAnimation}>
-                      {/* <ThemedText style={styles.modalCloseText}>Готово</ThemedText> */}
-                    </TouchableOpacity>
-                  </View>
-
-                  <ScrollView
-                    style={styles.filterOptionsContainer}
-                    showsVerticalScrollIndicator={true}
-                  >
-                    {/*  */}
-                    {selectedFilterGroup?.filterOptions.map((option: any) => (
-                      <TouchableOpacity
-                        key={option.id}
-                        style={styles.filterOptionItem}
-                        onPress={() => handleFilterToggle(option.id)}
-                      >
-                        <View
-                          style={[
-                            styles.radioOuter,
-                            isFilterSelected(option.id) &&
-                              styles.radioOuterSelected,
-                            isDarkMode &&
-                              isFilterSelected(option.id) && {
-                                borderColor: "#4C94FF",
-                              },
-                          ]}
-                        >
-                          {isFilterSelected(option.id) && (
-                            <View style={styles.radioInner} />
-                          )}
-                        </View>
-                        <ThemedText
-                          style={[
-                            styles.filterOptionText,
-                            isFilterSelected(option.id) &&
-                              styles.filterOptionTextSelected,
-                          ]}
-                        >
-                          {option.value}
-                        </ThemedText>
-                      </TouchableOpacity>
-                    ))}
-                    {/*  */}
-                  </ScrollView>
-                </Animated.View>
-              </TouchableWithoutFeedback>
-            </Animated.View>
-          </TouchableWithoutFeedback>
-        </Modal>
         <AddToCartModal
           visible={showAddToCartModal}
           onClose={() => {
