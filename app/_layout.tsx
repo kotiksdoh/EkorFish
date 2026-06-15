@@ -35,13 +35,13 @@ function AppToastHost() {
     <ToastManager
       config={toastConfig}
       useModal={true}
-      position="bottom"
-      bottomOffset={12 + insets.bottom}
+      position="top"
       topOffset={10 + insets.top}
+      bottomOffset={12 + insets.bottom}
       duration={4200}
       showProgressBar={false}
       showCloseIcon={false}
-      animationStyle="slide"
+      animationStyle="none"
       width="92%"
       minHeight={64}
       theme={isDark ? 'dark' : 'light'}

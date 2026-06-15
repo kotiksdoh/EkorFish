@@ -16,14 +16,14 @@ import { PrimaryButton } from "@/features/home";
 import { DatePickerWithIcon } from "@/features/shared/ui/components/DatePickerCustom";
 // import SmartInput from '@/features/shared/ui/components/SmartInput';
 import { getCart, getMyOrders } from "@/features/catalog/catalogSlice";
+import type { LegalDocumentId } from "@/features/shared/legal/buildLegalHtml";
+import { LegalDocumentModal } from "@/features/shared/ui/LegalDocumentModal";
 import ManagerSection from "@/features/shared/ui/ManagerSection";
 import SmartInput from "@/features/shared/ui/components/SmartInput";
+import { getSupportContactsFromParams } from "@/features/shared/utils/supportParams";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { syncPushTokenToBackend } from "@/hooks/usePushNotifications";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import type { LegalDocumentId } from "@/features/shared/legal/buildLegalHtml";
-import { LegalDocumentModal } from "@/features/shared/ui/LegalDocumentModal";
-import { getSupportContactsFromParams } from "@/features/shared/utils/supportParams";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Image,
@@ -84,6 +84,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   onLogin,
 }) => {
   const [phoneNumber, setPhoneNumber] = useState("");
+  const [isPhoneContact, setIsPhoneContact] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [legalDocumentId, setLegalDocumentId] = useState<LegalDocumentId | null>(
     null,
@@ -409,6 +410,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   // Сброс состояния модального окна
   const resetModal = () => {
     setPhoneNumber("");
+    setIsPhoneContact(false);
     setAgreedToTerms(false);
     setConfirmationCode(["", "", "", ""]);
     setTimer(60);
@@ -423,6 +425,10 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   };
 
   const isLoginButtonDisabled = !phoneNumber || !agreedToTerms;
+
+  const codeSentDescription = isPhoneContact
+    ? `Мы отправили 4-x значный код\nна номер +${phoneNumber}.`
+    : `Мы отправили 4-x значный код\nна почту ${phoneNumber}.`;
 
   const handelCompliteProfile = () => {
     dispatch(
@@ -597,7 +603,9 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                       lightColor={"#80818B"}
                       darkColor="#FBFCFF80"
                     >
-                      Мы отправим сообщение с кодом{"\n"}для входа.
+                      {isPhoneContact
+                        ? "Мы отправим SMS с кодом\nдля входа."
+                        : "Мы отправим письмо с кодом\nдля входа."}
                     </ThemedText>
 
                     <View style={styles.inputContainer}>
@@ -615,11 +623,10 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                         placeholderTextColor="#80818B"
                         value={phoneNumber}
                         onChangeText={(cleanText, formattedText, isPhone) => {
-                          console.log("Чистый номер для бэка:", cleanText); // "79999998899"
-                          console.log("Форматированный текст:", formattedText); // "+7 (999) 999-88-99"
-                          console.log("Это телефон?", isPhone); // true или false
                           setPhoneNumber(cleanText);
+                          setIsPhoneContact(Boolean(isPhone));
                         }}
+                        keyboardType = "default"
                         autoFocus
                       />
                     </View>
@@ -692,7 +699,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                       lightColor={"#80818B"}
                       darkColor="#FBFCFF80"
                     >
-                      Мы отправили 4-x значный код{"\n"}на номер +{phoneNumber}.
+                      {codeSentDescription}
                     </ThemedText>
 
                     {/* Контейнер для 4 инпутов */}

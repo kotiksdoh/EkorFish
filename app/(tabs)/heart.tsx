@@ -22,6 +22,10 @@ import {
 import { AddToCartModal } from "@/features/shared/ui/AddToCartModal";
 import { ProductCard } from "@/features/shared/ui/ProductCard";
 import { buildTemplateLineFromProduct } from "@/features/templates/buildTemplateLine";
+import {
+  animateBottomSheetClose,
+  animateBottomSheetOpen,
+} from "@/features/shared/utils/bottomSheetModalAnimation";
 import { TemplatePickerBanner } from "@/features/templates/TemplatePickerBanner";
 import { useTemplatePicker } from "@/features/templates/TemplatePickerContext";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -70,9 +74,11 @@ export default function HeartScreen() {
 
   // Анимация для модалок
   const sortModalTranslateY = useRef(new Animated.Value(screenHeight)).current;
+  const sortOverlayOpacity = useRef(new Animated.Value(0)).current;
   const filterModalTranslateY = useRef(
     new Animated.Value(screenHeight),
   ).current;
+  const filterOverlayOpacity = useRef(new Animated.Value(0)).current;
   const [isClosingSortModal, setIsClosingSortModal] = useState(false);
   const [isClosingFilterModal, setIsClosingFilterModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
@@ -152,18 +158,18 @@ export default function HeartScreen() {
       if (isClosingSortModal) return;
 
       setIsClosingSortModal(true);
-      Animated.timing(sortModalTranslateY, {
-        toValue: screenHeight,
-        duration: 280,
-        useNativeDriver: true,
-      }).start(() => {
-        setShowSortModal(false);
-        setIsClosingSortModal(false);
-        sortModalTranslateY.setValue(screenHeight);
-        onClosed?.();
-      });
+      animateBottomSheetClose(
+        sortModalTranslateY,
+        sortOverlayOpacity,
+        screenHeight,
+        () => {
+          setShowSortModal(false);
+          setIsClosingSortModal(false);
+          onClosed?.();
+        },
+      );
     },
-    [isClosingSortModal, sortModalTranslateY],
+    [isClosingSortModal, sortModalTranslateY, sortOverlayOpacity],
   );
 
   // Функция для закрытия модалки фильтров с анимацией
@@ -171,16 +177,17 @@ export default function HeartScreen() {
     if (isClosingFilterModal) return;
 
     setIsClosingFilterModal(true);
-    Animated.timing(filterModalTranslateY, {
-      toValue: screenHeight,
-      duration: 250,
-      useNativeDriver: true,
-    }).start(() => {
-      setShowFilterModal(false);
-      setSelectedFilterGroup(null);
-      setIsClosingFilterModal(false);
-    });
-  }, [isClosingFilterModal]);
+    animateBottomSheetClose(
+      filterModalTranslateY,
+      filterOverlayOpacity,
+      screenHeight,
+      () => {
+        setShowFilterModal(false);
+        setSelectedFilterGroup(null);
+        setIsClosingFilterModal(false);
+      },
+    );
+  }, [filterModalTranslateY, filterOverlayOpacity, isClosingFilterModal]);
 
   // Обработчики нажатия на overlay
   const handleSortOverlayPress = useCallback(() => {
@@ -206,15 +213,20 @@ export default function HeartScreen() {
   );
   
   const animateSortModalOpen = useCallback(() => {
-    sortModalTranslateY.setValue(screenHeight);
-    Animated.spring(sortModalTranslateY, {
-      toValue: 0,
-      useNativeDriver: true,
-      damping: 22,
-      stiffness: 180,
-      mass: 0.85,
-    }).start();
-  }, [sortModalTranslateY]);
+    animateBottomSheetOpen(
+      sortModalTranslateY,
+      sortOverlayOpacity,
+      screenHeight,
+    );
+  }, [sortModalTranslateY, sortOverlayOpacity]);
+
+  const animateFilterModalOpen = useCallback(() => {
+    animateBottomSheetOpen(
+      filterModalTranslateY,
+      filterOverlayOpacity,
+      screenHeight,
+    );
+  }, [filterModalTranslateY, filterOverlayOpacity]);
 
   // Эффект для анимации появления модалки сортировки
   useEffect(() => {
@@ -225,19 +237,10 @@ export default function HeartScreen() {
 
   // Эффект для анимации появления модалки фильтров
   useEffect(() => {
-    if (showFilterModal) {
-      filterModalTranslateY.setValue(screenHeight);
-      Animated.spring(filterModalTranslateY, {
-        toValue: 0,
-        useNativeDriver: true,
-        damping: 20,
-        stiffness: 90,
-        mass: 0.8,
-      }).start();
-    } else {
-      filterModalTranslateY.setValue(screenHeight);
+    if (showFilterModal && !isClosingFilterModal) {
+      animateFilterModalOpen();
     }
-  }, [showFilterModal]);
+  }, [animateFilterModalOpen, isClosingFilterModal, showFilterModal]);
 
   // Обработчик открытия модалки фильтра
   const handleFilterGroupPress = (filterGroup: any) => {
@@ -668,7 +671,9 @@ export default function HeartScreen() {
           statusBarTranslucent={true}
         >
           <TouchableWithoutFeedback onPress={handleSortOverlayPress}>
-            <View style={styles.modalOverlay}>
+            <Animated.View
+              style={[styles.modalOverlay, { opacity: sortOverlayOpacity }]}
+            >
               <TouchableWithoutFeedback>
                 <Animated.View
                   style={[
@@ -752,20 +757,22 @@ export default function HeartScreen() {
                   </ScrollView>
                 </Animated.View>
               </TouchableWithoutFeedback>
-            </View>
+            </Animated.View>
           </TouchableWithoutFeedback>
         </Modal>
 
         {/* Модальное окно фильтров */}
         <Modal
-          visible={showFilterModal}
+          visible={showFilterModal || isClosingFilterModal}
           animationType="none"
           transparent={true}
           onRequestClose={closeFilterModalWithAnimation}
           statusBarTranslucent={true}
         >
           <TouchableWithoutFeedback onPress={handleFilterOverlayPress}>
-            <View style={styles.modalOverlay}>
+            <Animated.View
+              style={[styles.modalOverlay, { opacity: filterOverlayOpacity }]}
+            >
               <TouchableWithoutFeedback>
                 <Animated.View
                   style={[
@@ -844,7 +851,7 @@ export default function HeartScreen() {
                   </ScrollView>
                 </Animated.View>
               </TouchableWithoutFeedback>
-            </View>
+            </Animated.View>
           </TouchableWithoutFeedback>
         </Modal>
         <AddToCartModal

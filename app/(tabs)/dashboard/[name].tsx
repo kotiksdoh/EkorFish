@@ -26,6 +26,10 @@ import { ProductCard } from "@/features/shared/ui/ProductCard";
 import { TownSelectionModal } from "@/features/shared/ui/TownSelectionModal";
 import AnimatedTextInput from "@/features/shared/ui/components/CustomInput";
 import { TemplatePickerBanner } from "@/features/templates/TemplatePickerBanner";
+import {
+  animateBottomSheetClose,
+  animateBottomSheetOpen,
+} from "@/features/shared/utils/bottomSheetModalAnimation";
 import { useTemplatePicker } from "@/features/templates/TemplatePickerContext";
 import { buildTemplateLineFromProduct } from "@/features/templates/buildTemplateLine";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -135,6 +139,7 @@ export default function CatalogDetailScreen() {
 
   // Анимация для свайпа модалки
   const modalTranslateY = useRef(new Animated.Value(screenHeight)).current;
+  const filtersOverlayOpacity = useRef(new Animated.Value(0)).current;
   const [isClosing, setIsClosing] = useState(false);
 
   // Получаем состояние из Redux
@@ -164,6 +169,7 @@ export default function CatalogDetailScreen() {
   );
   const [showSortModal, setShowSortModal] = useState(false);
   const sortModalTranslateY = useRef(new Animated.Value(screenHeight)).current;
+  const sortOverlayOpacity = useRef(new Animated.Value(0)).current;
   const [isClosingSortModal, setIsClosingSortModal] = useState(false);
 
   useFocusEffect(
@@ -182,18 +188,18 @@ export default function CatalogDetailScreen() {
       if (isClosingSortModal) return;
 
       setIsClosingSortModal(true);
-      Animated.timing(sortModalTranslateY, {
-        toValue: screenHeight,
-        duration: 280,
-        useNativeDriver: true,
-      }).start(() => {
-        setShowSortModal(false);
-        setIsClosingSortModal(false);
-        sortModalTranslateY.setValue(screenHeight);
-        onClosed?.();
-      });
+      animateBottomSheetClose(
+        sortModalTranslateY,
+        sortOverlayOpacity,
+        screenHeight,
+        () => {
+          setShowSortModal(false);
+          setIsClosingSortModal(false);
+          onClosed?.();
+        },
+      );
     },
-    [isClosingSortModal, sortModalTranslateY],
+    [isClosingSortModal, sortModalTranslateY, sortOverlayOpacity],
   );
 
   // Обработчик нажатия на overlay сортировки
@@ -204,15 +210,12 @@ export default function CatalogDetailScreen() {
   }, [isClosingSortModal, closeSortModalWithAnimation]);
 
   const animateSortModalOpen = useCallback(() => {
-    sortModalTranslateY.setValue(screenHeight);
-    Animated.spring(sortModalTranslateY, {
-      toValue: 0,
-      useNativeDriver: true,
-      damping: 22,
-      stiffness: 180,
-      mass: 0.85,
-    }).start();
-  }, [sortModalTranslateY]);
+    animateBottomSheetOpen(
+      sortModalTranslateY,
+      sortOverlayOpacity,
+      screenHeight,
+    );
+  }, [sortModalTranslateY, sortOverlayOpacity]);
 
   // Эффект для анимации появления модалки сортировки
   useEffect(() => {
@@ -301,31 +304,28 @@ export default function CatalogDetailScreen() {
   );
 
   const animateFiltersModalOpen = useCallback(() => {
-    modalTranslateY.setValue(screenHeight);
-    Animated.spring(modalTranslateY, {
-      toValue: 0,
-      useNativeDriver: true,
-      damping: 22,
-      stiffness: 180,
-      mass: 0.85,
-    }).start();
-  }, [modalTranslateY]);
+    animateBottomSheetOpen(
+      modalTranslateY,
+      filtersOverlayOpacity,
+      screenHeight,
+    );
+  }, [modalTranslateY, filtersOverlayOpacity]);
 
   // Функция для закрытия модалки с анимацией
   const closeModalWithAnimation = useCallback(() => {
     if (isClosing) return;
 
     setIsClosing(true);
-    Animated.timing(modalTranslateY, {
-      toValue: screenHeight,
-      duration: 280,
-      useNativeDriver: true,
-    }).start(() => {
-      setShowFilters(false);
-      setIsClosing(false);
-      modalTranslateY.setValue(screenHeight);
-    });
-  }, [isClosing, modalTranslateY]);
+    animateBottomSheetClose(
+      modalTranslateY,
+      filtersOverlayOpacity,
+      screenHeight,
+      () => {
+        setShowFilters(false);
+        setIsClosing(false);
+      },
+    );
+  }, [filtersOverlayOpacity, isClosing, modalTranslateY]);
 
   // Обработчик нажатия на overlay
   const handleOverlayPress = useCallback(() => {
@@ -352,6 +352,7 @@ export default function CatalogDetailScreen() {
     }
 
     modalTranslateY.setValue(screenHeight);
+    filtersOverlayOpacity.setValue(0);
     setShowFilters(true);
 
     if (!catalogId || isLoadingFilters) {
@@ -368,6 +369,7 @@ export default function CatalogDetailScreen() {
     isClosing,
     isLoadingFilters,
     modalTranslateY,
+    filtersOverlayOpacity,
     showFilters,
   ]);
 
@@ -1158,7 +1160,9 @@ export default function CatalogDetailScreen() {
           statusBarTranslucent={true}
         >
           <TouchableWithoutFeedback onPress={handleOverlayPress}>
-            <View style={styles.modalOverlay}>
+            <Animated.View
+              style={[styles.modalOverlay, { opacity: filtersOverlayOpacity }]}
+            >
               <TouchableWithoutFeedback>
                 <Animated.View
                   style={[
@@ -1353,7 +1357,7 @@ export default function CatalogDetailScreen() {
                   </ThemedView>
                 </Animated.View>
               </TouchableWithoutFeedback>
-            </View>
+            </Animated.View>
           </TouchableWithoutFeedback>
         </Modal>
         <AddToCartModal
@@ -1378,7 +1382,9 @@ export default function CatalogDetailScreen() {
           statusBarTranslucent={true}
         >
           <TouchableWithoutFeedback onPress={handleSortOverlayPress}>
-            <View style={styles.modalOverlay}>
+            <Animated.View
+              style={[styles.modalOverlay, { opacity: sortOverlayOpacity }]}
+            >
               <TouchableWithoutFeedback>
                 <Animated.View
                   style={[
@@ -1467,7 +1473,7 @@ export default function CatalogDetailScreen() {
                   </ScrollView>
                 </Animated.View>
               </TouchableWithoutFeedback>
-            </View>
+            </Animated.View>
           </TouchableWithoutFeedback>
         </Modal>
       </ThemedView>
