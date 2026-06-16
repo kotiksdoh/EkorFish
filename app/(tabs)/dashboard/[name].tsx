@@ -31,8 +31,9 @@ import { ProductCard } from "@/features/shared/ui/ProductCard";
 import { TownSelectionModal } from "@/features/shared/ui/TownSelectionModal";
 import AnimatedTextInput from "@/features/shared/ui/components/CustomInput";
 import { TemplatePickerBanner } from "@/features/templates/TemplatePickerBanner";
-import { useTemplatePicker } from "@/features/templates/TemplatePickerContext";
 import { buildTemplateLineFromProduct } from "@/features/templates/buildTemplateLine";
+import { useTemplatePicker } from "@/features/templates/TemplatePickerContext";
+import { prefetchProductImageUrls } from "@/features/shared/utils/prefetchProductImages";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -516,6 +517,13 @@ export default function CatalogDetailScreen() {
     }
     return products;
   }, [products, catalogId, activeCategoryId]);
+
+  useEffect(() => {
+    if (activeCategoryId !== String(catalogId) || displayProducts.length === 0) {
+      return;
+    }
+    prefetchProductImageUrls(displayProducts);
+  }, [activeCategoryId, catalogId, displayProducts]);
 
   const showInitialLoader =
     isCategoryListPending ||

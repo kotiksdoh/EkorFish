@@ -25,6 +25,7 @@ import {
   type BottomSheetModalRef,
 } from "@/features/shared/ui/BottomSheetModal";
 import { ProductCard } from "@/features/shared/ui/ProductCard";
+import { prefetchProductImageUrls } from "@/features/shared/utils/prefetchProductImages";
 import { buildTemplateLineFromProduct } from "@/features/templates/buildTemplateLine";
 import { TemplatePickerBanner } from "@/features/templates/TemplatePickerBanner";
 import { useTemplatePicker } from "@/features/templates/TemplatePickerContext";
@@ -436,6 +437,13 @@ export default function HeartScreen() {
   const isFavoritesMode = activeProductListMode === "favorites";
   const displayProducts =
     hasToken && isFavoritesMode ? products : [];
+
+  useEffect(() => {
+    if (!isFavoritesMode || displayProducts.length === 0) {
+      return;
+    }
+    prefetchProductImageUrls(displayProducts);
+  }, [displayProducts, isFavoritesMode]);
 
   const showInitialLoading =
     hasToken === true &&

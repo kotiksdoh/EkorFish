@@ -469,7 +469,7 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                       darkColor="#202022"
                       style={styles.iconPlaceholder}
                     >
-                      <CalendarFilledIcon />
+                      <CalendarFilledIcon stroke="#80818B" fill="none" />
                     </ThemedView>
                     <View
                       style={[
