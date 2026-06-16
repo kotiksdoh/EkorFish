@@ -41,11 +41,10 @@ export function buildProductImageUrl(path: unknown): string {
   }
 
   if (/^https?:\/\//i.test(normalizedPath)) {
-    return isValidProductImageUrl(normalizedPath) ? normalizedPath : "";
+    return normalizedPath;
   }
 
-  const url = `${baseUrl}/${normalizedPath.replace(/^\//, "")}`;
-  return isValidProductImageUrl(url) ? url : "";
+  return `${baseUrl}/${normalizedPath.replace(/^\//, "")}`;
 }
 
 export function normalizeProductImages(images: unknown): { imageUrl: string }[] {
@@ -62,16 +61,4 @@ export function normalizeProductImages(images: unknown): { imageUrl: string }[] 
   }
 
   return normalized;
-}
-
-export function toProductGalleryItems(
-  images: unknown,
-  productId?: string | number | null,
-): { id: string; imageUrl: string }[] {
-  const normalizedImages = normalizeProductImages(images);
-
-  return normalizedImages.map((image, index) => ({
-    id: `product-${productId ?? "unknown"}-${index}`,
-    imageUrl: image.imageUrl,
-  }));
 }

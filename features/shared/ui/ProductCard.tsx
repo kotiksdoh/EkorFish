@@ -41,6 +41,15 @@ interface ProductCardProps {
 // Заглушка для изображения
 const PLACEHOLDER_IMAGE = require("@/assets/icons/png/noImage.png");
 
+function formatProductListDate(value?: string | null): string | null {
+  if (!value || typeof value !== "string") return null;
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+
+  return `${date.toLocaleDateString("ru-RU")} г.`;
+}
+
 const ProductCardComponent: React.FC<ProductCardProps> = ({
   id,
   img,
@@ -230,6 +239,16 @@ const ProductCardComponent: React.FC<ProductCardProps> = ({
   const stockInfo = productData?.originalProduct?.stocks?.[0]?.stockInfo;
   const isOutOfStock = stockInfo === "Нет в наличии" || false;
 
+  const formattedDateFrom = useMemo(
+    () => formatProductListDate(productData?.dateFrom),
+    [productData?.dateFrom],
+  );
+  const formattedDateTo = useMemo(
+    () => formatProductListDate(productData?.dateTo),
+    [productData?.dateTo],
+  );
+  const hasDates = Boolean(formattedDateFrom || formattedDateTo);
+
   return (
     <>
       <TouchableOpacity
@@ -295,6 +314,29 @@ const ProductCardComponent: React.FC<ProductCardProps> = ({
             >
               {name || "Название товара"}
             </ThemedText>
+
+            {hasDates ? (
+              <View style={styles.datesContainer}>
+                {formattedDateFrom ? (
+                  <ThemedText
+                    style={styles.dateText}
+                    lightColor="#80818B"
+                    darkColor="#FBFCFF80"
+                  >
+                    Выработка: {formattedDateFrom}
+                  </ThemedText>
+                ) : null}
+                {formattedDateTo ? (
+                  <ThemedText
+                    style={styles.dateText}
+                    lightColor="#80818B"
+                    darkColor="#FBFCFF80"
+                  >
+                    Годен до: {formattedDateTo}
+                  </ThemedText>
+                ) : null}
+              </View>
+            ) : null}
 
             {stockInfo && (
               <ThemedView
@@ -478,6 +520,16 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     minHeight: 35,
   },
+  datesContainer: {
+    marginBottom: 8,
+    gap: 2,
+  },
+  dateText: {
+    fontFamily: "Montserrat",
+    fontWeight: "500",
+    fontSize: 12,
+    lineHeight: 14.4,
+  },
   stockInfo: {
     borderRadius: 6,
     display: "flex",
@@ -551,6 +603,8 @@ export const ProductCard = React.memo(ProductCardComponent, (prevProps, nextProp
     prevProps.kgPrice === nextProps.kgPrice &&
     prevProps.fullPrice === nextProps.fullPrice &&
     prevProps.isFavorite === nextProps.isFavorite &&
+    prevProps.productData?.dateFrom === nextProps.productData?.dateFrom &&
+    prevProps.productData?.dateTo === nextProps.productData?.dateTo &&
     prevProps.fullWidth === nextProps.fullWidth &&
     prevProps.isDis === nextProps.isDis &&
     prevProps.onAddToCartPress === nextProps.onAddToCartPress

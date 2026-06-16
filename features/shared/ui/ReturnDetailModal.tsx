@@ -16,8 +16,10 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { getReturnRequestDetail } from "@/features/catalog/catalogSlice";
 import { baseUrl } from "@/features/shared/services/axios";
+import { openTelegramByPhone } from "@/features/shared/utils/phoneLinking";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Clipboard from "expo-clipboard";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
@@ -46,6 +48,12 @@ interface ReturnDetailModalProps {
   returnRequestId: number | null;
 }
 
+interface CompanyManager {
+  id: string;
+  name?: string;
+  phoneNumber?: string;
+}
+
 type ReturnLine = {
   id: string;
   productName: string;
@@ -72,6 +80,9 @@ export const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
   const [statusModalVisible, setStatusModalVisible] = useState(false);
   const [productsModalTranslateY] = useState(new Animated.Value(screenHeight));
   const [isProductsModalClosing, setIsProductsModalClosing] = useState(false);
+  const [companyManager, setCompanyManager] = useState<CompanyManager | null>(
+    null,
+  );
 
   const detail = useAppSelector((state) => state.catalog.return);
   const isLoading = useAppSelector(
@@ -87,6 +98,25 @@ export const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
       dispatch(getReturnRequestDetail(returnRequestId));
     }
   }, [visible, returnRequestId, dispatch]);
+
+  useEffect(() => {
+    const hydrateCompanyManager = async () => {
+      if (!visible) {
+        setCompanyManager(null);
+        return;
+      }
+      try {
+        const storedCompanyRaw = await AsyncStorage.getItem("company");
+        const storedCompany = storedCompanyRaw ? JSON.parse(storedCompanyRaw) : null;
+        setCompanyManager(storedCompany?.manager || null);
+      } catch (error) {
+        console.error("Error loading company manager from storage:", error);
+        setCompanyManager(null);
+      }
+    };
+
+    void hydrateCompanyManager();
+  }, [visible]);
 
   // Анимация для модалки с товарами
   useEffect(() => {
@@ -123,6 +153,10 @@ export const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
     if (detail) {
       await Clipboard.setStringAsync(detail.id.toString());
     }
+  };
+
+  const handleMessageManager = () => {
+    void openTelegramByPhone(companyManager);
   };
 
   const formatDate = (dateString: string) => {
@@ -587,12 +621,13 @@ export const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                   />
                   <PrimaryButton
                     title="Написать"
-                    onPress={() => Alert.alert("Написать", "Недоступно")}
+                    onPress={handleMessageManager}
                     variant="third"
                     size="md"
                     style={styles.messageButton}
                     activeOpacity={0.8}
                     fullWidth
+                    disabled={!companyManager}
                     customIcon={
                       <IconMessage color={isDarkMode ? "#FBFCFF" : "#1B1B1C"} />
                     }

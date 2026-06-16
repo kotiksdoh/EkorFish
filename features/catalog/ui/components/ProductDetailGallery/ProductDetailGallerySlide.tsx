@@ -1,4 +1,3 @@
-import { isValidProductImageUrl } from "@/features/shared/services/productImageUrl";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Image } from "expo-image";
 import React, { useEffect, useRef, useState } from "react";
@@ -6,6 +5,12 @@ import { StyleSheet, View } from "react-native";
 
 export const GALLERY_HEIGHT = 282;
 const PLACEHOLDER_IMAGE = require("@/assets/icons/png/noImage.png");
+
+function hasGalleryImageUrl(url: string): boolean {
+  if (!url || typeof url !== "string") return false;
+  const trimmed = url.trim();
+  return trimmed.length > 0 && trimmed.startsWith("http");
+}
 
 interface ProductDetailGallerySlideProps {
   slideId: string;
@@ -23,7 +28,7 @@ const ProductDetailGallerySlideComponent: React.FC<ProductDetailGallerySlideProp
   const [imageError, setImageError] = useState(false);
   const isMountedRef = useRef(true);
 
-  const hasRemoteImage = isValidProductImageUrl(imageUrl) && !imageError;
+  const hasRemoteImage = hasGalleryImageUrl(imageUrl) && !imageError;
   const imageSource = hasRemoteImage ? { uri: imageUrl } : PLACEHOLDER_IMAGE;
 
   useEffect(() => {
@@ -46,7 +51,6 @@ const ProductDetailGallerySlideComponent: React.FC<ProductDetailGallerySlideProp
         ]}
       >
         <Image
-          key={hasRemoteImage ? `remote-${slideId}` : `placeholder-${slideId}`}
           source={imageSource}
           style={styles.productImage}
           contentFit={hasRemoteImage ? "cover" : "contain"}

@@ -9,7 +9,6 @@ import {
 } from "@/features/catalog/catalogSlice";
 import { ProductDetailGallery } from "@/features/catalog/ui/components/ProductDetailGallery";
 import { buildTemplateLineFromProduct } from "@/features/templates/buildTemplateLine";
-import { toProductGalleryItems } from "@/features/shared/services/productImageUrl";
 import { useTemplatePicker } from "@/features/templates/TemplatePickerContext";
 import { AddToCartModal } from "@/features/shared/ui/AddToCartModal";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -336,10 +335,21 @@ export default function ProductDetailScreen() {
     return linesForBottomBar.reduce((sum, item) => sum + item.quantity, 0);
   }, [linesForBottomBar]);
 
-  const productSliderItems = useMemo(
-    () => toProductGalleryItems(product?.images, product?.id),
-    [product?.images, product?.id],
-  );
+  const productSliderItems = useMemo(() => {
+    if (!Array.isArray(product?.images)) return [];
+
+    return product.images.map(
+      (image: { imageUrl?: string } | string, index: number) => ({
+        id: `product-${product?.id ?? "unknown"}-${index}`,
+        imageUrl:
+          typeof image === "string"
+            ? image
+            : typeof image?.imageUrl === "string"
+              ? image.imageUrl
+              : "",
+      }),
+    );
+  }, [product?.images, product?.id]);
   return (
     <SafeAreaProvider>
       <ThemedView
