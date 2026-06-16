@@ -17,7 +17,6 @@ import React, {
 } from "react";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
-  ActivityIndicator,
   StyleSheet,
   TouchableOpacity,
   View,
@@ -31,7 +30,6 @@ interface ProductCardProps {
   name?: string;
   kgPrice?: any;
   fullPrice?: any;
-  isImageLoading?: boolean;
   isFavorite?: boolean;
   productData?: any;
   onAddToCartPress?: (product: any) => void;
@@ -50,7 +48,6 @@ const ProductCardComponent: React.FC<ProductCardProps> = ({
   name,
   kgPrice,
   fullPrice,
-  isImageLoading: externalLoading = false,
   isFavorite,
   productData,
   onAddToCartPress,
@@ -58,10 +55,8 @@ const ProductCardComponent: React.FC<ProductCardProps> = ({
   fullWidth = false,
   returnTo,
 }) => {
-  const [isImageLoading, setIsImageLoading] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [isLiked, setIsLiked] = useState(isFavorite);
-  const imageLoadTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const isMountedRef = useRef(true);
 
   const dispatch = useAppDispatch();
@@ -124,43 +119,12 @@ const ProductCardComponent: React.FC<ProductCardProps> = ({
     isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
-      if (imageLoadTimeoutRef.current) {
-        clearTimeout(imageLoadTimeoutRef.current);
-      }
     };
-  }, []);
-
-  const handleImageLoadStart = useCallback(() => {
-    if (!isMountedRef.current) return;
-    setIsImageLoading(true);
-
-    if (imageLoadTimeoutRef.current) {
-      clearTimeout(imageLoadTimeoutRef.current);
-    }
-
-    // Только убираем спиннер — не подменяем фото заглушкой при медленной сети.
-    imageLoadTimeoutRef.current = setTimeout(() => {
-      if (!isMountedRef.current) return;
-      setIsImageLoading(false);
-    }, 30000);
-  }, []);
-
-  const handleImageLoaded = useCallback(() => {
-    if (!isMountedRef.current) return;
-    setIsImageLoading(false);
-    setImageError(false);
-    if (imageLoadTimeoutRef.current) {
-      clearTimeout(imageLoadTimeoutRef.current);
-    }
   }, []);
 
   const handleImageError = useCallback(() => {
     if (!isMountedRef.current) return;
-    setIsImageLoading(false);
     setImageError(true);
-    if (imageLoadTimeoutRef.current) {
-      clearTimeout(imageLoadTimeoutRef.current);
-    }
   }, []);
 
   const cartItemsForProduct = useMemo(() => {
@@ -257,11 +221,12 @@ const ProductCardComponent: React.FC<ProductCardProps> = ({
 
   const showPlaceholder = !hasValidImageUrl || imageError;
 
-  // Смена img сбрасывает ошибку; loading включается в onLoadStart (кэш может не вызвать start).
   useEffect(() => {
     setImageError(false);
-    setIsImageLoading(false);
   }, [img]);
+
+  const imageRecyclingKey =
+    typeof img === "string" && hasValidImageUrl ? img : `product-${id ?? "unknown"}`;
 
   const stockInfo = productData?.originalProduct?.stocks?.[0]?.stockInfo;
   const isOutOfStock = stockInfo === "Нет в наличии" || false;
@@ -278,39 +243,30 @@ const ProductCardComponent: React.FC<ProductCardProps> = ({
           isDis && styles.cardDisabled,
         ]}
       >
-        <ThemedView lightColor="#FFFFFF" style={styles.container}>
-          <View style={styles.imageContainer}>
-            {/* Всегда показываем изображение, но с правильным источником */}
+        <ThemedView
+          lightColor="#FFFFFF"
+          darkColor="#151516"
+          style={styles.container}
+        >
+          <View
+            style={[
+              styles.imageContainer,
+              isDarkMode
+                ? styles.imageContainerDark
+                : styles.imageContainerLight,
+            ]}
+          >
             <Image
-              key={
-                showPlaceholder || typeof img !== "string"
-                  ? "placeholder-or-local"
-                  : img
-              }
               source={showPlaceholder ? PLACEHOLDER_IMAGE : imageSource}
               style={styles.image}
               contentFit="cover"
               cachePolicy="memory-disk"
-              recyclingKey={
-                typeof img === "string" && !showPlaceholder ? img : undefined
-              }
-              onLoadStart={!showPlaceholder ? handleImageLoadStart : undefined}
-              onLoad={!showPlaceholder ? handleImageLoaded : undefined}
-              onLoadEnd={!showPlaceholder ? handleImageLoaded : undefined}
-              onError={!showPlaceholder ? handleImageError : undefined}
+              recyclingKey={imageRecyclingKey}
+              transition={0}
+              onError={handleImageError}
             />
 
-            {/* Индикатор загрузки */}
-            {!showPlaceholder && isImageLoading && (
-              <View
-                style={[StyleSheet.absoluteFill, styles.imageLoadingContainer]}
-              >
-                <ActivityIndicator size="small" color="#666666" />
-              </View>
-            )}
-
-            {/* Иконка заморозки */}
-            {isFrozen && !isImageLoading && !showPlaceholder && (
+            {isFrozen && !showPlaceholder && (
               <View style={styles.frozenIcon}>
                 <SnowflakeIcon />
               </View>
@@ -457,32 +413,15 @@ const styles = StyleSheet.create({
     width: "100%",
     height: 138,
   },
+  imageContainerLight: {
+    backgroundColor: "#F5F5F5",
+  },
+  imageContainerDark: {
+    backgroundColor: "#2E2E32",
+  },
   image: {
     width: "100%",
     height: "100%",
-  },
-  imageHidden: {
-    opacity: 0,
-    position: "absolute",
-  },
-  imageLoadingContainer: {
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#F5F5F5",
-  },
-  imageErrorContainer: {
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#FEE",
-  },
-  errorText: {
-    fontSize: 10,
-    color: "#721C24",
-    textAlign: "center",
-    padding: 4,
-  },
-  loader: {
-    position: "absolute",
   },
   frozenIcon: {
     width: 16,

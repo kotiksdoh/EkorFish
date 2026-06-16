@@ -3,15 +3,8 @@ import { ThemedView } from "@/components/themed-view";
 import { Image as ExpoImage } from "expo-image";
 import { useRouter } from "expo-router";
 
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   StyleSheet,
   TouchableOpacity,
   View,
@@ -30,16 +23,7 @@ const CatalogCardComponent: React.FC<CatalogCardProps> = ({
 }) => {
   const router = useRouter();
   const isNavigatingRef = useRef(false);
-  const isMountedRef = useRef(true);
-  const [isImageLoading, setIsImageLoading] = useState(false);
   const [imageError, setImageError] = useState(false);
-
-  useEffect(() => {
-    isMountedRef.current = true;
-    return () => {
-      isMountedRef.current = false;
-    };
-  }, []);
 
   const handlePress = () => {
     if (!id || !name || isNavigatingRef.current) return;
@@ -98,27 +82,7 @@ const CatalogCardComponent: React.FC<CatalogCardProps> = ({
 
   useEffect(() => {
     setImageError(false);
-    setIsImageLoading(hasValidImageUrl);
-  }, [img, hasValidImageUrl]);
-
-  const handleImageLoadStart = useCallback(() => {
-    if (!isMountedRef.current || !showImage) return;
-    setIsImageLoading(true);
-  }, [showImage]);
-
-  const handleImageLoaded = useCallback(() => {
-    if (!isMountedRef.current) return;
-    setIsImageLoading(false);
-    setImageError(false);
-  }, []);
-
-  const handleImageError = useCallback(() => {
-    if (!isMountedRef.current) return;
-    setIsImageLoading(false);
-    setImageError(true);
-  }, []);
-
-  const showCardLoading = showImage && isImageLoading;
+  }, [img]);
 
   return (
     <TouchableOpacity
@@ -144,29 +108,17 @@ const CatalogCardComponent: React.FC<CatalogCardProps> = ({
         </View>
 
         <View style={[styles.imageWrapper, styles.imageWrapperWhite]}>
-          <View style={styles.imageContainer}>
-            {showImage && imageSource ? (
-              <ExpoImage
-                key={typeof img === "string" ? img : String(id)}
-                source={imageSource}
-                style={[styles.image, showCardLoading && styles.imageHidden]}
-                contentFit="cover"
-                cachePolicy="disk"
-                transition={120}
-                onLoadStart={handleImageLoadStart}
-                onLoad={handleImageLoaded}
-                onLoadEnd={handleImageLoaded}
-                onError={handleImageError}
-              />
-            ) : null}
-          </View>
+          {showImage && imageSource ? (
+            <ExpoImage
+              source={imageSource}
+              style={styles.image}
+              contentFit="cover"
+              cachePolicy="disk"
+              transition={0}
+              onError={() => setImageError(true)}
+            />
+          ) : null}
         </View>
-
-        {showCardLoading ? (
-          <View style={[styles.cardLoadingOverlay, styles.cardLoadingOverlayWhite]}>
-            <ActivityIndicator size="small" color="#666666" />
-          </View>
-        ) : null}
       </ThemedView>
     </TouchableOpacity>
   );
@@ -191,15 +143,6 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 3,
   },
-  cardLoadingOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    justifyContent: "center",
-    alignItems: "center",
-    zIndex: 3,
-  },
-  cardLoadingOverlayWhite: {
-    backgroundColor: "#FFFFFF",
-  },
   textContainer: {
     position: "absolute",
     top: 0,
@@ -221,7 +164,6 @@ const styles = StyleSheet.create({
   },
   imageWrapper: {
     flex: 1,
-    marginTop: 0,
     overflow: "hidden",
     borderBottomLeftRadius: 8,
     borderBottomRightRadius: 8,
@@ -229,17 +171,9 @@ const styles = StyleSheet.create({
   imageWrapperWhite: {
     backgroundColor: "#FFFFFF",
   },
-  imageContainer: {
-    width: "100%",
-    height: "100%",
-    position: "relative",
-  },
   image: {
     width: "100%",
     height: "100%",
-  },
-  imageHidden: {
-    opacity: 0,
   },
 });
 
