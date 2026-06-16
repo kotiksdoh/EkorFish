@@ -23,6 +23,10 @@ import {
 import { axdef, baseUrl } from "@/features/shared/services/axios";
 import { openTelegramByPhone } from "@/features/shared/utils/phoneLinking";
 import { SnapBottomSheet } from "@/features/shared/ui/SnapBottomSheet";
+import {
+  BottomSheetModal,
+  type BottomSheetModalRef,
+} from "@/features/shared/ui/BottomSheetModal";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAppDispatch } from "@/store/hooks";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -30,11 +34,10 @@ import * as Clipboard from "expo-clipboard";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  Animated,
   Dimensions,
   InteractionManager,
   Linking,
@@ -43,12 +46,14 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  TouchableWithoutFeedback,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PrimaryButton } from "./components/PrimartyButton";
 
 const { height: screenHeight } = Dimensions.get("window");
+const PRODUCTS_SHEET_MAX_HEIGHT = screenHeight * 0.85;
+const PRODUCTS_LIST_MAX_HEIGHT = PRODUCTS_SHEET_MAX_HEIGHT - 88;
 
 interface OrderProduct {
   id: string;
@@ -123,8 +128,10 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
 }) => {
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === "dark";
+  const insets = useSafeAreaInsets();
   const dispatch = useAppDispatch();
   const router = useRouter();
+  const productsSheetRef = useRef<BottomSheetModalRef>(null);
   const [orderDetails, setOrderDetails] = useState<OrderDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isCheckingReorder, setIsCheckingReorder] = useState(false);
@@ -137,8 +144,8 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
   const [productsModalVisible, setProductsModalVisible] = useState(false);
   const [statusModalVisible, setStatusModalVisible] = useState(false);
   const [companyManager, setCompanyManager] = useState<CompanyManager | null>(null);
-  const [productsModalTranslateY] = useState(new Animated.Value(screenHeight));
-  const [isProductsModalClosing, setIsProductsModalClosing] = useState(false);
+
+  const productsListBottomPadding = Math.max(insets.bottom, 16) + 16;
 
   // Загрузка деталей заказа
   useEffect(() => {
@@ -173,34 +180,6 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
 
     void hydrateCompanyManager();
   }, [visible]);
-
-  // Анимация для модалки с товарами
-  useEffect(() => {
-    if (productsModalVisible) {
-      productsModalTranslateY.setValue(screenHeight);
-      Animated.spring(productsModalTranslateY, {
-        toValue: 0,
-        useNativeDriver: true,
-        damping: 20,
-        stiffness: 90,
-        mass: 0.8,
-      }).start();
-    }
-  }, [productsModalVisible]);
-
-  const closeProductsModal = () => {
-    if (isProductsModalClosing) return;
-
-    setIsProductsModalClosing(true);
-    Animated.timing(productsModalTranslateY, {
-      toValue: screenHeight,
-      duration: 250,
-      useNativeDriver: true,
-    }).start(() => {
-      setIsProductsModalClosing(false);
-      setProductsModalVisible(false);
-    });
-  };
 
   const closeStatusModal = () => setStatusModalVisible(false);
 
@@ -777,97 +756,84 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
           )}
         </ThemedView>
         {/* Модалка со всеми товарами */}
-        <Modal
+        <BottomSheetModal
+          ref={productsSheetRef}
           visible={productsModalVisible}
-          animationType="none"
-          transparent={true}
-          onRequestClose={closeProductsModal}
-          presentationStyle={Platform.OS === "ios" ? "overFullScreen" : undefined}
-          statusBarTranslucent={true}
+          onClose={() => setProductsModalVisible(false)}
+          isDarkMode={isDarkMode}
+          maxHeight={PRODUCTS_SHEET_MAX_HEIGHT}
         >
-          <TouchableWithoutFeedback onPress={closeProductsModal}>
-            <View style={styles.modalOverlay}>
-              <TouchableWithoutFeedback>
-                <Animated.View
-                  style={[
-                    styles.modalContainer,
-                    {
-                      transform: [{ translateY: productsModalTranslateY }],
-                    },
-                    isDarkMode && {
-                      backgroundColor: "#202022",
-                    },
-                  ]}
-                >
-                  {/* Защелка для свайпа */}
-                  <TouchableOpacity
-                    style={styles.swipeHandleContainer}
-                    activeOpacity={0.7}
-                    onPress={closeProductsModal}
-                  >
-                    <View style={styles.swipeHandle} />
-                  </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.swipeHandleContainer}
+            activeOpacity={0.7}
+            onPress={() => productsSheetRef.current?.close()}
+          >
+            <View style={styles.swipeHandle} />
+          </TouchableOpacity>
 
-                  <View style={styles.modalHeader}>
-                    <ThemedText style={styles.modalTitle}>
-                      Состав заказа
+          <View style={styles.modalHeader}>
+            <ThemedText style={styles.modalTitle}>Состав заказа</ThemedText>
+          </View>
+
+          <ScrollView
+            style={[
+              styles.productsList,
+              { maxHeight: PRODUCTS_LIST_MAX_HEIGHT },
+            ]}
+            contentContainerStyle={[
+              styles.productsListContent,
+              { paddingBottom: productsListBottomPadding },
+            ]}
+            showsVerticalScrollIndicator
+            nestedScrollEnabled
+            bounces
+            keyboardShouldPersistTaps="handled"
+          >
+            {orderDetails?.products?.map((item) => (
+              <View key={item.id} style={styles.modalProductCard}>
+                <View style={styles.modalProductImageContainer}>
+                  {item.image ? (
+                    <Image
+                      source={{ uri: `${baseUrl}/${item.image}` }}
+                      style={styles.modalProductImage}
+                      contentFit="cover"
+                    />
+                  ) : (
+                    <Image
+                      source={require("@/assets/icons/png/noImage.png")}
+                      style={styles.modalProductImage}
+                      contentFit="cover"
+                    />
+                  )}
+                </View>
+                <View style={styles.modalProductInfo}>
+                  <View style={styles.productInfoMain}>
+                    <ThemedText
+                      style={styles.modalProductName}
+                      numberOfLines={2}
+                    >
+                      {item.productName}
+                    </ThemedText>
+                    <ThemedText
+                      lightColor="#80818B"
+                      style={styles.modalProductQuantity}
+                    >
+                      {item.unitPrice}₽ /{" "}
+                      {item.measureType === "килограмм" ? "кг" : "шт"} •{" "}
+                      {item.quantity}{" "}
+                      {item.measureType === "килограмм" ? "кг" : "шт"}
                     </ThemedText>
                   </View>
-
-                  {/* Список товаров */}
-                  <ScrollView
-                    style={styles.productsList}
-                    showsVerticalScrollIndicator={false}
-                  >
-                    {orderDetails?.products?.map((item) => (
-                      <View key={item.id} style={styles.modalProductCard}>
-                        <View style={styles.modalProductImageContainer}>
-                          {item.image ? (
-                            <Image
-                              source={{ uri: `${baseUrl}/${item.image}` }}
-                              style={styles.modalProductImage}
-                              contentFit="cover"
-                            />
-                          ) : (
-                            <Image
-                              source={require("@/assets/icons/png/noImage.png")}
-                              style={styles.modalProductImage}
-                              contentFit="cover"
-                            />
-                          )}
-                        </View>
-                        <View style={styles.modalProductInfo}>
-                          <View style={styles.productInfoMain}>
-                            <ThemedText
-                              style={styles.modalProductName}
-                              numberOfLines={2}
-                            >
-                              {item.productName}
-                            </ThemedText>
-                            <ThemedText
-                              lightColor="#80818B"
-                              style={styles.modalProductQuantity}
-                            >
-                              {item.unitPrice}₽ /{" "}
-                              {item.measureType === "килограмм" ? "кг" : "шт"} •{" "}
-                              {item.quantity}{" "}
-                              {item.measureType === "килограмм" ? "кг" : "шт"}
-                            </ThemedText>
-                          </View>
-                          <View style={styles.productPriceContainer}>
-                            <ThemedText style={styles.modalProductPrice}>
-                              {formatPrice(item.totalPrice)} ₽
-                            </ThemedText>
-                          </View>
-                        </View>
-                      </View>
-                    ))}
-                  </ScrollView>
-                </Animated.View>
-              </TouchableWithoutFeedback>
-            </View>
-          </TouchableWithoutFeedback>
-        </Modal>
+                  <View style={styles.productPriceContainer}>
+                    <ThemedText style={styles.modalProductPrice}>
+                      {formatPrice(item.totalPrice)} ₽
+                    </ThemedText>
+                  </View>
+                </View>
+              </View>
+            ))}
+          </ScrollView>
+        </BottomSheetModal>
 
       <SnapBottomSheet
         visible={statusModalVisible}
@@ -1398,13 +1364,16 @@ const styles = StyleSheet.create({
   },
   // Стили для списка товаров
   productsList: {
+    flexGrow: 0,
+    flexShrink: 1,
+  },
+  productsListContent: {
     paddingHorizontal: 20,
-    paddingVertical: 16,
-    maxHeight: "70%",
+    paddingTop: 8,
   },
   modalProductCard: {
     flexDirection: "row",
-    marginBottom: 16,
+    marginBottom: 12,
     gap: 12,
     paddingVertical: 8,
   },
