@@ -1,11 +1,9 @@
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Image } from "expo-image";
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 
 export const GALLERY_HEIGHT = 282;
-const IMAGE_WIDTH_RATIO = 0.93;
-const IMAGE_HEIGHT_RATIO = 0.95;
 const PLACEHOLDER_IMAGE = require("@/assets/icons/png/noImage.png");
 
 function hasValidImageUrl(url: string): boolean {
@@ -24,25 +22,20 @@ const ProductDetailGallerySlideComponent: React.FC<ProductDetailGallerySlideProp
 }) => {
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === "dark";
-  const [isImageLoading, setIsImageLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
 
-  const imageWidth = pageWidth * IMAGE_WIDTH_RATIO;
-  const imageHeight = GALLERY_HEIGHT * IMAGE_HEIGHT_RATIO;
   const showPlaceholder = !hasValidImageUrl(imageUrl) || imageError;
   const imageSource = showPlaceholder ? PLACEHOLDER_IMAGE : { uri: imageUrl };
 
   useEffect(() => {
     setImageError(false);
-    setIsImageLoading(!showPlaceholder);
-  }, [imageUrl, showPlaceholder]);
+  }, [imageUrl]);
 
   return (
     <View style={[styles.slide, { width: pageWidth, height: GALLERY_HEIGHT }]}>
       <View
         style={[
           styles.imageFrame,
-          { width: imageWidth, height: imageHeight },
           isDarkMode ? styles.imageFrameDark : styles.imageFrameLight,
         ]}
       >
@@ -52,35 +45,9 @@ const ProductDetailGallerySlideComponent: React.FC<ProductDetailGallerySlideProp
           contentFit={showPlaceholder ? "contain" : "cover"}
           cachePolicy="memory-disk"
           recyclingKey={showPlaceholder ? "gallery-placeholder" : imageUrl}
-          transition={showPlaceholder ? 0 : 120}
-          onLoadStart={
-            showPlaceholder ? undefined : () => setIsImageLoading(true)
-          }
-          onLoad={showPlaceholder ? undefined : () => setIsImageLoading(false)}
-          onLoadEnd={showPlaceholder ? undefined : () => setIsImageLoading(false)}
-          onError={
-            showPlaceholder
-              ? undefined
-              : () => {
-                  setImageError(true);
-                  setIsImageLoading(false);
-                }
-          }
+          transition={0}
+          onError={() => setImageError(true)}
         />
-        {!showPlaceholder && isImageLoading ? (
-          <View
-            style={[
-              styles.loadingOverlay,
-              isDarkMode ? styles.loadingOverlayDark : styles.loadingOverlayLight,
-            ]}
-          >
-            <ActivityIndicator
-              size="small"
-              color={isDarkMode ? "#4C94FF" : "#203686"}
-            />
-          </View>
-        ) : null}
-        <View style={styles.gradientOverlay} />
       </View>
     </View>
   );
@@ -94,44 +61,24 @@ export const ProductDetailGallerySlide = React.memo(
 
 const styles = StyleSheet.create({
   slide: {
-    alignItems: "center",
-    justifyContent: "center",
+    alignSelf: "stretch",
   },
   imageFrame: {
+    width: "100%",
+    height: "100%",
     position: "relative",
     overflow: "hidden",
     borderRadius: 24,
   },
   imageFrameLight: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#F5F5F5",
   },
   imageFrameDark: {
-    backgroundColor: "#151516",
+    backgroundColor: "#2E2E32",
   },
   productImage: {
     width: "100%",
     height: "100%",
     borderRadius: 24,
-  },
-  loadingOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 24,
-  },
-  loadingOverlayLight: {
-    backgroundColor: "#FFFFFF",
-  },
-  loadingOverlayDark: {
-    backgroundColor: "#151516",
-  },
-  gradientOverlay: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 100,
-    borderBottomRightRadius: 24,
-    borderBottomLeftRadius: 24,
   },
 });

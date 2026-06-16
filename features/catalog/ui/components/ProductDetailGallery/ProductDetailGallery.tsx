@@ -260,7 +260,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   page: {
-    alignItems: "center",
+    alignSelf: "stretch",
     justifyContent: "center",
   },
   indicatorsContainer: {

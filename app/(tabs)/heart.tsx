@@ -438,16 +438,16 @@ export default function HeartScreen() {
     hasToken && isFavoritesMode ? products : [];
 
   const showInitialLoading =
-    hasToken !== false &&
+    hasToken === true &&
     displayProducts.length === 0 &&
-    (!hasLoadedOnce || isLoading);
+    (isLoading || !isFavoritesMode);
 
   const showEmptyState =
-    hasToken === true &&
-    hasLoadedOnce &&
+    displayProducts.length === 0 &&
     !isLoading &&
     !isLoadingMore &&
-    displayProducts.length === 0;
+    (hasToken === false ||
+      (hasToken === true && isFavoritesMode));
 
   const showProductsRefreshing =
     isFavoritesMode &&
