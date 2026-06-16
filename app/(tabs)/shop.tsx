@@ -348,6 +348,28 @@ const isItemAvailable = (item: CartItem): boolean => {
   return item.stockInfo !== "Нет в наличии";
 };
 
+const getSelectedCartItemIds = (
+  selectedItems: Set<string>,
+  cartItems: CartItem[],
+): string[] => {
+  const cartIds = new Set(cartItems.map((item) => item.id));
+  return Array.from(selectedItems).filter((id) => cartIds.has(id));
+};
+
+const pruneSelectedItems = (
+  selectedItems: Set<string>,
+  cartItems: CartItem[],
+): Set<string> => {
+  const cartIds = new Set(cartItems.map((item) => item.id));
+  const next = new Set<string>();
+  selectedItems.forEach((id) => {
+    if (cartIds.has(id)) {
+      next.add(id);
+    }
+  });
+  return next;
+};
+
 export default function ShopScreen() {
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === "dark";
@@ -395,6 +417,13 @@ export default function ShopScreen() {
       });
     }
   }, [authParams]);
+
+  useEffect(() => {
+    setSelectedItems((prev) => {
+      const next = pruneSelectedItems(prev, cartItems);
+      return next.size === prev.size ? prev : next;
+    });
+  }, [cartItems]);
 
   useFocusEffect(
     useCallback(() => {
@@ -449,7 +478,11 @@ export default function ShopScreen() {
 
   // Выбрать/снять все
   const toggleSelectAll = () => {
-    if (selectedItems.size === cartItems.length) {
+    const allSelected =
+      cartItems.length > 0 &&
+      cartItems.every((item) => selectedItems.has(item.id));
+
+    if (allSelected) {
       setSelectedItems(new Set());
     } else {
       setSelectedItems(new Set(cartItems.map((item) => item.id)));
@@ -471,14 +504,17 @@ export default function ShopScreen() {
     setSelectedItems(newSelected);
   };
 
-  // Удалить товар
+  // Удалить выбранные товары
   const handleRemoveItem = async () => {
-    if (selectedItems.size === 0) return;
+    const itemIds = getSelectedCartItemIds(selectedItems, cartItems);
+    if (itemIds.length === 0) {
+      setSelectedItems(new Set());
+      return;
+    }
+
     try {
-      // Преобразуем Set в массив ID
-      const itemIds = Array.from(selectedItems);
       await dispatch(removeMultipleFromCart(itemIds)).unwrap();
-      setSelectedItems(new Set()); // Очищаем выделение после удаления
+      setSelectedItems(new Set());
     } catch (error) {
       console.error("Error removing items:", error);
     }
@@ -537,7 +573,6 @@ export default function ShopScreen() {
     }
   };
 
-  // Подсчет итогов
   const totals = useMemo(() => {
     const availableItems = cartItems.filter((item) => isItemAvailable(item));
     const unavailableItems = cartItems.filter((item) => !isItemAvailable(item));
@@ -575,6 +610,14 @@ export default function ShopScreen() {
       bonusAmount
     };
   }, [cartItems, selectedItems, bonusParams]);
+
+  const selectedInCartCount = useMemo(
+    () => cartItems.filter((item) => selectedItems.has(item.id)).length,
+    [cartItems, selectedItems],
+  );
+
+  const isAllCartItemsSelected =
+    cartItems.length > 0 && selectedInCartCount === cartItems.length;
 
   // Форматирование цены
   const formatPrice = (price: number) => {
@@ -714,7 +757,7 @@ export default function ShopScreen() {
               <View style={styles.checkboxRow}>
                 <CustomCheckbox
                   style={styles.checkbox}
-                  value={selectedItems.size === cartItems.length}
+                  value={isAllCartItemsSelected}
                   onValueChange={toggleSelectAll}
                   lightColor={"#F2F4F7"}
                   darkColor={"#202022"}
@@ -725,21 +768,17 @@ export default function ShopScreen() {
                   hitSlop={{ top: 8, bottom: 8, right: 8 }}
                 >
                   <ThemedText style={styles.selectAllText}>
-                    {cartItems
-                      .filter((item) => isItemAvailable(item))
-                      .every((item) => selectedItems.has(item.id)) &&
-                    cartItems.some((item) => isItemAvailable(item))
-                      ? "Снять все"
-                      : "Выбрать все"}
+                    {isAllCartItemsSelected ? "Снять все" : "Выбрать все"}
                   </ThemedText>
                 </TouchableOpacity>
               </View>
               <TouchableOpacity
                 style={[
                   styles.deleteSelectedButton,
-                  selectedItems.size === 0 && { opacity: 0.5 },
+                  selectedInCartCount === 0 && { opacity: 0.5 },
                 ]}
                 onPress={handleRemoveItem}
+                disabled={selectedInCartCount === 0}
               >
                 <TrashIcon
                   stroke={isDarkMode ? "#FBFCFF" : "#1B1B1C"}

@@ -629,16 +629,23 @@ export const removeMultipleFromCart = createAsyncThunk(
   "catalog/removeMultipleFromCart",
   async (cartItemIds: string[], { rejectWithValue }) => {
     try {
-      // Формируем параметры запроса: cartItemIds=kzkzkz&cartItemIds=kzkzk
+      const uniqueCartItemIds = Array.from(
+        new Set(cartItemIds.map((id) => String(id)).filter(Boolean)),
+      );
+
+      if (uniqueCartItemIds.length === 0) {
+        return rejectWithValue(new Error("No cart items to remove"));
+      }
+
       const params = new URLSearchParams();
-      cartItemIds.forEach((id) => {
+      uniqueCartItemIds.forEach((id) => {
         params.append("cartItemIds", id);
       });
 
       const response = await axdef.delete(
         `/api/Account/cart?${params.toString()}`,
       );
-      return { cartItemIds, data: response.data };
+      return { cartItemIds: uniqueCartItemIds, data: response.data };
     } catch (error: any) {
       if (error.response?.status !== 401) {
         return rejectWithValue(error);
