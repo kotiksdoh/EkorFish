@@ -16,6 +16,8 @@ import {
   getMyReturns,
   getMyReturnsParams,
 } from "@/features/catalog/catalogSlice";
+import { useKeyboardAwareScroll } from "@/features/shared/hooks/useKeyboardAwareScroll";
+import { isIndividualCompany } from "@/features/shared/utils/companyType";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -41,16 +43,14 @@ import {
   TouchableWithoutFeedback,
   View,
 } from "react-native";
-import { useKeyboardAwareScroll } from "@/features/shared/hooks/useKeyboardAwareScroll";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { formatDate } from "../services/utils";
-import { CompanySelectionModal } from "./CompanySelectionModalSmall";
 import { CompanySelectModal } from "./CompanySelectModal";
-import AnimatedTextInput from "./components/CustomInput";
-import { isIndividualCompany } from "@/features/shared/utils/companyType";
-import { PrimaryButton } from "./components/PrimartyButton";
+import { CompanySelectionModal } from "./CompanySelectionModalSmall";
 import { SnapBottomSheet } from "./SnapBottomSheet";
+import AnimatedTextInput from "./components/CustomInput";
+import { PrimaryButton } from "./components/PrimartyButton";
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 
@@ -1436,6 +1436,7 @@ export const MyFinanceModal: React.FC<MyFinanceProps> = ({
   const currentCompany = useAppSelector((state) => state.auth.currentCompany);
   const payments = useAppSelector((state) => state.auth.payments);
   const isIndividual = isIndividualCompany(currentCompany);
+  const hasPaymentHistory = (payments?.length ?? 0) > 0;
 
   const [showPaymentsHistory, setShowPaymentsHistory] =
     useState<boolean>(false);
@@ -1588,7 +1589,11 @@ export const MyFinanceModal: React.FC<MyFinanceProps> = ({
           showsVerticalScrollIndicator={false}
           contentContainerStyle={[
             styles.scrollViewContent,
-            { paddingBottom: Math.max(insets.bottom, 24) + 16 },
+            {
+              paddingBottom: hasPaymentHistory
+                ? Math.max(insets.bottom, 24) + 16
+                : 0,
+            },
           ]}
         >
           {currentCompany && (
@@ -1676,8 +1681,16 @@ export const MyFinanceModal: React.FC<MyFinanceProps> = ({
               >
                 История оплат
               </ThemedText>
-              <TouchableOpacity onPress={() => setShowPaymentsHistory(true)}>
-                <ThemedText type="caption" lightColor="#203686" darkColor="#4C94FF">
+              <TouchableOpacity
+                onPress={() => setShowPaymentsHistory(true)}
+                disabled={!hasPaymentHistory}
+                activeOpacity={hasPaymentHistory ? 0.7 : 1}
+              >
+                <ThemedText
+                  type="caption"
+                  lightColor={hasPaymentHistory ? "#203686" : "#80818B"}
+                  darkColor={hasPaymentHistory ? "#4C94FF" : "#FBFCFF80"}
+                >
                   Подробнее
                 </ThemedText>
               </TouchableOpacity>
@@ -2093,10 +2106,9 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
   documentsContainer: {
-    borderStartStartRadius: 16,
+    borderRadius: 16,
     padding: 16,
     marginTop: 8,
-    flex: 1,
   },
   documentRow: {
     flexDirection: "row",

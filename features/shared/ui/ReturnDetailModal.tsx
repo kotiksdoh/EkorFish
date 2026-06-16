@@ -444,7 +444,7 @@ export const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                       darkColor="#202022"
                       style={styles.iconPlaceholder}
                     >
-                      <CalendarFilledIcon />
+                      <CalendarFilledIcon stroke="#80818B" fill="none" />
                     </ThemedView>
                     <View
                       style={[
