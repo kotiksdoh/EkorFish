@@ -1,29 +1,24 @@
-import { baseUrl } from "./axios";
+import {
+  buildProductImageUrl,
+  normalizeProductImages,
+} from "./productImageUrl";
 
   
   export const adaptProductSingleFromServer = (serverProduct: any): any => {
-    const firstImagePath = serverProduct?.images?.[0] || "";
-    const image = firstImagePath
-      ? `${baseUrl}/${String(firstImagePath).replace(/^\//, "")}`
-      : "";
-
-    const adptImg = () => {
-        const images = serverProduct?.images?.map((item: string) => 
-            (
-                {
-                    imageUrl: `${baseUrl}/${String(item || "").replace(/^\//, "")}`
-                }
-            )
-        ) || [];
-        
-        
-        return images;
-    };
+    const images = normalizeProductImages(serverProduct?.images);
+    const image = images[0]?.imageUrl ?? "";
   
     return {
       ...serverProduct,
       image,
-      images: adptImg(),
+      images,
+      purchaseOptions: Array.isArray(serverProduct?.purchaseOptions)
+        ? serverProduct.purchaseOptions
+        : [],
+      stocks: Array.isArray(serverProduct?.stocks) ? serverProduct.stocks : [],
+      filterOptions: Array.isArray(serverProduct?.filterOptions)
+        ? serverProduct.filterOptions
+        : [],
     };
   };
   
@@ -43,16 +38,22 @@ import { baseUrl } from "./axios";
     const imageUrl =
       typeof productData.image === "string" ? productData.image : "";
 
+    const previewImages = normalizeProductImages(
+      imageUrl ? [imageUrl] : productData.images,
+    );
+
     return {
       id: productData.id,
       name: productData.name ?? "",
-      image: imageUrl,
-      images: imageUrl ? [{ imageUrl }] : [],
-      purchaseOptions: productData.purchaseOptions ?? [],
+      image: previewImages[0]?.imageUrl ?? "",
+      images: previewImages,
+      purchaseOptions: Array.isArray(productData.purchaseOptions)
+        ? productData.purchaseOptions
+        : [],
       isFavorite: productData.isFavorite,
       measureType: productData.measureType,
       dateFrom: productData.dateFrom,
       dateTo: productData.dateTo,
-      stocks: productData.stocks,
+      stocks: Array.isArray(productData.stocks) ? productData.stocks : [],
     };
   };

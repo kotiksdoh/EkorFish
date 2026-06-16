@@ -20,18 +20,27 @@ import {
 
 export type { ProductGalleryItem } from "./productDetailGalleryTypes";
 
+const PLACEHOLDER_GALLERY_ITEMS = [
+  { id: "gallery-placeholder", imageUrl: "" },
+] as const;
+
 export const ProductDetailGallery: React.FC<ProductDetailGalleryProps> = ({
   items,
   autoPlayInterval = 4000,
   showIndicators = true,
 }) => {
-  const galleryItems =
-    items.length > 0
-      ? items
-      : [{ id: "gallery-placeholder", imageUrl: "" }];
+  const galleryItems = React.useMemo(
+    () => (items.length > 0 ? items : [...PLACEHOLDER_GALLERY_ITEMS]),
+    [items],
+  );
+
+  const galleryItemsKey = React.useMemo(
+    () => galleryItems.map((item) => item.id).join("|"),
+    [galleryItems],
+  );
 
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [isAutoPlaying, setIsAutoPlaying] = useState(true);
+  const [isAutoPlaying, setIsAutoPlaying] = useState(autoPlayInterval > 0);
   const [galleryWidth, setGalleryWidth] = useState(0);
   const isScreenFocused = useIsFocused();
 
@@ -42,9 +51,22 @@ export const ProductDetailGallery: React.FC<ProductDetailGalleryProps> = ({
   const currentIndexRef = useRef(0);
   const itemsKeyRef = useRef("");
   const galleryWidthRef = useRef(0);
+  const isMountedRef = useRef(true);
 
   currentIndexRef.current = currentIndex;
   galleryWidthRef.current = galleryWidth;
+
+  const setCurrentIndexSafe = useCallback((index: number) => {
+    if (isMountedRef.current) {
+      setCurrentIndex(index);
+    }
+  }, []);
+
+  const setIsAutoPlayingSafe = useCallback((value: boolean) => {
+    if (isMountedRef.current) {
+      setIsAutoPlaying(value);
+    }
+  }, []);
 
   const clampIndex = useCallback(
     (index: number) => {
@@ -62,14 +84,15 @@ export const ProductDetailGallery: React.FC<ProductDetailGalleryProps> = ({
   }, []);
 
   const scheduleResumeAutoplay = useCallback(() => {
+    if (autoPlayInterval <= 0) return;
     if (resumeTimerRef.current) {
       clearTimeout(resumeTimerRef.current);
     }
     resumeTimerRef.current = setTimeout(() => {
       isUserInteractingRef.current = false;
-      setIsAutoPlaying(true);
+      setIsAutoPlayingSafe(true);
     }, 2000);
-  }, []);
+  }, [autoPlayInterval, setIsAutoPlayingSafe]);
 
   const goToPage = useCallback(
     (index: number) => {
@@ -80,16 +103,27 @@ export const ProductDetailGallery: React.FC<ProductDetailGalleryProps> = ({
   );
 
   const goToNextSlide = useCallback(() => {
-    if (galleryItems.length <= 1 || isUserInteractingRef.current || !isScreenFocused) {
+    if (
+      autoPlayInterval <= 0 ||
+      galleryItems.length <= 1 ||
+      isUserInteractingRef.current ||
+      !isScreenFocused
+    ) {
       return;
     }
     const nextIndex =
       currentIndexRef.current < galleryItems.length - 1
         ? currentIndexRef.current + 1
         : 0;
-    setCurrentIndex(nextIndex);
+    setCurrentIndexSafe(nextIndex);
     goToPage(nextIndex);
-  }, [goToPage, isScreenFocused, galleryItems.length]);
+  }, [
+    autoPlayInterval,
+    goToPage,
+    isScreenFocused,
+    galleryItems.length,
+    setCurrentIndexSafe,
+  ]);
 
   const handleLayout = useCallback((event: LayoutChangeEvent) => {
     const nextWidth = Math.round(event.nativeEvent.layout.width);
@@ -99,11 +133,24 @@ export const ProductDetailGallery: React.FC<ProductDetailGalleryProps> = ({
   }, []);
 
   useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      clearAutoplayTimer();
+      if (resumeTimerRef.current) {
+        clearTimeout(resumeTimerRef.current);
+        resumeTimerRef.current = null;
+      }
+    };
+  }, [clearAutoplayTimer]);
+
+  useEffect(() => {
     if (!isScreenFocused) {
       isUserInteractingRef.current = false;
       clearAutoplayTimer();
       if (resumeTimerRef.current) {
         clearTimeout(resumeTimerRef.current);
+        resumeTimerRef.current = null;
       }
     }
   }, [clearAutoplayTimer, isScreenFocused]);
@@ -111,6 +158,7 @@ export const ProductDetailGallery: React.FC<ProductDetailGalleryProps> = ({
   useEffect(() => {
     clearAutoplayTimer();
     if (
+      autoPlayInterval > 0 &&
       isAutoPlaying &&
       isScreenFocused &&
       galleryItems.length > 1 &&
@@ -129,25 +177,23 @@ export const ProductDetailGallery: React.FC<ProductDetailGalleryProps> = ({
     galleryItems.length,
   ]);
 
-  useEffect(
-    () => () => {
-      if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current);
-    },
-    [],
-  );
-
   useEffect(() => {
-    const nextItemsKey = galleryItems.map((item) => item.id).join("|");
-    if (nextItemsKey === itemsKeyRef.current) return;
+    if (galleryItemsKey === itemsKeyRef.current) return;
 
-    itemsKeyRef.current = nextItemsKey;
-    setCurrentIndex(0);
+    itemsKeyRef.current = galleryItemsKey;
+    setCurrentIndexSafe(0);
     isUserInteractingRef.current = false;
-    setIsAutoPlaying(true);
+    setIsAutoPlayingSafe(autoPlayInterval > 0);
     requestAnimationFrame(() => {
+      if (!isMountedRef.current) return;
       pagerRef.current?.setPageWithoutAnimation(0);
     });
-  }, [galleryItems]);
+  }, [
+    autoPlayInterval,
+    galleryItemsKey,
+    setCurrentIndexSafe,
+    setIsAutoPlayingSafe,
+  ]);
 
   const handlePageScrollStateChanged = useCallback(
     (state: "idle" | "dragging" | "settling") => {
@@ -157,7 +203,7 @@ export const ProductDetailGallery: React.FC<ProductDetailGalleryProps> = ({
           resumeTimerRef.current = null;
         }
         isUserInteractingRef.current = true;
-        setIsAutoPlaying(false);
+        setIsAutoPlayingSafe(false);
         clearAutoplayTimer();
         return;
       }
@@ -166,15 +212,15 @@ export const ProductDetailGallery: React.FC<ProductDetailGalleryProps> = ({
         scheduleResumeAutoplay();
       }
     },
-    [clearAutoplayTimer, scheduleResumeAutoplay],
+    [clearAutoplayTimer, scheduleResumeAutoplay, setIsAutoPlayingSafe],
   );
 
   const handlePageSelected = useCallback(
     (event: PagerViewOnPageSelectedEvent) => {
       const index = clampIndex(event.nativeEvent.position);
-      setCurrentIndex(index);
+      setCurrentIndexSafe(index);
     },
-    [clampIndex],
+    [clampIndex, setCurrentIndexSafe],
   );
 
   const handleIndicatorPress = useCallback(
@@ -182,25 +228,28 @@ export const ProductDetailGallery: React.FC<ProductDetailGalleryProps> = ({
       if (index === currentIndexRef.current) return;
 
       isUserInteractingRef.current = true;
-      setIsAutoPlaying(false);
-      setCurrentIndex(index);
+      setIsAutoPlayingSafe(false);
+      setCurrentIndexSafe(index);
       goToPage(index);
 
       if (resumeTimerRef.current) {
         clearTimeout(resumeTimerRef.current);
       }
+      if (autoPlayInterval <= 0) return;
+
       resumeTimerRef.current = setTimeout(() => {
         isUserInteractingRef.current = false;
-        setIsAutoPlaying(true);
+        setIsAutoPlayingSafe(true);
       }, 3000);
     },
-    [goToPage],
+    [autoPlayInterval, goToPage, setCurrentIndexSafe, setIsAutoPlayingSafe],
   );
 
   return (
     <View style={styles.container} onLayout={handleLayout}>
       {galleryWidth > 0 ? (
         <PagerView
+          key={`product-gallery-${galleryItemsKey}`}
           ref={pagerRef}
           style={[styles.pager, { width: galleryWidth, height: GALLERY_HEIGHT }]}
           initialPage={0}
@@ -217,6 +266,7 @@ export const ProductDetailGallery: React.FC<ProductDetailGalleryProps> = ({
               style={[styles.page, { width: galleryWidth, height: GALLERY_HEIGHT }]}
             >
               <ProductDetailGallerySlide
+                slideId={item.id}
                 imageUrl={item.imageUrl}
                 pageWidth={galleryWidth}
               />

@@ -35,7 +35,7 @@ interface ProductCardProps {
   onAddToCartPress?: (product: any) => void;
   isDis?: boolean;
   fullWidth?: boolean;
-  returnTo?: "home" | "catalog";
+  returnTo?: "home" | "heart" | "catalog";
 }
 
 // Заглушка для изображения
@@ -171,10 +171,9 @@ const ProductCardComponent: React.FC<ProductCardProps> = ({
 
     isNavigatingRef.current = true;
 
-    const productPath =
-      returnTo === "home"
-        ? `/(tabs)/dashboard/product/${encodeURIComponent(id)}?productId=${id}&returnTo=home`
-        : `/(tabs)/dashboard/product/${encodeURIComponent(id)}?productId=${id}`;
+    const returnToParam =
+      returnTo === "home" || returnTo === "heart" ? `&returnTo=${returnTo}` : "";
+    const productPath = `/(tabs)/dashboard/product/${encodeURIComponent(id)}?productId=${id}${returnToParam}`;
 
     router.push(productPath as any);
 

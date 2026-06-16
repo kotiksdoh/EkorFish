@@ -589,6 +589,7 @@ export default function HeartScreen() {
                           isFavorite={product.isFavorite}
                           productData={product}
                           onAddToCartPress={handleAddToCartPress}
+                          returnTo="heart"
                         />
                       ))}
                     </View>

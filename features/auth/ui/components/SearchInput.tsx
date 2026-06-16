@@ -1,4 +1,4 @@
-import { MenuIcon, SearchIcon } from "@/assets/icons/icons";
+import { CloseIcon, MenuIcon, SearchIcon } from "@/assets/icons/icons";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import React from "react";
 import {
@@ -19,6 +19,7 @@ interface SearchInputProps {
   isActiveButton?: boolean;
   isHeader?: boolean;
   onSubmitEditing?: (text: string) => void;
+  onClear?: () => void;
   ref?: React.Ref<TextInput>; // Также добавьте ref если нужно
   isFav?: boolean;
 }
@@ -34,6 +35,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
   isActiveButton = true,
   isHeader,
   onSubmitEditing,
+  onClear,
   ref,
   isFav = false,
 }) => {
@@ -48,6 +50,11 @@ const SearchInput: React.FC<SearchInputProps> = ({
 
   const textColor = isDarkMode ? "#FFFFFF" : "#1B1B1C";
   const searchBackgroundColor = isDarkMode ? "#ECEFFA0D" : "#03051E08";
+
+  const handleClearPress = () => {
+    onChangeText?.("");
+    onClear?.();
+  };
 
   return (
     <View
@@ -90,6 +97,17 @@ const SearchInput: React.FC<SearchInputProps> = ({
           }
           ref={ref} // Если используете ref
         />
+
+        {value.length > 0 && !disabled ? (
+          <TouchableOpacity
+            onPress={handleClearPress}
+            style={styles.clearInputButton}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            activeOpacity={0.7}
+          >
+            <CloseIcon stroke="#80818B" width={20} height={20} />
+          </TouchableOpacity>
+        ) : null}
 
         {/* Иконка сканера справа */}
         {/* {isActiveButton ? */}
@@ -147,6 +165,10 @@ const styles = StyleSheet.create({
   },
   searchIcon: {
     marginRight: 8,
+  },
+  clearInputButton: {
+    marginLeft: 4,
+    padding: 4,
   },
   input: {
     flex: 1,

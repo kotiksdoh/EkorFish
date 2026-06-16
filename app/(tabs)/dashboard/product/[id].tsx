@@ -9,6 +9,7 @@ import {
 } from "@/features/catalog/catalogSlice";
 import { ProductDetailGallery } from "@/features/catalog/ui/components/ProductDetailGallery";
 import { buildTemplateLineFromProduct } from "@/features/templates/buildTemplateLine";
+import { toProductGalleryItems } from "@/features/shared/services/productImageUrl";
 import { useTemplatePicker } from "@/features/templates/TemplatePickerContext";
 import { AddToCartModal } from "@/features/shared/ui/AddToCartModal";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -60,11 +61,11 @@ export default function ProductDetailScreen() {
   const returnTo = Array.isArray(params.returnTo)
     ? params.returnTo[0]
     : params.returnTo;
-  const cameFromHomeRef = useRef(false);
+  const backReturnToRef = useRef<"home" | "heart" | null>(null);
 
   useEffect(() => {
-    if (returnTo === "home") {
-      cameFromHomeRef.current = true;
+    if (returnTo === "home" || returnTo === "heart") {
+      backReturnToRef.current = returnTo;
     }
   }, [returnTo]);
 
@@ -147,7 +148,7 @@ export default function ProductDetailScreen() {
   };
 
   const handleOpenCartModal = () => {
-    if (templatePicker.pickingForTemplateId && product?.purchaseOptions) {
+    if (templatePicker.pickingForTemplateId && Array.isArray(product?.purchaseOptions)) {
       let existingLine: any = null;
       for (const option of product.purchaseOptions) {
         const match = templatePicker
@@ -175,7 +176,7 @@ export default function ProductDetailScreen() {
     // Ищем товар в корзине по ВСЕМ опциям, а не только первой
     let existingItem = null;
 
-    if (product?.purchaseOptions) {
+    if (Array.isArray(product?.purchaseOptions)) {
       for (const option of product.purchaseOptions) {
         const item = cartItems?.find(
           (item: any) =>
@@ -251,14 +252,15 @@ export default function ProductDetailScreen() {
   ]);
 
   const handleBack = useCallback(() => {
-    if (cameFromHomeRef.current) {
+    const backTarget = backReturnToRef.current;
+    if (backTarget === "home" || backTarget === "heart") {
       if (router.canDismiss()) {
         router.dismiss();
       } else {
         router.dismissTo("/dashboard");
       }
       requestAnimationFrame(() => {
-        router.replace("/");
+        router.replace(backTarget === "home" ? "/" : "/heart");
       });
       return;
     }
@@ -335,13 +337,7 @@ export default function ProductDetailScreen() {
   }, [linesForBottomBar]);
 
   const productSliderItems = useMemo(
-    () =>
-      (product?.images ?? []).map(
-        (image: { imageUrl?: string }, index: number) => ({
-          id: `product-${product?.id ?? "unknown"}-${index}`,
-          imageUrl: image.imageUrl ?? "",
-        }),
-      ),
+    () => toProductGalleryItems(product?.images, product?.id),
     [product?.images, product?.id],
   );
   return (
@@ -452,7 +448,8 @@ export default function ProductDetailScreen() {
                 >
                   Наличие
                 </ThemedText>
-                {product?.stocks?.map((stock: any, index: number) => (
+                {Array.isArray(product?.stocks)
+                  ? product.stocks.map((stock: any, index: number) => (
                   <View key={index} style={styles.subContainerMainSub}>
                     {stock.stockInfo !== "Нет в наличии" ? (
                       <CheckCircleIcon />
@@ -476,7 +473,8 @@ export default function ProductDetailScreen() {
                       </ThemedText>
                     </View>
                   </View>
-                ))}
+                ))
+                  : null}
               </ThemedView>
             </ThemedView>
 
@@ -638,7 +636,9 @@ export default function ProductDetailScreen() {
                                 lightColor="#1B1B1C"
                                 darkColor="#FBFCFF"
                               >
-                                {char.filterOptions[0]?.value || ""}
+                                {Array.isArray(char.filterOptions)
+                                  ? char.filterOptions[0]?.value || ""
+                                  : ""}
                               </ThemedText>
                             </View>
                           ),

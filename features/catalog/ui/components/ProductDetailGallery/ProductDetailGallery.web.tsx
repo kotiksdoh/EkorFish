@@ -200,6 +200,7 @@ export const ProductDetailGallery: React.FC<ProductDetailGalleryProps> = ({
   const renderItem = useCallback(
     ({ item }: { item: ProductGalleryItem }) => (
       <ProductDetailGallerySlide
+        slideId={item.id}
         imageUrl={item.imageUrl}
         pageWidth={galleryWidth}
       />

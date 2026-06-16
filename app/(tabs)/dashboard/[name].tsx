@@ -915,6 +915,13 @@ export default function CatalogDetailScreen() {
     }
   }, [catalogId, searchQuery, loadProducts]);
 
+  const handleSearchClear = useCallback(() => {
+    setSearchQuery("");
+    if (!catalogId) return;
+    flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
+    loadProducts(false, "");
+  }, [catalogId, loadProducts]);
+
   const handleBack = useCallback(() => {
     clearPaginationTimeout();
     router.dismissTo("/dashboard");
@@ -1004,6 +1011,7 @@ export default function CatalogDetailScreen() {
               placeholder="Найдите товар"
               isActiveButton={false}
               onSubmitEditing={handleSearchSubmit}
+              onClear={handleSearchClear}
               ref={searchInputRef}
             />
           }

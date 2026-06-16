@@ -1,31 +1,37 @@
+import { isValidProductImageUrl } from "@/features/shared/services/productImageUrl";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Image } from "expo-image";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
 
 export const GALLERY_HEIGHT = 282;
 const PLACEHOLDER_IMAGE = require("@/assets/icons/png/noImage.png");
 
-function hasValidImageUrl(url: string): boolean {
-  if (!url || typeof url !== "string") return false;
-  return url.length > 10 && !url.endsWith("/") && url.startsWith("http");
-}
-
 interface ProductDetailGallerySlideProps {
+  slideId: string;
   imageUrl: string;
   pageWidth: number;
 }
 
 const ProductDetailGallerySlideComponent: React.FC<ProductDetailGallerySlideProps> = ({
+  slideId,
   imageUrl,
   pageWidth,
 }) => {
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === "dark";
   const [imageError, setImageError] = useState(false);
+  const isMountedRef = useRef(true);
 
-  const showPlaceholder = !hasValidImageUrl(imageUrl) || imageError;
-  const imageSource = showPlaceholder ? PLACEHOLDER_IMAGE : { uri: imageUrl };
+  const hasRemoteImage = isValidProductImageUrl(imageUrl) && !imageError;
+  const imageSource = hasRemoteImage ? { uri: imageUrl } : PLACEHOLDER_IMAGE;
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     setImageError(false);
@@ -40,13 +46,18 @@ const ProductDetailGallerySlideComponent: React.FC<ProductDetailGallerySlideProp
         ]}
       >
         <Image
+          key={hasRemoteImage ? `remote-${slideId}` : `placeholder-${slideId}`}
           source={imageSource}
           style={styles.productImage}
-          contentFit={showPlaceholder ? "contain" : "cover"}
+          contentFit={hasRemoteImage ? "cover" : "contain"}
           cachePolicy="memory-disk"
-          recyclingKey={showPlaceholder ? "gallery-placeholder" : imageUrl}
+          recyclingKey={`gallery-${slideId}`}
           transition={0}
-          onError={() => setImageError(true)}
+          onError={() => {
+            if (isMountedRef.current) {
+              setImageError(true);
+            }
+          }}
         />
       </View>
     </View>
@@ -56,7 +67,9 @@ const ProductDetailGallerySlideComponent: React.FC<ProductDetailGallerySlideProp
 export const ProductDetailGallerySlide = React.memo(
   ProductDetailGallerySlideComponent,
   (prev, next) =>
-    prev.imageUrl === next.imageUrl && prev.pageWidth === next.pageWidth,
+    prev.slideId === next.slideId &&
+    prev.imageUrl === next.imageUrl &&
+    prev.pageWidth === next.pageWidth,
 );
 
 const styles = StyleSheet.create({
