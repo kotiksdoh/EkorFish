@@ -621,7 +621,9 @@ const authSlice = createSlice({
       state.categories = action.payload.data.data;
       state.categories = action.payload.data.data.map((item: any) => ({
         ...item,
-        imageUrl: `${baseUrl}/${item.imageUrl}`,
+        imageUrl: item.imageUrl
+          ? `${baseUrl}/${String(item.imageUrl).replace(/^\//, "")}`
+          : undefined,
       }));
     });
     builder.addCase(getCategoryItems.rejected, (state, action) => {

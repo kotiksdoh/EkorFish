@@ -125,6 +125,25 @@ const CartItemComponent = ({
     >
       {/* Изображение товара */}
       <View style={styles.imageContainer}>
+        <TouchableOpacity
+          style={styles.imageTouchable}
+          onPress={onToggleSelect}
+          activeOpacity={0.85}
+        >
+          {item.productImage ? (
+            <Image
+              source={{ uri: `${baseUrl}/${item.productImage || ""}` }}
+              style={styles.image}
+              contentFit="cover"
+            />
+          ) : (
+            <Image
+              source={require("@/assets/icons/png/noImage.png")}
+              style={styles.image}
+              contentFit="cover"
+            />
+          )}
+        </TouchableOpacity>
         <ThemedView
           darkColor="#151516"
           lightColor="#FFFFFF"
@@ -138,19 +157,6 @@ const CartItemComponent = ({
             darkColor={"#202022"}
           />
         </ThemedView>
-        {item.productImage ? (
-          <Image
-            source={{ uri: `${baseUrl}/${item.productImage || ""}` }}
-            style={[styles.image]}
-            contentFit="cover"
-          />
-        ) : (
-          <Image
-            source={require("@/assets/icons/png/noImage.png")}
-            style={[styles.image]}
-            contentFit="cover"
-          />
-        )}
       </View>
 
       {/* Информация о товаре */}
@@ -713,14 +719,20 @@ export default function ShopScreen() {
                   lightColor={"#F2F4F7"}
                   darkColor={"#202022"}
                 />
-                <ThemedText style={styles.selectAllText}>
-                  {cartItems
-                    .filter((item) => isItemAvailable(item))
-                    .every((item) => selectedItems.has(item.id)) &&
-                  cartItems.some((item) => isItemAvailable(item))
-                    ? "Снять все"
-                    : "Выбрать все"}
-                </ThemedText>
+                <TouchableOpacity
+                  onPress={toggleSelectAll}
+                  activeOpacity={0.7}
+                  hitSlop={{ top: 8, bottom: 8, right: 8 }}
+                >
+                  <ThemedText style={styles.selectAllText}>
+                    {cartItems
+                      .filter((item) => isItemAvailable(item))
+                      .every((item) => selectedItems.has(item.id)) &&
+                    cartItems.some((item) => isItemAvailable(item))
+                      ? "Снять все"
+                      : "Выбрать все"}
+                  </ThemedText>
+                </TouchableOpacity>
               </View>
               <TouchableOpacity
                 style={[
@@ -1149,6 +1161,10 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     marginRight: 12,
     position: "relative",
+  },
+  imageTouchable: {
+    width: "100%",
+    height: "100%",
   },
   image: {
     width: "100%",

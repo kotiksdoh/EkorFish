@@ -3,8 +3,15 @@ import { ThemedView } from "@/components/themed-view";
 import { Image as ExpoImage } from "expo-image";
 import { useRouter } from "expo-router";
 
-import React, { useCallback, useMemo, useRef } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
+  ActivityIndicator,
   StyleSheet,
   TouchableOpacity,
   View,
@@ -16,8 +23,6 @@ interface CatalogCardProps {
   name: string;
 }
 
-const PLACEHOLDER_IMAGE = require("@/assets/icons/png/noImage.png");
-
 const CatalogCardComponent: React.FC<CatalogCardProps> = ({
   id,
   img,
@@ -25,6 +30,16 @@ const CatalogCardComponent: React.FC<CatalogCardProps> = ({
 }) => {
   const router = useRouter();
   const isNavigatingRef = useRef(false);
+  const isMountedRef = useRef(true);
+  const [isImageLoading, setIsImageLoading] = useState(false);
+  const [imageError, setImageError] = useState(false);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const handlePress = () => {
     if (!id || !name || isNavigatingRef.current) return;
@@ -48,23 +63,64 @@ const CatalogCardComponent: React.FC<CatalogCardProps> = ({
 
   const isValidImageUrl = useCallback((url: string): boolean => {
     if (!url || typeof url !== "string") return false;
-    return url.length > 10 && !url.endsWith("/") && url.startsWith("http");
+    const trimmed = url.trim();
+    if (
+      !trimmed ||
+      trimmed === "undefined" ||
+      trimmed.endsWith("/undefined")
+    ) {
+      return false;
+    }
+    return (
+      trimmed.length > 10 &&
+      !trimmed.endsWith("/") &&
+      trimmed.startsWith("http")
+    );
   }, []);
 
-  const imageSource = useMemo(
-    () =>
-      !img || (typeof img === "string" && !isValidImageUrl(img))
-        ? PLACEHOLDER_IMAGE
-        : typeof img === "string"
-          ? { uri: img }
-          : img,
-    [img, isValidImageUrl],
-  );
-  
+  const hasValidImageUrl =
+    Boolean(img) && (typeof img !== "string" || isValidImageUrl(img));
+
+  const showImage = hasValidImageUrl && !imageError;
+  const isEmptyCard = !showImage;
+
+  const imageSource = useMemo(() => {
+    if (!showImage) {
+      return null;
+    }
+
+    if (typeof img === "string") {
+      return { uri: img };
+    }
+
+    return img;
+  }, [img, showImage]);
+
+  useEffect(() => {
+    setImageError(false);
+    setIsImageLoading(hasValidImageUrl);
+  }, [img, hasValidImageUrl]);
+
+  const handleImageLoadStart = useCallback(() => {
+    if (!isMountedRef.current || !showImage) return;
+    setIsImageLoading(true);
+  }, [showImage]);
+
+  const handleImageLoaded = useCallback(() => {
+    if (!isMountedRef.current) return;
+    setIsImageLoading(false);
+    setImageError(false);
+  }, []);
+
+  const handleImageError = useCallback(() => {
+    if (!isMountedRef.current) return;
+    setIsImageLoading(false);
+    setImageError(true);
+  }, []);
+
+  const showCardLoading = showImage && isImageLoading;
+
   return (
-    // <Link
-    //   href={`/dashboard/${encodeURIComponent(name)}?catalogId=${id}&catalogName=${encodeURIComponent(name)}`}
-    // >
     <TouchableOpacity
       onPress={handlePress}
       activeOpacity={0.85}
@@ -72,7 +128,7 @@ const CatalogCardComponent: React.FC<CatalogCardProps> = ({
     >
       <ThemedView
         lightColor="#FFFFFF"
-        darkColor="#151516"
+        darkColor={isEmptyCard ? "#FFFFFF" : "#151516"}
         style={styles.container}
       >
         <View style={styles.textContainer}>
@@ -87,26 +143,38 @@ const CatalogCardComponent: React.FC<CatalogCardProps> = ({
           </ThemedText>
         </View>
 
-        <View style={styles.imageWrapper}>
+        <View style={[styles.imageWrapper, styles.imageWrapperWhite]}>
           <View style={styles.imageContainer}>
-            <ExpoImage
-              source={imageSource}
-              style={styles.image}
-              contentFit="cover"
-              cachePolicy="disk"
-              transition={120}
-            />
+            {showImage && imageSource ? (
+              <ExpoImage
+                key={typeof img === "string" ? img : String(id)}
+                source={imageSource}
+                style={[styles.image, showCardLoading && styles.imageHidden]}
+                contentFit="cover"
+                cachePolicy="disk"
+                transition={120}
+                onLoadStart={handleImageLoadStart}
+                onLoad={handleImageLoaded}
+                onLoadEnd={handleImageLoaded}
+                onError={handleImageError}
+              />
+            ) : null}
           </View>
         </View>
+
+        {showCardLoading ? (
+          <View style={[styles.cardLoadingOverlay, styles.cardLoadingOverlayWhite]}>
+            <ActivityIndicator size="small" color="#666666" />
+          </View>
+        ) : null}
       </ThemedView>
     </TouchableOpacity>
-    // {/* </Link> */}
   );
 };
 
 const styles = StyleSheet.create({
   touchableContainer: {
-    width: "31%", // Переносим ширину сюда
+    width: "31%",
   },
   container: {
     flexDirection: "column",
@@ -115,7 +183,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     overflow: "hidden",
     marginBottom: 1,
-    // shadowColor: '#000',
     shadowOffset: {
       width: 0,
       height: 2,
@@ -123,6 +190,15 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 3,
+  },
+  cardLoadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 3,
+  },
+  cardLoadingOverlayWhite: {
+    backgroundColor: "#FFFFFF",
   },
   textContainer: {
     position: "absolute",
@@ -149,17 +225,21 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     borderBottomLeftRadius: 8,
     borderBottomRightRadius: 8,
-    // backgroundColor: '#F5F5F5', // Фон для скелетона
+  },
+  imageWrapperWhite: {
+    backgroundColor: "#FFFFFF",
   },
   imageContainer: {
     width: "100%",
     height: "100%",
-    // marginTop: 30,
     position: "relative",
   },
   image: {
     width: "100%",
     height: "100%",
+  },
+  imageHidden: {
+    opacity: 0,
   },
 });
 
