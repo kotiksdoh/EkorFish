@@ -1,12 +1,14 @@
 import { CartIcon, LikeIcon, SnowflakeIcon } from "@/assets/icons/icons.js";
-import { useTemplatePicker } from "@/features/templates/TemplatePickerContext";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { LoginModal } from "@/features/auth/ui/components/LoginModal";
-import { putFavorite, putUnFavorite, getProduct, setProductPreview } from "@/features/catalog/catalogSlice";
+import { getProduct, putFavorite, putUnFavorite, setProductPreview } from "@/features/catalog/catalogSlice";
 import { buildProductPreviewFromList } from "@/features/shared/services/productSingleAdapter";
+import { useTemplatePicker } from "@/features/templates/TemplatePickerContext";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import React, {
   useCallback,
@@ -15,13 +17,11 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
   StyleSheet,
   TouchableOpacity,
   View,
 } from "react-native";
-import { Image } from "expo-image";
 
 interface ProductCardProps {
   id?: number;
@@ -453,6 +453,7 @@ const styles = StyleSheet.create({
     position: "relative",
     width: "100%",
     height: 138,
+    borderRadius: 8,
   },
   imageContainerLight: {
     backgroundColor: "#F5F5F5",
@@ -463,6 +464,7 @@ const styles = StyleSheet.create({
   image: {
     width: "100%",
     height: "100%",
+    borderRadius: 8,
   },
   frozenIcon: {
     width: 16,
@@ -509,7 +511,7 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
   },
   infoContainer: {
-    padding: 12,
+    padding: 8,
   },
   name: {
     fontFamily: "Montserrat",
