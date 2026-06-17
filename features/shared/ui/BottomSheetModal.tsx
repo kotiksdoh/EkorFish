@@ -11,7 +11,7 @@ import {
   Dimensions,
   Modal,
   StyleSheet,
-  TouchableWithoutFeedback,
+  TouchableOpacity,
   View,
   type ViewStyle,
 } from "react-native";
@@ -107,25 +107,24 @@ export const BottomSheetModal = forwardRef<
       statusBarTranslucent
       onRequestClose={() => runClose()}
     >
-      <TouchableWithoutFeedback onPress={() => runClose()}>
-        <Animated.View style={[styles.overlay, { opacity: overlayOpacity }]}>
-          <TouchableWithoutFeedback>
-            <Animated.View
-              style={[
-                styles.sheet,
-                isDarkMode && styles.sheetDark,
-                fitContent
-                  ? styles.sheetFitContent
-                  : { maxHeight },
-                { transform: [{ translateY }] },
-                sheetStyle,
-              ]}
-            >
-              {children}
-            </Animated.View>
-          </TouchableWithoutFeedback>
+      <Animated.View style={[styles.overlay, { opacity: overlayOpacity }]}>
+        <TouchableOpacity
+          style={StyleSheet.absoluteFill}
+          activeOpacity={1}
+          onPress={() => runClose()}
+        />
+        <Animated.View
+          style={[
+            styles.sheet,
+            isDarkMode && styles.sheetDark,
+            fitContent ? styles.sheetFitContent : { maxHeight },
+            { transform: [{ translateY }] },
+            sheetStyle,
+          ]}
+        >
+          {children}
         </Animated.View>
-      </TouchableWithoutFeedback>
+      </Animated.View>
     </Modal>
   );
 });

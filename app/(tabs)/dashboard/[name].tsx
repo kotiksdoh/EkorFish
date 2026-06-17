@@ -1092,37 +1092,41 @@ export default function CatalogDetailScreen() {
           onClose={() => setShowFilters(false)}
           isDarkMode={isDarkMode}
           maxHeight="85%"
+          sheetStyle={styles.filtersSheet}
         >
-          <TouchableOpacity
-            style={styles.swipeHandleContainer}
-            activeOpacity={0.7}
-            onPress={() => filtersSheetRef.current?.close()}
-          >
-            <View style={styles.swipeHandle} />
-          </TouchableOpacity>
-
-          <View style={styles.modalHeader}>
-            <ThemedText style={styles.modalTitle}>Фильтры</ThemedText>
-
-            <TouchableOpacity onPress={resetFilters}>
-              <ThemedText
-                lightColor="#203686"
-                darkColor="#4C94FF"
-                style={styles.modalResetText}
-              >
-                Сбросить
-              </ThemedText>
+          <View style={styles.filtersSheetLayout}>
+            <TouchableOpacity
+              style={styles.swipeHandleContainer}
+              activeOpacity={0.7}
+              onPress={() => filtersSheetRef.current?.close()}
+            >
+              <View style={styles.swipeHandle} />
             </TouchableOpacity>
-          </View>
 
-          <ScrollView
-            ref={modalScrollViewRef}
-            style={styles.modalContent}
-            showsVerticalScrollIndicator
-            bounces
-            scrollEventThrottle={16}
-            nestedScrollEnabled
-          >
+            <View style={styles.modalHeader}>
+              <ThemedText style={styles.modalTitle}>Фильтры</ThemedText>
+
+              <TouchableOpacity onPress={resetFilters}>
+                <ThemedText
+                  lightColor="#203686"
+                  darkColor="#4C94FF"
+                  style={styles.modalResetText}
+                >
+                  Сбросить
+                </ThemedText>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView
+              ref={modalScrollViewRef}
+              style={styles.filtersModalScroll}
+              contentContainerStyle={styles.filtersModalScrollContent}
+              showsVerticalScrollIndicator
+              bounces
+              scrollEventThrottle={16}
+              nestedScrollEnabled
+              keyboardShouldPersistTaps="handled"
+            >
             <View style={styles.filterSection}>
               <ThemedText style={styles.filterSectionTitle}>
                 Цена за кг
@@ -1230,38 +1234,32 @@ export default function CatalogDetailScreen() {
                 </ThemedText>
               </View>
             )}
-
-            <View
-              style={[
-                styles.modalBottomSpacer,
-                { height: 72 + filtersFooterPadding },
-              ]}
-            />
           </ScrollView>
 
-          <ThemedView
-            lightColor="#FFFFFF"
-            darkColor="#202022"
-            style={[
-              styles.applyButtonContainer,
-              { paddingBottom: filtersFooterPadding },
-            ]}
-          >
-            <TouchableOpacity
+            <ThemedView
+              lightColor="#FFFFFF"
+              darkColor="#202022"
               style={[
-                styles.applyButton,
-                isDarkMode && {
-                  backgroundColor: "#3881EE",
-                },
+                styles.applyButtonContainer,
+                { paddingBottom: filtersFooterPadding },
               ]}
-              onPress={applyFilters}
             >
-              <ThemedText style={styles.applyButtonText}>
-                Применить{" "}
-                {appliedFiltersCount > 0 ? `(${appliedFiltersCount})` : ""}
-              </ThemedText>
-            </TouchableOpacity>
-          </ThemedView>
+              <TouchableOpacity
+                style={[
+                  styles.applyButton,
+                  isDarkMode && {
+                    backgroundColor: "#3881EE",
+                  },
+                ]}
+                onPress={applyFilters}
+              >
+                <ThemedText style={styles.applyButtonText}>
+                  Применить{" "}
+                  {appliedFiltersCount > 0 ? `(${appliedFiltersCount})` : ""}
+                </ThemedText>
+              </TouchableOpacity>
+            </ThemedView>
+          </View>
         </BottomSheetModal>
 
         <AddToCartModal
@@ -1564,12 +1562,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     // color: "#203686",
   },
-  modalContent: {
-    paddingHorizontal: 20,
-    maxHeight: screenHeight * 0.62,
+  filtersSheet: {
+    height: screenHeight * 0.85,
+    maxHeight: screenHeight * 0.85,
   },
-  modalBottomSpacer: {
-    height: 72,
+  filtersSheetLayout: {
+    flex: 1,
+    flexDirection: "column",
+  },
+  filtersModalScroll: {
+    flex: 1,
+    minHeight: 0,
+    paddingHorizontal: 20,
+  },
+  filtersModalScrollContent: {
+    paddingBottom: 16,
   },
   filterSection: {
     marginTop: 24,
@@ -1586,10 +1593,6 @@ const styles = StyleSheet.create({
   },
   priceInputContainer: {
     flex: 1,
-    borderWidth: 1,
-    borderColor: "#E0E0E0",
-    borderRadius: 8,
-    overflow: "hidden",
   },
   priceInput: {
     paddingHorizontal: 12,
@@ -1629,10 +1632,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   applyButtonContainer: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
     paddingHorizontal: 20,
     paddingTop: 12,
   },

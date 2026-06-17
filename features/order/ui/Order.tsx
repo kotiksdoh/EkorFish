@@ -1320,7 +1320,10 @@ export default function CheckoutModal({
           <View style={styles.modalOverlay}>
             <TouchableWithoutFeedback>
               <ThemedView 
-                style={styles.confirmModalContent}
+                style={[
+                  styles.confirmModalContent,
+                  { paddingBottom: Math.max(insets.bottom, 24) + 24 },
+                ]}
                 lightColor="#FFFFFF"
                 darkColor="#202022"
               >
