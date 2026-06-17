@@ -35,7 +35,8 @@ export default function Catalog() {
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 16,
+    paddingLeft: 16,
+    paddingRight: 8,
     borderRadius: 8,
     marginTop: 20,
   },

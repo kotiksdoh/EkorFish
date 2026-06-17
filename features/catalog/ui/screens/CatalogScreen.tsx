@@ -138,7 +138,9 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   columnWrapper: {
-    paddingHorizontal: 16,
+    paddingLeft: 16,
+    paddingRight: 16,
+
     gap: 8,
     marginBottom: 8,
   },
