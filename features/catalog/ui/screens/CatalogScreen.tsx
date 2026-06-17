@@ -54,11 +54,14 @@ export const CatalogScreen = () => {
 
   const renderCatalogCard = useCallback(
     ({ item }: { item: any }) => (
-      <CatalogCard
-        id={item.id}
-        img={item.imageUrl}
-        name={item.name}
-      />
+      <View style={styles.catalogCardCell}>
+        <CatalogCard
+          id={item.id}
+          img={item.imageUrl}
+          name={item.name}
+          fullWidth
+        />
+      </View>
     ),
     [],
   );
@@ -66,7 +69,7 @@ export const CatalogScreen = () => {
   const keyExtractor = useCallback((item: any) => String(item.id), []);
   const numColumns = 3;
   const headerTopPadding =
-    Platform.OS === "android" ? headerHeight + 8 : insets.top + 8;
+    Platform.OS === "android" ? headerHeight + 30 : insets.top + 8;
   const headerComponent = useMemo(
     () => (
       <View style={styles.headerContainer}>
@@ -128,13 +131,15 @@ const styles = StyleSheet.create({
     paddingTop: 0,
   },
   content: {
-    paddingHorizontal: 8,
-    paddingTop: 8,
     paddingBottom: 20,
   },
+  catalogCardCell: {
+    flex: 1,
+    minWidth: 0,
+  },
   columnWrapper: {
+    paddingHorizontal: 16,
     gap: 8,
     marginBottom: 8,
-    justifyContent: "space-between",
   },
 });

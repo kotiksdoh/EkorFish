@@ -21,11 +21,13 @@ const cardWidth = (screenWidth - 32 - 8) / 2; // 32 = paddingHorizontal 16 с д
 interface SpecialOffersProps {
   handleAddToCartPress: (product: any) => void;
   onShowAllPress?: () => void;
+  onProductPress?: () => void;
 }
 
 function SpecialOffersComponent({
   handleAddToCartPress,
   onShowAllPress,
+  onProductPress,
 }: SpecialOffersProps) {
   const router = useRouter();
   const me = useAppSelector((state) => state.auth.me);
@@ -125,6 +127,7 @@ function SpecialOffersComponent({
                 fullWidth={true}
                 returnTo="home"
                 onAddToCartPress={handleAddToCartPress}
+                onBeforeNavigate={onProductPress}
               />
             </View>
           ))}
@@ -150,7 +153,8 @@ function SpecialOffersComponent({
 export default React.memo(SpecialOffersComponent, (prevProps, nextProps) => {
   return (
     prevProps.handleAddToCartPress === nextProps.handleAddToCartPress &&
-    prevProps.onShowAllPress === nextProps.onShowAllPress
+    prevProps.onShowAllPress === nextProps.onShowAllPress &&
+    prevProps.onProductPress === nextProps.onProductPress
   );
 });
 

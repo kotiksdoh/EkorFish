@@ -14,12 +14,14 @@ interface CatalogCardProps {
   id: number;
   img?: any;
   name: string;
+  fullWidth?: boolean;
 }
 
 const CatalogCardComponent: React.FC<CatalogCardProps> = ({
   id,
   img,
   name,
+  fullWidth = false,
 }) => {
   const router = useRouter();
   const isNavigatingRef = useRef(false);
@@ -88,7 +90,7 @@ const CatalogCardComponent: React.FC<CatalogCardProps> = ({
     <TouchableOpacity
       onPress={handlePress}
       activeOpacity={0.85}
-      style={styles.touchableContainer}
+      style={[styles.touchableContainer, fullWidth && styles.touchableFullWidth]}
     >
       <ThemedView
         lightColor="#FFFFFF"
@@ -127,6 +129,9 @@ const CatalogCardComponent: React.FC<CatalogCardProps> = ({
 const styles = StyleSheet.create({
   touchableContainer: {
     width: "31%",
+  },
+  touchableFullWidth: {
+    width: "100%",
   },
   container: {
     flexDirection: "column",
@@ -181,6 +186,7 @@ export const CatalogCard = React.memo(CatalogCardComponent, (prevProps, nextProp
   return (
     prevProps.id === nextProps.id &&
     prevProps.img === nextProps.img &&
-    prevProps.name === nextProps.name
+    prevProps.name === nextProps.name &&
+    prevProps.fullWidth === nextProps.fullWidth
   );
 });

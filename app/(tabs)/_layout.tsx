@@ -26,13 +26,14 @@ export default function TabLayout() {
           tabBarShowLabel: false,
         }}>
         <Tabs.Screen
-          name="index"
+          name="(home)"
           options={{
-            tabBarIcon: ({ color, focused }) =>             
-              <SvgIcon 
-                name="home" 
-                size={24} 
-                color={color} 
+            href: "/",
+            tabBarIcon: ({ color, focused }) =>
+              <SvgIcon
+                name="home"
+                size={24}
+                color={color}
                 focused={focused}
               />,
           }}

@@ -36,6 +36,7 @@ interface ProductCardProps {
   isDis?: boolean;
   fullWidth?: boolean;
   returnTo?: "home" | "heart" | "catalog";
+  onBeforeNavigate?: () => void;
 }
 
 // Заглушка для изображения
@@ -63,6 +64,7 @@ const ProductCardComponent: React.FC<ProductCardProps> = ({
   isDis = false,
   fullWidth = false,
   returnTo,
+  onBeforeNavigate,
 }) => {
   const [imageError, setImageError] = useState(false);
   const [isLiked, setIsLiked] = useState(isFavorite);
@@ -180,9 +182,17 @@ const ProductCardComponent: React.FC<ProductCardProps> = ({
 
     isNavigatingRef.current = true;
 
-    const returnToParam =
-      returnTo === "home" || returnTo === "heart" ? `&returnTo=${returnTo}` : "";
-    const productPath = `/(tabs)/dashboard/product/${encodeURIComponent(id)}?productId=${id}${returnToParam}`;
+    onBeforeNavigate?.();
+
+    const productId = String(id);
+    let productPath: string;
+    if (returnTo === "heart") {
+      productPath = `/(tabs)/heart/product/${encodeURIComponent(productId)}?productId=${productId}`;
+    } else if (returnTo === "home") {
+      productPath = `/product/${encodeURIComponent(productId)}?productId=${productId}`;
+    } else {
+      productPath = `/(tabs)/dashboard/product/${encodeURIComponent(productId)}?productId=${productId}`;
+    }
 
     router.push(productPath as any);
 
@@ -198,7 +208,7 @@ const ProductCardComponent: React.FC<ProductCardProps> = ({
     setTimeout(() => {
       isNavigatingRef.current = false;
     }, 400);
-  }, [dispatch, id, isDis, name, productData, returnTo, router]);
+  }, [dispatch, id, isDis, name, onBeforeNavigate, productData, returnTo, router]);
 
   // Определяем, является ли URL валидным
   const isValidImageUrl = useCallback((url: string): boolean => {

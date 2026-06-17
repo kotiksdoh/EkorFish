@@ -347,6 +347,7 @@ export const BonusPage: React.FC<BonusPageProps> = ({
           <SpecialOffers
             handleAddToCartPress={handleAddToCartPress}
             onShowAllPress={onClose}
+            onProductPress={onClose}
           />
 
           {/* История начислений - компактный блок с группировкой */}
