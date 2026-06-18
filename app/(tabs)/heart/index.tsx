@@ -394,6 +394,12 @@ export default function HeartScreen() {
     loadProducts(false, effectiveSearch);
   }, [searchQuery, loadProducts]);
 
+  const handleSearchClear = useCallback(() => {
+    setSearchQuery("");
+    scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+    loadProducts(false, "");
+  }, [loadProducts]);
+
   const handleSortSelect = (sortId: ProductSortId) => {
     sortSheetRef.current?.close(() => {
       setSortBy(sortId);
@@ -513,6 +519,7 @@ export default function HeartScreen() {
               placeholder="Найдите товар"
               isActiveButton={false}
               onSubmitEditing={handleSearchSubmit}
+              onClear={handleSearchClear}
               ref={searchInputRef}
               isFav={true}
             />
