@@ -16,6 +16,7 @@ import {
   View,
 } from "react-native";
 import { AutoSlider } from "../components/AutoSlider";
+import { HomeBootstrapBanner } from "../components/HomeBootstrapBanner";
 import Catalog from "../components/Catalog/Catalog";
 import DeliveryInfoCard from "../components/DeliveryInfoCard";
 import { HomeHeader } from "../components/HomeHeader";
@@ -115,6 +116,8 @@ export const HomeScreen = ({
             autoPlayInterval={4000}
             showIndicators={true}
           />
+
+          <HomeBootstrapBanner />
 
           {/* Оборачиваем SearchInput в TouchableOpacity для открытия поиска */}
           <TouchableOpacity onPress={handleSearchPress} activeOpacity={1}>

@@ -3,7 +3,9 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit";
 import api, { axiosErrorHandler } from "../shared/services/api";
 import { axdef, baseUrl } from "../shared/services/axios";
+import { getCart, getMyOrders } from "../catalog/catalogSlice";
 import { getInlineParams } from "../shared/services/utils";
+import type { AppDispatch } from "@/store/store";
 
 interface AuthState {
   user: any | null;
@@ -76,6 +78,7 @@ interface AuthState {
   uncheckedPushesCount: number;
   isLoadingPushes: boolean;
   hasMorePushes: boolean;
+  bootstrapStatus: "idle" | "loading" | "ready" | "failed";
 }
 interface Town {
   id: string;
@@ -124,6 +127,7 @@ const initialState: AuthState = {
   uncheckedPushesCount: 0,
   isLoadingPushes: false,
   hasMorePushes: true,
+  bootstrapStatus: "idle",
 };
 
 interface UpdatePushPreferencePayload {
@@ -538,6 +542,72 @@ export const getUncheckedPushesCountThunk = createAsyncThunk(
   },
 );
 
+const INIT_REQUEST_TIMEOUT_MS = 12000;
+
+async function withBootstrapTimeout<T>(
+  promise: Promise<T>,
+  label: string,
+): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) =>
+      setTimeout(
+        () => reject(new Error(`[Bootstrap] Timeout while loading ${label}`)),
+        INIT_REQUEST_TIMEOUT_MS,
+      ),
+    ),
+  ]);
+}
+
+async function loadAppBootstrapData(
+  dispatch: AppDispatch,
+  options?: { skipTimeout?: boolean },
+): Promise<boolean> {
+  const useTimeout = options?.skipTimeout !== true;
+
+  const runStep = <T>(promise: Promise<T>, label: string): Promise<T> =>
+    useTimeout ? withBootstrapTimeout(promise, label) : promise;
+
+  const token = await AsyncStorage.getItem("token");
+
+  const criticalSteps: Promise<unknown>[] = [
+    runStep(dispatch(getCategoryItems("")).unwrap(), "categories"),
+    runStep(dispatch(getSliderItems("")).unwrap(), "sliders"),
+  ];
+
+  const authSteps: Promise<unknown>[] = token
+    ? [
+        runStep(dispatch(getMyInfo("")).unwrap(), "my-info"),
+        runStep(dispatch(getMyParams("")).unwrap(), "params"),
+        runStep(dispatch(getCart()).unwrap(), "cart"),
+        runStep(dispatch(getMyOrders()).unwrap(), "orders"),
+      ]
+    : [];
+
+  const criticalResults = await Promise.allSettled(criticalSteps);
+  await Promise.allSettled(authSteps);
+
+  return criticalResults.every((result) => result.status === "fulfilled");
+}
+
+export const runAppBootstrap = createAsyncThunk(
+  "auth/runAppBootstrap",
+  async (
+    payload: { skipTimeout?: boolean } | undefined,
+    { dispatch, rejectWithValue },
+  ) => {
+    try {
+      const success = await loadAppBootstrapData(dispatch, payload);
+      if (!success) {
+        return rejectWithValue("bootstrap_failed");
+      }
+      return true;
+    } catch (error) {
+      return rejectWithValue(error);
+    }
+  },
+);
+
 const authSlice = createSlice({
   name: "auth",
   initialState,
@@ -577,6 +647,12 @@ const authSlice = createSlice({
       state.bonusHistory = [];
       state.hasMoreBonus = true;
       state.currentBonusPage = 0;
+    },
+    setBootstrapStatus: (
+      state,
+      action: PayloadAction<AuthState["bootstrapStatus"]>,
+    ) => {
+      state.bootstrapStatus = action.payload;
     },
   },
   extraReducers: (builder) => {
@@ -1072,6 +1148,16 @@ const authSlice = createSlice({
       state.hasMoreBonus = false;
       axiosErrorHandler(action?.payload);
     });
+
+    builder.addCase(runAppBootstrap.pending, (state) => {
+      state.bootstrapStatus = "loading";
+    });
+    builder.addCase(runAppBootstrap.fulfilled, (state) => {
+      state.bootstrapStatus = "ready";
+    });
+    builder.addCase(runAppBootstrap.rejected, (state) => {
+      state.bootstrapStatus = "failed";
+    });
   },
 });
 
@@ -1084,5 +1170,6 @@ export const {
   setCompany,
   clearAuthState,
   clearBonusHistory,
+  setBootstrapStatus,
 } = authSlice.actions;
 export default authSlice.reducer;

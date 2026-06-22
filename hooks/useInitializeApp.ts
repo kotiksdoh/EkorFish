@@ -6,6 +6,7 @@ import {
   getMyInfo,
   getMyParams,
   getSliderItems,
+  setBootstrapStatus,
 } from "@/features/auth/authSlice";
 import { getCart, getMyOrders } from "@/features/catalog/catalogSlice";
 import { store } from "@/store/store";
@@ -22,7 +23,10 @@ SplashScreenExpo.preventAutoHideAsync().catch(() => {
 
 // Имитация загрузки данных
 const loadAppResources = async () => {
-  const withTimeout = async <T>(promise: Promise<T>, label: string): Promise<void> => {
+  const withTimeout = async <T>(
+    promise: Promise<T>,
+    label: string,
+  ): Promise<boolean> => {
     try {
       await Promise.race([
         promise,
@@ -33,18 +37,28 @@ const loadAppResources = async () => {
           ),
         ),
       ]);
+      return true;
     } catch (error) {
       console.log(`[Init] Skip failed step "${label}":`, error);
+      return false;
     }
   };
 
   try {
+    store.dispatch(setBootstrapStatus("loading"));
+
     const token = await AsyncStorage.getItem("token");
     // 1. Загружаем шрифты
 
     // 2. Инициализируем данные приложения
-    await withTimeout(store.dispatch(getCategoryItems("")).unwrap(), "categories");
-    await withTimeout(store.dispatch(getSliderItems("")).unwrap(), "sliders");
+    const categoriesOk = await withTimeout(
+      store.dispatch(getCategoryItems("")).unwrap(),
+      "categories",
+    );
+    const slidersOk = await withTimeout(
+      store.dispatch(getSliderItems("")).unwrap(),
+      "sliders",
+    );
     if (token) {
       await withTimeout(store.dispatch(getMyInfo("")).unwrap(), "my-info");
       await withTimeout(store.dispatch(getMyParams("")).unwrap(), "params");
@@ -66,12 +80,17 @@ const loadAppResources = async () => {
     // };
 
     // testHttps();
+    store.dispatch(
+      setBootstrapStatus(categoriesOk && slidersOk ? "ready" : "failed"),
+    );
+
     // Имитация задержки для демонстрации сплеш-скрина
     await new Promise((resolve) => setTimeout(resolve, 1000));
 
     return true;
   } catch (error) {
     console.error("Error loading app resources:", error);
+    store.dispatch(setBootstrapStatus("failed"));
     return true;
   }
 };
