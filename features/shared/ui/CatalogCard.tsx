@@ -82,6 +82,13 @@ const CatalogCardComponent: React.FC<CatalogCardProps> = ({
     return img;
   }, [img, showImage]);
 
+  const imageRecyclingKey = useMemo(() => {
+    if (typeof img === "string" && hasValidImageUrl) {
+      return `category-${id}-${img}`;
+    }
+    return `category-${id}`;
+  }, [hasValidImageUrl, id, img]);
+
   useEffect(() => {
     setImageError(false);
   }, [img]);
@@ -116,6 +123,7 @@ const CatalogCardComponent: React.FC<CatalogCardProps> = ({
               style={styles.image}
               contentFit="cover"
               cachePolicy="disk"
+              recyclingKey={imageRecyclingKey}
               transition={0}
               onError={() => setImageError(true)}
             />
