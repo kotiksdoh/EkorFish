@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useIsFocused } from "@react-navigation/native";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Dimensions,
   FlatList,
@@ -7,11 +8,11 @@ import {
   StyleSheet,
   TouchableOpacity,
   View,
-} from 'react-native';
-import { AutoSliderItem } from './AutoSliderItem';
-import { ProgressIndicator } from './ProgressIndicator';
+} from "react-native";
+import { AutoSliderItem } from "./AutoSliderItem";
+import { ProgressIndicator } from "./ProgressIndicator";
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const SLIDER_HEIGHT = 282;
 
 export interface SlideItem {
@@ -25,23 +26,28 @@ interface AutoSliderProps {
   items: SlideItem[];
   autoPlayInterval?: number;
   showIndicators?: boolean;
-  isProduct?: boolean
+  isProduct?: boolean;
 }
 
 export const AutoSlider: React.FC<AutoSliderProps> = ({
   items,
   autoPlayInterval = 4000,
   showIndicators = true,
-  isProduct
+  isProduct,
 }) => {
+  const isScreenFocused = useIsFocused();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
-  
+
   const flatListRef = useRef<FlatList>(null);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const resumeTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const resumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isUserInteractingRef = useRef(false);
   const isAutoScrollingRef = useRef(false);
+  const isMountedRef = useRef(true);
+  const currentIndexRef = useRef(0);
+
+  currentIndexRef.current = currentIndex;
 
   const clampIndex = useCallback(
     (index: number) => {
@@ -51,51 +57,93 @@ export const AutoSlider: React.FC<AutoSliderProps> = ({
     [items.length],
   );
 
-  const goToNextSlide = useCallback(() => {
-    if (items.length <= 1 || isUserInteractingRef.current) return;
-    isAutoScrollingRef.current = true;
-    setCurrentIndex((prev) => (prev < items.length - 1 ? prev + 1 : 0));
-  }, [items.length]);
-
-  // Автопрокрутка (только timerRef; resumeTimerRef не трогаем — иначе при смене currentIndex
-  // после ручного свайпа cleanup отменяет «возобновить через 2с» и автоплей/полоска замирают навсегда)
-  useEffect(() => {
+  const clearAutoplayTimer = useCallback(() => {
     if (timerRef.current) {
       clearTimeout(timerRef.current);
       timerRef.current = null;
     }
+  }, []);
 
-    if (isAutoPlaying && items.length > 1 && !isUserInteractingRef.current) {
+  const goToNextSlide = useCallback(() => {
+    if (
+      items.length <= 1 ||
+      isUserInteractingRef.current ||
+      !isScreenFocused ||
+      !isMountedRef.current
+    ) {
+      return;
+    }
+
+    isAutoScrollingRef.current = true;
+    const nextIndex =
+      currentIndexRef.current < items.length - 1
+        ? currentIndexRef.current + 1
+        : 0;
+    setCurrentIndex(nextIndex);
+  }, [isScreenFocused, items.length]);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      clearAutoplayTimer();
+      if (resumeTimerRef.current) {
+        clearTimeout(resumeTimerRef.current);
+        resumeTimerRef.current = null;
+      }
+    };
+  }, [clearAutoplayTimer]);
+
+  useEffect(() => {
+    if (!isScreenFocused) {
+      isUserInteractingRef.current = false;
+      isAutoScrollingRef.current = false;
+      clearAutoplayTimer();
+      if (resumeTimerRef.current) {
+        clearTimeout(resumeTimerRef.current);
+        resumeTimerRef.current = null;
+      }
+    }
+  }, [clearAutoplayTimer, isScreenFocused]);
+
+  useEffect(() => {
+    clearAutoplayTimer();
+
+    if (
+      isAutoPlaying &&
+      isScreenFocused &&
+      items.length > 1 &&
+      !isUserInteractingRef.current
+    ) {
       timerRef.current = setTimeout(goToNextSlide, autoPlayInterval);
     }
 
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-  }, [currentIndex, isAutoPlaying, items.length, autoPlayInterval, goToNextSlide]);
+    return clearAutoplayTimer;
+  }, [
+    autoPlayInterval,
+    clearAutoplayTimer,
+    currentIndex,
+    goToNextSlide,
+    isAutoPlaying,
+    isScreenFocused,
+    items.length,
+  ]);
 
-  useEffect(
-    () => () => {
-      if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current);
-    },
-    [],
-  );
-
-  // Если данные слайдера изменились, держим индекс в допустимых пределах
   useEffect(() => {
     setCurrentIndex((prev) => clampIndex(prev));
   }, [clampIndex]);
 
-  // Прокрутка к текущему слайду
   useEffect(() => {
-    if (flatListRef.current && items.length > 0) {
-      const safeIndex = clampIndex(currentIndex);
-      flatListRef.current.scrollToIndex({
-        index: safeIndex,
-        animated: true,
-      });
+    if (!isScreenFocused || !flatListRef.current || items.length === 0) {
+      return;
     }
-  }, [currentIndex, items.length, clampIndex]);
+
+    const safeIndex = clampIndex(currentIndex);
+    flatListRef.current.scrollToIndex({
+      index: safeIndex,
+      animated: true,
+    });
+  }, [currentIndex, items.length, clampIndex, isScreenFocused]);
 
   const handleScrollBegin = () => {
     if (resumeTimerRef.current) {
@@ -104,35 +152,44 @@ export const AutoSlider: React.FC<AutoSliderProps> = ({
     }
     isUserInteractingRef.current = true;
     setIsAutoPlaying(false);
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-      timerRef.current = null;
-    }
+    clearAutoplayTimer();
   };
 
   const handleScrollEnd = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    if (!isMountedRef.current || !isScreenFocused) {
+      return;
+    }
+
     const contentOffset = event.nativeEvent.contentOffset;
     const viewSize = event.nativeEvent.layoutMeasurement;
     const rawIndex = Math.round(contentOffset.x / viewSize.width);
     const newIndex = clampIndex(rawIndex);
-    
-    if (newIndex !== currentIndex) setCurrentIndex(newIndex);
 
-    // После автоскролла не ставим паузу — продолжаем стандартный цикл автоперехода.
+    if (newIndex !== currentIndex) {
+      setCurrentIndex(newIndex);
+    }
+
     if (isAutoScrollingRef.current) {
       isAutoScrollingRef.current = false;
       return;
     }
 
     isUserInteractingRef.current = false;
-    if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current);
-    resumeTimerRef.current = setTimeout(() => setIsAutoPlaying(true), 2000);
+    if (resumeTimerRef.current) {
+      clearTimeout(resumeTimerRef.current);
+    }
+    resumeTimerRef.current = setTimeout(() => {
+      if (isMountedRef.current && isScreenFocused) {
+        setIsAutoPlaying(true);
+      }
+    }, 2000);
   };
 
   const handleIndicatorPress = (index: number) => {
     if (index === currentIndex) return;
 
     isUserInteractingRef.current = true;
+    isAutoScrollingRef.current = false;
     setCurrentIndex(index);
     setIsAutoPlaying(false);
 
@@ -140,15 +197,17 @@ export const AutoSlider: React.FC<AutoSliderProps> = ({
       clearTimeout(resumeTimerRef.current);
     }
     resumeTimerRef.current = setTimeout(() => {
-      isUserInteractingRef.current = false;
-      setIsAutoPlaying(true);
+      if (isMountedRef.current && isScreenFocused) {
+        isUserInteractingRef.current = false;
+        setIsAutoPlaying(true);
+      }
     }, 3000);
   };
 
   const renderItem = ({ item }: { item: SlideItem }) => (
-    <AutoSliderItem 
-      item={item} 
-      sliderHeight={SLIDER_HEIGHT} 
+    <AutoSliderItem
+      item={item}
+      sliderHeight={SLIDER_HEIGHT}
       isProduct={isProduct}
     />
   );
@@ -159,7 +218,7 @@ export const AutoSlider: React.FC<AutoSliderProps> = ({
         ref={flatListRef}
         data={items}
         renderItem={renderItem}
-        keyExtractor={item => item.id}
+        keyExtractor={(item) => item.id}
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
@@ -175,15 +234,17 @@ export const AutoSlider: React.FC<AutoSliderProps> = ({
           index,
         })}
         onScrollToIndexFailed={(info) => {
+          if (!isScreenFocused || !flatListRef.current) {
+            return;
+          }
           const fallbackIndex = clampIndex(info.index);
-          flatListRef.current?.scrollToOffset({
+          flatListRef.current.scrollToOffset({
             offset: SCREEN_WIDTH * fallbackIndex,
-            animated: true,
+            animated: false,
           });
         }}
       />
 
-      {/* Индикаторы прогресса */}
       {showIndicators && items.length > 1 && (
         <View style={styles.indicatorsContainer}>
           <View style={styles.indicatorsWrapper}>
@@ -198,7 +259,7 @@ export const AutoSlider: React.FC<AutoSliderProps> = ({
                   index={index}
                   currentIndex={currentIndex}
                   autoPlayInterval={autoPlayInterval}
-                  isPlaying={isAutoPlaying}
+                  isPlaying={isAutoPlaying && isScreenFocused}
                 />
               </TouchableOpacity>
             ))}
@@ -212,23 +273,19 @@ export const AutoSlider: React.FC<AutoSliderProps> = ({
 const styles = StyleSheet.create({
   container: {
     height: SLIDER_HEIGHT,
-    // marginTop: -STATUS_BAR_HEIGHT, // ЗАХОДИТ ЗА СТАТУС БАР
-    // backgroundColor: '#fff',
   },
   indicatorsContainer: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 24,
     left: 0,
     right: 0,
-    alignItems: 'center',
+    alignItems: "center",
   },
   indicatorsWrapper: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
     gap: 1,
   },
-  indicatorButton: {
-    // padding: 4,
-  },
+  indicatorButton: {},
 });
