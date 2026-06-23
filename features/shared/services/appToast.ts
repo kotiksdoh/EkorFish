@@ -20,7 +20,7 @@ export function showAppToast({
     text1,
     text2,
     position: "top",
-    useModal: true,
+    useModal: false,
     visibilityTime,
   });
 }

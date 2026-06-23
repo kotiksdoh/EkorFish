@@ -17,6 +17,7 @@ import { useMemo, useState } from 'react';
 import { ActivityIndicator, Button, StyleSheet } from 'react-native';
 import 'react-native-reanimated';
 import { Provider } from 'react-redux';
+import '@/utils/disableFontScaling';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import ToastManager from 'toastify-react-native';
 import '../global.css';
@@ -34,7 +35,7 @@ function AppToastHost() {
   return (
     <ToastManager
       config={toastConfig}
-      useModal={true}
+      useModal={false}
       position="top"
       topOffset={10 + insets.top}
       bottomOffset={12 + insets.bottom}

@@ -23,6 +23,10 @@ export default function Catalog() {
 
   const keyExtractor = useCallback((item: any) => String(item.id), []);
 
+  if (!catalog?.length) {
+    return null;
+  }
+
   return (
     <View style={styles.container}>
       <ThemedText

@@ -36,29 +36,27 @@ export function HomeBootstrapBanner() {
 
   return (
     <ThemedView
-      lightColor="#F2F4F7"
-      darkColor="#202022"
+      lightColor="#E1F0FF"
+      darkColor="#212945"
       style={styles.container}
     >
       <View style={styles.topRow}>
-        <ThemedView
-          lightColor="#FFFFFF"
-          darkColor="#151516"
-          style={styles.iconWrap}
-        >
-          <WarningIcon
-            stroke={isDarkMode ? "#FBFCFF" : "#1B1B1C"}
-            fill={isDarkMode ? "#FBFCFF" : "#1B1B1C"}
-          />
-        </ThemedView>
+        <WarningIcon
+          stroke={isDarkMode ? "#FBFCFF" : "#1B1B1C"}
+          fill={isDarkMode ? "#FBFCFF" : "#1B1B1C"}
+        />
 
         <View style={styles.textBlock}>
-          <ThemedText style={styles.title}>
+          <ThemedText
+            lightColor="#1B1B1C"
+            darkColor="#FBFCFF"
+            style={styles.title}
+          >
             Нет подключения к серверу
           </ThemedText>
           <ThemedText
-            lightColor="#80818B"
-            darkColor="#FBFCFF80"
+            lightColor="#1B1B1C"
+            darkColor="#FBFCFF"
             style={styles.subtitle}
           >
             Проверьте интернет или отключите VPN, затем обновите данные
@@ -69,7 +67,7 @@ export function HomeBootstrapBanner() {
       <PrimaryButton
         title="Обновить"
         onPress={handleRefresh}
-        variant="third"
+        variant="primary"
         size="md"
         loading={isRefreshing}
         fullWidth
@@ -83,28 +81,29 @@ const styles = StyleSheet.create({
     gap: 12,
     marginHorizontal: 16,
     marginTop: 12,
-    padding: 12,
-    borderRadius: 16,
+    padding: 16,
+    borderRadius: 8,
   },
   topRow: {
     flexDirection: "row",
     alignItems: "flex-start",
     gap: 12,
   },
-  iconWrap: {
-    padding: 10,
-    borderRadius: 8,
-  },
   textBlock: {
     flex: 1,
     gap: 4,
   },
   title: {
+    fontFamily: "Montserrat-Medium",
+    fontWeight: "500",
     fontSize: 14,
-    fontWeight: "600",
+    lineHeight: 18.2,
   },
   subtitle: {
-    fontSize: 12,
-    lineHeight: 16,
+    fontFamily: "Montserrat-Medium",
+    fontWeight: "500",
+    fontSize: 14,
+    lineHeight: 18.2,
+    opacity: 0.75,
   },
 });
