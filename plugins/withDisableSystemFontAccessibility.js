@@ -98,17 +98,22 @@ function withIosBoldTextFix(config) {
     },
   ]);
 
-  config = withXcodeProject(config, (project) => {
+  config = withXcodeProject(config, (modConfig) => {
+    const xcodeProject = modConfig.modResults;
     const projectName = IOSConfig.XcodeUtils.getProjectName(
-      config.modRequest.projectRoot,
+      modConfig.modRequest.projectRoot,
     );
     const relativePath = `${projectName}/${IOS_FIX_FILE_NAME}`;
 
-    if (!project.hasFile(relativePath)) {
-      project.addSourceFile(relativePath, {}, project.getFirstTarget().uuid);
+    if (!xcodeProject.hasFile(relativePath)) {
+      xcodeProject.addSourceFile(
+        relativePath,
+        {},
+        xcodeProject.getFirstTarget().uuid,
+      );
     }
 
-    return project;
+    return modConfig;
   });
 
   return config;
