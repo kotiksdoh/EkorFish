@@ -1,12 +1,6 @@
-const {
-  withDangerousMod,
-  withMainActivity,
-  withXcodeProject,
-  IOSConfig,
-} = require('@expo/config-plugins');
+const { withMainActivity } = require('@expo/config-plugins');
+const { withBuildSourceFile } = require('@expo/config-plugins/build/ios/XcodeProjectFile');
 const { mergeContents } = require('@expo/config-plugins/build/utils/generateCode');
-const fs = require('fs');
-const path = require('path');
 
 const IOS_BOLD_TEXT_FIX_SOURCE = `#import <UIKit/UIKit.h>
 #import <objc/runtime.h>
@@ -82,41 +76,11 @@ function withAndroidFontWeightFix(config) {
 }
 
 function withIosBoldTextFix(config) {
-  config = withDangerousMod(config, [
-    'ios',
-    async (config) => {
-      const projectRoot = config.modRequest.platformProjectRoot;
-      const projectName = IOSConfig.XcodeUtils.getProjectName(
-        config.modRequest.projectRoot,
-      );
-      const filePath = path.join(projectRoot, projectName, IOS_FIX_FILE_NAME);
-
-      await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
-      await fs.promises.writeFile(filePath, IOS_BOLD_TEXT_FIX_SOURCE, 'utf8');
-
-      return config;
-    },
-  ]);
-
-  config = withXcodeProject(config, (modConfig) => {
-    const xcodeProject = modConfig.modResults;
-    const projectName = IOSConfig.XcodeUtils.getProjectName(
-      modConfig.modRequest.projectRoot,
-    );
-    const relativePath = `${projectName}/${IOS_FIX_FILE_NAME}`;
-
-    if (!xcodeProject.hasFile(relativePath)) {
-      xcodeProject.addSourceFile(
-        relativePath,
-        {},
-        xcodeProject.getFirstTarget().uuid,
-      );
-    }
-
-    return modConfig;
+  return withBuildSourceFile(config, {
+    filePath: IOS_FIX_FILE_NAME,
+    contents: IOS_BOLD_TEXT_FIX_SOURCE,
+    overwrite: true,
   });
-
-  return config;
 }
 
 function withDisableSystemFontAccessibility(config) {
