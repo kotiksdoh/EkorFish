@@ -8,16 +8,17 @@ import {
   setProductNavigationPending,
 } from "@/features/catalog/catalogSlice";
 import { ProductDetailGallery } from "@/features/catalog/ui/components/ProductDetailGallery";
-import { buildTemplateLineFromProduct } from "@/features/templates/buildTemplateLine";
-import { useTemplatePicker } from "@/features/templates/TemplatePickerContext";
 import { AddToCartModal } from "@/features/shared/ui/AddToCartModal";
+import { useTemplatePicker } from "@/features/templates/TemplatePickerContext";
+import { buildTemplateLineFromProduct } from "@/features/templates/buildTemplateLine";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { store } from "@/store/store";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
-import { useFocusEffect, useLocalSearchParams, useRouter, useSegments } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useFocusEffect, useIsFocused, useLocalSearchParams, useRouter, useSegments } from "expo-router";
+import { useNavigation } from "@react-navigation/native";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
   ActivityIndicator,
   Animated,
@@ -69,9 +70,14 @@ export function ProductDetailScreen() {
   const [hasAuthToken, setHasAuthToken] = useState(false);
 
   const tabContainerRef = useRef<View>(null);
+  const scrollViewRef = useRef<ScrollView>(null);
+  const isLeavingRef = useRef(false);
+  const [isGalleryActive, setIsGalleryActive] = useState(true);
 
   const router = useRouter();
+  const navigation = useNavigation();
   const segments = useSegments();
+  const isScreenFocused = useIsFocused();
   const dispatch = useAppDispatch();
   const storedProduct = useAppSelector((state) => state.catalog.product);
   const activeProductId = useAppSelector((state) => state.catalog.activeProductId);
@@ -102,6 +108,9 @@ export function ProductDetailScreen() {
       };
       void checkAuthToken();
 
+      isLeavingRef.current = false;
+      setIsGalleryActive(true);
+
       if (productId) {
         setIsExpanded(false);
         setSelectedPurchaseOptionIndex(0);
@@ -125,6 +134,8 @@ export function ProductDetailScreen() {
       }
 
       return () => {
+        isLeavingRef.current = true;
+        setIsGalleryActive(false);
         dispatch(setProductNavigationPending(false));
       };
     }, [dispatch, productId]),
@@ -234,7 +245,7 @@ export function ProductDetailScreen() {
     setIsCartModalVisible(false);
   };
 
-  const handleBack = useCallback(() => {
+  const navigateBack = useCallback(() => {
     if (router.canGoBack()) {
       router.back();
       return;
@@ -255,6 +266,51 @@ export function ProductDetailScreen() {
     }
     router.replace("/");
   }, [router, segments]);
+
+  const prepareToLeaveScreen = useCallback(() => {
+    if (isLeavingRef.current) {
+      return false;
+    }
+
+    isLeavingRef.current = true;
+    setIsGalleryActive(false);
+    tabAnim.stopAnimation();
+    scrollViewRef.current?.scrollTo({ x: 0, y: 0, animated: false });
+    return true;
+  }, [tabAnim]);
+
+  const handleBack = useCallback(() => {
+    if (!prepareToLeaveScreen()) {
+      return;
+    }
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        navigateBack();
+      });
+    });
+  }, [navigateBack, prepareToLeaveScreen]);
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener("beforeRemove", (event) => {
+      if (isLeavingRef.current) {
+        return;
+      }
+
+      event.preventDefault();
+      if (!prepareToLeaveScreen()) {
+        return;
+      }
+
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          navigation.dispatch(event.data.action);
+        });
+      });
+    });
+
+    return unsubscribe;
+  }, [navigation, prepareToLeaveScreen]);
 
   useFocusEffect(
     useCallback(() => {
@@ -356,16 +412,18 @@ export function ProductDetailScreen() {
             <View style={styles.loadingContainer}>
               <ActivityIndicator
                 size="large"
-                color={isDarkMode ? "#4C94FF" : "#1B1B1C"}
+                color={isDarkMode ? "#4C94FF" : "#203686"}
               />
             </View>
           ) : (
           <>
           <ScrollView
+            ref={scrollViewRef}
             style={styles.container}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.scrollContent}
-            nestedScrollEnabled
+            nestedScrollEnabled={Platform.OS === "android"}
+            scrollEnabled={isGalleryActive && isScreenFocused}
           >
             <ThemedView
               style={styles.themeContainer}
@@ -377,6 +435,7 @@ export function ProductDetailScreen() {
                 items={productSliderItems}
                 autoPlayInterval={4000}
                 showIndicators={productSliderItems.length > 1}
+                isActive={isGalleryActive && isScreenFocused}
               />
 
               <View style={styles.productNameWrapper}>
@@ -656,9 +715,17 @@ export function ProductDetailScreen() {
           </ScrollView>
 
           {/* Нижняя панель с кнопкой добавления в корзину */}
-          <View style={styles.bottomPanel}>
+          <ThemedView
+            lightColor="#FFFFFF"
+            darkColor="#151516"
+            style={styles.bottomPanel}
+          >
             <TouchableOpacity
-              style={styles.addToCartButton}
+              style={[
+                styles.addToCartButton,
+                isDarkMode && styles.addToCartButtonDark,
+                !hasAuthToken && styles.addToCartButtonDisabled,
+              ]}
               onPress={hasAuthToken ? handleOpenCartModal : undefined}
               disabled={!hasAuthToken}
               activeOpacity={hasAuthToken ? 0.9 : 1}
@@ -687,7 +754,7 @@ export function ProductDetailScreen() {
                 </ThemedText>
               </View>
             </TouchableOpacity>
-          </View>
+          </ThemedView>
           </>
           )}
 
@@ -854,6 +921,7 @@ const styles = StyleSheet.create({
   tabContent: {
     marginTop: 8,
     minHeight: 100,
+    paddingBottom: 16
   },
   descriptionText: {
     fontSize: 16,
@@ -910,9 +978,19 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     paddingHorizontal: 16,
     paddingTop: 12,
-    paddingBottom: Platform.OS === "ios" ? 34 : 20,
+    paddingBottom: 8,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: -2,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 5,
   },
   templatePlusIcon: {
     fontSize: 28,
@@ -926,6 +1004,12 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 24,
     width: "100%",
+  },
+  addToCartButtonDark: {
+    backgroundColor: "#3881EE",
+  },
+  addToCartButtonDisabled: {
+    opacity: 0.5,
   },
   addToCartContent: {
     flexDirection: "row",

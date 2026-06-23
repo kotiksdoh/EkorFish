@@ -17,7 +17,7 @@ import { useMemo, useState } from 'react';
 import { ActivityIndicator, Button, StyleSheet } from 'react-native';
 import 'react-native-reanimated';
 import { Provider } from 'react-redux';
-import '@/utils/disableFontScaling';
+import '@/utils/configureTextAccessibility';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import ToastManager from 'toastify-react-native';
 import '../global.css';

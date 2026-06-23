@@ -1,5 +1,6 @@
+import { AppText } from "@/components/app-text";
 import React from "react";
-import { Dimensions, Image, StyleSheet, Text, View } from "react-native";
+import { Dimensions, Image, StyleSheet, View } from "react-native";
 import { SlideItem } from "./AutoSlider";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -35,14 +36,14 @@ export const AutoSliderItem: React.FC<AutoSliderItemProps> = ({
         {/* Текстовый контент */}
         <View style={styles.textContainer}>
           {item.title && (
-            <Text style={styles.title} numberOfLines={2}>
+            <AppText style={styles.title} numberOfLines={2}>
               {item.title}
-            </Text>
+            </AppText>
           )}
           {item.subtitle && (
-            <Text style={styles.subtitle} numberOfLines={2}>
+            <AppText style={styles.subtitle} numberOfLines={2}>
               {item.subtitle}
-            </Text>
+            </AppText>
           )}
         </View>
       </View>

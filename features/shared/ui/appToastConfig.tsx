@@ -1,6 +1,7 @@
+import { AppText } from "@/components/app-text";
 import { Ionicons } from "@expo/vector-icons";
 import type { ReactNode } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 
 type ToastVariant = "success" | "error" | "info" | "warn";
 
@@ -137,14 +138,14 @@ function AppToastCard({
       </View>
       <View style={styles.textBlock}>
         {text1 ? (
-          <Text style={[styles.title, { color: p.title }]} numberOfLines={4}>
+          <AppText style={[styles.title, { color: p.title }]} numberOfLines={4}>
             {text1}
-          </Text>
+          </AppText>
         ) : null}
         {text2 ? (
-          <Text style={[styles.subtitle, { color: p.subtitle }]} numberOfLines={6}>
+          <AppText style={[styles.subtitle, { color: p.subtitle }]} numberOfLines={6}>
             {text2}
-          </Text>
+          </AppText>
         ) : null}
       </View>
       <Pressable

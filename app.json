@@ -48,6 +48,7 @@
       "@react-native-firebase/app",
       "@react-native-firebase/crashlytics",
       "./plugins/withAndroidLinkingQueries.js",
+      "./plugins/withDisableSystemFontAccessibility.js",
       "expo-router",
       [
         "expo-splash-screen",

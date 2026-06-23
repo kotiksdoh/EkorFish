@@ -1,6 +1,7 @@
+import { AppText } from '@/components/app-text';
 import React from 'react';
 import {
-  ActivityIndicator, StyleSheet, Text,
+  ActivityIndicator, StyleSheet,
   TouchableOpacity,
   TouchableOpacityProps,
   View,
@@ -187,10 +188,10 @@ export const PrimaryButton: React.FC<PrimaryButtonProps> = ({
       {customIcon ?
       <View style={stylesBut.withIcon}>
       {customIcon}
-      <Text style={textStyles}>{title}</Text>
+      <AppText style={textStyles}>{title}</AppText>
       </View>
       : 
-      <Text style={customTextColor ? { color: customTextColor } : textStyles}>{title}</Text>
+      <AppText style={customTextColor ? { color: customTextColor } : textStyles}>{title}</AppText>
       }
       
       {!loading && rightIcon && (
@@ -301,7 +302,7 @@ export const PrimaryButtonWithTailwind: React.FC<PrimaryButtonProps> = ({
         <View className="mr-2">{leftIcon}</View>
       ) : null}
       
-      <Text className={textClasses}>{title}</Text>
+      <AppText className={textClasses}>{title}</AppText>
       
       {!loading && rightIcon && (
         <View className="ml-2">{rightIcon}</View>

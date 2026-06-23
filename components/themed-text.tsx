@@ -1,4 +1,5 @@
 import { useThemeColor } from '@/hooks/use-theme-color';
+import { FIXED_TEXT_PROPS, getFixedTextStyle } from '@/utils/fixedTextStyle';
 import { Platform, StyleSheet, Text, type TextProps } from 'react-native';
 
 export type ThemedTextProps = TextProps & {
@@ -55,19 +56,20 @@ export function ThemedText({
 
   return (
     <Text
+      {...FIXED_TEXT_PROPS}
       style={[
-        { 
+        getFixedTextStyle({
           color,
           fontFamily: getFontFamily(),
           fontWeight: getFontWeight(),
-        },
-        type === 'default' ? styles.default : undefined,
-        type === 'title' ? styles.title : undefined,
-        type === 'defaultSemiBold' ? styles.defaultSemiBold : undefined,
-        type === 'subtitle' ? styles.subtitle : undefined,
-        type === 'link' ? styles.link : undefined,
-        type === 'caption' ? styles.caption : undefined,
-        style,
+        }),
+        type === 'default' ? getFixedTextStyle(styles.default) : undefined,
+        type === 'title' ? getFixedTextStyle(styles.title) : undefined,
+        type === 'defaultSemiBold' ? getFixedTextStyle(styles.defaultSemiBold) : undefined,
+        type === 'subtitle' ? getFixedTextStyle(styles.subtitle) : undefined,
+        type === 'link' ? getFixedTextStyle(styles.link) : undefined,
+        type === 'caption' ? getFixedTextStyle(styles.caption) : undefined,
+        getFixedTextStyle(style),
       ]}
       {...rest}
     />
@@ -82,19 +84,19 @@ const styles = StyleSheet.create({
   defaultSemiBold: {
     fontSize: 16,
     lineHeight: 24,
-    fontWeight: Platform.OS === 'ios' ? '600' : 'normal', 
+    fontWeight: Platform.OS === 'ios' ? 'normal' : 'normal', 
     fontFamily: Platform.OS === 'ios' ? 'Montserrat-SemiBold' : 'Montserrat-Regular',
   },
   title: {
     fontSize: 32,
     lineHeight: 40,
-    fontWeight: Platform.OS === 'ios' ? 'bold' : 'normal',
+    fontWeight: Platform.OS === 'ios' ? 'normal' : 'normal',
     fontFamily: Platform.OS === 'ios' ? 'Montserrat-Bold' : 'Montserrat-Regular',
   },
   subtitle: {
     fontSize: 20,
     lineHeight: 28,
-    fontWeight: Platform.OS === 'ios' ? '600' : 'normal',
+    fontWeight: Platform.OS === 'ios' ? 'normal' : 'normal',
     fontFamily: Platform.OS === 'ios' ? 'Montserrat-SemiBold' : 'Montserrat-Regular',
   },
   link: {
