@@ -1,8 +1,8 @@
 // features/shared/ui/SpecialOffers.tsx
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { adaptProductsArray } from "@/features/shared/services/productAdapter";
 import { axdef } from "@/features/shared/services/axios";
+import { adaptProductsArray } from "@/features/shared/services/productAdapter";
 import { ProductCard } from "@/features/shared/ui/ProductCard";
 import { PrimaryButton } from "@/features/shared/ui/components/PrimartyButton";
 import { useAppSelector } from "@/store/hooks";
@@ -165,7 +165,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 16,
     borderRadius: 24,
-    marginTop: 20,
+    marginTop: 8,
     overflow: "hidden",
     position: "relative",
   },

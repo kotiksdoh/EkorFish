@@ -19,12 +19,11 @@ import { LemonIcon } from "@/assets/icons/icons";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { clearBonusHistory, getBonusHistory } from "@/features/auth/authSlice";
-import { AddToCart } from "@/features/catalog/catalogSlice";
 import { ModalHeader } from "@/features/auth/ui/Header";
+import { AddToCart } from "@/features/catalog/catalogSlice";
 import { AddToCartModal } from "@/features/shared/ui/AddToCartModal";
 import { useAppSelector } from "@/store/hooks";
 import { TRootState } from "@/store/store";
-import { PrimaryButton } from "../..";
 import SpecialOffers from "../components/SpecialOffers/SpecialOffers";
 
 const { height: screenHeight } = Dimensions.get("window");
@@ -599,7 +598,7 @@ const styles = StyleSheet.create({
   historyBlock: {
     borderRadius: 24,
     padding: 20,
-    marginTop: 16,
+    marginTop: 8,
   },
   historyHeader: {
     flexDirection: "row",

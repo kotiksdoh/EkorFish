@@ -1,7 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 
-// export const baseUrl = `http://192.168.222.229:9191`; // Локалка
+// export const baseUrl = `http://192.168.222.206:9191`; // Локалка
 // export const baseUrl = `http://192.168.222.239:13333`;
 export const baseUrl = `https://api.ekorfish.ru`; // Домен
 // export const baseUrl = `http://192.168.222.238:13333`; // Сервер

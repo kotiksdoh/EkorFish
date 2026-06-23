@@ -131,7 +131,7 @@ const styles = StyleSheet.create({
     paddingTop: 0,
   },
   content: {
-    paddingBottom: 20,
+    paddingBottom: 12,
   },
   catalogCardCell: {
     flex: 1,

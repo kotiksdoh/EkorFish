@@ -60,7 +60,8 @@ const styles = StyleSheet.create({
     paddingLeft: 16,
     paddingRight: 16,
     borderRadius: 8,
-    marginTop: 20,
+    marginTop: 24,
+    marginBottom: 12
   },
   catalogMainText: {
     fontWeight: "600",

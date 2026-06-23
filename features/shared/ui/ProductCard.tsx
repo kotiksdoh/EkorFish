@@ -374,14 +374,14 @@ const ProductCardComponent: React.FC<ProductCardProps> = ({
                     darkColor="#4C94FF"
                     style={styles.kgPrice}
                   >
-                    {kgPrice ? kgPrice : "0,00"}
+                    {kgPrice ? kgPrice : "0,00"}{' '}
                   </ThemedText>
                   <ThemedText
                     lightColor="#203686"
                     darkColor="#4C94FF"
                     style={styles.kgLabel}
                   >
-                    ₽ / кг
+                     ₽ / кг
                   </ThemedText>
                 </View>
 
@@ -456,7 +456,6 @@ const styles = StyleSheet.create({
     width: "100%",
     borderRadius: 8,
     overflow: "hidden",
-    elevation: 3,
     position: "relative",
   },
   imageContainer: {

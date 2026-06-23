@@ -148,13 +148,13 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     overflow: "hidden",
     marginBottom: 1,
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3,
+    // shadowOffset: {
+    //   width: 0,
+    //   height: 2,
+    // },
+    // shadowOpacity: 0.1,
+    // shadowRadius: 3,
+    // elevation: 3,
   },
   textContainer: {
     position: "absolute",
