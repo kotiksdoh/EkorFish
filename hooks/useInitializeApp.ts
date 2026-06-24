@@ -5,6 +5,7 @@ import {
   getCategoryItems,
   getMyInfo,
   getMyParams,
+  getSearchHints,
   getSliderItems,
   setBootstrapStatus,
 } from "@/features/auth/authSlice";
@@ -59,6 +60,7 @@ const loadAppResources = async () => {
       store.dispatch(getSliderItems("")).unwrap(),
       "sliders",
     );
+    await withTimeout(store.dispatch(getSearchHints()).unwrap(), "search-hints");
     if (token) {
       await withTimeout(store.dispatch(getMyInfo("")).unwrap(), "my-info");
       await withTimeout(store.dispatch(getMyParams("")).unwrap(), "params");

@@ -17,6 +17,7 @@ interface AuthState {
   params: any[];
   sliders: any[];
   categories: any[];
+  searchHints: string[];
   predUserData: any;
   towns: Town[];
   isLoadingTowns: boolean;
@@ -99,6 +100,7 @@ const initialState: AuthState = {
   params: [],
   sliders: [],
   categories: [],
+  searchHints: [],
   predUserData: null,
   towns: [],
   isLoadingTowns: false,
@@ -256,6 +258,19 @@ export const getCategoryItems = createAsyncThunk(
   async (payload: any, { rejectWithValue }) => {
     try {
       const data = await axdef.get("/api/Catalog/categories");
+      return data;
+    } catch (error) {
+      console.log(error);
+      return rejectWithValue(error);
+    }
+  },
+);
+
+export const getSearchHints = createAsyncThunk(
+  "user/getSearchHints",
+  async (_, { rejectWithValue }) => {
+    try {
+      const data = await axdef.get("/api/Catalog/search-hints");
       return data;
     } catch (error) {
       console.log(error);
@@ -575,6 +590,10 @@ async function loadAppBootstrapData(
     runStep(dispatch(getSliderItems("")).unwrap(), "sliders"),
   ];
 
+  const optionalSteps: Promise<unknown>[] = [
+    runStep(dispatch(getSearchHints()).unwrap(), "search-hints"),
+  ];
+
   const authSteps: Promise<unknown>[] = token
     ? [
         runStep(dispatch(getMyInfo("")).unwrap(), "my-info"),
@@ -585,7 +604,7 @@ async function loadAppBootstrapData(
     : [];
 
   const criticalResults = await Promise.allSettled(criticalSteps);
-  await Promise.allSettled(authSteps);
+  await Promise.allSettled([...authSteps, ...optionalSteps]);
 
   return criticalResults.every((result) => result.status === "fulfilled");
 }
@@ -688,6 +707,14 @@ const authSlice = createSlice({
       // console.log('action.payload.reject', JSON.stringify(action?.payload))
       axiosErrorHandler(action?.payload);
     });
+    builder.addCase(getSearchHints.fulfilled, (state, action) => {
+      const hints = action.payload?.data?.data;
+      state.searchHints = Array.isArray(hints) ? hints : [];
+    });
+    builder.addCase(getSearchHints.rejected, (state, action) => {
+      axiosErrorHandler(action?.payload);
+    });
+
     builder.addCase(getCategoryItems.pending, (state) => {
       state.isLoading = true;
     });

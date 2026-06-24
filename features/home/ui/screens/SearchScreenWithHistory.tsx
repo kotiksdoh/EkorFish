@@ -2,10 +2,13 @@
 import { ArrowIconLeft, CloseIcon } from "@/assets/icons/icons";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { SearchHistoryChips } from "@/features/home/ui/components/SearchHistory/SearchHistoryChips";
+import { SearchHintsList } from "@/features/home/ui/components/SearchHints/SearchHintsList";
+import { filterSearchHints } from "@/features/home/utils/searchHints";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useAppSelector } from "@/store/hooks";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useRouter } from "expo-router";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Keyboard,
   ScrollView,
@@ -17,6 +20,14 @@ import {
 import Catalog from "../components/Catalog/Catalog";
 
 const SEARCH_HISTORY_KEY = "@search_history";
+
+const SearchCatalogScroll = React.memo(function SearchCatalogScroll() {
+  return (
+    <ScrollView style={styles.content} keyboardShouldPersistTaps="handled">
+      <Catalog />
+    </ScrollView>
+  );
+});
 
 interface SearchScreenWithHistoryProps {
   visible: boolean;
@@ -31,8 +42,16 @@ export const SearchScreenWithHistory: React.FC<
   const isDark = colorScheme === "dark";
   const [searchQuery, setSearchQuery] = useState("");
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
+  const searchHints = useAppSelector((state) => state.auth.searchHints);
   const inputRef = useRef<TextInput>(null);
-  const router = useRouter();
+
+  const filteredHints = useMemo(
+    () => filterSearchHints(searchHints, searchQuery),
+    [searchHints, searchQuery],
+  );
+
+  const showSearchHints = searchQuery.trim().length > 0 && filteredHints.length > 0;
+  const isTyping = searchQuery.trim().length > 0;
 
   // Загружаем историю при открытии
   useEffect(() => {
@@ -128,6 +147,13 @@ export const SearchScreenWithHistory: React.FC<
     onClose();
   };
 
+  const handleHintPress = (hint: string) => {
+    setSearchQuery(hint);
+    saveSearchQuery(hint);
+    onSearch(hint);
+    onClose();
+  };
+
   const handleClearInput = () => {
     setSearchQuery("");
     inputRef.current?.focus();
@@ -147,7 +173,7 @@ export const SearchScreenWithHistory: React.FC<
     >
       <ThemedView
         style={[
-          searchHistory.length > 0
+          searchHistory.length > 0 || showSearchHints
             ? styles.headerWhithoutBorders
             : styles.header,
         ]}
@@ -180,49 +206,46 @@ export const SearchScreenWithHistory: React.FC<
         </ThemedView>
       </ThemedView>
 
-      <ThemedView style={styles.history}>
-        {searchHistory.length > 0 && (
-          <>
-            <View style={styles.historyHeader}>
-              <ThemedText
-                lightColor="#80818B"
-                darkColor="#FBFCFF80"
-                style={styles.historyTitle}
-              >
-                Вы искали
-              </ThemedText>
-              <TouchableOpacity onPress={handleClearHistory}>
-                <ThemedText style={styles.clearButton}>Очистить</ThemedText>
-              </TouchableOpacity>
-            </View>
-            <View style={styles.historyMainCont}>
-              {searchHistory.map((item, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={[
-                    styles.historyItem,
-                    { backgroundColor: isDark ? "#202022" : "#F2F4F7" },
-                  ]}
-                  onPress={() => handleHistoryItemPress(item)}
-                >
-                  <ThemedText style={styles.historyItemText}>{item}</ThemedText>
-                  <TouchableOpacity
-                    onPress={() => handleRemoveHistoryItem(item)}
-                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                  >
-                    <CloseIcon stroke="#80818B" width={16} height={16} />
-                  </TouchableOpacity>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </>
-        )}
-      </ThemedView>
+      {searchHistory.length > 0 && (
+        <ThemedView style={styles.history}>
+          <View
+            style={[
+              styles.historyHeader,
+              isTyping && styles.historyHeaderHidden,
+            ]}
+            pointerEvents={isTyping ? "none" : "auto"}
+          >
+            <ThemedText
+              lightColor="#80818B"
+              darkColor="#FBFCFF80"
+              style={styles.historyTitle}
+            >
+              Вы искали
+            </ThemedText>
+            <TouchableOpacity onPress={handleClearHistory}>
+              <ThemedText style={styles.clearButton}>Очистить</ThemedText>
+            </TouchableOpacity>
+          </View>
+          <SearchHistoryChips
+            items={searchHistory}
+            resetKey={visible}
+            onItemPress={handleHistoryItemPress}
+            onItemRemove={handleRemoveHistoryItem}
+          />
+        </ThemedView>
+      )}
 
-      <ScrollView style={styles.content}>
-        {/* <SpecialOffers/> */}
-        <Catalog />
-      </ScrollView>
+      {showSearchHints && (
+        <View style={styles.hintsSection}>
+          <SearchHintsList
+            hints={filteredHints}
+            query={searchQuery}
+            onHintPress={handleHintPress}
+          />
+        </View>
+      )}
+
+      <SearchCatalogScroll />
     </ThemedView>
   );
 };
@@ -285,14 +308,25 @@ const styles = StyleSheet.create({
   },
   history: {
     paddingHorizontal: 16,
+    paddingBottom: 4,
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
+  },
+  hintsSection: {
+    marginTop: 8,
+    marginBottom: 8,
   },
   historyHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 16,
+    overflow: "hidden",
+  },
+  historyHeaderHidden: {
+    maxHeight: 0,
+    marginBottom: 0,
+    opacity: 0,
   },
   historyTitle: {
     fontSize: 16,
@@ -301,26 +335,5 @@ const styles = StyleSheet.create({
   clearButton: {
     fontSize: 14,
     color: "#203686",
-  },
-  historyMainCont: {
-    flexDirection: "row",
-    alignItems: "center",
-    flexWrap: "wrap",
-    // flex: 1,
-    marginBottom: 10,
-    gap: 4,
-  },
-  historyItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#F2F4F7",
-    borderRadius: 6,
-    paddingVertical: 8,
-    paddingHorizontal: 8,
-    marginBottom: 8,
-    gap: 12,
-  },
-  historyItemText: {
-    fontSize: 14,
   },
 });
