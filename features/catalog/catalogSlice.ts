@@ -148,6 +148,9 @@ interface CategoryState {
   product: any;
   isLoadingProduct: boolean;
   isNavigatingToProduct: boolean;
+  similarProducts: any[];
+  isLoadingSimilarProducts: boolean;
+  similarProductsForProductId: string | null;
 
   cart: any[];
   isLoadingCart: boolean;
@@ -197,6 +200,9 @@ const initialState: CategoryState = {
   product: null,
   isLoadingProduct: false,
   isNavigatingToProduct: false,
+  similarProducts: [],
+  isLoadingSimilarProducts: false,
+  similarProductsForProductId: null,
   isLoadingOrders: false,
 
   returnsStatuses: [],
@@ -416,6 +422,48 @@ export const getProduct = createAsyncThunk(
         params: { productId },
       });
       return data.data.data;
+    } catch (error) {
+      console.log(error);
+      return rejectWithValue(error);
+    }
+  },
+);
+
+export const getSimilarProducts = createAsyncThunk(
+  "catalog/getSimilarProducts",
+  async (
+    payload: {
+      productId: string;
+      categoryId?: string;
+      storageId?: string;
+    },
+    { rejectWithValue },
+  ) => {
+    try {
+      const params = new URLSearchParams();
+      params.append("isFavorite", "false");
+      params.append("offset", "0");
+      params.append("isPromo", "false");
+      params.append("count", "4");
+      params.append("SortBy", "0");
+      params.append("IsDesc", "false");
+
+      if (payload.categoryId) {
+        params.append("categoryId", payload.categoryId);
+      }
+      if (payload.storageId) {
+        params.append("storageId", payload.storageId);
+      }
+
+      const data = await axdef.get("/api/Catalog/product/list", {
+        params,
+        paramsSerializer: (requestParams) => requestParams.toString(),
+      });
+
+      return {
+        productId: payload.productId,
+        data: data.data,
+      };
     } catch (error) {
       console.log(error);
       return rejectWithValue(error);
@@ -918,6 +966,14 @@ const catalogSlice = createSlice({
       state.activeProductId = null;
       state.isLoadingProduct = false;
       state.isNavigatingToProduct = false;
+      state.similarProducts = [];
+      state.isLoadingSimilarProducts = false;
+      state.similarProductsForProductId = null;
+    },
+    clearSimilarProducts: (state) => {
+      state.similarProducts = [];
+      state.isLoadingSimilarProducts = false;
+      state.similarProductsForProductId = null;
     },
     updateCartItemQuantity: (state, action) => {
       const { cartItemId, quantity } = action.payload;
@@ -1258,6 +1314,9 @@ const catalogSlice = createSlice({
       }
       state.isLoadingProduct = true;
       state.isNavigatingToProduct = true;
+      state.similarProducts = [];
+      state.isLoadingSimilarProducts = false;
+      state.similarProductsForProductId = null;
     });
 
     builder.addCase(getProduct.fulfilled, (state, action) => {
@@ -1277,6 +1336,37 @@ const catalogSlice = createSlice({
       }
       state.isLoadingProduct = false;
       state.isNavigatingToProduct = false;
+      axiosErrorHandler(action?.payload);
+    });
+
+    builder.addCase(getSimilarProducts.pending, (state, action) => {
+      const requestProductId = String(action.meta.arg?.productId ?? "");
+      state.isLoadingSimilarProducts = true;
+      state.similarProductsForProductId = requestProductId;
+      state.similarProducts = [];
+    });
+
+    builder.addCase(getSimilarProducts.fulfilled, (state, action) => {
+      const requestProductId = String(action.meta.arg?.productId ?? "");
+      if (requestProductId !== state.similarProductsForProductId) {
+        state.isLoadingSimilarProducts = false;
+        return;
+      }
+
+      const adaptedProducts = adaptProductsArray(action.payload.data?.data || []);
+      state.similarProducts = adaptedProducts
+        .filter((item) => String(item.id) !== requestProductId)
+        .slice(0, 4);
+      state.isLoadingSimilarProducts = false;
+    });
+
+    builder.addCase(getSimilarProducts.rejected, (state, action) => {
+      const requestProductId = String(action.meta.arg?.productId ?? "");
+      if (requestProductId !== state.similarProductsForProductId) {
+        return;
+      }
+      state.similarProducts = [];
+      state.isLoadingSimilarProducts = false;
       axiosErrorHandler(action?.payload);
     });
 
@@ -1489,5 +1579,6 @@ export const {
   setProductNavigationPending,
   setProductPreview,
   clearProduct,
+  clearSimilarProducts,
 } = catalogSlice.actions;
 export default catalogSlice.reducer;

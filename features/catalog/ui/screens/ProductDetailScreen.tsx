@@ -4,10 +4,13 @@ import { ThemedView } from "@/components/themed-view";
 import { ModalHeader } from "@/features/auth/ui/Header";
 import {
   AddToCart,
+  clearSimilarProducts,
   getProduct,
+  getSimilarProducts,
   setProductNavigationPending,
 } from "@/features/catalog/catalogSlice";
 import { ProductDetailGallery } from "@/features/catalog/ui/components/ProductDetailGallery";
+import SimilarProducts from "@/features/catalog/ui/components/SimilarProducts/SimilarProducts";
 import { AddToCartModal } from "@/features/shared/ui/AddToCartModal";
 import { useTemplatePicker } from "@/features/templates/TemplatePickerContext";
 import { buildTemplateLineFromProduct } from "@/features/templates/buildTemplateLine";
@@ -67,6 +70,7 @@ export function ProductDetailScreen() {
   const [tabAnim] = useState(new Animated.Value(0));
   const [isCartModalVisible, setIsCartModalVisible] = useState(false);
   const [existingCartItem, setExistingCartItem] = useState<any>(null);
+  const [selectedProductForCart, setSelectedProductForCart] = useState<any>(null);
   const [hasAuthToken, setHasAuthToken] = useState(false);
 
   const tabContainerRef = useRef<View>(null);
@@ -83,6 +87,7 @@ export function ProductDetailScreen() {
   const activeProductId = useAppSelector((state) => state.catalog.activeProductId);
   const isLoadingProduct = useAppSelector((state) => state.catalog.isLoadingProduct);
   const cartItems = useAppSelector((state) => state.catalog.cart);
+  const me = useAppSelector((state) => state.auth.me);
 
   const product = useMemo(() => {
     if (!productId || String(activeProductId) !== String(productId)) {
@@ -136,10 +141,34 @@ export function ProductDetailScreen() {
       return () => {
         isLeavingRef.current = true;
         setIsGalleryActive(false);
+        dispatch(clearSimilarProducts());
         dispatch(setProductNavigationPending(false));
       };
     }, [dispatch, productId]),
   );
+
+  useEffect(() => {
+    if (!product?.id || String(activeProductId) !== String(productId)) {
+      return;
+    }
+
+    dispatch(
+      getSimilarProducts({
+        productId: String(product.id),
+        categoryId: product.categoryId
+          ? String(product.categoryId)
+          : undefined,
+        storageId: me?.storageId ? String(me.storageId) : undefined,
+      }),
+    );
+  }, [
+    activeProductId,
+    dispatch,
+    me?.storageId,
+    product?.categoryId,
+    product?.id,
+    productId,
+  ]);
 
   useEffect(() => {
     if (selectedPurchaseOption) {
@@ -168,6 +197,7 @@ export function ProductDetailScreen() {
   };
 
   const handleOpenCartModal = () => {
+    setSelectedProductForCart(null);
     if (templatePicker.pickingForTemplateId && Array.isArray(product?.purchaseOptions)) {
       let existingLine: any = null;
       for (const option of product.purchaseOptions) {
@@ -221,16 +251,39 @@ export function ProductDetailScreen() {
     setIsCartModalVisible(true);
   };
 
+  const handleAddToCartPress = useCallback(
+    (listProduct: any) => {
+      const cartItemsForListProduct =
+        cartItems?.filter((item: any) => item.productId === listProduct.id) ||
+        [];
+      const templateLines = templatePicker.pickingForTemplateId
+        ? templatePicker.getExistingTemplateLinesForProduct(String(listProduct.id))
+        : [];
+
+      setSelectedProductForCart(listProduct);
+      setExistingCartItem(
+        templatePicker.pickingForTemplateId
+          ? templateLines
+          : cartItemsForListProduct,
+      );
+      setIsCartModalVisible(true);
+    },
+    [cartItems, templatePicker],
+  );
+
   const handleAddToCart = (
     productId: string,
     optionId: string,
     quantity: number,
   ) => {
-    if (templatePicker.pickingForTemplateId && product) {
+    const cartProduct = selectedProductForCart ?? product;
+
+    if (templatePicker.pickingForTemplateId && cartProduct) {
       void templatePicker.addLineFromProduct(
-        buildTemplateLineFromProduct(product, optionId, quantity),
+        buildTemplateLineFromProduct(cartProduct, optionId, quantity),
       );
       setIsCartModalVisible(false);
+      setSelectedProductForCart(null);
       return;
     }
     console.log("Add to cart:", { productId, optionId, quantity });
@@ -243,6 +296,7 @@ export function ProductDetailScreen() {
       }),
     );
     setIsCartModalVisible(false);
+    setSelectedProductForCart(null);
   };
 
   const navigateBack = useCallback(() => {
@@ -712,6 +766,12 @@ export function ProductDetailScreen() {
                 )}
               </View>
             </ThemedView>
+
+            <SimilarProducts
+              title="Похожие товары"
+              handleAddToCartPress={handleAddToCartPress}
+              returnTo="catalog"
+            />
           </ScrollView>
 
           {/* Нижняя панель с кнопкой добавления в корзину */}
@@ -764,8 +824,9 @@ export function ProductDetailScreen() {
             onClose={() => {
               setIsCartModalVisible(false);
               setExistingCartItem(null);
+              setSelectedProductForCart(null);
             }}
-            product={product}
+            product={selectedProductForCart ?? product}
             onAddToCart={handleAddToCart}
             existingCartItem={existingCartItem}
             variant={
