@@ -1,4 +1,4 @@
-import { CloseIcon, MenuIcon, SearchIcon } from "@/assets/icons/icons";
+import { ArrowIconLeft, CloseIcon, MenuIcon, SearchIcon } from "@/assets/icons/icons";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import React from "react";
 import {
@@ -22,6 +22,9 @@ interface SearchInputProps {
   onClear?: () => void;
   ref?: React.Ref<TextInput>; // Также добавьте ref если нужно
   isFav?: boolean;
+  leadingMode?: "search" | "back";
+  onLeadingPress?: () => void;
+  compactLayout?: boolean;
 }
 
 const SearchInput: React.FC<SearchInputProps> = ({
@@ -38,6 +41,9 @@ const SearchInput: React.FC<SearchInputProps> = ({
   onClear,
   ref,
   isFav = false,
+  leadingMode = "search",
+  onLeadingPress,
+  compactLayout = false,
 }) => {
   const systemTheme = useColorScheme(); // Получаем системную тему
   const currentTheme = theme === "auto" ? systemTheme : theme;
@@ -60,6 +66,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
     <View
       style={[
         styles.container,
+        compactLayout && styles.containerCompact,
         isFav && {
           padding: 16,
           paddingBottom: 0,
@@ -74,10 +81,21 @@ const SearchInput: React.FC<SearchInputProps> = ({
           disabled && styles.disabled,
         ]}
       >
-        {/* Иконка поиска слева */}
-        <View style={styles.searchIcon}>
-          <SearchIcon stroke={disabled ? "#A0A0A0" : "#80818B"} />
-        </View>
+        {/* Иконка слева: поиск или назад */}
+        {leadingMode === "back" ? (
+          <TouchableOpacity
+            style={styles.searchIcon}
+            onPress={onLeadingPress}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            activeOpacity={0.7}
+          >
+            <ArrowIconLeft color={disabled ? "#A0A0A0" : isDarkMode ? "#FBFCFF" : "#80818B"} />
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.searchIcon}>
+            <SearchIcon stroke={disabled ? "#A0A0A0" : "#80818B"} />
+          </View>
+        )}
 
         {/* Поле ввода */}
         <TextInput
@@ -150,6 +168,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
     padding: 16,
+  },
+  containerCompact: {
+    paddingTop: 0,
+    paddingBottom: 0,
+    paddingHorizontal: 16,
   },
   searchContainer: {
     flex: 1,

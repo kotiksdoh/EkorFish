@@ -48,7 +48,7 @@ export const CatalogScreen = () => {
         `${query}`
       )}&children=${encodeURIComponent("")}&search=${encodeURIComponent(
         `${query}`
-      )}&isPromo=false`,
+      )}&isPromo=false&fromSearchScreen=true`,
     );
   };
 

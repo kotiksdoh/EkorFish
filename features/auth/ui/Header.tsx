@@ -36,6 +36,8 @@ interface ModalHeaderProps {
   headerRight?: ReactNode;
   /** Контент под строкой заголовка, но над `content` (например баннер режима шаблона) */
   belowTitleRow?: ReactNode;
+  /** Компактные отступы для экрана результатов поиска */
+  compactSearchLayout?: boolean;
 }
 
 export const ModalHeader: React.FC<ModalHeaderProps> = ({
@@ -50,6 +52,7 @@ export const ModalHeader: React.FC<ModalHeaderProps> = ({
   isFavorite: initialIsFavorite,
   headerRight,
   belowTitleRow,
+  compactSearchLayout = false,
 }) => {
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === "dark";
@@ -106,7 +109,7 @@ export const ModalHeader: React.FC<ModalHeaderProps> = ({
     // Переходим на экран каталога с поиском
     //@ts-ignore
     router.push(
-      `dashboard/${encodeURIComponent("fsfs")}?catalogId=${" "}&catalogName=${encodeURIComponent(`${query}`)}&children=${encodeURIComponent("")}&search=${encodeURIComponent(`${query}`)}&isPromo=false`,
+      `dashboard/${encodeURIComponent("fsfs")}?catalogId=${" "}&catalogName=${encodeURIComponent(`${query}`)}&children=${encodeURIComponent("")}&search=${encodeURIComponent(`${query}`)}&isPromo=false&fromSearchScreen=true`,
     );
   };
   const handleShare = async () => {
@@ -243,10 +246,11 @@ export const ModalHeader: React.FC<ModalHeaderProps> = ({
         ) : null}
         {!showCloseButton || isProduct ? (
           <View
-            style={
+            style={[
               ((!title && !isProduct) || !showBackButton) &&
-              headerStyles.containerSub
-            }
+                headerStyles.containerSub,
+              compactSearchLayout && headerStyles.containerSubCompact,
+            ]}
           >
             {content ? content : null}
           </View>
@@ -291,6 +295,9 @@ const headerStyles = StyleSheet.create({
   containerSub: {
     paddingTop: 66,
     paddingBottom: 17,
+  },
+  containerSubCompact: {
+    paddingBottom: 14,
   },
   backButton: {
     position: "absolute",

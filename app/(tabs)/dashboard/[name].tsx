@@ -77,14 +77,16 @@ function normalizeShelfLifePercentInput(text: string): string {
 export default function CatalogDetailScreen() {
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === "dark";
-  const { catalogId, catalogName, search, isPromo = false, children } = useLocalSearchParams<{
+  const { catalogId, catalogName, search, isPromo = false, children, fromSearchScreen } = useLocalSearchParams<{
     catalogId: string;
     catalogName: string;
     search?: string;
     isPromo: boolean;
     children?: string;
+    fromSearchScreen?: string;
   }>();
 
+  const isSearchFromSearchScreen = fromSearchScreen === "true";
   const categories = useAppSelector((state) => state.auth.categories);
   const cartItems = useAppSelector((state) => state.catalog.cart);
   const me = useAppSelector((state) => state.auth.me);
@@ -1009,8 +1011,15 @@ export default function CatalogDetailScreen() {
         darkColor="#040508"
       >
         <ModalHeader
-          title={catalogName !== "undefined" ? catalogName : "Каталог"}
-          showBackButton={true}
+          title={
+            isSearchFromSearchScreen
+              ? undefined
+              : catalogName !== "undefined"
+                ? catalogName
+                : "Каталог"
+          }
+          showBackButton={!isSearchFromSearchScreen}
+          compactSearchLayout={isSearchFromSearchScreen}
           onBackPress={handleBack}
           content={
             <SearchInput
@@ -1021,6 +1030,9 @@ export default function CatalogDetailScreen() {
               onSubmitEditing={handleSearchSubmit}
               onClear={handleSearchClear}
               ref={searchInputRef}
+              leadingMode={isSearchFromSearchScreen ? "back" : "search"}
+              onLeadingPress={isSearchFromSearchScreen ? handleBack : undefined}
+              compactLayout={isSearchFromSearchScreen}
             />
           }
         />
