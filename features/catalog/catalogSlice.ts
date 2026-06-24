@@ -151,6 +151,8 @@ interface CategoryState {
   similarProducts: any[];
   isLoadingSimilarProducts: boolean;
   similarProductsForProductId: string | null;
+  segmentPopularProducts: any[];
+  isLoadingSegmentPopularProducts: boolean;
 
   cart: any[];
   isLoadingCart: boolean;
@@ -203,6 +205,8 @@ const initialState: CategoryState = {
   similarProducts: [],
   isLoadingSimilarProducts: false,
   similarProductsForProductId: null,
+  segmentPopularProducts: [],
+  isLoadingSegmentPopularProducts: false,
   isLoadingOrders: false,
 
   returnsStatuses: [],
@@ -464,6 +468,35 @@ export const getSimilarProducts = createAsyncThunk(
         productId: payload.productId,
         data: data.data,
       };
+    } catch (error) {
+      console.log(error);
+      return rejectWithValue(error);
+    }
+  },
+);
+
+export const getSegmentPopularProducts = createAsyncThunk(
+  "catalog/getSegmentPopularProducts",
+  async (payload: { storageId?: string } | undefined, { rejectWithValue }) => {
+    try {
+      const params = new URLSearchParams();
+      params.append("isFavorite", "false");
+      params.append("offset", "0");
+      params.append("isPromo", "false");
+      params.append("count", "4");
+      params.append("SortBy", "0");
+      params.append("IsDesc", "false");
+
+      if (payload?.storageId) {
+        params.append("storageId", payload.storageId);
+      }
+
+      const data = await axdef.get("/api/Catalog/product/list", {
+        params,
+        paramsSerializer: (requestParams) => requestParams.toString(),
+      });
+
+      return data.data;
     } catch (error) {
       console.log(error);
       return rejectWithValue(error);
@@ -975,6 +1008,10 @@ const catalogSlice = createSlice({
       state.isLoadingSimilarProducts = false;
       state.similarProductsForProductId = null;
     },
+    clearSegmentPopularProducts: (state) => {
+      state.segmentPopularProducts = [];
+      state.isLoadingSegmentPopularProducts = false;
+    },
     updateCartItemQuantity: (state, action) => {
       const { cartItemId, quantity } = action.payload;
       const itemIndex = state.cart.findIndex((item) => item.id === cartItemId);
@@ -1370,6 +1407,24 @@ const catalogSlice = createSlice({
       axiosErrorHandler(action?.payload);
     });
 
+    builder.addCase(getSegmentPopularProducts.pending, (state) => {
+      state.isLoadingSegmentPopularProducts = true;
+      state.segmentPopularProducts = [];
+    });
+
+    builder.addCase(getSegmentPopularProducts.fulfilled, (state, action) => {
+      state.isLoadingSegmentPopularProducts = false;
+      state.segmentPopularProducts = adaptProductsArray(
+        action.payload?.data || [],
+      ).slice(0, 4);
+    });
+
+    builder.addCase(getSegmentPopularProducts.rejected, (state, action) => {
+      state.segmentPopularProducts = [];
+      state.isLoadingSegmentPopularProducts = false;
+      axiosErrorHandler(action?.payload);
+    });
+
     builder.addCase(putFavorite.pending, (state) => {});
 
     builder.addCase(putFavorite.fulfilled, (state, action) => {
@@ -1580,5 +1635,6 @@ export const {
   setProductPreview,
   clearProduct,
   clearSimilarProducts,
+  clearSegmentPopularProducts,
 } = catalogSlice.actions;
 export default catalogSlice.reducer;

@@ -18,6 +18,7 @@ interface AuthState {
   sliders: any[];
   categories: any[];
   searchHints: string[];
+  searchHintsLower: string[];
   predUserData: any;
   towns: Town[];
   isLoadingTowns: boolean;
@@ -101,6 +102,7 @@ const initialState: AuthState = {
   sliders: [],
   categories: [],
   searchHints: [],
+  searchHintsLower: [],
   predUserData: null,
   towns: [],
   isLoadingTowns: false,
@@ -709,7 +711,11 @@ const authSlice = createSlice({
     });
     builder.addCase(getSearchHints.fulfilled, (state, action) => {
       const hints = action.payload?.data?.data;
-      state.searchHints = Array.isArray(hints) ? hints : [];
+      const normalizedHints = Array.isArray(hints) ? hints : [];
+      state.searchHints = normalizedHints;
+      state.searchHintsLower = normalizedHints.map((hint: string) =>
+        hint.toLowerCase(),
+      );
     });
     builder.addCase(getSearchHints.rejected, (state, action) => {
       axiosErrorHandler(action?.payload);

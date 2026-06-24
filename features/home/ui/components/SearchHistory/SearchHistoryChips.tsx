@@ -1,7 +1,14 @@
 import { ChevronDownIcon, CloseIcon } from "@/assets/icons/icons";
 import { ThemedText } from "@/components/themed-text";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   LayoutChangeEvent,
   StyleSheet,
@@ -11,6 +18,7 @@ import {
 
 const COLLAPSED_MAX_ROWS = 3;
 const EXPANDED_MAX_ROWS = 6;
+const COLLAPSED_FALLBACK_VISIBLE = 5;
 
 type SearchHistoryChipsProps = {
   items: string[];
@@ -19,8 +27,7 @@ type SearchHistoryChipsProps = {
   resetKey?: boolean;
 };
 
-type DisplaySnapshot = {
-  itemsKey: string;
+type DisplayState = {
   visibleItems: string[];
   showMore: boolean;
   showHide: boolean;
@@ -31,6 +38,23 @@ function buildRowIndices(layouts: { y: number }[]): number[] {
   const uniqueYs = Array.from(new Set(roundedYs)).sort((a, b) => a - b);
 
   return roundedYs.map((y) => uniqueYs.indexOf(y));
+}
+
+function areLayoutsReady(
+  layouts: Array<{ y: number } | undefined>,
+  itemsLength: number,
+): boolean {
+  if (itemsLength === 0) {
+    return false;
+  }
+
+  for (let index = 0; index < itemsLength; index++) {
+    if (!layouts[index]) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 function countVisibleItems(
@@ -55,32 +79,37 @@ function countVisibleItems(
   return visibleCount;
 }
 
-function buildDisplaySnapshot(
+function buildDisplayState(
   items: string[],
-  itemsKey: string,
-  rowIndices: number[],
+  rowIndices: number[] | null,
   isExpanded: boolean,
-): DisplaySnapshot {
-  const totalRows = rowIndices.length > 0 ? Math.max(...rowIndices) + 1 : 0;
-  const needsToggle = totalRows > COLLAPSED_MAX_ROWS;
+): DisplayState {
+  if (items.length === 0) {
+    return { visibleItems: [], showMore: false, showHide: false };
+  }
 
-  if (!needsToggle) {
+  if (!rowIndices) {
+    if (items.length <= COLLAPSED_FALLBACK_VISIBLE) {
+      return { visibleItems: items, showMore: false, showHide: false };
+    }
+
     return {
-      itemsKey,
-      visibleItems: items,
-      showMore: false,
+      visibleItems: items.slice(0, COLLAPSED_FALLBACK_VISIBLE),
+      showMore: true,
       showHide: false,
     };
   }
 
+  const totalRows = Math.max(...rowIndices) + 1;
+  const needsToggle = totalRows > COLLAPSED_MAX_ROWS;
+
+  if (!needsToggle) {
+    return { visibleItems: items, showMore: false, showHide: false };
+  }
+
   if (isExpanded) {
     if (totalRows <= EXPANDED_MAX_ROWS) {
-      return {
-        itemsKey,
-        visibleItems: items,
-        showMore: false,
-        showHide: true,
-      };
+      return { visibleItems: items, showMore: false, showHide: true };
     }
 
     const visibleCount = countVisibleItems(
@@ -90,7 +119,6 @@ function buildDisplaySnapshot(
     );
 
     return {
-      itemsKey,
       visibleItems: items.slice(0, visibleCount),
       showMore: false,
       showHide: true,
@@ -104,14 +132,13 @@ function buildDisplaySnapshot(
   );
 
   return {
-    itemsKey,
     visibleItems: items.slice(0, visibleCount),
     showMore: true,
     showHide: false,
   };
 }
 
-export function SearchHistoryChips({
+function SearchHistoryChipsComponent({
   items,
   onItemPress,
   onItemRemove,
@@ -120,14 +147,8 @@ export function SearchHistoryChips({
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const [isExpanded, setIsExpanded] = useState(false);
-  const [rowIndices, setRowIndices] = useState<number[]>([]);
-  const layoutsRef = useRef<{ y: number }[]>([]);
-  const displaySnapshotRef = useRef<DisplaySnapshot>({
-    itemsKey: "",
-    visibleItems: [],
-    showMore: false,
-    showHide: false,
-  });
+  const [rowIndices, setRowIndices] = useState<number[] | null>(null);
+  const layoutsRef = useRef<Array<{ y: number } | undefined>>([]);
 
   const itemsKey = useMemo(() => items.join("\u0001"), [items]);
 
@@ -137,56 +158,36 @@ export function SearchHistoryChips({
 
   useEffect(() => {
     layoutsRef.current = [];
-    setRowIndices([]);
+    setRowIndices(null);
   }, [itemsKey]);
 
   const handleMeasureLayout = useCallback(
     (index: number, event: LayoutChangeEvent) => {
       layoutsRef.current[index] = { y: event.nativeEvent.layout.y };
 
-      if (layoutsRef.current.filter(Boolean).length !== items.length) {
+      if (!areLayoutsReady(layoutsRef.current, items.length)) {
         return;
       }
 
-      setRowIndices(buildRowIndices(layoutsRef.current));
+      setRowIndices(buildRowIndices(layoutsRef.current as { y: number }[]));
     },
     [items.length],
   );
 
-  const isMeasured = rowIndices.length === items.length && items.length > 0;
-
-  const display = useMemo(() => {
-    if (isMeasured) {
-      const nextSnapshot = buildDisplaySnapshot(
-        items,
-        itemsKey,
-        rowIndices,
-        isExpanded,
-      );
-      displaySnapshotRef.current = nextSnapshot;
-      return nextSnapshot;
-    }
-
-    const previousSnapshot = displaySnapshotRef.current;
-    if (previousSnapshot.itemsKey === itemsKey && previousSnapshot.visibleItems.length > 0) {
-      return previousSnapshot;
-    }
-
-    const fallbackSnapshot: DisplaySnapshot = {
-      itemsKey,
-      visibleItems: items,
-      showMore: false,
-      showHide: false,
-    };
-    displaySnapshotRef.current = fallbackSnapshot;
-    return fallbackSnapshot;
-  }, [isExpanded, isMeasured, items, itemsKey, rowIndices]);
+  const display = useMemo(
+    () => buildDisplayState(items, rowIndices, isExpanded),
+    [isExpanded, items, rowIndices],
+  );
 
   const chipBackground = isDark ? "#202022" : "#F2F4F7";
 
+  if (items.length === 0) {
+    return null;
+  }
+
   return (
     <>
-      {items.length > 0 && !isMeasured && (
+      {rowIndices === null && (
         <View pointerEvents="none" style={styles.measureLayer}>
           {items.map((item, index) => (
             <View
@@ -243,6 +244,8 @@ export function SearchHistoryChips({
     </>
   );
 }
+
+export const SearchHistoryChips = memo(SearchHistoryChipsComponent);
 
 const styles = StyleSheet.create({
   measureLayer: {

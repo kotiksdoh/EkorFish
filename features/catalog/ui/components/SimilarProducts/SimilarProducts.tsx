@@ -18,16 +18,24 @@ interface SimilarProductsProps {
   title?: string;
   handleAddToCartPress: (product: any) => void;
   returnTo?: "home" | "heart" | "catalog";
+  variant?: "similar" | "segmentPopular";
 }
 
 function SimilarProductsComponent({
   title = "Похожие товары",
   handleAddToCartPress,
   returnTo = "catalog",
+  variant = "similar",
 }: SimilarProductsProps) {
-  const similarProducts = useAppSelector((state) => state.catalog.similarProducts);
-  const isLoadingSimilarProducts = useAppSelector(
-    (state) => state.catalog.isLoadingSimilarProducts,
+  const similarProducts = useAppSelector((state) =>
+    variant === "segmentPopular"
+      ? state.catalog.segmentPopularProducts
+      : state.catalog.similarProducts,
+  );
+  const isLoadingSimilarProducts = useAppSelector((state) =>
+    variant === "segmentPopular"
+      ? state.catalog.isLoadingSegmentPopularProducts
+      : state.catalog.isLoadingSimilarProducts,
   );
 
   const hasProducts = useMemo(

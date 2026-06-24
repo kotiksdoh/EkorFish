@@ -10,6 +10,11 @@ type ScoredHint = {
   score: number;
 };
 
+export type SearchHintsIndex = {
+  hints: string[];
+  lowerHints: string[];
+};
+
 function mergeRanges(
   ranges: { start: number; end: number }[],
 ): { start: number; end: number }[] {
@@ -53,34 +58,110 @@ function scoreHint(hint: string, lowerHint: string, tokens: string[]): number {
   return score;
 }
 
-export function filterSearchHints(
+function compareScoredHints(a: ScoredHint, b: ScoredHint): number {
+  return a.score - b.score || a.hint.localeCompare(b.hint, "ru");
+}
+
+function pushTopScored(
+  top: ScoredHint[],
+  candidate: ScoredHint,
+  limit: number,
+): void {
+  if (top.length < limit) {
+    top.push(candidate);
+    if (top.length === limit) {
+      top.sort(compareScoredHints);
+    }
+    return;
+  }
+
+  const worst = top[top.length - 1];
+  if (compareScoredHints(candidate, worst) >= 0) {
+    return;
+  }
+
+  top[limit - 1] = candidate;
+  top.sort(compareScoredHints);
+}
+
+export function createSearchHintsIndex(
   hints: string[],
+  lowerHints?: string[],
+): SearchHintsIndex {
+  const normalizedLowerHints =
+    lowerHints && lowerHints.length === hints.length
+      ? lowerHints
+      : hints.map((hint) => hint.toLowerCase());
+
+  return {
+    hints,
+    lowerHints: normalizedLowerHints,
+  };
+}
+
+function getCandidateIndices(
+  index: SearchHintsIndex,
+  tokens: string[],
+): number[] {
+  if (tokens.length === 0) {
+    return [];
+  }
+
+  const candidates: number[] = [];
+
+  for (let hintIndex = 0; hintIndex < index.hints.length; hintIndex++) {
+    const lowerHint = index.lowerHints[hintIndex];
+
+    if (tokens.every((token) => lowerHint.includes(token))) {
+      candidates.push(hintIndex);
+    }
+  }
+
+  return candidates;
+}
+
+export function filterSearchHintsFromIndex(
+  index: SearchHintsIndex,
   query: string,
   limit = SEARCH_HINTS_LIMIT,
 ): string[] {
   const tokens = getQueryTokens(query);
-  if (tokens.length === 0 || hints.length === 0) {
+  if (tokens.length === 0 || index.hints.length === 0) {
     return [];
   }
 
-  const scored: ScoredHint[] = [];
+  const candidateIndices = getCandidateIndices(index, tokens);
+  const top: ScoredHint[] = [];
 
-  for (let i = 0; i < hints.length; i++) {
-    const hint = hints[i];
-    const lowerHint = hint.toLowerCase();
+  for (let i = 0; i < candidateIndices.length; i++) {
+    const hintIndex = candidateIndices[i];
+    const hint = index.hints[hintIndex];
+    const lowerHint = index.lowerHints[hintIndex];
 
-    if (!tokens.every((token) => lowerHint.includes(token))) {
-      continue;
-    }
-
-    scored.push({
-      hint,
-      score: scoreHint(hint, lowerHint, tokens),
-    });
+    pushTopScored(
+      top,
+      {
+        hint,
+        score: scoreHint(hint, lowerHint, tokens),
+      },
+      limit,
+    );
   }
 
-  scored.sort((a, b) => a.score - b.score || a.hint.localeCompare(b.hint, "ru"));
-  return scored.slice(0, limit).map((item) => item.hint);
+  return top.map((item) => item.hint);
+}
+
+export function filterSearchHints(
+  hints: string[],
+  query: string,
+  limit = SEARCH_HINTS_LIMIT,
+  lowerHints?: string[],
+): string[] {
+  return filterSearchHintsFromIndex(
+    createSearchHintsIndex(hints, lowerHints),
+    query,
+    limit,
+  );
 }
 
 export function getHintHighlightParts(
@@ -96,12 +177,12 @@ export function getHintHighlightParts(
   const ranges: { start: number; end: number }[] = [];
 
   for (const token of tokens) {
-    const index = lowerHint.indexOf(token);
-    if (index === -1) {
+    const tokenIndex = lowerHint.indexOf(token);
+    if (tokenIndex === -1) {
       continue;
     }
 
-    ranges.push({ start: index, end: index + token.length });
+    ranges.push({ start: tokenIndex, end: tokenIndex + token.length });
   }
 
   const merged = mergeRanges(ranges);

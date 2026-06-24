@@ -167,6 +167,7 @@ export const HomeScreen = ({
         visible={showSearch}
         onClose={handleSearchClose}
         onSearch={handleSearchSubmit}
+        returnTo="home"
       />
         <AddToCartModal
           visible={showAddToCartModal}
