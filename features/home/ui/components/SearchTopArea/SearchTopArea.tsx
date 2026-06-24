@@ -1,8 +1,8 @@
 import { ArrowIconLeft, CloseIcon } from "@/assets/icons/icons";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { SearchHistoryChips } from "@/features/home/ui/components/SearchHistory/SearchHistoryChips";
 import { SearchHintsList } from "@/features/home/ui/components/SearchHints/SearchHintsList";
+import { SearchHistoryChips } from "@/features/home/ui/components/SearchHistory/SearchHistoryChips";
 import {
   createSearchHintsIndex,
   filterSearchHintsFromIndex,
@@ -224,7 +224,6 @@ const styles = StyleSheet.create({
     color: "#203686",
   },
   hintsSection: {
-    paddingHorizontal: 16,
     marginTop: 8,
     marginBottom: 8,
   },
