@@ -859,6 +859,14 @@ export default function CatalogDetailScreen() {
     ],
   );
 
+  const resetFilters = useCallback(() => {
+    dispatch(clearSelectedFilters());
+    setPriceRange({ min: "", max: "" });
+    setShelfLifeRange({ min: "", max: "" });
+    flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
+    void loadProducts(false, searchQuery);
+  }, [dispatch, loadProducts, searchQuery]);
+
   const renderListEmpty = useCallback(() => {
     if ((isLoading && !isLoadingMore) || isCategoryListPending) {
       return (
@@ -895,9 +903,33 @@ export default function CatalogDetailScreen() {
         >
           {`Попробуйте изменить\nили сбросить фильтры`}
         </ThemedText>
+        {appliedFiltersCount > 0 ? (
+          <TouchableOpacity
+            style={[
+              styles.emptyResetButton,
+              styles.applyButton,
+              isDarkMode && {
+                backgroundColor: "#3881EE",
+              },
+            ]}
+            activeOpacity={0.8}
+            onPress={resetFilters}
+          >
+            <ThemedText style={styles.applyButtonText}>
+              Сбросить фильтры
+            </ThemedText>
+          </TouchableOpacity>
+        ) : null}
       </View>
     );
-  }, [isCategoryListPending, isDarkMode, isLoading, isLoadingMore]);
+  }, [
+    appliedFiltersCount,
+    isCategoryListPending,
+    isDarkMode,
+    isLoading,
+    isLoadingMore,
+    resetFilters,
+  ]);
 
   const renderListFooter = useCallback(() => {
     if (!isLoadingMore && !isPagingMore) {
@@ -963,14 +995,6 @@ export default function CatalogDetailScreen() {
       flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
       void loadProducts(false, searchQuery);
     });
-  };
-
-  // Сброс фильтров
-  const resetFilters = () => {
-    dispatch(clearSelectedFilters());
-    setPriceRange({ min: "", max: "" });
-    setShelfLifeRange({ min: "", max: "" });
-    loadProducts(false, searchQuery);
   };
 
   // Сброс подкатегории
@@ -1516,8 +1540,10 @@ const styles = StyleSheet.create({
   },
   emptyContainer: {
     paddingVertical: 60,
+    paddingHorizontal: 16,
     alignItems: "center",
     justifyContent: "center",
+    width: "100%",
   },
   emptyText: {
     marginTop: 24,
@@ -1527,6 +1553,12 @@ const styles = StyleSheet.create({
   emptyTextSecond: {
     marginTop: 8,
     fontSize: 16,
+    textAlign: "center",
+  },
+  emptyResetButton: {
+    marginTop: 24,
+    alignSelf: "center",
+    paddingHorizontal: 24,
   },
   loadingContainer: {
     paddingVertical: 24,
