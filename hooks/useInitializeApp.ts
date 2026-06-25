@@ -9,7 +9,7 @@ import {
   getSliderItems,
   setBootstrapStatus,
 } from "@/features/auth/authSlice";
-import { getCart, getMyOrders } from "@/features/catalog/catalogSlice";
+import { getCart, getMyOrders, getOrderPageData } from "@/features/catalog/catalogSlice";
 import { store } from "@/store/store";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -66,6 +66,10 @@ const loadAppResources = async () => {
       await withTimeout(store.dispatch(getMyParams("")).unwrap(), "params");
       await withTimeout(store.dispatch(getCart()).unwrap(), "cart");
       await withTimeout(store.dispatch(getMyOrders()).unwrap(), "orders");
+      await withTimeout(
+        store.dispatch(getOrderPageData()).unwrap(),
+        "order-page-data",
+      );
     }
     // 3. Другие инициализации (если нужны)
     // - Кэширование изображений

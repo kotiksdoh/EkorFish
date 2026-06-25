@@ -3,7 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit";
 import api, { axiosErrorHandler } from "../shared/services/api";
 import { axdef, baseUrl } from "../shared/services/axios";
-import { getCart, getMyOrders } from "../catalog/catalogSlice";
+import { getCart, getMyOrders, getOrderPageData } from "../catalog/catalogSlice";
 import { getInlineParams } from "../shared/services/utils";
 import type { AppDispatch } from "@/store/store";
 
@@ -602,6 +602,7 @@ async function loadAppBootstrapData(
         runStep(dispatch(getMyParams("")).unwrap(), "params"),
         runStep(dispatch(getCart()).unwrap(), "cart"),
         runStep(dispatch(getMyOrders()).unwrap(), "orders"),
+        runStep(dispatch(getOrderPageData()).unwrap(), "order-page-data"),
       ]
     : [];
 

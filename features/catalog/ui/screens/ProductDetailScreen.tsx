@@ -12,6 +12,7 @@ import {
 import { ProductDetailGallery } from "@/features/catalog/ui/components/ProductDetailGallery";
 import SimilarProducts from "@/features/catalog/ui/components/SimilarProducts/SimilarProducts";
 import { AddToCartModal } from "@/features/shared/ui/AddToCartModal";
+import { formatNearestDeliveryDisplay } from "@/features/shared/utils/nearestDelivery";
 import { useTemplatePicker } from "@/features/templates/TemplatePickerContext";
 import { buildTemplateLineFromProduct } from "@/features/templates/buildTemplateLine";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -88,6 +89,7 @@ export function ProductDetailScreen() {
   const isLoadingProduct = useAppSelector((state) => state.catalog.isLoadingProduct);
   const cartItems = useAppSelector((state) => state.catalog.cart);
   const me = useAppSelector((state) => state.auth.me);
+  const orderData = useAppSelector((state) => state.catalog.order);
 
   const product = useMemo(() => {
     if (!productId || String(activeProductId) !== String(productId)) {
@@ -446,6 +448,12 @@ export function ProductDetailScreen() {
       }),
     );
   }, [product?.images, product?.id]);
+
+  const nearestDeliveryLabel = useMemo(
+    () => formatNearestDeliveryDisplay(orderData),
+    [orderData],
+  );
+
   return (
     <SafeAreaProvider>
       <ThemedView
@@ -544,6 +552,37 @@ export function ProductDetailScreen() {
                   {selectedPurchaseOption?.price?.toLocaleString("ru-RU")} ₽
                 </ThemedText>
               </ThemedView>
+
+              {nearestDeliveryLabel ? (
+                <ThemedView
+                  lightColor={"#F2F4F7"}
+                  darkColor="#202022"
+                  style={styles.subContainer}
+                >
+                  <ThemedText
+                    style={styles.subContainerName}
+                    lightColor={"#80818B"}
+                    darkColor="#FBFCFF80"
+                  >
+                    Ближайшая доставка
+                  </ThemedText>
+                  <View style={styles.subContainerMainSub}>
+                    <View
+                      style={[
+                        styles.deliveryDot,
+                        isDarkMode && styles.deliveryDotDark,
+                      ]}
+                    />
+                    <ThemedText
+                      style={styles.subContainerCity}
+                      lightColor={"#1B1B1C"}
+                      darkColor="#FBFCFF"
+                    >
+                      {nearestDeliveryLabel}
+                    </ThemedText>
+                  </View>
+                </ThemedView>
+              ) : null}
 
               <ThemedView
                 lightColor={"#F2F4F7"}
@@ -928,6 +967,15 @@ const styles = StyleSheet.create({
   },
   subContainerSubSub: {
     flexDirection: "column",
+  },
+  deliveryDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#203686",
+  },
+  deliveryDotDark: {
+    backgroundColor: "#3881EE",
   },
   tabsContainer: {
     borderRadius: 12,
