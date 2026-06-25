@@ -20,8 +20,8 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { store } from "@/store/store";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useLocalSearchParams, useRouter, useSegments } from "expo-router";
 import { useFocusEffect, useIsFocused, useNavigation } from "@react-navigation/native";
+import { useLocalSearchParams, useRouter, useSegments } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -502,6 +502,7 @@ export function ProductDetailScreen() {
 
               <View style={styles.productNameWrapper}>
                 <ThemedText
+                  weight={'semiBold'}
                   style={styles.themeName}
                   lightColor="#1B1B1C"
                   darkColor="#FBFCFF"
@@ -730,6 +731,7 @@ export function ProductDetailScreen() {
                           lightColor="#80818B"
                           darkColor="#FBFCFF80"
                         >
+                          {/*  */}
                           Дата выработки
                         </ThemedText>
                         <ThemedText
@@ -773,6 +775,7 @@ export function ProductDetailScreen() {
                           (char: any, index: number) => (
                             <View key={index} style={styles.characteristicItem}>
                               <ThemedText
+                                weight="medium"
                                 style={styles.characteristicLabel}
                                 lightColor="#80818B"
                                 darkColor="#FBFCFF80"
@@ -780,6 +783,7 @@ export function ProductDetailScreen() {
                                 {char.name}:
                               </ThemedText>
                               <ThemedText
+                                weight="medium"
                                 style={styles.characteristicValue}
                                 lightColor="#1B1B1C"
                                 darkColor="#FBFCFF"
@@ -1050,7 +1054,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   characteristicsList: {
-    gap: 8,
+    // gap: 8,
   },
   characteristicItem: {
     flexDirection: "row",
@@ -1060,7 +1064,7 @@ const styles = StyleSheet.create({
   },
   characteristicLabel: {
     fontSize: 14,
-    fontWeight: "400",
+    fontWeight: "500",
   },
   characteristicValue: {
     fontSize: 14,
