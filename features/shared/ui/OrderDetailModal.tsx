@@ -2,6 +2,7 @@ import {
   ArrowIconLeft,
   ArrowIconRight,
   CalendarFilledIcon,
+  CloseIcon,
   Copy,
   IconAccept,
   IconCard,
@@ -16,17 +17,21 @@ import {
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import {
+  cancelOrder,
   checkForReorder,
   getCart,
+  getMyOrders,
   reorderOrder,
 } from "@/features/catalog/catalogSlice";
+import { getAxiosErrorMessage } from "@/features/shared/services/api";
 import { axdef, baseUrl } from "@/features/shared/services/axios";
-import { openTelegramByPhone } from "@/features/shared/utils/phoneLinking";
-import { SnapBottomSheet } from "@/features/shared/ui/SnapBottomSheet";
 import {
   BottomSheetModal,
   type BottomSheetModalRef,
 } from "@/features/shared/ui/BottomSheetModal";
+import { SnapBottomSheet } from "@/features/shared/ui/SnapBottomSheet";
+import { canCancelOrder } from "@/features/shared/utils/orderActions";
+import { openTelegramByPhone } from "@/features/shared/utils/phoneLinking";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAppDispatch } from "@/store/hooks";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -98,6 +103,7 @@ interface OrderDetails {
   companyName?: string;
   companyAddress?: string;
   profileFullName?: string;
+  canCancel?: boolean;
 }
 
 interface OrderDocument {
@@ -112,6 +118,7 @@ interface OrderDetailsModalProps {
   onClose: () => void;
   orderId: any;
   onReorderSuccess?: () => void;
+  onOrderUpdated?: () => void;
 }
 
 interface CompanyManager {
@@ -125,6 +132,7 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
   onClose,
   orderId,
   onReorderSuccess,
+  onOrderUpdated,
 }) => {
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === "dark";
@@ -135,8 +143,10 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
   const [orderDetails, setOrderDetails] = useState<OrderDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isCheckingReorder, setIsCheckingReorder] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
   const [isReordering, setIsReordering] = useState(false);
   const [reorderModalVisible, setReorderModalVisible] = useState(false);
+  const [cancelModalVisible, setCancelModalVisible] = useState(false);
   const [documentsModalVisible, setDocumentsModalVisible] = useState(false);
   const [documents, setDocuments] = useState<OrderDocument[]>([]);
   const [isLoadingDocuments, setIsLoadingDocuments] = useState(false);
@@ -154,11 +164,13 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
     } else {
       setOrderDetails(null);
       setReorderModalVisible(false);
+      setCancelModalVisible(false);
       setStatusModalVisible(false);
       setDocumentsModalVisible(false);
       setProductsModalVisible(false);
       setIsReordering(false);
       setIsCheckingReorder(false);
+      setIsCancelling(false);
     }
   }, [visible, orderId]);
 
@@ -274,16 +286,11 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
     const currentIndex = getCurrentStatusIndex();
     return index === currentIndex;
   };
-  const canRepeatOrderByStatus = Boolean(
-    orderDetails?.statuses?.some(
-      (status) =>
-        status?.code?.toLowerCase() === "received" ||
-        status?.name?.toLowerCase() === "получен",
-    ),
-  );
+
+  const showCancelOrder = orderDetails ? canCancelOrder(orderDetails) : false;
 
   const openReorderModal = async () => {
-    if (!orderDetails || isCheckingReorder || !canRepeatOrderByStatus) return;
+    if (!orderDetails || isCheckingReorder) return;
     setIsCheckingReorder(true);
     try {
       const result = await dispatch(checkForReorder(orderDetails.orderId)).unwrap();
@@ -371,6 +378,31 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
   };
   const handleMessageManager = () => {
     void openTelegramByPhone(companyManager);
+  };
+
+  const handleCancelOrder = () => {
+    if (!orderDetails || isCancelling) return;
+    setCancelModalVisible(true);
+  };
+
+  const confirmCancelOrder = async () => {
+    if (!orderDetails || isCancelling) return;
+
+    setIsCancelling(true);
+    try {
+      await dispatch(cancelOrder(orderDetails.orderId)).unwrap();
+      setCancelModalVisible(false);
+      await loadOrderDetails();
+      void dispatch(getMyOrders());
+      onOrderUpdated?.();
+    } catch (error) {
+      Alert.alert(
+        "Ошибка",
+        getAxiosErrorMessage(error, "Не удалось отменить заказ"),
+      );
+    } finally {
+      setIsCancelling(false);
+    }
   };
 
   return (
@@ -633,19 +665,35 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
 
                 {/* Кнопки */}
                 <View style={styles.buttonsRow}>
-                  <PrimaryButton
-                    title={isCheckingReorder ? "Проверяем..." : "Повторить"}
-                    onPress={openReorderModal}
-                    variant="third"
-                    size="md"
-                    activeOpacity={0.8}
-                    fullWidth
-                    style={styles.cancelButton}
-                    disabled={isCheckingReorder || !canRepeatOrderByStatus}
-                    customIcon={
-                      <RepeatOrderIcon fill={isDarkMode ? "#FBFCFF" : "#1B1B1C"} />
-                    }
-                  />
+                  {showCancelOrder ? (
+                    <PrimaryButton
+                      title={isCancelling ? "Отменяем..." : "Отменить"}
+                      onPress={handleCancelOrder}
+                      variant="third"
+                      size="md"
+                      activeOpacity={0.8}
+                      fullWidth
+                      style={styles.cancelButton}
+                      disabled={isCancelling}
+                      customIcon={
+                        <CloseIcon fill={isDarkMode ? "#FBFCFF" : "#1B1B1C"} />
+                      }
+                    />
+                  ) : (
+                    <PrimaryButton
+                      title={isCheckingReorder ? "Проверяем..." : "Повторить"}
+                      onPress={openReorderModal}
+                      variant="third"
+                      size="md"
+                      activeOpacity={0.8}
+                      fullWidth
+                      style={styles.cancelButton}
+                      disabled={isCheckingReorder}
+                      customIcon={
+                        <RepeatOrderIcon fill={isDarkMode ? "#FBFCFF" : "#1B1B1C"} />
+                      }
+                    />
+                  )}
                   <PrimaryButton
                     title="Написать"
                     onPress={handleMessageManager}
@@ -1095,6 +1143,49 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
             </View>
           </>
         )}
+      </SnapBottomSheet>
+      <SnapBottomSheet
+        visible={cancelModalVisible}
+        title={`Отменить заказ №${orderDetails?.orderId}?`}
+        titleAlign="left"
+        onClose={() => {
+          if (!isCancelling) {
+            setCancelModalVisible(false);
+          }
+        }}
+      >
+        <ThemedText
+          style={styles.cancelOrderText}
+          lightColor="#80818B"
+          darkColor="#FBFCFF80"
+        >
+          Заказ будет отменён. После отмены восстановить его будет нельзя.
+        </ThemedText>
+        <View
+          style={[
+            styles.reorderButtonsRow,
+            Platform.OS === "android" && { paddingBottom: 2 },
+          ]}
+        >
+          <PrimaryButton
+            title="Назад"
+            onPress={() => setCancelModalVisible(false)}
+            variant="third"
+            fullWidth
+            style={styles.reorderButton}
+            disabled={isCancelling}
+          />
+          <PrimaryButton
+            title={isCancelling ? "Отменяем..." : "Отменить заказ"}
+            onPress={() => {
+              void confirmCancelOrder();
+            }}
+            variant="primary"
+            fullWidth
+            style={styles.reorderButton}
+            disabled={isCancelling}
+          />
+        </View>
       </SnapBottomSheet>
       </Modal>
     </>
@@ -1610,5 +1701,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "500",
     marginRight: 8,
+  },
+  cancelOrderText: {
+    fontSize: 16,
+    lineHeight: 22,
+    marginBottom: 20,
   },
 });

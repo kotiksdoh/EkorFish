@@ -7,8 +7,8 @@ import { useThemeColor } from "@/hooks/use-theme-color";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-  Animated,
   ActivityIndicator,
+  Animated,
   Dimensions,
   Image,
   PanResponder,
@@ -65,6 +65,20 @@ export function getMaxQuantityFromStocks(product: Product | null): number | null
 
   const qty = Number(rawQuantity);
   return Number.isFinite(qty) ? qty : null;
+}
+
+export function getTotalWeightKg(
+  measureType: string,
+  quantity: number,
+  step = 1,
+): number {
+  if (quantity <= 0) return 0;
+
+  const isKilogram =
+    measureType === "килограмм" || measureType.toLowerCase() === "кг";
+  const weight = isKilogram ? quantity : quantity * step;
+
+  return parseFloat(weight.toFixed(2));
 }
 
 interface AddToCartModalProps {
@@ -124,7 +138,7 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
   const translateY = useRef(new Animated.Value(MODAL_HEIGHT)).current;
 
   const backgroundColor = useThemeColor({}, "background");
-
+ 
   const getQuantityForOption = useCallback(
     (optionId: string) => {
       if (!existingCartItem?.length) return 0;
@@ -271,6 +285,9 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
   const isAtMaxStock =
     maxStockQuantity !== null && quantity >= maxStockQuantity;
   const totalPrice = selectedOption ? selectedOption.price * quantity : 0;
+  const totalWeightKg = selectedOption
+    ? getTotalWeightKg(product.measureType, quantity, selectedOption.step)
+    : 0;
   const isAddToCartDisabled =
     !selectedOption ||
     quantity <= 0 ||
@@ -425,15 +442,32 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
             <View style={styles.priceRow}>
               <ThemedText style={styles.priceValue}>
                 {selectedOption.price.toLocaleString("ru-RU")} ₽/
-                {product.measureType === "килограмм" ? "кг" : "шт"}
+                {product.measureType === "кг" ? "кг" : "шт"}
               </ThemedText>
-              <ThemedText style={styles.totalPriceValue}>
-                {totalPrice.toLocaleString("ru-RU", {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })}{" "}
-                ₽
-              </ThemedText>
+              <View style={styles.totalPriceGroup}>
+                <ThemedText style={styles.totalPriceValue}>
+                  {totalPrice.toLocaleString("ru-RU", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}{" "}
+                  ₽
+                </ThemedText>
+                {totalWeightKg > 0 ? (
+                  <ThemedText
+                    style={styles.totalWeightValue}
+                    lightColor="#80818B"
+                    darkColor="#FBFCFF80"
+                  >
+                    {'('}
+                    {totalWeightKg.toLocaleString("ru-RU", {
+                      minimumFractionDigits: 0,
+                      maximumFractionDigits: 2,
+                    })}{" "}
+                      {product.measureType === "кг" ? "кг" : "шт"}
+                    {')'}
+                  </ThemedText>
+                ) : null}
+              </View>
             </View>
           </View>
         )}
@@ -481,7 +515,7 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
 
             <View style={styles.quantityDisplay}>
               <ThemedText style={styles.quantityText}>
-                {quantity} {product.measureType === "килограмм" ? "кг" : "шт"}
+                {quantity} {product.measureType === "кг" ? "кг" : "шт"}
               </ThemedText>
             </View>
 
@@ -641,13 +675,23 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   priceValue: {
-    fontSize: 20,
-    fontWeight: "700",
+    fontSize: 14,
+    fontWeight: "500",
     fontFamily: "Montserrat",
   },
   totalPriceValue: {
-    fontSize: 20,
-    fontWeight: "700",
+    fontSize: 14,
+    fontWeight: "500",
+    fontFamily: "Montserrat",
+  },
+  totalPriceGroup: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  totalWeightValue: {
+    fontSize: 14,
+    fontWeight: "500",
     fontFamily: "Montserrat",
   },
   actionsContainer: {

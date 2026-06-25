@@ -644,6 +644,21 @@ export const reorderOrder = createAsyncThunk(
   },
 );
 
+export const cancelOrder = createAsyncThunk(
+  "catalog/cancelOrder",
+  async (orderId: number | string, { rejectWithValue }) => {
+    try {
+      const response = await axdef.post(`/api/Order/${orderId}/cancel`);
+      return response.data;
+    } catch (error: any) {
+      if (error.response?.status !== 401) {
+        return rejectWithValue(error);
+      }
+      throw error;
+    }
+  },
+);
+
 export const getMyReturns = createAsyncThunk(
   "catalog/getMyReturns",
   async (_, { rejectWithValue }) => {

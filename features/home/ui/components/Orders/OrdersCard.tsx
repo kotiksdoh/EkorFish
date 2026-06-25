@@ -18,12 +18,14 @@ export interface Order {
   productsCount: number;
   totalAmount: number;
   deliveryDate: string;
+  canCancel?: boolean;
 }
 
 interface OrdersCardProps {
   order: Order;
   fullWidth: boolean;
   onReorderSuccess?: () => void;
+  onOrderUpdated?: () => void;
 }
 
 const formatDeliveryDate = (dateString: string): string => {
@@ -58,6 +60,7 @@ export default function OrdersCard({
   order,
   fullWidth,
   onReorderSuccess,
+  onOrderUpdated,
 }: OrdersCardProps) {
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === "dark";
@@ -134,6 +137,7 @@ export default function OrdersCard({
         onClose={() => setModalVisible(false)}
         orderId={order.id}
         onReorderSuccess={onReorderSuccess}
+        onOrderUpdated={onOrderUpdated}
       />
     </>
   );

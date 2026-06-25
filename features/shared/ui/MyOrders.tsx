@@ -209,6 +209,7 @@ export const MyOrdersModal: React.FC<MyOrdersProps> = ({
           order={item}
           fullWidth={true}
           onReorderSuccess={onClose}
+          onOrderUpdated={() => fetchOrders(tab, false)}
         />
       )}
       contentContainerStyle={[
