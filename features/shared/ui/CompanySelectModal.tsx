@@ -4,10 +4,13 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { compliteCompany, getMyInfo, getMyParams } from "@/features/auth/authSlice";
 import { ModalHeader } from "@/features/auth/ui/Header";
+import { baseUrl } from "@/features/shared/services/axios";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
+  Image,
   Modal,
   ScrollView,
   StyleSheet,
@@ -83,10 +86,25 @@ export const CompanySelectModal: React.FC<CompanySelectModalProps> = ({
   const [inn, setInn] = useState("");
 
   const loading = useAppSelector((state) => state.auth.isLoading);
+  const storeCompanies = useAppSelector((state) => state.auth.me?.companies);
+  const displayCompanies = storeCompanies?.length ? storeCompanies : companies;
 
   const [currentScreen, setCurrentScreen] =
     useState<CompanyScenario>(screenScene);
+  const [isLoadingCompanies, setIsLoadingCompanies] = useState(false);
   const dispatch = useAppDispatch();
+
+  useEffect(() => {
+    if (!visible || currentScreen !== CompanyScenario.DEFAULT) {
+      return;
+    }
+
+    setIsLoadingCompanies(true);
+    dispatch(getMyInfo("")).finally(() => {
+      setIsLoadingCompanies(false);
+    });
+  }, [visible, currentScreen, dispatch]);
+
   const handleAcceptCompany = () => {
     dispatch(
       compliteCompany({
@@ -170,8 +188,6 @@ export const CompanySelectModal: React.FC<CompanySelectModalProps> = ({
   //         "deliveryAddresses": []
   //     }
   //  ]
-  console.log("companies", companies);
-
   if (!visible) {
     return null;
   }
@@ -205,9 +221,20 @@ export const CompanySelectModal: React.FC<CompanySelectModalProps> = ({
 
             <ScrollView
               showsVerticalScrollIndicator={false}
-              contentContainerStyle={styles.scrollContent}
+              contentContainerStyle={[
+                styles.scrollContent,
+                isLoadingCompanies && styles.scrollContentLoading,
+              ]}
             >
-              {companies.map((company) => (
+              {isLoadingCompanies ? (
+                <View style={styles.loadingBox}>
+                  <ActivityIndicator
+                    size="large"
+                    color={isDark ? "#FBFCFF" : "#203686"}
+                  />
+                </View>
+              ) : (
+              displayCompanies.map((company) => (
                 <TouchableOpacity
                   key={company.id}
                   style={styles.companyCard}
@@ -232,7 +259,6 @@ export const CompanySelectModal: React.FC<CompanySelectModalProps> = ({
                         >
                           {company.name}
                         </ThemedText>
-                        {/* <ThemedText>{`>`}</ThemedText> */}
                         <ArrowIconRight color={isDarkMode ? "#FBFCFF" : "#1B1B1C"}/>
                       </View>
 
@@ -245,6 +271,45 @@ export const CompanySelectModal: React.FC<CompanySelectModalProps> = ({
                           ИНН {company.inn || "-"}
                         </ThemedText>
                       </View>
+
+                      {company.manager?.name ? (
+                        <View style={styles.managerRow}>
+                          {company.manager.image ? (
+                            <Image
+                              source={{ uri: `${baseUrl}/${company.manager.image}` }}
+                              style={styles.managerAvatar}
+                              resizeMode="cover"
+                            />
+                          ) : (
+                            <View style={[styles.managerAvatar, styles.managerAvatarPlaceholder]}>
+                              <ThemedText
+                                style={styles.managerAvatarLetter}
+                                lightColor="#80818B"
+                                darkColor="#FBFCFF80"
+                              >
+                                {company.manager.name.charAt(0)}
+                              </ThemedText>
+                            </View>
+                          )}
+                          <View style={styles.managerTextWrap}>
+                            <ThemedText
+                              style={styles.managerName}
+                              lightColor="#1B1B1C"
+                              darkColor="#FBFCFF"
+                              numberOfLines={1}
+                            >
+                              {company.manager.name}
+                            </ThemedText>
+                            <ThemedText
+                              style={styles.managerRole}
+                              lightColor="#80818B"
+                              darkColor="#FBFCFF80"
+                            >
+                              Менеджер
+                            </ThemedText>
+                          </View>
+                        </View>
+                      ) : null}
 
                       <View style={styles.companyLimit}>
                         <ThemedText
@@ -285,7 +350,8 @@ export const CompanySelectModal: React.FC<CompanySelectModalProps> = ({
                     </View>
                   </ThemedView>
                 </TouchableOpacity>
-              ))}
+              ))
+              )}
             </ScrollView>
           </ThemedView>
 
@@ -307,7 +373,7 @@ export const CompanySelectModal: React.FC<CompanySelectModalProps> = ({
               variant="primary"
               size="md"
               fullWidth
-              disabled={companies.some((item) => item.type === "individual")}
+              disabled={displayCompanies.some((item) => item.type === "individual")}
             />
           </View>
         </ThemedView>
@@ -468,6 +534,16 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: "20%",
   },
+  scrollContentLoading: {
+    flexGrow: 1,
+    justifyContent: "center",
+  },
+  loadingBox: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 40,
+  },
   companyCard: {
     marginBottom: 12,
   },
@@ -481,7 +557,8 @@ const styles = StyleSheet.create({
   companyName: {
     fontSize: 18,
     fontWeight: "600",
-    marginBottom: 8,
+    flex: 1,
+    marginRight: 8,
   },
   companyInnRow: {
     flexDirection: "row",
@@ -490,6 +567,39 @@ const styles = StyleSheet.create({
   },
   companyInn: {
     fontSize: 14,
+    fontWeight: "500",
+  },
+  managerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 12,
+    marginBottom: 12,
+    gap: 12,
+  },
+  managerAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+  },
+  managerAvatarPlaceholder: {
+    backgroundColor: "#E5E7EB",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  managerAvatarLetter: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  managerTextWrap: {
+    flex: 1,
+    gap: 2,
+  },
+  managerName: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  managerRole: {
+    fontSize: 12,
     fontWeight: "500",
   },
   companyLimit: {

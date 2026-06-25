@@ -1533,7 +1533,6 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 24,
     fontWeight: "600",
-    marginBottom: 12,
   },
   afterLogoContent: {
     marginTop: 40,
