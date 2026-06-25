@@ -5,7 +5,7 @@ import { Platform, StyleSheet, Text, type TextProps } from 'react-native';
 export type ThemedTextProps = TextProps & {
   lightColor?: string;
   darkColor?: string;
-  type?: 'default' | 'title' | 'defaultSemiBold' | 'subtitle' | 'link' | 'caption';
+  type?: 'default' | 'title' | 'defaultSemiBold' | 'subtitle' | 'link' | 'caption' | 'def';
   weight?: 'regular' | 'medium' | 'semiBold' | 'bold'; // Добавляем weight prop
 };
 
@@ -63,6 +63,7 @@ export function ThemedText({
           fontFamily: getFontFamily(),
           fontWeight: getFontWeight(),
         }),
+        type === 'def' ? getFixedTextStyle(styles.def) : undefined,
         type === 'default' ? getFixedTextStyle(styles.default) : undefined,
         type === 'title' ? getFixedTextStyle(styles.title) : undefined,
         type === 'defaultSemiBold' ? getFixedTextStyle(styles.defaultSemiBold) : undefined,
@@ -77,6 +78,10 @@ export function ThemedText({
 }
 
 const styles = StyleSheet.create({
+  def: {
+    fontSize: 16,
+
+  },
   default: {
     fontSize: 16,
     lineHeight: 24,

@@ -1439,20 +1439,21 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                   lightColor="#80818B"
                   darkColor="#FBFCFF80"
                   style={phisUser.attentionSecondText}
+                  type="def"
                 >
                   Данный номер телефона в нашей базе числится как аккаунт
                   физического лица.
                 </ThemedText>
               </View>
               <View style={phisUser.underWarningText}>
-                <ThemedText>
+                <ThemedText type="def">
                   Если вы планировали войти как юридическое лицо или у вас есть
                   бизнес-аккаунт, пожалуйста, свяжитесь с вашим менеджером для
                   внесения исправлений.
                 </ThemedText>
 
                 <View style={phisUser.managerSectionFullWidth}>
-                  <ManagerSection />
+                  <ManagerSection hideChangeManagerButton />
                 </View>
          
               </View>
@@ -1463,7 +1464,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                 ]}
               >
                 <PrimaryButton
-                  title="Продолжить"
+                  title="Войти как физ.лицо"
                   onPress={() => handleInitUser()}
                   variant="primary"
                   size="md"
@@ -1741,7 +1742,7 @@ const stylesAccType = StyleSheet.create({
   },
   accountTypeText: {
     fontSize: 14,
-    fontWeight: "500",
+    fontWeight: 600!,
     textAlign: "center",
   },
   continueButton: {

@@ -39,10 +39,16 @@ interface ManagerCardProps {
   onSelect?: (managerId: string) => void;
   onChangePress?: () => void;
   onReviewPress?: () => void;
+  hideChangeManagerButton?: boolean;
 }
 
 // Карточка для отображения текущего менеджера (с кнопками)
-const CurrentManagerCard = ({ manager, onChangePress, onReviewPress }: ManagerCardProps) => {
+const CurrentManagerCard = ({
+  manager,
+  onChangePress,
+  onReviewPress,
+  hideChangeManagerButton = false,
+}: ManagerCardProps) => {
   const { isDark } = useAppTheme();
   const isActionInProgressRef = useRef(false);
 
@@ -82,20 +88,22 @@ const CurrentManagerCard = ({ manager, onChangePress, onReviewPress }: ManagerCa
             Ваш менеджер
           </ThemedText>
 
-          <TouchableOpacity
-            style={styles.changeManagerButton}
-            onPress={onChangePress}
-            activeOpacity={0.7}
-          >
-            <RefreshIcon width={20} height={20} />
-            <ThemedText
-              style={styles.changeManagerText}
-              lightColor="#203686"
-              darkColor="#FBFCFF"
+          {!hideChangeManagerButton ? (
+            <TouchableOpacity
+              style={styles.changeManagerButton}
+              onPress={onChangePress}
+              activeOpacity={0.7}
             >
-              Сменить менеджера
-            </ThemedText>
-          </TouchableOpacity>
+              <RefreshIcon width={20} height={20} />
+              <ThemedText
+                style={styles.changeManagerText}
+                lightColor="#203686"
+                darkColor="#FBFCFF"
+              >
+                Сменить менеджера
+              </ThemedText>
+            </TouchableOpacity>
+          ) : null}
         </View>
 
         <View style={styles.managerInfo}>
@@ -248,7 +256,11 @@ const ManagerSelectCard = ({ manager, onSelect }: ManagerCardProps) => {
   );
 };
 
-export const ManagerSection = () => {
+export const ManagerSection = ({
+  hideChangeManagerButton = false,
+}: {
+  hideChangeManagerButton?: boolean;
+}) => {
   const { isDark } = useAppTheme();
   const dispatch = useAppDispatch();
   const { currentCompany, me } = useAppSelector((state) => state.auth);
@@ -430,6 +442,7 @@ export const ManagerSection = () => {
           manager={resolvedManager}
           onChangePress={() => setShowManagerList(true)}
           onReviewPress={() => setShowReviewModal(true)}
+          hideChangeManagerButton={hideChangeManagerButton}
         />
         <ManagerReviewModal
           visible={showReviewModal}
