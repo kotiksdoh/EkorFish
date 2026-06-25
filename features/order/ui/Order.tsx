@@ -23,6 +23,7 @@ import {
   getRecipients,
 } from "@/features/catalog/catalogSlice";
 import { PrimaryButton } from "@/features/home";
+import { getAxiosErrorMessage } from "@/features/shared/services/api";
 import { useSavedAddress } from "@/features/shared/services/useSavedAddress";
 import { AddAddressModal } from "@/features/shared/ui/AddAddressModal";
 import { AddressSelectionModal } from "@/features/shared/ui/AddressSelectionModal";
@@ -673,7 +674,10 @@ export default function CheckoutModal({
       setShowSuccessContent(true);
     } catch (error) {
       console.error("Error creating order:", error);
-      Alert.alert("Ошибка", `Не удалось оформить заказ: ${error}`);
+      Alert.alert(
+        "Ошибка",
+        getAxiosErrorMessage(error, "Не удалось оформить заказ"),
+      );
     }
   };
   const closeSuccessAndRefreshCart = async () => {

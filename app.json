@@ -9,7 +9,7 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "runtimeVersion": {
-      "policy": "appVersion"
+      "runtimeVersion": "1.0.0"
     },
     "updates": {
       "url": "https://u.expo.dev/07fa57a7-2ac4-4072-abd8-d2f527d72c08",

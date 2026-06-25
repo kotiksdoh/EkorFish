@@ -88,9 +88,11 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
   }, [visible, dispatch, embedded, modalTranslateY]);
 
   const closeModalWithAnimation = (onClosed?: () => void) => {
+    const afterClose = typeof onClosed === "function" ? onClosed : undefined;
+
     if (embedded || selectionOnly) {
       onClose();
-      onClosed?.();
+      afterClose?.();
       return;
     }
 
@@ -105,7 +107,7 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
       setIsClosing(false);
       modalTranslateY.setValue(screenHeight);
       onClose();
-      onClosed?.();
+      afterClose?.();
     });
   };
 
@@ -248,7 +250,7 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
         <ModalHeader
           title="Укажите город"
           showBackButton
-          onBackPress={closeModalWithAnimation}
+          onBackPress={() => closeModalWithAnimation()}
         />
         <ThemedView
           lightColor="#FFFFFF"
@@ -267,7 +269,7 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
       visible={visible || isClosing}
       animationType="none"
       transparent={true}
-      onRequestClose={closeModalWithAnimation}
+      onRequestClose={() => closeModalWithAnimation()}
       statusBarTranslucent={true}
       presentationStyle="overFullScreen"
     >
@@ -292,7 +294,7 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
               <TouchableOpacity
                 style={styles.swipeHandleContainer}
                 activeOpacity={0.7}
-                onPress={closeModalWithAnimation}
+                onPress={() => closeModalWithAnimation()}
               >
                 <View style={styles.swipeHandle} />
               </TouchableOpacity>

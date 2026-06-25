@@ -2,18 +2,19 @@ import { ArrowIconRight } from "@/assets/icons/icons";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { ModalHeader } from "@/features/auth/ui/Header";
+import { AnimatedStackedSheet } from "@/features/shared/ui/AnimatedStackedSheet";
 import { useAppTheme } from "@/hooks/use-theme-color";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
   Modal,
+  ScrollView,
   StyleSheet,
   TouchableOpacity,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { SnapBottomSheet } from "./SnapBottomSheet";
 
 type PushItem = {
   title: string;
@@ -79,123 +80,139 @@ export const PushNotificationsModal: React.FC<PushNotificationsModalProps> = ({
   const [selectedPush, setSelectedPush] = useState<PushItem | null>(null);
   const groupedData = useMemo(() => groupPushes(pushes), [pushes]);
 
+  useEffect(() => {
+    if (!visible) {
+      setSelectedPush(null);
+    }
+  }, [visible]);
+
   return (
-    <>
-      <Modal
-        visible={visible}
-        animationType="slide"
-        statusBarTranslucent
-        onRequestClose={onClose}
-      >
-        <ThemedView style={styles.container} lightColor="#EBEDF0" darkColor="#040508">
-          <ModalHeader
-            title="Уведомления"
-            showBackButton
-            onBackPress={onClose}
-          />
+    <Modal
+      visible={visible}
+      animationType="slide"
+      statusBarTranslucent
+      onRequestClose={onClose}
+    >
+      <ThemedView style={styles.container} lightColor="#EBEDF0" darkColor="#040508">
+        <ModalHeader
+          title="Уведомления"
+          showBackButton
+          onBackPress={onClose}
+        />
 
-          {isLoading && pushes.length === 0 ? (
-            <View style={styles.loaderContainer}>
-              <ActivityIndicator size="large" color={isDark ? "#4C94FF" : "#203686"} />
-            </View>
-          ) : (
-            <FlatList
-              data={groupedData}
-              keyExtractor={(item) => item.dateLabel}
-              contentContainerStyle={[
-                styles.listContainer,
-                { paddingBottom: Math.max(insets.bottom, 24) + 16 },
-              ]}
-              onEndReachedThreshold={0.3}
-              onEndReached={() => {
-                if (!isLoading && hasMore) {
-                  onLoadMore();
-                }
-              }}
-              ListEmptyComponent={
-                <ThemedText style={styles.emptyText} lightColor="#80818B" darkColor="#FBFCFF80">
-                  Уведомлений пока нет
-                </ThemedText>
+        {isLoading && pushes.length === 0 ? (
+          <View style={styles.loaderContainer}>
+            <ActivityIndicator size="large" color={isDark ? "#4C94FF" : "#203686"} />
+          </View>
+        ) : (
+          <FlatList
+            data={groupedData}
+            keyExtractor={(item) => item.dateLabel}
+            contentContainerStyle={[
+              styles.listContainer,
+              { paddingBottom: Math.max(insets.bottom, 24) + 16 },
+            ]}
+            onEndReachedThreshold={0.3}
+            onEndReached={() => {
+              if (!isLoading && hasMore) {
+                onLoadMore();
               }
-              ListFooterComponent={
-                isLoading && pushes.length > 0 ? (
-                  <View style={styles.footerLoader}>
-                    <ActivityIndicator size="small" color={isDark ? "#4C94FF" : "#203686"} />
-                  </View>
-                ) : null
-              }
-              renderItem={({ item }) => (
-                <View style={styles.groupContainer}>
-                  <ThemedView
-                    style={styles.groupCard}
-                    lightColor="#FFFFFF"
-                    darkColor="#151516"
-                  >
-                    <ThemedText
-                      style={styles.groupTitleInside}
-                      lightColor="#80818B"
-                      darkColor="#FBFCFF80"
-                    >
-                      {item.dateLabel}
-                    </ThemedText>
-                    <View
-                      style={[
-                        styles.itemDivider,
-                        styles.groupHeaderDivider,
-                        { backgroundColor: isDark ? "#252527" : "#F0F3F7" },
-                      ]}
-                    />
-                    {item.pushes.map((push, idx) => (
-                      <View key={`${push.sentAt}-${idx}`}>
-                        <TouchableOpacity
-                          activeOpacity={0.8}
-                          onPress={() => setSelectedPush(push)}
-                          style={styles.pushItemTouchable}
-                        >
-                          <View style={styles.rowTitle}>
-                            <ThemedText style={styles.pushTitle} numberOfLines={1}>
-                              {push.title}
-                            </ThemedText>
-                            <ArrowIconRight />
-                          </View>
-                          <ThemedText
-                            style={styles.pushBody}
-                            lightColor="#80818B"
-                            darkColor="#FBFCFF80"
-                            numberOfLines={2}
-                          >
-                            {push.body}
-                          </ThemedText>
-                        </TouchableOpacity>
-                        {idx !== item.pushes.length - 1 ? (
-                          <View
-                            style={[
-                              styles.itemDivider,
-                              { backgroundColor: isDark ? "#252527" : "#F0F3F7" },
-                            ]}
-                          />
-                        ) : null}
-                      </View>
-                    ))}
-                  </ThemedView>
+            }}
+            ListEmptyComponent={
+              <ThemedText style={styles.emptyText} lightColor="#80818B" darkColor="#FBFCFF80">
+                Уведомлений пока нет
+              </ThemedText>
+            }
+            ListFooterComponent={
+              isLoading && pushes.length > 0 ? (
+                <View style={styles.footerLoader}>
+                  <ActivityIndicator size="small" color={isDark ? "#4C94FF" : "#203686"} />
                 </View>
-              )}
-            />
-          )}
-        </ThemedView>
-      </Modal>
+              ) : null
+            }
+            renderItem={({ item }) => (
+              <View style={styles.groupContainer}>
+                <ThemedView
+                  style={styles.groupCard}
+                  lightColor="#FFFFFF"
+                  darkColor="#151516"
+                >
+                  <ThemedText
+                    style={styles.groupTitleInside}
+                    lightColor="#80818B"
+                    darkColor="#FBFCFF80"
+                  >
+                    {item.dateLabel}
+                  </ThemedText>
+                  <View
+                    style={[
+                      styles.itemDivider,
+                      styles.groupHeaderDivider,
+                      { backgroundColor: isDark ? "#252527" : "#F0F3F7" },
+                    ]}
+                  />
+                  {item.pushes.map((push, idx) => (
+                    <View key={`${push.sentAt}-${idx}`}>
+                      <TouchableOpacity
+                        activeOpacity={0.8}
+                        onPress={() => setSelectedPush(push)}
+                        style={styles.pushItemTouchable}
+                      >
+                        <View style={styles.rowTitle}>
+                          <ThemedText style={styles.pushTitle} numberOfLines={1}>
+                            {push.title}
+                          </ThemedText>
+                          <ArrowIconRight />
+                        </View>
+                        <ThemedText
+                          style={styles.pushBody}
+                          lightColor="#80818B"
+                          darkColor="#FBFCFF80"
+                          numberOfLines={2}
+                        >
+                          {push.body}
+                        </ThemedText>
+                      </TouchableOpacity>
+                      {idx !== item.pushes.length - 1 ? (
+                        <View
+                          style={[
+                            styles.itemDivider,
+                            { backgroundColor: isDark ? "#252527" : "#F0F3F7" },
+                          ]}
+                        />
+                      ) : null}
+                    </View>
+                  ))}
+                </ThemedView>
+              </View>
+            )}
+          />
+        )}
 
-      <SnapBottomSheet
-        visible={Boolean(selectedPush)}
-        onClose={() => setSelectedPush(null)}
-        title={selectedPush?.title || ""}
-        titleAlign="left"
-      >
-        <ThemedText style={styles.sheetBody} lightColor="#1B1B1C" darkColor="#FBFCFF">
-          {selectedPush?.body || ""}
-        </ThemedText>
-      </SnapBottomSheet>
-    </>
+        <AnimatedStackedSheet
+          visible={Boolean(selectedPush)}
+          onClose={() => setSelectedPush(null)}
+          showBackdrop
+        >
+          <ThemedText
+            style={styles.sheetTitle}
+            lightColor="#1B1B1C"
+            darkColor="#FBFCFF"
+          >
+            {selectedPush?.title || ""}
+          </ThemedText>
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.sheetScrollContent}
+            nestedScrollEnabled
+          >
+            <ThemedText style={styles.sheetBody} lightColor="#1B1B1C" darkColor="#FBFCFF">
+              {selectedPush?.body || ""}
+            </ThemedText>
+          </ScrollView>
+        </AnimatedStackedSheet>
+      </ThemedView>
+    </Modal>
   );
 };
 
@@ -262,6 +279,15 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 48,
     fontSize: 16,
+  },
+  sheetTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    marginBottom: 12,
+    textAlign: "left",
+  },
+  sheetScrollContent: {
+    paddingBottom: 8,
   },
   sheetBody: {
     fontSize: 16,

@@ -3,82 +3,83 @@ import { showAppToast } from "./appToast";
 import {
   ax,
 } from "./axios";
+
+function collectStringMessages(value: unknown): string[] {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed ? [trimmed] : [];
+  }
+
+  if (Array.isArray(value)) {
+    return value.flatMap(collectStringMessages);
+  }
+
+  if (value && typeof value === "object") {
+    return Object.values(value).flatMap(collectStringMessages);
+  }
+
+  return [];
+}
+
+export const getAxiosErrorMessage = (
+  err: any,
+  fallback = "Неизвестная ошибка",
+): string => {
+  const errorData = err?.response?.data;
+
+  if (typeof errorData === "string" && errorData.trim()) {
+    return errorData.trim();
+  }
+
+  if (errorData && typeof errorData === "object") {
+    if (typeof errorData.message === "string" && errorData.message.trim()) {
+      return errorData.message.trim();
+    }
+
+    if (typeof errorData.message === "object" && errorData.message !== null) {
+      const messages = collectStringMessages(errorData.message);
+      if (messages.length > 0) {
+        return messages.join(". ");
+      }
+    }
+
+    if (typeof errorData.detail === "string" && errorData.detail.trim()) {
+      return errorData.detail.trim();
+    }
+
+    if (typeof errorData.title === "string" && errorData.title.trim()) {
+      return errorData.title.trim();
+    }
+
+    if (typeof errorData.error === "string" && errorData.error.trim()) {
+      return errorData.error.trim();
+    }
+
+    if (errorData.errors) {
+      const messages = collectStringMessages(errorData.errors);
+      if (messages.length > 0) {
+        return messages.join(". ");
+      }
+    }
+  }
+
+  if (typeof err?.message === "string" && err.message.trim()) {
+    const message = err.message.trim();
+    if (!/^Request failed with status code \d+$/i.test(message)) {
+      return message;
+    }
+  }
+
+  return fallback;
+};
   
   export const axiosErrorHandler = (err: any) => {
     try {
-      // Логируем ошибку для отладки
       console.error('Axios error:', err);
-      
-      // Получаем данные ошибки
-      const errorData = err?.response?.data;
-      const statusCode = err?.response?.status || err?.code || err?.status;
-      
-      let errorMessage = 'Неизвестная ошибка';
-      
-      // Обработка различных форматов сообщений об ошибках
-      if (errorData) {
-        // Случай 1: message - строка
-        if (typeof errorData.message === 'string') {
-          errorMessage = errorData.message;
-        }
-        // Случай 2: message - объект с ключами (как в вашем примере)
-        else if (typeof errorData.message === 'object' && errorData.message !== null) {
-          // Получаем все строковые значения из объекта
-          const messages = Object.values(errorData.message)
-            .filter(msg => typeof msg === 'string')
-            .map((msg: any) => msg.trim())
-            .filter(msg => msg.length > 0);
-          
-          errorMessage = messages.length > 0 
-            ? messages.join('. ') 
-            : 'Ошибка в данных';
-        }
-        // Случай 3: error - строка
-        else if (typeof errorData.error === 'string') {
-          errorMessage = errorData.error;
-        }
-        // Случай 4: errors - объект или массив
-        else if (errorData.errors) {
-          if (typeof errorData.errors === 'object') {
-            const errorMessages = Object.values(errorData.errors)
-              .flatMap(value => {
-                if (typeof value === 'string') return [value];
-                if (Array.isArray(value)) return value.filter(v => typeof v === 'string');
-                return [];
-              })
-              .filter(msg => msg.trim().length > 0);
-            
-            errorMessage = errorMessages.length > 0 
-              ? errorMessages.join('. ') 
-              : 'Ошибка валидации';
-          } else if (Array.isArray(errorData.errors)) {
-            const validMessages = errorData.errors
-              .filter((msg: any) => typeof msg === 'string')
-              .map((msg: any) => msg.trim())
-              .filter((msg: any) => msg.length > 0);
-            
-            errorMessage = validMessages.length > 0 
-              ? validMessages.join('. ') 
-              : 'Ошибка валидации';
-          }
-        }
-      }
-      
-      // Если сообщение не найдено в данных, пробуем другие источники
-      if (errorMessage === 'Неизвестная ошибка') {
-        errorMessage = err?.message || 'Неизвестная ошибка';
-      }
-      
-      // Формируем текст уведомления
-      let notificationText = errorMessage;
-      
-      // Добавляем код ошибки, если есть
-      if (statusCode) {
-        notificationText = `${errorMessage}`;
-      }
+      const errorMessage = getAxiosErrorMessage(err);
       showAppToast({
         type: "error",
-        text1: notificationText,
+        text1: errorMessage,
       });
       // Открываем уведомление
     //   openNotification({
