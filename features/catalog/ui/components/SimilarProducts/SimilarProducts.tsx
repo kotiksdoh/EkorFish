@@ -17,7 +17,7 @@ const cardWidth = (screenWidth - 32 - 8) / 2;
 interface SimilarProductsProps {
   title?: string;
   handleAddToCartPress: (product: any) => void;
-  returnTo?: "home" | "heart" | "catalog";
+  returnTo?: "home" | "heart" | "catalog" | "shop";
   variant?: "similar" | "segmentPopular";
 }
 

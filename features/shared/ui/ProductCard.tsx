@@ -35,7 +35,7 @@ interface ProductCardProps {
   onAddToCartPress?: (product: any) => void;
   isDis?: boolean;
   fullWidth?: boolean;
-  returnTo?: "home" | "heart" | "catalog";
+  returnTo?: "home" | "heart" | "catalog" | "shop";
   onBeforeNavigate?: () => void;
 }
 
@@ -190,6 +190,8 @@ const ProductCardComponent: React.FC<ProductCardProps> = ({
       productPath = `/(tabs)/heart/product/${encodeURIComponent(productId)}?productId=${productId}`;
     } else if (returnTo === "home") {
       productPath = `/product/${encodeURIComponent(productId)}?productId=${productId}`;
+    } else if (returnTo === "shop") {
+      productPath = `/(tabs)/shop/product/${encodeURIComponent(productId)}?productId=${productId}`;
     } else {
       productPath = `/(tabs)/dashboard/product/${encodeURIComponent(productId)}?productId=${productId}`;
     }

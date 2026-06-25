@@ -16,19 +16,24 @@ import {
 } from "@/features/auth/authSlice";
 import { ModalHeader } from "@/features/auth/ui/Header";
 import {
+  AddToCart,
   getCart,
   putFavorite,
   putUnFavorite,
   removeMultipleFromCart,
   updateCartItemQuantitys,
 } from "@/features/catalog/catalogSlice";
+import { RecentlyViewedProducts } from "@/features/catalog/ui/components/RecentlyViewedProducts/RecentlyViewedProducts";
 import { PrimaryButton } from "@/features/home";
 import CheckoutModal from "@/features/order/ui/Order";
 import { baseUrl } from "@/features/shared/services/axios";
+import { AddToCartModal } from "@/features/shared/ui/AddToCartModal";
 import { CompanySelectModal } from "@/features/shared/ui/CompanySelectModal";
 import { CompanySelectionModal } from "@/features/shared/ui/CompanySelectionModalSmall";
 import { isIndividualCompany } from "@/features/shared/utils/companyType";
 import { CustomCheckbox } from "@/features/shared/ui/components/CustomCheckBox";
+import { buildTemplateLineFromProduct } from "@/features/templates/buildTemplateLine";
+import { useTemplatePicker } from "@/features/templates/TemplatePickerContext";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -387,6 +392,10 @@ export default function ShopScreen() {
   const me = useAppSelector((state) => state.auth.me);
   const [companyModalVisible, setCompanyModalVisible] = useState(false);
   const [registerModalVisible, setRegisterModalVisible] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<any>(null);
+  const [existingCartItem, setExistingCartItem] = useState<any>(null);
+  const [showAddToCartModal, setShowAddToCartModal] = useState(false);
+  const templatePicker = useTemplatePicker();
 
   const [bonusParams, setBonusParams] = useState<{
     isAccrueBonuses: boolean;
@@ -394,7 +403,50 @@ export default function ShopScreen() {
   }>({ isAccrueBonuses: false, bonusPercent: 0 });
 
   const authParams = useAppSelector((state) => state.auth.params);
-// 
+
+  const handleAddToCartPress = useCallback(
+    (product: any) => {
+      const cartItemsForProduct =
+        cartItems?.filter((item) => item.productId === product.id) || [];
+      const templateLines = templatePicker.pickingForTemplateId
+        ? templatePicker.getExistingTemplateLinesForProduct(String(product.id))
+        : [];
+
+      setSelectedProduct(product);
+      setExistingCartItem(
+        templatePicker.pickingForTemplateId ? templateLines : cartItemsForProduct,
+      );
+      setShowAddToCartModal(true);
+    },
+    [cartItems, templatePicker],
+  );
+
+  const handleAddToCart = useCallback(
+    (productId: string, optionId: string, quantity: number) => {
+      if (templatePicker.pickingForTemplateId && selectedProduct) {
+        void templatePicker.addLineFromProduct(
+          buildTemplateLineFromProduct(selectedProduct, optionId, quantity),
+        );
+        setShowAddToCartModal(false);
+        setExistingCartItem(null);
+        setSelectedProduct(null);
+        return;
+      }
+
+      dispatch(
+        AddToCart({
+          productId,
+          productPurchaseOptionId: optionId,
+          quantity,
+        }),
+      );
+      setShowAddToCartModal(false);
+      setExistingCartItem(null);
+      setSelectedProduct(null);
+    },
+    [dispatch, selectedProduct, templatePicker],
+  );
+//
   // Загрузка корзины при монтировании
   // useEffect(() => {
   //   loadCart();
@@ -976,6 +1028,8 @@ export default function ShopScreen() {
             </ThemedView>
           </ThemedView>
 
+          <RecentlyViewedProducts onAddToCartPress={handleAddToCartPress} />
+
           {/* Отступ для нижней плашки */}
           <View style={styles.bottomSpacer} />
         </ScrollView>
@@ -1054,6 +1108,19 @@ export default function ShopScreen() {
           onSelectCompany={handleSelectCompany}
           screenScene={"register"}
           onAddCompany={() => {}}
+        />
+
+        <AddToCartModal
+          visible={showAddToCartModal}
+          onClose={() => {
+            setShowAddToCartModal(false);
+            setExistingCartItem(null);
+            setSelectedProduct(null);
+          }}
+          product={selectedProduct}
+          onAddToCart={handleAddToCart}
+          existingCartItem={existingCartItem}
+          variant={templatePicker.pickingForTemplateId ? "template" : "cart"}
         />
       </ThemedView>
     </SafeAreaProvider>

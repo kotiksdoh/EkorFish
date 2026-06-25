@@ -9,6 +9,10 @@ import {
   getSimilarProducts,
   setProductNavigationPending,
 } from "@/features/catalog/catalogSlice";
+import {
+  addRecentlyViewedProduct,
+  buildRecentlyViewedFromDetail,
+} from "@/features/catalog/recentlyViewedStorage";
 import { ProductDetailGallery } from "@/features/catalog/ui/components/ProductDetailGallery";
 import SimilarProducts from "@/features/catalog/ui/components/SimilarProducts/SimilarProducts";
 import { AddToCartModal } from "@/features/shared/ui/AddToCartModal";
@@ -77,6 +81,7 @@ export function ProductDetailScreen() {
   const tabContainerRef = useRef<View>(null);
   const scrollViewRef = useRef<ScrollView>(null);
   const isLeavingRef = useRef(false);
+  const lastSavedRecentlyViewedIdRef = useRef<string | null>(null);
   const [isGalleryActive, setIsGalleryActive] = useState(true);
 
   const router = useRouter();
@@ -171,6 +176,29 @@ export function ProductDetailScreen() {
     product?.id,
     productId,
   ]);
+
+  useEffect(() => {
+    lastSavedRecentlyViewedIdRef.current = null;
+  }, [productId]);
+
+  useEffect(() => {
+    if (!product?.id || String(activeProductId) !== String(productId)) {
+      return;
+    }
+
+    const id = String(product.id);
+    if (lastSavedRecentlyViewedIdRef.current === id) {
+      return;
+    }
+
+    const recentlyViewedItem = buildRecentlyViewedFromDetail(product);
+    if (!recentlyViewedItem) {
+      return;
+    }
+
+    lastSavedRecentlyViewedIdRef.current = id;
+    void addRecentlyViewedProduct(recentlyViewedItem);
+  }, [activeProductId, product, productId]);
 
   useEffect(() => {
     if (selectedPurchaseOption) {
@@ -301,6 +329,15 @@ export function ProductDetailScreen() {
     setSelectedProductForCart(null);
   };
 
+  const productReturnTo = useMemo<
+    "home" | "heart" | "catalog" | "shop"
+  >(() => {
+    if (segments.includes("heart")) return "heart";
+    if (segments.includes("shop")) return "shop";
+    if (segments.includes("(home)")) return "home";
+    return "catalog";
+  }, [segments]);
+
   const navigateBack = useCallback(() => {
     if (router.canGoBack()) {
       router.back();
@@ -309,11 +346,18 @@ export function ProductDetailScreen() {
 
     const tabSegment = segments.find(
       (segment) =>
-        segment === "heart" || segment === "dashboard" || segment === "product",
+        segment === "heart" ||
+        segment === "shop" ||
+        segment === "dashboard" ||
+        segment === "product",
     );
 
     if (tabSegment === "heart") {
       router.replace("/heart");
+      return;
+    }
+    if (tabSegment === "shop") {
+      router.replace("/shop");
       return;
     }
     if (tabSegment === "dashboard") {
@@ -813,7 +857,7 @@ export function ProductDetailScreen() {
             <SimilarProducts
               title="Похожие товары"
               handleAddToCartPress={handleAddToCartPress}
-              returnTo="catalog"
+              returnTo={productReturnTo}
             />
           </ScrollView>
 
