@@ -20,6 +20,7 @@ import type { LegalDocumentId } from "@/features/shared/legal/buildLegalHtml";
 import { LegalDocumentModal } from "@/features/shared/ui/LegalDocumentModal";
 import ManagerSection from "@/features/shared/ui/ManagerSection";
 import SmartInput from "@/features/shared/ui/components/SmartInput";
+import { formatPhoneDisplay } from "@/features/shared/utils/phoneLinking";
 import { getSupportContactsFromParams } from "@/features/shared/utils/supportParams";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { syncPushTokenToBackend } from "@/hooks/usePushNotifications";
@@ -427,7 +428,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   const isLoginButtonDisabled = !phoneNumber || !agreedToTerms;
 
   const codeSentDescription = isPhoneContact
-    ? `Мы отправили 4-x значный код\nна номер +${phoneNumber}.`
+    ? `Мы отправили 4-x значный код\nна номер ${formatPhoneDisplay(phoneNumber)}.`
     : `Мы отправили 4-x значный код\nна почту ${phoneNumber}.`;
 
   const handelCompliteProfile = () => {

@@ -62,6 +62,29 @@ export function normalizePhoneForTel(raw: string): string {
   return `+${digits}`;
 }
 
+/** Отображение российского номера: +7 (967) 667-35-51 */
+export function formatPhoneDisplay(raw: string): string {
+  const digits = normalizePhoneDigits(raw);
+  if (!digits) {
+    return raw;
+  }
+
+  const match = digits.match(/^(\d{1})(\d{0,3})(\d{0,3})(\d{0,2})(\d{0,2})$/);
+  if (!match) {
+    return `+${digits}`;
+  }
+
+  const [, , area, part1, part2, part3] = match;
+  let formatted = "+7";
+
+  if (area) formatted += ` (${area}`;
+  if (part1) formatted += `) ${part1}`;
+  if (part2) formatted += `-${part2}`;
+  if (part3) formatted += `-${part3}`;
+
+  return formatted;
+}
+
 export function resolveManagerContact<T extends { id?: string }>(
   manager: T | null | undefined,
   managersList?: T[] | null,
