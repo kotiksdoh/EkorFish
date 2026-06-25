@@ -941,7 +941,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
               lightColor={"#FFFFFF"}
             >
               <View>
-                <ThemedText style={stylesAccType.accountTypeTitle}>
+                <ThemedText weight={'semiBold'} style={stylesAccType.accountTypeTitle}>
                   Заполните ваши данные
                 </ThemedText>
                 <View style={stylesRegUser.inputConteiner}>
@@ -1055,6 +1055,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                     lightColor="#80818B"
                     darkColor="#FBFCFF80"
                     style={stylesSearchComp.textDown}
+                    type="def"
                   >
                     На данном этапе можно добавить только одну компанию.
                     Остальные вы сможете привязать позже в личном кабинете.
@@ -1352,7 +1353,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
               lightColor={"#FFFFFF"}
             >
               <View>
-                <ThemedText style={stylesAccType.accountTypeTitle}>
+                <ThemedText weight={'semiBold'} style={stylesAccType.accountTypeTitle}>
                   Введите данные компании
                 </ThemedText>
                 {/* const [orgName, setOrgName] = useState('')
@@ -1694,7 +1695,7 @@ const stylesAccType = StyleSheet.create({
   accountTypeTitle: {
     fontSize: 20,
     fontWeight: 600,
-    marginBottom: 16,
+    // marginBottom: 16,
     // textAlign: 'center',
   },
   accountTypeContainer: {
@@ -1742,7 +1743,7 @@ const stylesAccType = StyleSheet.create({
   },
   accountTypeText: {
     fontSize: 14,
-    fontWeight: 600!,
+    fontWeight: "600",
     textAlign: "center",
   },
   continueButton: {

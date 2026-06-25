@@ -384,7 +384,7 @@ export const CompanySelectModal: React.FC<CompanySelectModalProps> = ({
           style={styles.modalContainer}
         >
           <ModalHeader
-            title="Регистрация"
+            title="Добавление аккаунта"
             showBackButton={true}
             onBackPress={() => {
               if (screenScene === "register") {
@@ -400,7 +400,7 @@ export const CompanySelectModal: React.FC<CompanySelectModalProps> = ({
             darkColor="#151516"
           >
             <View>
-              <ThemedText style={styles.accountTypeTitle}>
+              <ThemedText weight={'semiBold'} style={styles.accountTypeTitle}>
                 Введите данные компании
               </ThemedText>
               {/* const [orgName, setOrgName] = useState('')
@@ -649,7 +649,7 @@ const styles = StyleSheet.create({
   accountTypeTitle: {
     fontSize: 20,
     fontWeight: 600,
-    marginBottom: 16,
+    // marginBottom: 16,
   },
   regCompanyBlock: {
     marginTop: 24,
