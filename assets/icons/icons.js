@@ -1746,6 +1746,55 @@ export const OrderReminderIcon = ({
   </Svg>
 );
 
+export const TemplateCatalogIcon = ({
+  width = 24,
+  height = 24,
+  stroke = "#FBFCFF",
+  ...props
+}) => (
+  <Svg width={width} height={height} viewBox="0 0 24 24" fill="none" {...props}>
+    <G clipPath="url(#clip0_template_catalog)">
+      <Path
+        d="M3.17281 12.5479H9.09907C9.74411 12.5479 10.2719 12.0732 10.2719 11.4931V3.05479C10.2719 2.47465 9.74411 2 9.09907 2H3.17281C2.52777 2 2 2.47465 2 3.05479V11.4931C2 12.0732 2.52777 12.5479 3.17281 12.5479ZM3.17281 22H9.09907C9.74411 22 10.2719 21.5253 10.2719 20.9452V16.7261C10.2719 16.1459 9.74411 15.6713 9.09907 15.6713H3.17281C2.52777 15.6713 2 16.1459 2 16.7261V20.9452C2 21.5253 2.52777 22 3.17281 22ZM14.9009 22H20.8272C21.4722 22 22 21.5253 22 20.9452V12.5069C22 11.9268 21.4722 11.4521 20.8272 11.4521H14.9009C14.2559 11.4521 13.7281 11.9268 13.7281 12.5069V20.9452C13.7281 21.5253 14.2559 22 14.9009 22ZM13.7281 3.05479V7.27394C13.7281 7.85407 14.2559 8.32873 14.9009 8.32873H20.8272C21.4722 8.32873 22 7.85407 22 7.27394V3.05479C22 2.47465 21.4722 2 20.8272 2H14.9009C14.2559 2 13.7281 2.47465 13.7281 3.05479Z"
+        stroke={stroke}
+        strokeWidth="1.5"
+      />
+    </G>
+    <Defs>
+      <ClipPath id="clip0_template_catalog">
+        <Rect width="24" height="24" fill="white" />
+      </ClipPath>
+    </Defs>
+  </Svg>
+);
+
+export const TemplateFindProductsIcon = ({
+  width = 24,
+  height = 24,
+  stroke = "#1B1B1C",
+  ...props
+}) => (
+  <Svg width={width} height={height} viewBox="0 0 24 24" fill="none" {...props}>
+    <Ellipse
+      cx="11.6225"
+      cy="11.4171"
+      rx="8.62247"
+      ry="8.41712"
+      stroke={stroke}
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <Path
+      d="M17.6191 17.709L20.9996 21.0004"
+      stroke={stroke}
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);
+
 export const IconDocument = ({
   width = 24,
   height = 24,

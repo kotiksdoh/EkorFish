@@ -58,7 +58,7 @@ export function TemplateOrderLineCard({
 
   const step = line.step ?? 1;
   const minQ = line.minQuantity ?? step;
-  const measureShort = line.measureType === "килограмм" ? "кг" : "шт";
+  const measureShort = line.measureType === "кг" ? "кг" : "шт";
   const unitPrice = line.pricePerUnit ?? 0;
   const total = unitPrice * line.quantity;
 
@@ -223,9 +223,9 @@ export function TemplateOrderLineCard({
 const styles = StyleSheet.create({
   cartItem: {
     flexDirection: "row",
-    padding: 16,
+    paddingVertical: 5,
+    paddingHorizontal: 16,
     borderRadius: 12,
-    marginBottom: 10,
   },
   imageContainer: {
     width: 74,

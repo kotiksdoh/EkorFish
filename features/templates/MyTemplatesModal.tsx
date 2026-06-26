@@ -2,11 +2,14 @@ import {
   ArrowIconRight,
   CalendarFilledIcon,
   CartIcon,
-  PencilIcon
+  PencilIcon,
+  TemplateCatalogIcon,
+  TemplateFindProductsIcon,
 } from "@/assets/icons/icons";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { ModalHeader } from "@/features/auth/ui/Header";
+import { useKeyboardAwareScroll } from "@/features/shared/hooks/useKeyboardAwareScroll";
 import { CustomCheckbox } from "@/features/shared/ui/components/CustomCheckBox";
 import AnimatedTextInput from "@/features/shared/ui/components/CustomInput";
 import { PrimaryButton } from "@/features/shared/ui/components/PrimartyButton";
@@ -36,11 +39,10 @@ import {
   StyleSheet,
   TouchableOpacity,
   TouchableWithoutFeedback,
-  useColorScheme,
   View,
+  useColorScheme,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useKeyboardAwareScroll } from "@/features/shared/hooks/useKeyboardAwareScroll";
 
 import { OrderFromTemplateConfirmOverlay } from "./OrderFromTemplateConfirmModal";
 import { ReminderFrequencyPickerOverlay } from "./ReminderFrequencyPickerModal";
@@ -407,7 +409,7 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
             lightColor="#80818B"
             darkColor="#FBFCFF80"
           >
-            {item.productsCount} {countGoodsWord(item.productsCount)}
+            {item.productsCount} {countGoodsWord(item.productsCount)} · ~{item?.totalProductsPrice} ₽
           </ThemedText>
           <ThemedText
             style={styles.cardCreated}
@@ -763,13 +765,13 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
             {!detailEmpty ? (
               <View style={{ marginTop: detailEditing ? 16 : 12 }}>
                 <View style={styles.itemsHeaderRow}>
-                  <ThemedText
+                  {/* <ThemedText
                     style={styles.itemsTitle}
                     lightColor="#1B1B1C"
                     darkColor="#FBFCFF"
                   >
                     Товары
-                  </ThemedText>
+                  </ThemedText> */}
                   {showEditBulkActions ? (
                     <TouchableOpacity
                       onPress={() => void deleteSelected()}
@@ -823,13 +825,23 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
                   onPress={() => void leaveToPickCatalog()}
                   variant="primary"
                   fullWidth
+                  leftIcon={
+                    <TemplateCatalogIcon width={24} height={24} stroke="#FBFCFF" />
+                  }
                 />
                 <View style={{ height: 10 }} />
                 <PrimaryButton
                   title="Найти товары"
                   onPress={() => void leaveToPickSearch()}
-                  variant="primary"
+                  variant="third"
                   fullWidth
+                  leftIcon={
+                    <TemplateFindProductsIcon
+                      width={24}
+                      height={24}
+                      stroke="#1B1B1C"
+                    />
+                  }
                 />
               </View>
             ) : null}
@@ -868,12 +880,12 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
                       lightColor="#80818B"
                       darkColor="#FBFCFF80"
                     >
-                      Кол-во:{" "}
+                      
                       {(detailPreset?.items || [])
                         .reduce((s: number, i: any) => s + (i.quantity || 0), 0)
                         .toLocaleString("ru-RU", {
                           maximumFractionDigits: 3,
-                        })}
+                        })}{" "}кг
                     </ThemedText>
                   </View>
                 </View>
@@ -995,8 +1007,8 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
               />
             )}
 
-            {/* BottomPanel кнопки — всегда поверх, прозрачная подложка */}
-            {!isLoadingList && (
+            {/* Нижняя кнопка только когда есть шаблоны; при пустом списке — кнопка в empty state */}
+            {!isLoadingList && templates.length > 0 && (
               <View
                 pointerEvents="box-none"
                 style={[
@@ -1310,7 +1322,7 @@ const styles = StyleSheet.create({
   emptyScrollContent: {
     flexGrow: 1,
     paddingVertical: 24,
-    paddingBottom: 120,
+    paddingBottom: 24,
     justifyContent: "center",
   },
   detailRoot: { flex: 1, position: "relative" },
