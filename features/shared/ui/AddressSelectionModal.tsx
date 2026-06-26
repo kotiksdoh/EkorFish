@@ -15,13 +15,15 @@ import {
   Animated,
   Dimensions,
   Modal,
+  Platform,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
   TouchableWithoutFeedback,
-  useColorScheme,
   View,
+  useColorScheme,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AddAddressFormPanel } from "./AddAddressFormPanel";
 import { AddAddressModal } from "./AddAddressModal";
 import { CompanySelectModal } from "./CompanySelectModal";
@@ -59,6 +61,7 @@ export const AddressSelectionModal: React.FC<AddressSelectionModalProps> = ({
 }) => {
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === "dark";
+  const insets = useSafeAreaInsets();
   const dispatch = useAppDispatch();
   const [modalTranslateY] = useState(new Animated.Value(screenHeight));
   const [isClosing, setIsClosing] = useState(false);
@@ -167,6 +170,9 @@ export const AddressSelectionModal: React.FC<AddressSelectionModalProps> = ({
     return null;
   }
 
+  const buttonsBottomPadding =
+    Math.max(insets.bottom, Platform.OS === "android" ? 28 : 16) + 16;
+
   const addressList = (
     <>
       {!embedded && (
@@ -255,7 +261,12 @@ export const AddressSelectionModal: React.FC<AddressSelectionModalProps> = ({
         )}
       </ScrollView>
 
-      <View style={styles.buttonsContainer}>
+      <View
+        style={[
+          styles.buttonsContainer,
+          { paddingBottom: buttonsBottomPadding },
+        ]}
+      >
         <PrimaryButton
           title="Добавить адрес доставки"
           onPress={() => setShowAddAddressModal(true)}
@@ -486,8 +497,8 @@ const styles = StyleSheet.create({
   },
   buttonsContainer: {
     paddingHorizontal: 20,
-    paddingVertical: 16,
-    gap: 8,
+    paddingTop: 16,
+    // gap: 8,
   },
   buttonSpacer: {
     height: 8,

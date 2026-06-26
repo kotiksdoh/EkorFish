@@ -12,6 +12,7 @@ import {
   ActivityIndicator,
   Image,
   Modal,
+  Platform,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
@@ -73,6 +74,8 @@ export const CompanySelectModal: React.FC<CompanySelectModalProps> = ({
   embedded = false,
 }) => {
   const insets = useSafeAreaInsets();
+  const footerBottomPadding =
+    Math.max(insets.bottom, Platform.OS === "android" ? 28 : 16) + 16;
   const systemTheme = useColorScheme();
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === "dark";
@@ -82,7 +85,7 @@ export const CompanySelectModal: React.FC<CompanySelectModalProps> = ({
   const [kpp, setKpp] = useState("");
   const [legalAddress, setLegalAddress] = useState("");
   const [contactPerson, setContactPerson] = useState("");
-  const [dateCreated, setDateCreated] = useState("");
+  const [dateCreated, setDateCreated] = useState("17.01.2002");
   const [inn, setInn] = useState("");
 
   const loading = useAppSelector((state) => state.auth.isLoading);
@@ -202,7 +205,7 @@ export const CompanySelectModal: React.FC<CompanySelectModalProps> = ({
         >
           {/* Хедер модалки */}
           <ModalHeader
-            title="Аккаунты"
+            title="Выбрать другую компанию"
             showBackButton={true}
             onBackPress={() => {
               onClose();
@@ -359,7 +362,7 @@ export const CompanySelectModal: React.FC<CompanySelectModalProps> = ({
           <View
             style={[
               styles.footer,
-              { paddingBottom: 16 + insets.bottom },
+              { paddingBottom: footerBottomPadding },
             ]}
           >
             <PrimaryButton
@@ -452,7 +455,7 @@ const [contactPerson, setContactPerson] = useState('') */}
           <View
             style={[
               styles.footerNew,
-              { paddingBottom: 16 + insets.bottom },
+              { paddingBottom: footerBottomPadding },
             ]}
           >
             <PrimaryButton
@@ -532,7 +535,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   scrollContent: {
-    paddingBottom: "20%",
+    paddingBottom: "25%",
   },
   scrollContentLoading: {
     flexGrow: 1,
@@ -626,7 +629,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     paddingHorizontal: 16,
-    paddingBottom: 34,
     paddingTop: 16,
   },
   footerNew: {
@@ -635,8 +637,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     paddingHorizontal: 16,
-    paddingBottom: 34,
-    // paddingTop: 16,
   },
 
   modalContentInnerRegUser: {
