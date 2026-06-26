@@ -1,6 +1,6 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -37,6 +37,10 @@ import {
 import { LoginModal } from "@/features/auth/ui/components/LoginModal";
 import { clearCatalogState } from "@/features/catalog/catalogSlice";
 import { axdef } from "@/features/shared/services/axios";
+import {
+  formatPhoneProfile,
+  isEmailLogin,
+} from "@/features/shared/utils/phoneLinking";
 import { CompanySelectModal } from "@/features/shared/ui/CompanySelectModal";
 import { HelpModal } from "@/features/shared/ui/HelpModal";
 import ManagerSection from "@/features/shared/ui/ManagerSection";
@@ -367,7 +371,12 @@ export default function TabTwoScreen() {
   const isIndividualSelected =
     hasAuthToken && storedCompany?.type === "individual";
   const profileTitle = getDisplayName();
-  const profileSubtitle = hasAuthToken ? me?.login || "" : "";
+  const profileSubtitle = useMemo(() => {
+    if (!hasAuthToken) return "";
+    const login = me?.login || "";
+    if (!login) return "";
+    return isEmailLogin(login) ? login : formatPhoneProfile(login);
+  }, [hasAuthToken, me?.login]);
   const showProfileContent = authChecked && hasAuthToken;
 
   return (

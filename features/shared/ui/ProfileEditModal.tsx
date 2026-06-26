@@ -6,7 +6,7 @@ import { PrimaryButton } from "@/features/shared/ui/components/PrimartyButton";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from "expo-linear-gradient";
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   Dimensions,
@@ -20,6 +20,10 @@ import {
   useColorScheme
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  formatPhoneProfile,
+  isEmailLogin,
+} from "@/features/shared/utils/phoneLinking";
 import AnimatedTextInput from "./components/CustomInput";
 
 const { height: screenHeight } = Dimensions.get("window");
@@ -151,8 +155,6 @@ export const ProfileEditModal = ({
   
   const [name, setName] = useState('');
   const [surname, setSurname] = useState('');
-  const [phone, setPhone] = useState('');
-  const [mail, setMail] = useState('');
   const [avatar, setAvatar] = useState<string | null>(initialData.avatar || null);
   const [selectedColorId, setSelectedColorId] = useState(colors[0].id);
   const [pickerColorId, setPickerColorId] = useState(colors[0].id);
@@ -171,6 +173,16 @@ export const ProfileEditModal = ({
   };
 
   const selectedColor = getSelectedColor();
+
+  const loginRaw = useMemo(
+    () => initialData.phone || initialData.email || "",
+    [initialData.phone, initialData.email],
+  );
+  const isPhoneLogin = Boolean(loginRaw) && !isEmailLogin(loginRaw);
+  const loginPlaceholder = isPhoneLogin ? "Номер" : "Почта";
+  const loginDisplayValue = isPhoneLogin
+    ? formatPhoneProfile(loginRaw)
+    : loginRaw;
 
   // Анимация появления основной модалки
   useEffect(() => {
@@ -261,8 +273,6 @@ export const ProfileEditModal = ({
       void loadSavedData();
       setName(initialData.name || "");
       setSurname(initialData.surname || "");
-      setPhone(initialData.phone || "");
-      setMail(initialData.phone || "");
     }
 
     if (!visible) {
@@ -270,7 +280,7 @@ export const ProfileEditModal = ({
     }
 
     wasVisibleRef.current = visible;
-  }, [visible, initialData.name, initialData.surname, initialData.phone, initialData.coverColor, colors]);
+  }, [visible, initialData.name, initialData.surname, initialData.coverColor, colors]);
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -408,10 +418,9 @@ export const ProfileEditModal = ({
 
                     <ThemedView lightColor="#FFFFFF" darkColor='#151516' style={styles.colorPickerTrigger}>
                       <AnimatedTextInput
-                        placeholder="Логин"
+                        placeholder={loginPlaceholder}
                         placeholderTextColor="#80818B"
-                        value={mail}
-                        onChangeText={setMail}
+                        value={loginDisplayValue}
                         editable={false}
                       />
          
@@ -661,7 +670,7 @@ const styles = StyleSheet.create({
   colorPickerHeader: {
     paddingHorizontal: 20,
     paddingVertical: 16,
-    alignItems: 'center',
+    // alignItems: 'center',
   },
   colorPickerModalTitle: {
     fontSize: 18,
@@ -671,7 +680,7 @@ const styles = StyleSheet.create({
   colorsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'center',
+    // justifyContent: 'center',
     gap: 16,
     paddingHorizontal: 20,
     paddingVertical: 16,

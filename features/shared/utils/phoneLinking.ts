@@ -85,6 +85,27 @@ export function formatPhoneDisplay(raw: string): string {
   return formatted;
 }
 
+/** Отображение для профиля: +7 999 123-45-67 */
+export function formatPhoneProfile(raw: string): string {
+  const digits = normalizePhoneDigits(raw);
+  if (!digits) {
+    return raw;
+  }
+
+  const national = digits.startsWith("7") ? digits.slice(1) : digits;
+  const match = national.match(/^(\d{3})(\d{3})(\d{2})(\d{2})$/);
+  if (!match) {
+    return `+7 ${national}`;
+  }
+
+  const [, operator, part1, part2, part3] = match;
+  return `+7 ${operator} ${part1}-${part2}-${part3}`;
+}
+
+export function isEmailLogin(value: string): boolean {
+  return /[a-zA-Z@.]/.test(value);
+}
+
 export function resolveManagerContact<T extends { id?: string }>(
   manager: T | null | undefined,
   managersList?: T[] | null,
