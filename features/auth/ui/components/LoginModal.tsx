@@ -813,7 +813,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
               lightColor={"#FFFFFF"}
             >
               {/* Заголовок выбора типа аккаунта */}
-              <ThemedText style={stylesAccType.accountTypeTitle}>
+              <ThemedText style={stylesAccType.accountTypeTitleNew}>
                 Выберите тип аккаунта
               </ThemedText>
 
@@ -941,7 +941,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
               lightColor={"#FFFFFF"}
             >
               <View>
-                <ThemedText weight={'semiBold'} style={stylesAccType.accountTypeTitle}>
+                <ThemedText weight={'semiBold'} style={stylesAccType.accountTypeTitleNew}>
                   Заполните ваши данные
                 </ThemedText>
                 <View style={stylesRegUser.inputConteiner}>
@@ -1697,6 +1697,12 @@ const stylesAccType = StyleSheet.create({
     fontWeight: 600,
     // marginBottom: 16,
     // textAlign: 'center',
+  },
+  accountTypeTitleNew: {
+    fontSize: 20,
+    fontWeight: 600,
+    marginBottom: 16,
+
   },
   accountTypeContainer: {
     flexDirection: "row",

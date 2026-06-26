@@ -16,12 +16,15 @@ import {
   Image,
   Modal,
   Platform,
+  ScrollView,
   StyleSheet,
   TouchableOpacity,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { createReturnRequest } from "../catalog/catalogSlice";
+import { createReturnRequest, AddToCart } from "../catalog/catalogSlice";
+import { RecommendedOrderProducts } from "@/features/catalog/ui/components/RecommendedOrderProducts/RecommendedOrderProducts";
+import { AddToCartModal } from "@/features/shared/ui/AddToCartModal";
 import { baseUrl } from "../shared/services/axios";
 
 function classifyReturnMethodByName(name: string | undefined): "address" | "storage" | "other" {
@@ -61,6 +64,7 @@ export const MyReturnsThirdStep: React.FC<MyReturnsThirdStepProps> = ({
   const returnableOrders = useAppSelector((state) => state.catalog.returnableOrders);
   const returnRequests = useAppSelector((state) => state.catalog.returnRequests);
   const returnsStatuses = useAppSelector((state) => state.catalog.returnsStatuses);
+  const cartItems = useAppSelector((state) => state.catalog.cart);
   const currentCompany = useAppSelector((state) => state.auth.currentCompany);
   const me = useAppSelector((state) => state.auth.me);
   const [loading, setLoading] = useState(false);
@@ -73,6 +77,9 @@ export const MyReturnsThirdStep: React.FC<MyReturnsThirdStepProps> = ({
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [showTownModal, setShowTownModal] = useState(false);
   const [showSuccessContent, setShowSuccessContent] = useState(false);
+  const [selectedProductForCart, setSelectedProductForCart] = useState<any>(null);
+  const [existingCartItem, setExistingCartItem] = useState<any>(null);
+  const [showAddToCartModal, setShowAddToCartModal] = useState(false);
 
   useEffect(() => {
     if (!visible) {
@@ -274,6 +281,33 @@ export const MyReturnsThirdStep: React.FC<MyReturnsThirdStepProps> = ({
     }
   };
 
+  const handleRecommendedAddToCartPress = useCallback(
+    (product: any) => {
+      const cartItemsForProduct =
+        cartItems?.filter((item: any) => item.productId === product.id) || [];
+      setSelectedProductForCart(product);
+      setExistingCartItem(cartItemsForProduct);
+      setShowAddToCartModal(true);
+    },
+    [cartItems],
+  );
+
+  const handleRecommendedAddToCart = useCallback(
+    (productId: string, optionId: string, quantity: number) => {
+      dispatch(
+        AddToCart({
+          productId,
+          productPurchaseOptionId: optionId,
+          quantity,
+        }),
+      );
+      setShowAddToCartModal(false);
+      setSelectedProductForCart(null);
+      setExistingCartItem(null);
+    },
+    [dispatch],
+  );
+
   const bottomHintMessage = useMemo(() => {
     if (selectedReturnMethod === null || selectedRefundMethod === null) {
       return "Выберите способ возврата и способ возврата денег";
@@ -459,49 +493,68 @@ export const MyReturnsThirdStep: React.FC<MyReturnsThirdStepProps> = ({
         />
 
         {showSuccessContent ? (
-          <ThemedView style={styles.successContainer}>
-            <Image
-              source={require("@/assets/icons/png/Icon.png")}
-              resizeMode="contain"
-            />
-            <ThemedText
-              style={styles.successTitle}
-              lightColor="#1B1B1C"
-              darkColor="#FBFCFF"
+          <ScrollView
+            style={styles.successScrollView}
+            contentContainerStyle={[
+              styles.successScrollContent,
+              { paddingBottom: Math.max(insets.bottom, 24) + 24 },
+            ]}
+            showsVerticalScrollIndicator={false}
+          >
+            <ThemedView
+              lightColor="#FFFFFF"
+              darkColor="#151516"
+              style={styles.successContainer}
             >
-              Заявка на возврат создана
-            </ThemedText>
-            <ThemedText
-              style={styles.successText}
-              lightColor="#80818B"
-              darkColor="#FBFCFF80"
-            >
-              Менеджер проверит заявку и свяжется с вами в течение 2 часов.
-            </ThemedText>
+              <Image
+                source={require("@/assets/icons/png/Icon.png")}
+                resizeMode="contain"
+              />
+              <ThemedText
+                style={styles.successTitle}
+                lightColor="#1B1B1C"
+                darkColor="#FBFCFF"
+              >
+                Заявка на возврат создана
+              </ThemedText>
+              <ThemedText
+                style={styles.successText}
+                lightColor="#80818B"
+                darkColor="#FBFCFF80"
+              >
+                Менеджер проверит заявку и свяжется с вами в течение 2 часов.
+              </ThemedText>
 
-            <View style={styles.successButtons}>
-              <PrimaryButton
-                title="Детали возврата"
-                onPress={() => {
-                  setShowSuccessContent(false);
-                  onViewReturnDetails?.();
-                }}
-                variant="third"
-                size="md"
-                style={styles.successButton}
-              />
-              <PrimaryButton
-                title="На главную"
-                onPress={() => {
-                  setShowSuccessContent(false);
-                  onNavigateHome?.();
-                }}
-                variant="primary"
-                size="md"
-                style={styles.successButton}
-              />
-            </View>
-          </ThemedView>
+              <View style={styles.successButtons}>
+                <PrimaryButton
+                  title="Детали возврата"
+                  onPress={() => {
+                    setShowSuccessContent(false);
+                    onViewReturnDetails?.();
+                  }}
+                  variant="third"
+                  size="md"
+                  style={styles.successButton}
+                />
+                <PrimaryButton
+                  title="На главную"
+                  onPress={() => {
+                    setShowSuccessContent(false);
+                    onNavigateHome?.();
+                  }}
+                  variant="primary"
+                  size="md"
+                  style={styles.successButton}
+                />
+              </View>
+            </ThemedView>
+
+            <RecommendedOrderProducts
+              visible={showSuccessContent}
+              onAddToCartPress={handleRecommendedAddToCartPress}
+              returnTo="catalog"
+            />
+          </ScrollView>
         ) : (
           <>
             <FlatList
@@ -647,6 +700,19 @@ export const MyReturnsThirdStep: React.FC<MyReturnsThirdStepProps> = ({
         )}
           </>
         )}
+
+        <AddToCartModal
+          visible={showAddToCartModal}
+          onClose={() => {
+            setShowAddToCartModal(false);
+            setSelectedProductForCart(null);
+            setExistingCartItem(null);
+          }}
+          product={selectedProductForCart}
+          onAddToCart={handleRecommendedAddToCart}
+          existingCartItem={existingCartItem}
+          nestedInModal={showSuccessContent}
+        />
       </ThemedView>
     </Modal>
   );
@@ -821,12 +887,17 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 8,
   },
+  successScrollView: {
+    flex: 1,
+  },
+  successScrollContent: {
+    paddingTop: 8,
+    paddingHorizontal: 16,
+  },
   successContainer: {
-    marginTop: 8,
     padding: 24,
     alignItems: "center",
     borderRadius: 24,
-    flex: 1,
   },
   successTitle: {
     fontSize: 24,
