@@ -1711,6 +1711,41 @@ export const PushNotificationIcon = ({
   </Svg>
 );
 
+export const OrderReminderIcon = ({
+  width = 24,
+  height = 24,
+  color = "#80818B",
+  ...props
+}) => (
+  <Svg width={width} height={height} viewBox="0 0 24 24" fill="none" {...props}>
+    <Path
+      d="M12.9516 6.43827C12.9516 6.95667 12.5252 7.37695 11.9993 7.37695C11.4733 7.37695 11.0469 6.95667 11.0469 6.43827C11.0469 5.91987 11.4733 5.49959 11.9993 5.49959C12.5252 5.49959 12.9516 5.91987 12.9516 6.43827Z"
+      stroke={color}
+      strokeWidth="1.25"
+      strokeMiterlimit="10"
+    />
+    <Path
+      d="M18.1905 18.1533C17.4015 18.1533 16.762 16.6851 16.762 15.9074V12.0707C16.762 9.44706 14.5797 7.3329 11.9182 7.37802C9.32055 7.42205 7.23814 9.51008 7.23814 12.0707V15.9074C7.23814 16.6851 6.59855 18.1533 5.80957 18.1533"
+      stroke={color}
+      strokeWidth="1.25"
+      strokeMiterlimit="10"
+    />
+    <Path
+      d="M5.33301 18.1533H18.6663"
+      stroke={color}
+      strokeWidth="1.25"
+      strokeMiterlimit="10"
+      strokeLinecap="round"
+    />
+    <Path
+      d="M13.4284 18.1533V19.092C13.4284 19.8696 12.7888 20.5 11.9999 20.5C11.2109 20.5 10.5713 19.8696 10.5713 19.092V18.1533"
+      stroke={color}
+      strokeWidth="1.25"
+      strokeMiterlimit="10"
+    />
+  </Svg>
+);
+
 export const IconDocument = ({
   width = 24,
   height = 24,

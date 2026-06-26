@@ -19,6 +19,7 @@ import {
   IconGeo,
   ICricleIcon,
   MenuRefreshIcon,
+  OrderReminderIcon,
   PencilIcon,
   PushNotificationIcon,
   SettingsIcon
@@ -29,6 +30,7 @@ import { Fonts } from "@/constants/theme";
 import {
   clearAuthState,
   getCategoryItems,
+  getOrderReminderSettings,
   getPushesThunk,
   getSliderItems,
   getUncheckedPushesCountThunk,
@@ -47,6 +49,7 @@ import ManagerSection from "@/features/shared/ui/ManagerSection";
 import { MyFinanceModal } from "@/features/shared/ui/MyFInance";
 import { MyOrdersModal } from "@/features/shared/ui/MyOrders";
 import { MyReturnsModal } from "@/features/shared/ui/MyReturns";
+import { OrderReminderModal } from "@/features/shared/ui/OrderReminderModal";
 import { MySettingsModal } from "@/features/shared/ui/MySettings";
 import { ProfileEditModal } from "@/features/shared/ui/ProfileEditModal";
 import { PushNotificationsModal } from "@/features/shared/ui/PushNotificationsModal";
@@ -76,6 +79,8 @@ export default function TabTwoScreen() {
   const [returnsModalVisible, setReturnsModalVisible] = useState(false);
   const [templatesModalVisible, setTemplatesModalVisible] = useState(false);
   const [financeModalVisible, setFinanceModalVisible] = useState(false);
+  const [orderReminderModalVisible, setOrderReminderModalVisible] =
+    useState(false);
   const [settingsModalVisible, setSettingsModalVisible] = useState(false);
   const [helpModalVisible, setHelpModalVisible] = useState(false);
   const [pushesModalVisible, setPushesModalVisible] = useState(false);
@@ -95,6 +100,10 @@ export default function TabTwoScreen() {
   const { pushes, isLoadingPushes, hasMorePushes, uncheckedPushesCount } = useAppSelector(
     (state) => state.auth,
   );
+  const {
+    orderReminderSettings,
+    isLoadingOrderReminderSettings,
+  } = useAppSelector((state) => state.auth);
   const [storedCompany, setStoredCompany] = useState<StoredCompany | null>(null);
 
   useEffect(() => {
@@ -280,6 +289,13 @@ export default function TabTwoScreen() {
     useCallback(() => {
       if (!hasAuthToken) return;
       dispatch(getUncheckedPushesCountThunk());
+    }, [dispatch, hasAuthToken]),
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!hasAuthToken) return;
+      dispatch(getOrderReminderSettings());
     }, [dispatch, hasAuthToken]),
   );
 
@@ -575,6 +591,50 @@ export default function TabTwoScreen() {
 
             <TouchableOpacity
               style={styles.infoRow}
+              onPress={() => setOrderReminderModalVisible(true)}
+              disabled={isLoadingOrderReminderSettings}
+              activeOpacity={isLoadingOrderReminderSettings ? 1 : 0.7}
+            >
+              <ThemedView
+                lightColor="#F2F4F7"
+                darkColor="#202022"
+                style={styles.iconPlaceholder}
+              >
+                <OrderReminderIcon width={22} height={22} />
+              </ThemedView>
+              <View
+                style={[
+                  styles.infoContent,
+                  isDarkMode && {
+                    borderColor: "#252527",
+                  },
+                ]}
+              >
+                <ThemedText lightColor="#1B1B1C" style={styles.infoLabel}>
+                  Напоминать о заказе
+                </ThemedText>
+                <View style={styles.infoValueContainer}>
+                  {isLoadingOrderReminderSettings ? (
+                    <ActivityIndicator
+                      size="small"
+                      color={isDarkMode ? "#4C94FF" : "#203686"}
+                    />
+                  ) : (
+                    <ThemedText
+                      lightColor="#80818B"
+                      darkColor="#FBFCFF80"
+                      style={styles.infoStatus}
+                    >
+                      {orderReminderSettings?.isEnabled ? "Вкл" : "Выкл"}
+                    </ThemedText>
+                  )}
+                  <ArrowIconRight />
+                </View>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.infoRow}
               onPress={() => setFinanceModalVisible(true)}
             >
               <ThemedView
@@ -750,6 +810,11 @@ export default function TabTwoScreen() {
       <MyFinanceModal
         visible={financeModalVisible && showProfileContent}
         onClose={() => setFinanceModalVisible(false)}
+      />
+
+      <OrderReminderModal
+        visible={orderReminderModalVisible && showProfileContent}
+        onClose={() => setOrderReminderModalVisible(false)}
       />
 
       <MySettingsModal
@@ -962,6 +1027,10 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     color: "#1B1B1C",
     textAlign: "right",
+  },
+  infoStatus: {
+    fontSize: 14,
+    fontWeight: "500",
   },
   emptyWhiteBlock: {
     width: "90%",

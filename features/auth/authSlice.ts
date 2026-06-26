@@ -6,6 +6,7 @@ import { axdef, baseUrl } from "../shared/services/axios";
 import { getCart, getMyOrders, getOrderPageData } from "../catalog/catalogSlice";
 import { getInlineParams } from "../shared/services/utils";
 import type { AppDispatch } from "@/store/store";
+import type { OrderReminderSettings } from "@/features/shared/types/orderReminderSettings";
 
 interface AuthState {
   user: any | null;
@@ -72,6 +73,9 @@ interface AuthState {
   }[];
   isLoadingPushSettings: boolean;
   isUpdatingPushPreference: boolean;
+  orderReminderSettings: OrderReminderSettings | null;
+  isLoadingOrderReminderSettings: boolean;
+  isUpdatingOrderReminderSettings: boolean;
   pushes: {
     title: string;
     body: string;
@@ -127,6 +131,9 @@ const initialState: AuthState = {
   pushSettings: [],
   isLoadingPushSettings: false,
   isUpdatingPushPreference: false,
+  orderReminderSettings: null,
+  isLoadingOrderReminderSettings: false,
+  isUpdatingOrderReminderSettings: false,
   pushes: [],
   uncheckedPushesCount: 0,
   isLoadingPushes: false,
@@ -517,6 +524,35 @@ export const updatePushPreference = createAsyncThunk(
   async (payload: UpdatePushPreferencePayload, { rejectWithValue }) => {
     try {
       const res = await axdef.put("/api/Account/push/preferences", payload);
+      return { response: res, payload };
+    } catch (error) {
+      console.log(error);
+      return rejectWithValue(error);
+    }
+  },
+);
+
+export const getOrderReminderSettings = createAsyncThunk(
+  "user/getOrderReminderSettings",
+  async (_, { rejectWithValue }) => {
+    try {
+      const res = await axdef.get("/api/Account/push/order-reminder-settings");
+      return res;
+    } catch (error) {
+      console.log(error);
+      return rejectWithValue(error);
+    }
+  },
+);
+
+export const updateOrderReminderSettings = createAsyncThunk(
+  "user/updateOrderReminderSettings",
+  async (payload: OrderReminderSettings, { rejectWithValue }) => {
+    try {
+      const res = await axdef.put(
+        "/api/Account/push/order-reminder-settings",
+        payload,
+      );
       return { response: res, payload };
     } catch (error) {
       console.log(error);
@@ -1077,6 +1113,38 @@ const authSlice = createSlice({
     builder.addCase(updatePushPreference.rejected, (state, action) => {
       state.isUpdatingPushPreference = false;
       state.error = "Ошибка обновления настроек уведомлений";
+      axiosErrorHandler(action?.payload);
+    });
+
+    builder.addCase(getOrderReminderSettings.pending, (state) => {
+      state.isLoadingOrderReminderSettings = true;
+      state.error = null;
+    });
+
+    builder.addCase(getOrderReminderSettings.fulfilled, (state, action) => {
+      state.isLoadingOrderReminderSettings = false;
+      state.orderReminderSettings = action.payload?.data?.data ?? null;
+    });
+
+    builder.addCase(getOrderReminderSettings.rejected, (state, action) => {
+      state.isLoadingOrderReminderSettings = false;
+      state.error = "Ошибка загрузки напоминаний о заказе";
+      axiosErrorHandler(action?.payload);
+    });
+
+    builder.addCase(updateOrderReminderSettings.pending, (state) => {
+      state.isUpdatingOrderReminderSettings = true;
+      state.error = null;
+    });
+
+    builder.addCase(updateOrderReminderSettings.fulfilled, (state, action) => {
+      state.isUpdatingOrderReminderSettings = false;
+      state.orderReminderSettings = action.payload.payload;
+    });
+
+    builder.addCase(updateOrderReminderSettings.rejected, (state, action) => {
+      state.isUpdatingOrderReminderSettings = false;
+      state.error = "Ошибка обновления напоминаний о заказе";
       axiosErrorHandler(action?.payload);
     });
 

@@ -85,7 +85,7 @@ export const CompanySelectModal: React.FC<CompanySelectModalProps> = ({
   const [kpp, setKpp] = useState("");
   const [legalAddress, setLegalAddress] = useState("");
   const [contactPerson, setContactPerson] = useState("");
-  const [dateCreated, setDateCreated] = useState("17.01.2002");
+  const [dateCreated, setDateCreated] = useState("");
   const [inn, setInn] = useState("");
 
   const loading = useAppSelector((state) => state.auth.isLoading);
