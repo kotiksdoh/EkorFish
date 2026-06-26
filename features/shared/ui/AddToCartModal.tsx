@@ -17,6 +17,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get("window");
 const MODAL_HEIGHT = SCREEN_HEIGHT * 0.44;
 const PLACEHOLDER_IMAGE = require("@/assets/icons/png/noImage.png");
@@ -89,6 +90,11 @@ interface AddToCartModalProps {
   existingCartItem?: any[];
   /** Режим добавления в шаблон заказа вместо корзины */
   variant?: "cart" | "template";
+  /**
+   * Модалка открыта поверх другой full-screen Modal (например, «Спасибо за заказ!»).
+   * Добавляет нижний padding, чтобы кнопки не перекрывались системной навигацией.
+   */
+  nestedInModal?: boolean;
 }
 
 // Маппинг иконок по кодам
@@ -124,9 +130,14 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
   onAddToCart,
   existingCartItem,
   variant = "cart",
+  nestedInModal = false,
 }) => {
+  const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === "dark";
+  const modalBottomPadding = nestedInModal
+    ? Math.max(insets.bottom, Platform.OS === "android" ? 48 : 34) + 20
+    : 20;
   const [selectedTab, setSelectedTab] = useState<string>("");
   const [quantity, setQuantity] = useState<number>(0);
   const [selectedOption, setSelectedOption] = useState<PurchaseOption | null>(
@@ -324,6 +335,7 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
         {
           transform: [{ translateY }],
           backgroundColor,
+          paddingBottom: modalBottomPadding,
         },
         isDarkMode && {
           borderColor: "#252527",
@@ -547,7 +559,6 @@ const styles = StyleSheet.create({
     borderColor: "#F0F3F7",
     paddingHorizontal: 16,
     paddingTop: 8,
-    paddingBottom: 20,
     borderWidth: 1,
     zIndex: 9999,
   },

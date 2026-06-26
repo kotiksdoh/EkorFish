@@ -14,6 +14,7 @@ import {
 } from "@/features/auth/authSlice";
 import { ModalHeader } from "@/features/auth/ui/Header";
 import {
+  AddToCart,
   createOrder,
   createRecipient,
   deleteRecipient,
@@ -22,10 +23,12 @@ import {
   getOrderPageData,
   getRecipients,
 } from "@/features/catalog/catalogSlice";
+import { RecommendedOrderProducts } from "@/features/catalog/ui/components/RecommendedOrderProducts/RecommendedOrderProducts";
 import { PrimaryButton } from "@/features/home";
 import { getAxiosErrorMessage } from "@/features/shared/services/api";
 import { useSavedAddress } from "@/features/shared/services/useSavedAddress";
 import { AddAddressModal } from "@/features/shared/ui/AddAddressModal";
+import { AddToCartModal } from "@/features/shared/ui/AddToCartModal";
 import { AddressSelectionModal } from "@/features/shared/ui/AddressSelectionModal";
 import { AnimatedStackedSheet } from "@/features/shared/ui/AnimatedStackedSheet";
 import { CompanySelectionModal } from "@/features/shared/ui/CompanySelectionModalSmall";
@@ -133,6 +136,9 @@ export default function CheckoutModal({
   const [pendingPickupAddress, setPendingPickupAddress] = useState<string | null>(null);
   const [showAddAddressModal, setShowAddAddressModal] = useState(false);
   const [showNeedAddressSheet, setShowNeedAddressSheet] = useState(false);
+  const [selectedProductForCart, setSelectedProductForCart] = useState<any>(null);
+  const [existingCartItem, setExistingCartItem] = useState<any>(null);
+  const [showAddToCartModal, setShowAddToCartModal] = useState(false);
 
   const dispatch = useAppDispatch();
   const tabContainerRef = useRef<View>(null);
@@ -690,6 +696,34 @@ export default function CheckoutModal({
       onClose();
     }
   };
+
+  const handleRecommendedAddToCartPress = useCallback(
+    (product: any) => {
+      const cartItemsForProduct =
+        cartItems?.filter((item: any) => item.productId === product.id) || [];
+      setSelectedProductForCart(product);
+      setExistingCartItem(cartItemsForProduct);
+      setShowAddToCartModal(true);
+    },
+    [cartItems],
+  );
+
+  const handleRecommendedAddToCart = useCallback(
+    (productId: string, optionId: string, quantity: number) => {
+      dispatch(
+        AddToCart({
+          productId,
+          productPurchaseOptionId: optionId,
+          quantity,
+        }),
+      );
+      setShowAddToCartModal(false);
+      setSelectedProductForCart(null);
+      setExistingCartItem(null);
+    },
+    [dispatch],
+  );
+
   const isItemAvailable = (item: any): boolean => {
     return item.stockInfo !== "Нет в наличии";
   };
@@ -930,47 +964,62 @@ export default function CheckoutModal({
             }}
           />
           {showSuccessContent ? (
-            // Вместо SuccessModal рендерим SuccessContent
-            <ThemedView style={styles.successContainer}>
-              <Image
-                source={require("@/assets/icons/png/Icon.png")}
-                // style={styles.imageCar}
-                resizeMode="contain"
-              />
-              <ThemedText style={styles.successTitle}>
-                Спасибо за заказ!
-              </ThemedText>
-              <ThemedText style={styles.successText}>
-                В ближайшее время с вами свяжется{"\n"}Ваш менеджер для
-                уточнения деталей.
-              </ThemedText>
+            <ScrollView
+              style={styles.successScrollView}
+              contentContainerStyle={[
+                styles.successScrollContent,
+                { paddingBottom: Math.max(insets.bottom, 24) + 24 },
+              ]}
+              showsVerticalScrollIndicator={false}
+            >
+              <ThemedView
+                lightColor="#FFFFFF"
+                darkColor="#151516"
+                style={styles.successContainer}
+              >
+                <Image
+                  source={require("@/assets/icons/png/Icon.png")}
+                  resizeMode="contain"
+                />
+                <ThemedText style={styles.successTitle}>
+                  Спасибо за заказ!
+                </ThemedText>
+                <ThemedText style={styles.successText}>
+                  В ближайшее время с вами свяжется{"\n"}Ваш менеджер для
+                  уточнения деталей.
+                </ThemedText>
 
-              <View style={styles.successButtons}>
-                <PrimaryButton
-                  title="Детали заказа"
-                  onPress={() => {
-                    // setShowSuccessContent(false);
-                    if (createdOrderId) {
-                      setShowOrderDetailsModal(true);
-                    }
-                  }}
-                  variant="third"
-                  size="md"
-                  style={styles.successButton}
-                />
-                <PrimaryButton
-                  title="В каталог"
-                  onPress={async () => {
-                    await closeSuccessAndRefreshCart();
-                    router.navigate("/dashboard");
-                    // Здесь можно добавить навигацию в каталог
-                  }}
-                  variant="primary"
-                  size="md"
-                  style={styles.successButton}
-                />
-              </View>
-            </ThemedView>
+                <View style={styles.successButtons}>
+                  <PrimaryButton
+                    title="Детали заказа"
+                    onPress={() => {
+                      if (createdOrderId) {
+                        setShowOrderDetailsModal(true);
+                      }
+                    }}
+                    variant="third"
+                    size="md"
+                    style={styles.successButton}
+                  />
+                  <PrimaryButton
+                    title="В каталог"
+                    onPress={async () => {
+                      await closeSuccessAndRefreshCart();
+                      router.navigate("/dashboard");
+                    }}
+                    variant="primary"
+                    size="md"
+                    style={styles.successButton}
+                  />
+                </View>
+              </ThemedView>
+
+              <RecommendedOrderProducts
+                visible={showSuccessContent}
+                onAddToCartPress={handleRecommendedAddToCartPress}
+                returnTo="catalog"
+              />
+            </ScrollView>
           ) : (
             <>
               {isLoadingRecipients ? (
@@ -1310,6 +1359,19 @@ export default function CheckoutModal({
             setShowOrderDetailsModal(false);
           }}
           orderId={createdOrderId}
+        />
+
+        <AddToCartModal
+          visible={showAddToCartModal}
+          onClose={() => {
+            setShowAddToCartModal(false);
+            setSelectedProductForCart(null);
+            setExistingCartItem(null);
+          }}
+          product={selectedProductForCart}
+          onAddToCart={handleRecommendedAddToCart}
+          existingCartItem={existingCartItem}
+          nestedInModal={showSuccessContent}
         />
 
       <RNModal
@@ -2535,8 +2597,13 @@ const styles = StyleSheet.create({
     color: "#80818B",
     textAlign: "center",
   },
+  successScrollView: {
+    flex: 1,
+  },
+  successScrollContent: {
+    paddingTop: 8,
+  },
   successContainer: {
-    marginTop: 8,
     padding: 24,
     alignItems: "center",
     borderRadius: 24,
