@@ -2490,10 +2490,14 @@ const styles = StyleSheet.create({
     gap: 12,
     flex: 1,
     flexShrink: 1,
+    alignItems: "flex-start",
   },
   iconCont: {
     padding: 8,
     borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    alignSelf: "flex-start",
   },
   compAndAdressColumn: {
     flexDirection: "column",
