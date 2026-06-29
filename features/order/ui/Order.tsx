@@ -41,6 +41,10 @@ import {
   getFirstCompanyDeliveryAddress,
   mergeAddressIntoCompany,
 } from "@/features/shared/utils/deliveryAddress";
+import {
+  getTimeSlotsForDate,
+  isWorkingDeliveryDay,
+} from "@/features/shared/utils/nearestDelivery";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { useRouter } from "expo-router";
@@ -74,6 +78,32 @@ enum PaymentType {
   Cashless = 0,
   Cash = 1,
 }
+
+const DELIVERY_METHOD_API_VALUE: Record<DeliveryMethod, string> = {
+  [DeliveryMethod.Delivery]: "delivery",
+  [DeliveryMethod.Pickup]: "pickup",
+};
+
+const PAYMENT_TYPE_API_VALUE: Record<PaymentType, string> = {
+  [PaymentType.Cashless]: "cashless",
+  [PaymentType.Cash]: "cash",
+};
+
+const isSameDeliveryMethod = (
+  apiValue: unknown,
+  method: DeliveryMethod,
+): boolean =>
+  apiValue === method || apiValue === DELIVERY_METHOD_API_VALUE[method];
+
+const parsePaymentType = (value: unknown): PaymentType | null => {
+  if (value === PaymentType.Cashless || value === "cashless") {
+    return PaymentType.Cashless;
+  }
+  if (value === PaymentType.Cash || value === "cash") {
+    return PaymentType.Cash;
+  }
+  return null;
+};
 
 interface CheckoutModalProps {
   visible: boolean;
@@ -148,6 +178,13 @@ export default function CheckoutModal({
   // Данные с бекенда
   const orderData = useAppSelector((state) => state.catalog.order);
   const deliveryMethods = orderData?.deliveryMethods || [];
+  const checkoutDeliverySchedule = useMemo(() => {
+    if (!orderData?.deliverySchedule) return null;
+    return {
+      ...orderData.deliverySchedule,
+      nearestDeliveryDate: orderData.nearestDeliveryDate,
+    };
+  }, [orderData]);
   const isLoadingCheckoutPageData = useAppSelector(
     (state) => state.catalog.isLoadingCheckoutPageData,
   );
@@ -172,13 +209,19 @@ export default function CheckoutModal({
 
   // Получаем доступные способы оплаты для текущего метода доставки
   const getAvailablePaymentTypes = (method: DeliveryMethod): PaymentType[] => {
-    const methodConfig = deliveryMethods.find((m: any) => m.method === method);
-    return methodConfig?.availablePaymentTypes || [];
+    const methodConfig = deliveryMethods.find((m: any) =>
+      isSameDeliveryMethod(m.method, method),
+    );
+    return (methodConfig?.availablePaymentTypes || [])
+      .map((value: unknown) => parsePaymentType(value))
+      .filter((type: PaymentType | null): type is PaymentType => type !== null);
   };
 
   // Проверяем, доступен ли метод доставки
   const isMethodAvailable = (method: DeliveryMethod): boolean => {
-    return deliveryMethods.some((m: any) => m.method === method);
+    return deliveryMethods.some((m: any) =>
+      isSameDeliveryMethod(m.method, method),
+    );
   };
   // const handlePickTown = async (id: any) => {
   //   await dispatch(
@@ -573,9 +616,9 @@ export default function CheckoutModal({
     }
 
     const orderPayload: Record<string, unknown> = {
-      deliveryMethod: selectedMethod,
+      deliveryMethod: DELIVERY_METHOD_API_VALUE[selectedMethod],
       deliveryDate,
-      paymentType: selectedPaymentType,
+      paymentType: PAYMENT_TYPE_API_VALUE[selectedPaymentType],
       notificationEnabled: notificationsEnabled,
       userInfo,
       products,
@@ -1279,7 +1322,7 @@ export default function CheckoutModal({
             onClose={() => setShowCalendarModal(false)}
             onConfirm={handleDateTimeConfirm}
             initialDateTime={selectedDateTime}
-            deliverySchedule={orderData?.deliverySchedule}
+            deliverySchedule={checkoutDeliverySchedule}
           />
         </ThemedView>
 
@@ -1432,47 +1475,6 @@ export default function CheckoutModal({
 }
 
 // Вспомогательные функции для работы с датами и временем
-const getTimeSlotsForDate = (date: Date, schedule: any) => {
-  if (!schedule?.weekSchedule) return [];
-
-  const dayOfWeek = date.getDay();
-  const daysMap = {
-    0: "Sunday",
-    1: "Monday",
-    2: "Tuesday",
-    3: "Wednesday",
-    4: "Thursday",
-    5: "Friday",
-    6: "Saturday",
-  };
-
-  const dayName = daysMap[dayOfWeek as keyof typeof daysMap];
-  const daySchedule = schedule.weekSchedule[dayName];
-
-  if (daySchedule && daySchedule.isWorkingDay) {
-    const now = new Date();
-    const isToday = date.toDateString() === now.toDateString();
-
-    let slots = [...(daySchedule.timeSlots || [])];
-    if (isToday) {
-      const currentHour = now.getHours();
-      const currentMinutes = now.getMinutes();
-      const currentTimeInMinutes = currentHour * 60 + currentMinutes;
-      const deliveryWindowHours = schedule.deliveryWindowHours || 2;
-
-      slots = slots?.filter((slot: any) => {
-        const [slotHour, slotMinute] = slot.startTime.split(":").map(Number);
-        const slotStartInMinutes = slotHour * 60 + slotMinute;
-        return (
-          slotStartInMinutes > currentTimeInMinutes + deliveryWindowHours * 60
-        );
-      });
-    }
-    return slots;
-  }
-  return [];
-};
-
 const formatTimeForDisplay = (timeSlot: any) => {
   if (!timeSlot) return "";
   const start = timeSlot.startTime.slice(0, 5);
@@ -1630,30 +1632,26 @@ function DateTimeModal({
     return days;
   };
 
-  const isDateAvailable = (date: Date): boolean => {
-    if (!deliverySchedule?.weekSchedule) return false;
-
-    const dayOfWeek = date.getDay();
-    const daysMap = {
-      0: "Sunday",
-      1: "Monday",
-      2: "Tuesday",
-      3: "Wednesday",
-      4: "Thursday",
-      5: "Friday",
-      6: "Saturday",
-    };
-
-    const dayName = daysMap[dayOfWeek as keyof typeof daysMap];
-    const daySchedule = deliverySchedule.weekSchedule[dayName];
-
-    return daySchedule?.isWorkingDay || false;
-  };
+  const isDateAvailable = (date: Date): boolean =>
+    isWorkingDeliveryDay(date, deliverySchedule);
 
   const isDateDisabled = (date: Date) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    return date < today || !isDateAvailable(date);
+
+    if (date < today || !isDateAvailable(date)) {
+      return true;
+    }
+
+    if (deliverySchedule?.nearestDeliveryDate) {
+      const nearestDate = new Date(deliverySchedule.nearestDeliveryDate);
+      nearestDate.setHours(0, 0, 0, 0);
+      if (date < nearestDate) {
+        return true;
+      }
+    }
+
+    return false;
   };
 
   const formatDateForDisplay = (dateString: string) => {
@@ -1758,11 +1756,6 @@ function DateTimeModal({
         <View style={styles.daysGrid}>
           {days.map((date, index) => {
             const isSelected = date && selectedDate === date.toDateString();
-            const isNearest =
-              date &&
-              deliverySchedule?.nearestDeliveryDate &&
-              date.toDateString() ===
-                new Date(deliverySchedule.nearestDeliveryDate).toDateString();
             const disabled = !date || isDateDisabled(date);
 
             return (
@@ -1771,9 +1764,9 @@ function DateTimeModal({
                 style={[
                   styles.dayCell,
                   disabled && styles.dayDisabled,
-                  (isSelected || isNearest) && !disabled && styles.daySelected,
+                  isSelected && !disabled && styles.daySelected,
                   isDarkMode &&
-                    (isSelected || isNearest) &&
+                    isSelected &&
                     !disabled && {
                       backgroundColor: "#4C94FF",
                     },
@@ -1787,9 +1780,7 @@ function DateTimeModal({
                   style={[
                     styles.dayText,
                     disabled && styles.dayTextDisabled,
-                    (isSelected || isNearest) &&
-                      !disabled &&
-                      styles.dayTextSelected,
+                    isSelected && !disabled && styles.dayTextSelected,
                   ]}
                 >
                   {date?.getDate()}
@@ -1895,7 +1886,7 @@ function DateTimeModal({
         {availableTimeSlots.map((slot: any, index: number) => {
           const timeString = formatTimeForDisplay(slot);
           const isSelected = selectedTime === timeString;
-          const isNearest = isNearestTime(slot);
+          const isNearest = !selectedTime && isNearestTime(slot);
 
           return (
             <TouchableOpacity

@@ -30,14 +30,22 @@ const WEEK_DAYS = [
   "Saturday",
 ] as const;
 
+function getDaySchedule(
+  weekSchedule: Record<string, DeliveryDaySchedule>,
+  dayIndex: number,
+): DeliveryDaySchedule | undefined {
+  const pascalKey = WEEK_DAYS[dayIndex];
+  const lowerKey = pascalKey.toLowerCase();
+  return weekSchedule[lowerKey] ?? weekSchedule[pascalKey];
+}
+
 export function getTimeSlotsForDate(
   date: Date,
   schedule?: DeliverySchedule | null,
 ): DeliveryTimeSlot[] {
   if (!schedule?.weekSchedule) return [];
 
-  const dayName = WEEK_DAYS[date.getDay()];
-  const daySchedule = schedule.weekSchedule[dayName];
+  const daySchedule = getDaySchedule(schedule.weekSchedule, date.getDay());
 
   if (!daySchedule?.isWorkingDay) {
     return [];
@@ -76,8 +84,7 @@ function getDayDeliveryTimeRange(
 ): string {
   if (!schedule?.weekSchedule) return "";
 
-  const dayName = WEEK_DAYS[date.getDay()];
-  const daySchedule = schedule.weekSchedule[dayName];
+  const daySchedule = getDaySchedule(schedule.weekSchedule, date.getDay());
 
   if (!daySchedule?.isWorkingDay || !daySchedule.startTime || !daySchedule.endTime) {
     return "";
@@ -141,4 +148,12 @@ export function formatNearestDeliveryDisplay(
   );
 
   return timeRange ? `${dayLabel}, ${timeRange}` : dayLabel;
+}
+
+export function isWorkingDeliveryDay(
+  date: Date,
+  schedule?: DeliverySchedule | null,
+): boolean {
+  if (!schedule?.weekSchedule) return false;
+  return !!getDaySchedule(schedule.weekSchedule, date.getDay())?.isWorkingDay;
 }
