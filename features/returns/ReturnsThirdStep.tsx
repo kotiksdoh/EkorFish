@@ -329,52 +329,40 @@ export const MyReturnsThirdStep: React.FC<MyReturnsThirdStepProps> = ({
     storageIdForReturn,
   ]);
 
-  const renderProductItem = ({ item }: { item: typeof selectedProducts[0] }) => {
+  const renderProductRow = (item: (typeof selectedProducts)[0], isLast: boolean) => {
     const imageSource = item.productImage
       ? { uri: `${baseUrl}/${item.productImage}` }
       : require("@/assets/icons/png/noImage.png");
 
     return (
-      <ThemedView
-        darkColor="#151516"
-        lightColor="#FFFFFF"
-        style={styles.productItem}
+      <View
+        style={[
+          styles.productRow,
+          !isLast && styles.productRowBorder,
+          !isLast && isDark && styles.productRowBorderDark,
+        ]}
       >
-        <ExpoImage source={imageSource} style={styles.productImage} contentFit="cover" />
-        <View style={styles.productInfo}>
-          <ThemedText
-            style={styles.productName}
-            numberOfLines={2}
-            lightColor="#202022"
-            darkColor="#F2F4F7"
-          >
-            {item.productName}
-          </ThemedText>
-          <ThemedText
-            lightColor="#80818B"
-            darkColor="#FBFCFF80"
-            style={styles.productQuantity}
-          >
-            {item.returnQuantity} {item.measureType === "килограмм" ? "кг" : "шт"} × {formatPrice(item.price)} ₽
-          </ThemedText>
-          <ThemedText
-            style={styles.productTotal}
-            lightColor="#202022"
-            darkColor="#F2F4F7"
-          >
-            {formatPrice(item.price * item.returnQuantity)} ₽
-          </ThemedText>
-          {item.reasonName && (
-            <ThemedText
-              style={styles.productReason}
-              lightColor="#203686"
-              darkColor="#4C94FF"
-            >
-              Причина: {item.reasonName}
-            </ThemedText>
-          )}
-        </View>
-      </ThemedView>
+        <ExpoImage
+          source={imageSource}
+          style={styles.productImage}
+          contentFit="cover"
+        />
+        <ThemedText
+          style={styles.productName}
+          numberOfLines={2}
+          lightColor="#202022"
+          darkColor="#F2F4F7"
+        >
+          {item.productName}
+        </ThemedText>
+        <ThemedText
+          style={styles.productTotal}
+          lightColor="#202022"
+          darkColor="#F2F4F7"
+        >
+          {formatPrice(item.price * item.returnQuantity)} ₽
+        </ThemedText>
+      </View>
     );
   };
 
@@ -388,6 +376,16 @@ export const MyReturnsThirdStep: React.FC<MyReturnsThirdStepProps> = ({
     (selectedReturnMethod === null ||
       selectedRefundMethod === null ||
       !hasRequiredReturnLocation);
+
+  const listBottomPadding = useMemo(() => {
+    const panelTop = 12;
+    const totalsRow = 52;
+    const buttonBlock = 48;
+    const hintBlock = showBottomHint ? 40 : 0;
+    const panelBottomPadding =
+      (Platform.OS === "ios" ? 34 : 16) + insets.bottom;
+    return panelTop + totalsRow + buttonBlock + hintBlock + panelBottomPadding + 16;
+  }, [insets.bottom, showBottomHint]);
 
   const renderMethodOption = (
     method: any,
@@ -455,30 +453,6 @@ export const MyReturnsThirdStep: React.FC<MyReturnsThirdStepProps> = ({
         darkColor="#040508"
         style={styles.modalContainer}
       >
-        {showAddressModal ? (
-          <AddressSelectionModal
-            embedded
-            visible
-            onClose={() => setShowAddressModal(false)}
-            currentCompany={currentCompany}
-            companies={me?.companies || []}
-            selectedCompanyId={currentCompany?.id}
-            selectedAddressId={selectedAddressForReturn?.id}
-            onSelectCompany={handleSelectCompanyForReturn}
-            onSelectAddress={handleSelectAddressForReturn}
-            onAddCompany={handleAddCompanyForReturn}
-          />
-        ) : showTownModal ? (
-          <TownSelectionModal
-            embedded
-            selectionOnly
-            visible
-            onClose={() => setShowTownModal(false)}
-            storageId={storageIdForReturn || (me as any)?.storageId || ""}
-            onTownSelected={handleTownSelectedForReturn}
-          />
-        ) : (
-          <>
         <ModalHeader
           title="Заявка на возврат"
           subTitle={showSuccessContent ? undefined : "Шаг 3 из 3"}
@@ -560,10 +534,14 @@ export const MyReturnsThirdStep: React.FC<MyReturnsThirdStepProps> = ({
         ) : (
           <>
             <FlatList
+              style={styles.list}
               data={[{ id: "methods" }, { id: "products" }]}
               keyExtractor={(item) => item.id}
               showsVerticalScrollIndicator={false}
-              contentContainerStyle={styles.listContent}
+              contentContainerStyle={[
+                styles.listContent,
+                { paddingBottom: listBottomPadding },
+              ]}
               renderItem={({ item }) => {
                 if (item.id === "methods") {
                   return (
@@ -611,27 +589,31 @@ export const MyReturnsThirdStep: React.FC<MyReturnsThirdStepProps> = ({
                           )}
                         </View>
                       </ThemedView>
-
-                      <View style={styles.productsHeading}>
-                        <ThemedText
-                          style={styles.sectionTitleMuted}
-                          lightColor="#202022"
-                          darkColor="#F2F4F7"
-                        >
-                          Товары к возврату ({selectedProducts.length})
-                        </ThemedText>
-                      </View>
                     </View>
                   );
                 }
                 return (
-                  <View style={styles.productsList}>
-                    {selectedProducts.map((product) => (
+                  <ThemedView
+                    darkColor="#151516"
+                    lightColor="#FFFFFF"
+                    style={styles.productsBlock}
+                  >
+                    <ThemedText
+                      style={styles.blockTitle}
+                      lightColor="#202022"
+                      darkColor="#F2F4F7"
+                    >
+                      Товары
+                    </ThemedText>
+                    {selectedProducts.map((product, index) => (
                       <View key={`${product.orderId}-${product.id}`}>
-                        {renderProductItem({ item: product })}
+                        {renderProductRow(
+                          product,
+                          index === selectedProducts.length - 1,
+                        )}
                       </View>
                     ))}
-                  </View>
+                  </ThemedView>
                 );
               }}
             />
@@ -700,8 +682,28 @@ export const MyReturnsThirdStep: React.FC<MyReturnsThirdStepProps> = ({
             )}
           </>
         )}
-          </>
-        )}
+
+        <AddressSelectionModal
+          stacked
+          visible={showAddressModal}
+          onClose={() => setShowAddressModal(false)}
+          currentCompany={currentCompany}
+          companies={me?.companies || []}
+          selectedCompanyId={currentCompany?.id}
+          selectedAddressId={selectedAddressForReturn?.id}
+          onSelectCompany={handleSelectCompanyForReturn}
+          onSelectAddress={handleSelectAddressForReturn}
+          onAddCompany={handleAddCompanyForReturn}
+        />
+
+        <TownSelectionModal
+          stacked
+          selectionOnly
+          visible={showTownModal}
+          onClose={() => setShowTownModal(false)}
+          storageId={storageIdForReturn || (me as any)?.storageId || ""}
+          onTownSelected={handleTownSelectedForReturn}
+        />
 
         <AddToCartModal
           visible={showAddToCartModal}
@@ -724,12 +726,15 @@ const styles = StyleSheet.create({
   modalContainer: {
     flex: 1,
   },
+  list: {
+    flex: 1,
+  },
   listContent: {
-    paddingBottom: 120,
+    flexGrow: 1,
   },
   methodsContainer: {
-    paddingHorizontal: 16,
     paddingTop: 8,
+    // paddingHorizontal: 16,
   },
   methodBlock: {
     borderRadius: 12,
@@ -764,13 +769,25 @@ const styles = StyleSheet.create({
   methodRowTextDark: {
     borderBottomColor: "#323235",
   },
-  productsHeading: {
+  productsBlock: {
+    borderRadius: 12,
+    padding: 16,
     marginTop: 8,
+    // marginHorizontal: 16,
     marginBottom: 8,
   },
-  sectionTitleMuted: {
-    fontSize: 16,
-    fontWeight: "600",
+  productRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 12,
+  },
+  productRowBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: "#F0F0F0",
+  },
+  productRowBorderDark: {
+    borderBottomColor: "#323235",
   },
   radioOuter: {
     width: 24,
@@ -796,41 +813,23 @@ const styles = StyleSheet.create({
     borderRadius: 7,
     backgroundColor: "#FFFFFF",
   },
-  productsList: {
-    paddingHorizontal: 16,
-    paddingBottom: 50
-  },
-  productItem: {
-    flexDirection: "row",
-    padding: 12,
-    borderRadius: 12,
-    marginBottom: 8,
-  },
   productImage: {
-    width: 60,
-    height: 60,
+    width: 48,
+    height: 48,
     borderRadius: 8,
-    marginRight: 12,
-  },
-  productInfo: {
-    flex: 1,
+    flexShrink: 0,
   },
   productName: {
+    flex: 1,
     fontSize: 14,
     fontWeight: "500",
-    marginBottom: 4,
-  },
-  productQuantity: {
-    fontSize: 12,
-    marginBottom: 2,
+    lineHeight: 18,
   },
   productTotal: {
     fontSize: 14,
     fontWeight: "600",
-  },
-  productReason: {
-    fontSize: 12,
-    marginTop: 4,
+    flexShrink: 0,
+    marginLeft: 8,
   },
   bottomPanel: {
     position: "absolute",

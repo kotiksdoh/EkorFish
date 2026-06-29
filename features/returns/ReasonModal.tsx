@@ -95,15 +95,17 @@ export function ReasonPickerContent({
             style={[styles.productCard, { marginBottom: 8 }]}
           >
             <View style={styles.productCardInner}>
-              {product.productImage ? (
-                <View style={styles.productImageContainer}>
-                  <Image
-                    source={{ uri: `${baseUrl}/${product.productImage}` }}
-                    style={styles.productImage}
-                    contentFit="cover"
-                  />
-                </View>
-              ) : null}
+              <View style={styles.productImageContainer}>
+                <Image
+                  source={
+                    product.productImage
+                      ? { uri: `${baseUrl}/${product.productImage}` }
+                      : require("@/assets/icons/png/noImage.png")
+                  }
+                  style={styles.productImage}
+                  contentFit="cover"
+                />
+              </View>
               <View style={styles.productCardContent}>
                 <ThemedText
                   style={styles.productCardName}
@@ -270,7 +272,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 12,
     marginBottom: 8,
-    marginHorizontal: 16,
+    // marginHorizontal: 16,
   },
   productCardInner: {
     flexDirection: "row",
@@ -310,7 +312,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     marginBottom: 8,
-    marginHorizontal: 16,
+    // marginHorizontal: 16,
   },
   sectionTitle: {
     fontSize: 20,

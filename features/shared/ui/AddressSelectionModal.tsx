@@ -26,6 +26,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AddAddressFormPanel } from "./AddAddressFormPanel";
 import { AddAddressModal } from "./AddAddressModal";
+import { AnimatedStackedSheet } from "./AnimatedStackedSheet";
 import { CompanySelectModal } from "./CompanySelectModal";
 import { PrimaryButton } from "./components/PrimartyButton";
 
@@ -44,6 +45,8 @@ interface AddressSelectionModalProps {
   onAddressAdded?: (address: any) => void;
   /** Без отдельного Modal — для вложения в fullScreen Modal (iOS). */
   embedded?: boolean;
+  /** Bottom sheet поверх уже открытого fullScreen Modal (без вложенного Modal). */
+  stacked?: boolean;
 }
 
 export const AddressSelectionModal: React.FC<AddressSelectionModalProps> = ({
@@ -58,6 +61,7 @@ export const AddressSelectionModal: React.FC<AddressSelectionModalProps> = ({
   onAddCompany,
   onAddressAdded,
   embedded = false,
+  stacked = false,
 }) => {
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === "dark";
@@ -106,7 +110,7 @@ export const AddressSelectionModal: React.FC<AddressSelectionModalProps> = ({
   };
 
   useEffect(() => {
-    if (embedded || !visible) return;
+    if (embedded || stacked || !visible) return;
 
     modalTranslateY.setValue(screenHeight);
     Animated.spring(modalTranslateY, {
@@ -116,10 +120,10 @@ export const AddressSelectionModal: React.FC<AddressSelectionModalProps> = ({
       stiffness: 90,
       mass: 0.8,
     }).start();
-  }, [visible, embedded]);
+  }, [visible, embedded, stacked]);
 
   const closeModalWithAnimation = () => {
-    if (embedded) {
+    if (embedded || stacked) {
       onClose();
       return;
     }
@@ -170,12 +174,13 @@ export const AddressSelectionModal: React.FC<AddressSelectionModalProps> = ({
     return null;
   }
 
-  const buttonsBottomPadding =
-    Math.max(insets.bottom, Platform.OS === "android" ? 28 : 16) + 16;
+  const buttonsBottomPadding = stacked
+    ? 8
+    : Math.max(insets.bottom, Platform.OS === "android" ? 28 : 16) + 16;
 
   const addressList = (
     <>
-      {!embedded && (
+      {!embedded && !stacked && (
         <TouchableOpacity
           style={styles.swipeHandleContainer}
           activeOpacity={0.7}
@@ -185,7 +190,7 @@ export const AddressSelectionModal: React.FC<AddressSelectionModalProps> = ({
         </TouchableOpacity>
       )}
 
-      {!embedded && (
+      {!embedded && !stacked && (
         <View style={styles.modalHeader}>
           <ThemedText style={styles.modalTitle}>
             Выберите адрес доставки
@@ -207,7 +212,8 @@ export const AddressSelectionModal: React.FC<AddressSelectionModalProps> = ({
       <ScrollView
         style={[
           styles.addressesContainer,
-          embedded && styles.addressesContainerEmbedded,
+          (embedded || stacked) && styles.addressesContainerEmbedded,
+          stacked && styles.addressesContainerStacked,
         ]}
         showsVerticalScrollIndicator={false}
       >
@@ -297,7 +303,7 @@ export const AddressSelectionModal: React.FC<AddressSelectionModalProps> = ({
       {showCompanyModal && (
         <View style={styles.embeddedOverlay}>
           <CompanySelectModal
-            embedded={embedded}
+            embedded={embedded || stacked}
             visible
             onClose={() => setShowCompanyModal(false)}
             companies={companies}
@@ -308,7 +314,7 @@ export const AddressSelectionModal: React.FC<AddressSelectionModalProps> = ({
         </View>
       )}
 
-      {embedded && showAddAddressModal && currentCompany?.id ? (
+      {(embedded || stacked) && showAddAddressModal && currentCompany?.id ? (
         <View style={styles.embeddedOverlay}>
           <AddAddressFormPanel
             companyId={currentCompany.id}
@@ -326,6 +332,26 @@ export const AddressSelectionModal: React.FC<AddressSelectionModalProps> = ({
       )}
     </>
   );
+
+  if (stacked) {
+    return (
+      <>
+        <AnimatedStackedSheet
+          visible={visible}
+          onClose={closeModalWithAnimation}
+          contentHorizontalPadding={0}
+        >
+          <View style={styles.modalHeader}>
+            <ThemedText style={styles.modalTitle}>
+              Выберите адрес доставки
+            </ThemedText>
+          </View>
+          {addressList}
+        </AnimatedStackedSheet>
+        {childOverlays}
+      </>
+    );
+  }
 
   if (embedded) {
     return (
@@ -436,6 +462,9 @@ const styles = StyleSheet.create({
   addressesContainerEmbedded: {
     flex: 1,
     maxHeight: undefined,
+  },
+  addressesContainerStacked: {
+    maxHeight: 320,
   },
   companyInfo: {
     paddingHorizontal: 20,

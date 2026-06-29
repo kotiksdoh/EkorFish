@@ -17,6 +17,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { AnimatedStackedSheet } from "./AnimatedStackedSheet";
 
 const { height: screenHeight } = Dimensions.get("window");
 const MODAL_TOP_GAP = 100;
@@ -28,6 +29,8 @@ interface TownSelectionModalProps {
   onTownSelected: (selectedStorageId: string) => void;
   /** Без отдельного Modal — для вложения в fullScreen Modal (iOS). */
   embedded?: boolean;
+  /** Bottom sheet поверх уже открытого fullScreen Modal (без вложенного Modal). */
+  stacked?: boolean;
   /** Только выбор склада без обновления профиля (заявка на возврат). */
   selectionOnly?: boolean;
 }
@@ -38,6 +41,7 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
   storageId,
   onTownSelected,
   embedded = false,
+  stacked = false,
   selectionOnly = false,
 }) => {
   const colorScheme = useColorScheme();
@@ -54,7 +58,9 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
   const [isClosing, setIsClosing] = useState(false);
   const wasVisibleRef = useRef(false);
 
-  const footerBottomPadding = Math.max(insets.bottom, 48) + 16;
+  const footerBottomPadding = stacked
+    ? 8
+    : Math.max(insets.bottom, 48) + 16;
 
   useEffect(() => {
     if (!visible) {
@@ -75,7 +81,7 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
 
     dispatch(getTowns());
 
-    if (embedded) return;
+    if (embedded || stacked) return;
 
     modalTranslateY.setValue(screenHeight);
     Animated.spring(modalTranslateY, {
@@ -85,12 +91,12 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
       stiffness: 180,
       mass: 0.85,
     }).start();
-  }, [visible, dispatch, embedded, modalTranslateY]);
+  }, [visible, dispatch, embedded, stacked, modalTranslateY, storageId, me?.storageId]);
 
   const closeModalWithAnimation = (onClosed?: () => void) => {
     const afterClose = typeof onClosed === "function" ? onClosed : undefined;
 
-    if (embedded || selectionOnly) {
+    if (embedded || stacked || selectionOnly) {
       onClose();
       afterClose?.();
       return;
@@ -151,9 +157,13 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
 
   const townList = (
     <ScrollView
-      style={[styles.modalContent, embedded && styles.modalContentEmbedded]}
+      style={[
+        styles.modalContent,
+        (embedded || stacked) && styles.modalContentEmbedded,
+        stacked && styles.modalContentStacked,
+      ]}
       contentContainerStyle={
-        embedded ? styles.scrollContentEmbedded : styles.scrollContent
+        embedded || stacked ? styles.scrollContentEmbedded : styles.scrollContent
       }
       showsVerticalScrollIndicator={false}
     >
@@ -238,6 +248,22 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
 
   if (!visible && !isClosing) {
     return null;
+  }
+
+  if (stacked) {
+    return (
+      <AnimatedStackedSheet
+        visible={visible}
+        onClose={() => closeModalWithAnimation()}
+        contentHorizontalPadding={0}
+      >
+        <View style={styles.modalHeader}>
+          <ThemedText style={styles.modalTitle}>Укажите город</ThemedText>
+        </View>
+        {townList}
+        {applyButton}
+      </AnimatedStackedSheet>
+    );
   }
 
   if (embedded) {
@@ -374,6 +400,11 @@ const styles = StyleSheet.create({
   modalContentEmbedded: {
     flex: 1,
     paddingTop: 8,
+  },
+  modalContentStacked: {
+    flexGrow: 0,
+    maxHeight: 320,
+    paddingTop: 0,
   },
   scrollContent: {
     flexGrow: 1,

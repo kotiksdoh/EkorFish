@@ -192,6 +192,15 @@ export const MyReturnsSecondStep: React.FC<MyReturnsSecondStepProps> = ({
     }
   };
 
+  const listBottomPadding = useMemo(() => {
+    const panelTop = 12;
+    const totalsRow = 52;
+    const buttonBlock = 48;
+    const panelBottomPadding =
+      (Platform.OS === "ios" ? 34 : 16) + insets.bottom;
+    return panelTop + totalsRow + buttonBlock + panelBottomPadding + 16;
+  }, [insets.bottom]);
+
   const renderItem = ({ item }: { item: typeof selectedProducts[0] }) => (
     <SelectedReturnItem
       item={item}
@@ -248,11 +257,15 @@ export const MyReturnsSecondStep: React.FC<MyReturnsSecondStepProps> = ({
 
           <View style={styles.content}>
             <FlatList
+              style={styles.list}
               data={selectedProducts}
               keyExtractor={(item) => `${item.orderId}-${item.id}`}
               showsVerticalScrollIndicator={false}
               renderItem={renderItem}
-              contentContainerStyle={styles.listContent}
+              contentContainerStyle={[
+                styles.listContent,
+                { paddingBottom: listBottomPadding },
+              ]}
               ListEmptyComponent={
                 <View style={styles.emptyContainer}>
                   <ThemedText
@@ -344,11 +357,13 @@ const styles = StyleSheet.create({
   content: {
     marginTop: 8,
     flex: 1,
-    // paddingHorizontal: 16,
     paddingTop: 8,
   },
+  list: {
+    flex: 1,
+  },
   listContent: {
-    paddingBottom: 120,
+    flexGrow: 1,
   },
   emptyContainer: {
     flex: 1,

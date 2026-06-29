@@ -26,6 +26,7 @@ type Props = {
   showBackdrop?: boolean;
   children: React.ReactNode;
   onBindCloseRequest?: (close: (() => void) | null) => void;
+  contentHorizontalPadding?: number;
 };
 
 /**
@@ -38,6 +39,7 @@ export function AnimatedStackedSheet({
   showBackdrop = true,
   children,
   onBindCloseRequest,
+  contentHorizontalPadding = 16,
 }: Props) {
   const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme();
@@ -127,6 +129,7 @@ export function AnimatedStackedSheet({
           styles.sheet,
           isDark && styles.sheetDark,
           {
+            paddingHorizontal: contentHorizontalPadding,
             paddingBottom: sheetBottomPadding,
             transform: [{ translateY }],
           },
@@ -163,7 +166,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    paddingHorizontal: 16,
     paddingTop: 8,
     maxHeight: "92%",
     overflow: "hidden",
