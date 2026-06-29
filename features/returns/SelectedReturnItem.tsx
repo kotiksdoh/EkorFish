@@ -7,6 +7,8 @@ import { Image } from "expo-image";
 import React, { memo } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 import { baseUrl } from "../shared/services/axios";
+import { isReturnReasonSelected } from "./returnReason";
+import type { ReturnReasonId } from "./returnReason";
 
 interface SelectedReturnItemProps {
   item: {
@@ -16,7 +18,7 @@ interface SelectedReturnItemProps {
     price: number;
     returnQuantity: number;
     measureType: string;
-    reason?: number;
+    reason?: ReturnReasonId;
     reasonName?: string;
     comment?: string;
   };
@@ -38,7 +40,7 @@ export const SelectedReturnItem = memo(({ item, onSelectReason }: SelectedReturn
     ? { uri: `${baseUrl}/${item.productImage}` }
     : require("@/assets/icons/png/noImage.png");
 
-  const hasReason = Number.isFinite(item.reason);
+  const hasReason = isReturnReasonSelected(item.reason);
 
   return (
     <ThemedView

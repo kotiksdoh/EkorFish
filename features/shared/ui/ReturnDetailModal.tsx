@@ -15,6 +15,8 @@ import {
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { getReturnRequestDetail } from "@/features/catalog/catalogSlice";
+import { isReturnReasonSelected } from "@/features/returns/returnReason";
+import type { ReturnReasonId } from "@/features/returns/returnReason";
 import { baseUrl } from "@/features/shared/services/axios";
 import { openTelegramByPhone } from "@/features/shared/utils/phoneLinking";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -62,7 +64,7 @@ type ReturnLine = {
   returnQuantity: number;
   measureType: string;
   totalPrice: number;
-  reason?: number;
+  reason?: ReturnReasonId;
   reasonName?: string;
   comment?: string;
 };
@@ -196,9 +198,11 @@ export const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
 
   const reasonNameById = useMemo(() => {
     const reasons = pageData?.returnReasons || [];
-    const map = new Map<number, string>();
+    const map = new Map<string, string>();
     reasons.forEach((r: any) => {
-      if (typeof r?.reason === "number") map.set(r.reason, r.name);
+      if (r?.reason !== undefined && r?.reason !== null) {
+        map.set(String(r.reason), r.name);
+      }
     });
     return map;
   }, [pageData]);
@@ -230,9 +234,14 @@ export const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
           returnQuantity,
           measureType: it.measureType ?? "шт",
           totalPrice: price * returnQuantity,
-          reason: typeof it.reason === "number" ? it.reason : undefined,
+          reason:
+            it.reason !== undefined && it.reason !== null && it.reason !== ""
+              ? it.reason
+              : undefined,
           reasonName:
-            typeof it.reason === "number" ? reasonNameById.get(it.reason) : undefined,
+            it.reason !== undefined && it.reason !== null && it.reason !== ""
+              ? reasonNameById.get(String(it.reason))
+              : undefined,
           comment: it.comment || "",
         });
       });
@@ -251,9 +260,14 @@ export const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
           returnQuantity,
           measureType: it.measureType ?? "шт",
           totalPrice: price * returnQuantity,
-          reason: typeof it.reason === "number" ? it.reason : undefined,
+          reason:
+            it.reason !== undefined && it.reason !== null && it.reason !== ""
+              ? it.reason
+              : undefined,
           reasonName:
-            typeof it.reason === "number" ? reasonNameById.get(it.reason) : undefined,
+            it.reason !== undefined && it.reason !== null && it.reason !== ""
+              ? reasonNameById.get(String(it.reason))
+              : undefined,
           comment: it.comment || "",
         });
       });
@@ -270,7 +284,7 @@ export const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
     const imageSource = item.productImage
       ? { uri: `${baseUrl}/${item.productImage}` }
       : require("@/assets/icons/png/noImage.png");
-    const hasReason = Number.isFinite(item.reason);
+    const hasReason = isReturnReasonSelected(item.reason);
 
     return (
       <ThemedView

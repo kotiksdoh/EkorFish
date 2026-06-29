@@ -3,9 +3,11 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { setCompany } from "@/features/auth/authSlice";
 import { ModalHeader } from "@/features/auth/ui/Header";
+import { RecommendedOrderProducts } from "@/features/catalog/ui/components/RecommendedOrderProducts/RecommendedOrderProducts";
+import { AddToCartModal } from "@/features/shared/ui/AddToCartModal";
 import { AddressSelectionModal } from "@/features/shared/ui/AddressSelectionModal";
-import { PrimaryButton } from "@/features/shared/ui/components/PrimartyButton";
 import { TownSelectionModal } from "@/features/shared/ui/TownSelectionModal";
+import { PrimaryButton } from "@/features/shared/ui/components/PrimartyButton";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { Image as ExpoImage } from "expo-image";
@@ -22,10 +24,10 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { createReturnRequest, AddToCart } from "../catalog/catalogSlice";
-import { RecommendedOrderProducts } from "@/features/catalog/ui/components/RecommendedOrderProducts/RecommendedOrderProducts";
-import { AddToCartModal } from "@/features/shared/ui/AddToCartModal";
+import { AddToCart, createReturnRequest } from "../catalog/catalogSlice";
 import { baseUrl } from "../shared/services/axios";
+import type { ReturnReasonId } from "./returnReason";
+import { isSameReturnReason } from "./returnReason";
 
 function classifyReturnMethodByName(name: string | undefined): "address" | "storage" | "other" {
   if (!name) return "other";
@@ -103,7 +105,7 @@ export const MyReturnsThirdStep: React.FC<MyReturnsThirdStepProps> = ({
       price: number;
       returnQuantity: number;
       measureType: string;
-      reason?: number;
+      reason?: ReturnReasonId;
       reasonName?: string;
       comment: string;
     }> = [];
@@ -121,7 +123,7 @@ export const MyReturnsThirdStep: React.FC<MyReturnsThirdStepProps> = ({
 
           if (originalProduct && selectedItem.returnQuantity > 0) {
             const reasonObj = (returnsStatuses as any)?.returnReasons?.find(
-              (r: any) => r.reason === selectedItem.reason
+              (r: any) => isSameReturnReason(r.reason, selectedItem.reason),
             );
             
             products.push({
@@ -261,7 +263,7 @@ export const MyReturnsThirdStep: React.FC<MyReturnsThirdStepProps> = ({
           .map((item) => ({
             orderProductId: item.orderProductId,
             returnQuantity: item.returnQuantity,
-            reason: item.reason ?? 0,
+            reason: item.reason,
             comment: item.comment || "",
           })),
       };
@@ -892,10 +894,10 @@ const styles = StyleSheet.create({
   },
   successScrollContent: {
     paddingTop: 8,
-    paddingHorizontal: 16,
+    // paddingHorizontal: 16,
   },
   successContainer: {
-    padding: 24,
+    padding: 12,
     alignItems: "center",
     borderRadius: 24,
   },
@@ -915,7 +917,7 @@ const styles = StyleSheet.create({
   },
   successButtons: {
     flexDirection: "row",
-    gap: 12,
+    gap: 8,
     width: "100%",
   },
   successButton: {

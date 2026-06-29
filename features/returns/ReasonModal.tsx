@@ -16,6 +16,8 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { baseUrl } from "../shared/services/axios";
+import type { ReturnReasonId } from "./returnReason";
+import { isSameReturnReason } from "./returnReason";
 
 export interface ReasonPickerProduct {
   productName?: string;
@@ -27,10 +29,10 @@ export interface ReasonPickerProduct {
 
 export interface ReasonPickerProps {
   onClose: () => void;
-  onSelect: (reasonId: number, comment: string) => void;
-  selectedReasonId?: number;
+  onSelect: (reasonId: ReturnReasonId, comment: string) => void;
+  selectedReasonId?: ReturnReasonId;
   selectedComment?: string;
-  reasons: Array<{ reason: number; name: string }>;
+  reasons: Array<{ reason: ReturnReasonId; name: string }>;
   product?: ReasonPickerProduct;
 }
 
@@ -46,7 +48,7 @@ export function ReasonPickerContent({
   const insets = useSafeAreaInsets();
   const systemTheme = useColorScheme();
   const isDark = systemTheme === "dark";
-  const [selectedReason, setSelectedReason] = useState<number | undefined>(
+  const [selectedReason, setSelectedReason] = useState<ReturnReasonId | undefined>(
     undefined,
   );
   const [comment, setComment] = useState(selectedComment || "");
@@ -141,22 +143,28 @@ export function ReasonPickerContent({
             Выберите причину возврата
           </ThemedText>
           <View style={styles.reasonsList}>
-            {reasons?.map((reason) => (
+            {reasons?.map((reason) => {
+              const isReasonSelected = isSameReturnReason(
+                selectedReason,
+                reason.reason,
+              );
+
+              return (
               <TouchableOpacity
-                key={reason.reason}
+                key={String(reason.reason)}
                 style={[styles.reasonItem, isDark && styles.reasonItemDark]}
                 onPress={() => setSelectedReason(reason.reason)}
               >
                 <View
                   style={[
                     styles.radioOuter,
-                    selectedReason === reason.reason && styles.radioOuterSelected,
+                    isReasonSelected && styles.radioOuterSelected,
                     isDark &&
-                      selectedReason === reason.reason &&
+                      isReasonSelected &&
                       styles.radioOuterSelectedDark,
                   ]}
                 >
-                  {selectedReason === reason.reason ? (
+                  {isReasonSelected ? (
                     <View style={styles.radioInner} />
                   ) : null}
                 </View>
@@ -164,9 +172,9 @@ export function ReasonPickerContent({
                   style={[
                     styles.reasonName,
                     isDark && styles.reasonNameDark,
-                    selectedReason === reason.reason && styles.reasonNameSelected,
+                    isReasonSelected && styles.reasonNameSelected,
                     isDark &&
-                      selectedReason === reason.reason &&
+                      isReasonSelected &&
                       styles.reasonNameSelectedDark,
                   ]}
                   lightColor="#202022"
@@ -175,7 +183,8 @@ export function ReasonPickerContent({
                   {reason.name}
                 </ThemedText>
               </TouchableOpacity>
-            ))}
+            );
+            })}
           </View>
         </ThemedView>
 

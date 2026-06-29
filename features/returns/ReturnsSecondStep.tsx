@@ -2,6 +2,7 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { ModalHeader } from "@/features/auth/ui/Header";
+import { updateReturnItemReason } from "@/features/catalog/catalogSlice";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import React, { useMemo, useState } from "react";
@@ -16,6 +17,11 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ReasonPickerContent } from "./ReasonModal";
 import { SelectedReturnItem } from "./SelectedReturnItem";
+import {
+  isReturnReasonSelected,
+  isSameReturnReason,
+  type ReturnReasonId,
+} from "./returnReason";
 
 interface MyReturnsSecondStepProps {
   visible: boolean;
@@ -43,7 +49,7 @@ export const MyReturnsSecondStep: React.FC<MyReturnsSecondStepProps> = ({
   const [currentItem, setCurrentItem] = useState<{
     orderId: number;
     orderProductId: string;
-    reason?: number;
+    reason?: ReturnReasonId;
     comment?: string;
     productName?: string;
     productImage?: string;
@@ -65,7 +71,7 @@ export const MyReturnsSecondStep: React.FC<MyReturnsSecondStepProps> = ({
       price: number;
       returnQuantity: number;
       measureType: string;
-      reason?: number;
+      reason?: ReturnReasonId;
       reasonName?: string;
       comment?: string;
     }> = [];
@@ -82,8 +88,8 @@ export const MyReturnsSecondStep: React.FC<MyReturnsSecondStepProps> = ({
           );
 
           if (originalProduct && selectedItem.returnQuantity > 0) {
-            const reasonObj = reasons.find(
-              (r: any) => r.reason === selectedItem.reason
+            const reasonObj = reasons.find((r: any) =>
+              isSameReturnReason(r.reason, selectedItem.reason),
             );
             
             products.push({
@@ -137,7 +143,13 @@ export const MyReturnsSecondStep: React.FC<MyReturnsSecondStepProps> = ({
     ];
   };
 
-  const handleSelectReason = (orderId: number, orderProductId: string, currentReason?: number, currentComment?: string, product?: typeof selectedProducts[0]) => {
+  const handleSelectReason = (
+    orderId: number,
+    orderProductId: string,
+    currentReason?: ReturnReasonId,
+    currentComment?: string,
+    product?: (typeof selectedProducts)[0],
+  ) => {
     setCurrentItem({
       orderId,
       orderProductId,
@@ -157,24 +169,24 @@ export const MyReturnsSecondStep: React.FC<MyReturnsSecondStepProps> = ({
     setCurrentItem(null);
   };
 
-  const handleReasonSelect = (reasonId: number, comment: string) => {
+  const handleReasonSelect = (reasonId: ReturnReasonId, comment: string) => {
     if (currentItem) {
-      dispatch({
-        type: "catalog/updateReturnItemReason",
-        payload: {
+      dispatch(
+        updateReturnItemReason({
           orderId: currentItem.orderId,
           orderProductId: currentItem.orderProductId,
           reason: reasonId,
-          comment: comment,
-        },
-      });
+          comment,
+        }),
+      );
     }
     closeReasonPicker();
   };
 
   const handleNext = () => {
-    const allHaveReason = selectedProducts.every((product) => Number.isFinite(product.reason));
-    console.log('allHaveReason && onNext', allHaveReason && onNext)
+    const allHaveReason = selectedProducts.every((product) =>
+      isReturnReasonSelected(product.reason),
+    );
     if (allHaveReason && onNext) {
       onNext();
     }
@@ -300,12 +312,14 @@ export const MyReturnsSecondStep: React.FC<MyReturnsSecondStepProps> = ({
                 style={[
                   styles.bottomButton,
                   (!totals.hasSelectedItems ||
-                    !selectedProducts.every((p) => Number.isFinite(p.reason))) &&
+                    !selectedProducts.every((p) =>
+                      isReturnReasonSelected(p.reason),
+                    )) &&
                     styles.buttonDisabled,
                 ]}
                 disabled={
                   !totals.hasSelectedItems ||
-                  !selectedProducts.every((p) => Number.isFinite(p.reason))
+                  !selectedProducts.every((p) => isReturnReasonSelected(p.reason))
                 }
                 onPress={handleNext}
               >

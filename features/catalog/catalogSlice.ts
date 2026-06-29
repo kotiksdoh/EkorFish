@@ -39,8 +39,8 @@ interface ReturnRequest {
       items: Array<{
         orderProductId: string;
         returnQuantity: number;
-        /** Не задана до шага с причиной; 0 — валидный id с бэкенда */
-        reason?: number;
+        /** Не задана до шага с причиной */
+        reason?: string | number;
         comment: string;
       }>;
 }
