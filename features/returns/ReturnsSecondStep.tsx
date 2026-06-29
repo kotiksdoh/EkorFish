@@ -26,14 +26,12 @@ import {
 interface MyReturnsSecondStepProps {
   visible: boolean;
   onClose: () => void;
-  onBack?: () => void;
   onNext?: () => void;
 }
 
 export const MyReturnsSecondStep: React.FC<MyReturnsSecondStepProps> = ({
   visible,
   onClose,
-  onBack,
   onNext,
 }) => {
   const insets = useSafeAreaInsets();
@@ -252,7 +250,7 @@ export const MyReturnsSecondStep: React.FC<MyReturnsSecondStepProps> = ({
             subTitle="Шаг 2 из 3"
             showBackButton={true}
             showCloseButton={true}
-            onBackPress={onBack}
+            onBackPress={onClose}
           />
 
           <View style={styles.content}>

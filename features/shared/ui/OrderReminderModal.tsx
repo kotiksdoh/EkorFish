@@ -3,9 +3,6 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { updateOrderReminderSettings } from "@/features/auth/authSlice";
 import { ModalHeader } from "@/features/auth/ui/Header";
-import { PrimaryButton } from "@/features/shared/ui/components/PrimartyButton";
-import { CustomCheckbox } from "@/features/shared/ui/components/CustomCheckBox";
-import { SnapBottomSheet } from "@/features/shared/ui/SnapBottomSheet";
 import {
   FREQUENCY_OPTIONS,
   MONTHLY_DAY_OPTIONS,
@@ -24,6 +21,9 @@ import {
   serializeRemindAbout,
   timeLabelToIso,
 } from "@/features/shared/types/orderReminderSettings";
+import { SnapBottomSheet } from "@/features/shared/ui/SnapBottomSheet";
+import { CustomCheckbox } from "@/features/shared/ui/components/CustomCheckBox";
+import { PrimaryButton } from "@/features/shared/ui/components/PrimartyButton";
 import { useAppTheme } from "@/hooks/use-theme-color";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -581,7 +581,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: 16,
+    // paddingHorizontal: 16,
     paddingTop: 8,
     gap: 16,
   },

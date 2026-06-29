@@ -4,15 +4,15 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { getMangers, getMyInfo, setCompany } from '@/features/auth/authSlice';
 import { axdef, baseUrl } from '@/features/shared/services/axios';
-import { useAppTheme } from '@/hooks/use-theme-color';
-import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   openPhoneDialer,
   openTelegramByPhone,
   resolveManagerContact,
 } from "@/features/shared/utils/phoneLinking";
+import { useAppTheme } from '@/hooks/use-theme-color';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -586,7 +586,7 @@ const styles = StyleSheet.create({
   buttonsContainer: {
     flexDirection: 'row',
     borderRadius: 16,
-    paddingVertical: 8,
+    // paddingVertical: 8,
     paddingHorizontal: 16,
     gap: 12,
     width: '100%',

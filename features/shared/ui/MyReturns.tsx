@@ -59,11 +59,15 @@ export const MyReturnsModal: React.FC<MyReturnsProps> = ({
     setVisibleFirstStep(true)
   }
 
-  const handleCloseAll = () => {
+  const handleExitReturnFlow = useCallback(() => {
     setVisibleFirstStep(false);
     setVisibleSecondStep(false);
     setVisibleThirdStep(false);
     dispatch(clearReturnRequests());
+  }, [dispatch]);
+
+  const handleCloseAll = () => {
+    handleExitReturnFlow();
     onClose();
   };
 
@@ -74,12 +78,9 @@ export const MyReturnsModal: React.FC<MyReturnsProps> = ({
   }, [dispatch, onClose]);
 
   const handleViewReturnDetails = useCallback(() => {
-    setVisibleThirdStep(false);
-    setVisibleSecondStep(false);
-    setVisibleFirstStep(false);
-    dispatch(clearReturnRequests());
+    handleExitReturnFlow();
     dispatch(getMyReturns());
-  }, [dispatch]);
+  }, [dispatch, handleExitReturnFlow]);
 
   useFocusEffect(
     useCallback(() => {
@@ -229,7 +230,7 @@ export const MyReturnsModal: React.FC<MyReturnsProps> = ({
 
       <MyReturnsFirstStep 
         visible={visibleFirstStep} 
-        onClose={() => setVisibleFirstStep(false)} 
+        onClose={handleExitReturnFlow} 
         onNext={() => {
           setVisibleFirstStep(false);
           setVisibleSecondStep(true);
@@ -238,14 +239,7 @@ export const MyReturnsModal: React.FC<MyReturnsProps> = ({
       
       <MyReturnsSecondStep 
         visible={visibleSecondStep} 
-        onBack={() => {
-          setVisibleSecondStep(false);
-          setVisibleFirstStep(true);
-        }} 
-        onClose={() => {setVisibleSecondStep(false);
-            setVisibleSecondStep(false);
-
-        }} 
+        onClose={handleExitReturnFlow}
         onNext={() => {
           setVisibleSecondStep(false);
           setVisibleThirdStep(true);
@@ -254,14 +248,7 @@ export const MyReturnsModal: React.FC<MyReturnsProps> = ({
       
       <MyReturnsThirdStep  
         visible={visibleThirdStep} 
-        onBack={() => {
-          setVisibleThirdStep(false);
-          setVisibleSecondStep(true);
-        }} 
-        onClose={() => {setVisibleThirdStep(false);
-                        setVisibleSecondStep(false);
-                          setVisibleSecondStep(false);
-        }}
+        onClose={handleExitReturnFlow}
         onNavigateHome={handleNavigateHomeFromReturn}
         onViewReturnDetails={handleViewReturnDetails}
       />

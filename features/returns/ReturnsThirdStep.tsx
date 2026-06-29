@@ -44,7 +44,6 @@ function classifyReturnMethodByName(name: string | undefined): "address" | "stor
 interface MyReturnsThirdStepProps {
   visible: boolean;
   onClose: () => void;
-  onBack?: () => void;
   /** Закрыть всё и перейти на главную (каталог). */
   onNavigateHome?: () => void;
   /** Остаться в возвратах: закрыть шаги мастера, обновить список. */
@@ -54,7 +53,6 @@ interface MyReturnsThirdStepProps {
 export const MyReturnsThirdStep: React.FC<MyReturnsThirdStepProps> = ({
   visible,
   onClose,
-  onBack,
   onNavigateHome,
   onViewReturnDetails,
 }) => {
@@ -463,7 +461,7 @@ export const MyReturnsThirdStep: React.FC<MyReturnsThirdStepProps> = ({
               setShowSuccessContent(false);
               onViewReturnDetails?.();
             } else {
-              onBack?.();
+              onClose();
             }
           }}
         />

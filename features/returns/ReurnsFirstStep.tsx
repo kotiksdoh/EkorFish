@@ -1,7 +1,7 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { ModalHeader } from "@/features/auth/ui/Header";
-import { clearReturnRequests, getMyReturnableOrders } from "@/features/catalog/catalogSlice";
+import { getMyReturnableOrders } from "@/features/catalog/catalogSlice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { useFocusEffect } from "expo-router";
 import React, { useCallback, useMemo } from "react";
@@ -106,8 +106,6 @@ export const MyReturnsFirstStep: React.FC<MyReturnsFirstStepProps> = ({
   };
 
   const handleClose = () => {
-    // Очищаем выбранные товары при закрытии
-    dispatch(clearReturnRequests());
     onClose();
   };
 

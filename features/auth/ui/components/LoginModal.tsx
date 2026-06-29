@@ -2,9 +2,7 @@ import {
   BriefcaseIcon,
   CloseIcon,
   LogoIcon,
-  MessageIcon,
-  PhoneIcon,
-  ProfileIcon,
+  ProfileIcon
 } from "@/assets/icons/icons.js";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
@@ -40,7 +38,6 @@ import {
   SafeAreaProvider,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
-import manager from "../../../../assets/icons/png/manager.png";
 import {
   compliteCompany,
   compliteProfile,
@@ -1229,102 +1226,9 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                     <ThemedText style={stylesAccType.accountTypeTitle}>
                       Если данные не верны,{"\n"}свяжитесь с менеджером
                     </ThemedText>
-                    <ThemedView
-                      style={stylesManager.container}
-                      lightColor="#F2F4F7"
-                      darkColor="#202022"
-                    >
-                      <ThemedText
-                        style={stylesManager.yourManager}
-                        lightColor="#80818B"
-                        darkColor="#80818B"
-                      >
-                        Ваш менеджер
-                      </ThemedText>
-
-                      <View style={stylesManager.managerInfo}>
-                        {/* Фото менеджера */}
-                        <View style={stylesManager.avatarContainer}>
-                          <Image
-                            source={manager}
-                            // source={{ uri: 'https://example.com/manager-photo.jpg' }}
-                            style={stylesManager.avatar}
-                            resizeMode="cover"
-                          />
-                        </View>
-
-                        {/* Имя менеджера */}
-                        <View style={stylesManager.nameContainer}>
-                          <ThemedText
-                            style={stylesManager.managerName}
-                            lightColor="#1B1B1C"
-                            darkColor="#FBFCFF"
-                            numberOfLines={2}
-                          >
-                            Иванова Мария Сергеевна
-                          </ThemedText>
-                        </View>
-                      </View>
-
-                      <View style={stylesManager.actionsContainer}>
-                        <ThemedView
-                          style={stylesManager.bigButton}
-                          lightColor="#FFFFFF"
-                          darkColor="#2E2E32"
-                        >
-                          <TouchableOpacity
-                            //
-                            style={[stylesManager.actionButton]}
-                            onPress={() => console.log("Написать сообщение")}
-                            activeOpacity={0.7}
-                          >
-                            <View style={stylesManager.buttonContent}>
-                              <MessageIcon
-                                fill={
-                                  currentTheme === "dark"
-                                    ? "#FBFCFF"
-                                    : "#203686"
-                                }
-                                width={24}
-                                height={24}
-                              />
-                              <ThemedText
-                                style={stylesManager.buttonText}
-                                lightColor="#203686"
-                                darkColor="#FBFCFF"
-                              >
-                                Написать
-                              </ThemedText>
-                            </View>
-                          </TouchableOpacity>
-
-                          <TouchableOpacity
-                            style={[stylesManager.actionButton]}
-                            onPress={() => console.log("Позвонить")}
-                            activeOpacity={0.7}
-                          >
-                            <View style={stylesManager.buttonContent}>
-                              <PhoneIcon
-                                fill={
-                                  currentTheme === "dark"
-                                    ? "#FBFCFF"
-                                    : "#203686"
-                                }
-                                width={24}
-                                height={24}
-                              />
-                              <ThemedText
-                                style={stylesManager.buttonText}
-                                lightColor="#203686"
-                                darkColor="#FBFCFF"
-                              >
-                                Позвонить
-                              </ThemedText>
-                            </View>
-                          </TouchableOpacity>
-                        </ThemedView>
-                      </View>
-                    </ThemedView>
+                    <View style={phisUser.managerSectionFullWidth}>
+                      <ManagerSection hideChangeManagerButton />
+                    </View>
                   </ThemedView>
                 </>
               )

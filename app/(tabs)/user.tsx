@@ -39,20 +39,20 @@ import {
 import { LoginModal } from "@/features/auth/ui/components/LoginModal";
 import { clearCatalogState } from "@/features/catalog/catalogSlice";
 import { axdef } from "@/features/shared/services/axios";
-import {
-  formatPhoneProfile,
-  isEmailLogin,
-} from "@/features/shared/utils/phoneLinking";
 import { CompanySelectModal } from "@/features/shared/ui/CompanySelectModal";
 import { HelpModal } from "@/features/shared/ui/HelpModal";
 import ManagerSection from "@/features/shared/ui/ManagerSection";
 import { MyFinanceModal } from "@/features/shared/ui/MyFInance";
 import { MyOrdersModal } from "@/features/shared/ui/MyOrders";
 import { MyReturnsModal } from "@/features/shared/ui/MyReturns";
-import { OrderReminderModal } from "@/features/shared/ui/OrderReminderModal";
 import { MySettingsModal } from "@/features/shared/ui/MySettings";
+import { OrderReminderModal } from "@/features/shared/ui/OrderReminderModal";
 import { ProfileEditModal } from "@/features/shared/ui/ProfileEditModal";
 import { PushNotificationsModal } from "@/features/shared/ui/PushNotificationsModal";
+import {
+  formatPhoneProfile,
+  isEmailLogin,
+} from "@/features/shared/utils/phoneLinking";
 import { MyTemplatesModal } from "@/features/templates/MyTemplatesModal";
 import { useTemplatePicker } from "@/features/templates/TemplatePickerContext";
 import { useAppTheme } from "@/hooks/use-theme-color";
@@ -398,7 +398,11 @@ export default function TabTwoScreen() {
   return (
     <>
       {showProfileContent ? (
-      <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+      <ScrollView
+        className="flex-1"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
         {/* Используем View с градиентом и дополнительными настройками для Android */}
         <View style={styles.gradientWrapper}>
           <LinearGradient
@@ -737,6 +741,7 @@ export default function TabTwoScreen() {
               <View
                 style={[
                   styles.infoContent,
+                  styles.infoContentLast,
                   isDarkMode && {
                     borderColor: "#252527",
                   },
@@ -844,6 +849,9 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+  },
+  scrollContent: {
+    paddingBottom: 8,
   },
   headerImage: {
     color: "#808080",
@@ -1010,6 +1018,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+  },
+  infoContentLast: {
+    borderBottomWidth: 0,
+    paddingBottom: 0,
   },
   infoLabel: {
     fontSize: 14,
