@@ -161,6 +161,7 @@ interface CategoryState {
   orders: any[];
 
   order: any;
+  isLoadingCheckoutPageData: boolean;
 
   returns: any[];
   return: ReturnRequestDetail | null;
@@ -218,6 +219,7 @@ const initialState: CategoryState = {
 
   isLoadingCart: false,
   order: null,
+  isLoadingCheckoutPageData: false,
 
   returns: [],
   return: null,
@@ -799,6 +801,19 @@ export const toggleCartItemFavorite = createAsyncThunk(
 
 export const getOrderPageData = createAsyncThunk(
   "catalog/getOrderPageData",
+  async (_, { rejectWithValue }) => {
+    try {
+      const data = await axdef.get("/api/Order/page-data");
+      return data;
+    } catch (error) {
+      console.log(error);
+      return rejectWithValue(error);
+    }
+  },
+);
+
+export const getCheckoutPageData = createAsyncThunk(
+  "catalog/getCheckoutPageData",
   async (_, { rejectWithValue }) => {
     try {
       const data = await axdef.get("/api/Order/page-data");
@@ -1596,6 +1611,21 @@ const catalogSlice = createSlice({
       state.isLoading = false;
       axiosErrorHandler(action?.payload);
     });
+
+    builder.addCase(getCheckoutPageData.pending, (state) => {
+      state.isLoadingCheckoutPageData = true;
+    });
+
+    builder.addCase(getCheckoutPageData.fulfilled, (state, action) => {
+      state.isLoadingCheckoutPageData = false;
+      state.order = action.payload.data.data;
+    });
+
+    builder.addCase(getCheckoutPageData.rejected, (state, action) => {
+      state.isLoadingCheckoutPageData = false;
+      axiosErrorHandler(action?.payload);
+    });
+
     builder.addCase(addDeliveryAddress.pending, (state) => {
       state.isAddingAddress = true;
     });

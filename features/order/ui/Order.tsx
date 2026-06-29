@@ -20,7 +20,7 @@ import {
   deleteRecipient,
   getCart,
   getMyOrders,
-  getOrderPageData,
+  getCheckoutPageData,
   getRecipients,
 } from "@/features/catalog/catalogSlice";
 import { RecommendedOrderProducts } from "@/features/catalog/ui/components/RecommendedOrderProducts/RecommendedOrderProducts";
@@ -148,8 +148,13 @@ export default function CheckoutModal({
   // Данные с бекенда
   const orderData = useAppSelector((state) => state.catalog.order);
   const deliveryMethods = orderData?.deliveryMethods || [];
+  const isLoadingCheckoutPageData = useAppSelector(
+    (state) => state.catalog.isLoadingCheckoutPageData,
+  );
   const towns = useAppSelector((state) => state.auth.towns);
   const isLoadingTowns = useAppSelector((state) => state.auth.isLoadingTowns);
+  const isCheckoutDataLoading =
+    isLoadingCheckoutPageData || isLoadingTowns;
   const savedRecipients = useAppSelector((state) => state.catalog.recipients);
   const isLoadingRecipients = useAppSelector(
     (state) => state.catalog.isLoadingRecipients,
@@ -230,7 +235,7 @@ export default function CheckoutModal({
   // Загружаем данные при открытии модалки
   useEffect(() => {
     if (visible) {
-      loadOrderData();
+      dispatch(getCheckoutPageData());
       dispatch(getTowns());
       dispatch(loadCompanyFromStorage());
       setShowAddAddressModal(false);
@@ -288,14 +293,6 @@ export default function CheckoutModal({
       setRecipients(formattedRecipients);
     }
   }, [savedRecipients]);
-
-  const loadOrderData = async () => {
-    try {
-      await dispatch(getOrderPageData()).unwrap();
-    } catch (error) {
-      console.error("Error loading order data:", error);
-    }
-  };
 
   const loadRecipients = async (addressId: string) => {
     try {
@@ -821,17 +818,6 @@ export default function CheckoutModal({
 
   // Рендер содержимого для самовывоза с городами из Redux
   const renderPickupContent = () => {
-    if (isLoadingTowns) {
-      return (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="small" color="#203686" />
-          <ThemedText style={styles.loadingText}>
-            Загрузка городов...
-          </ThemedText>
-        </View>
-      );
-    }
-
     if (!towns || towns.length === 0) {
       return (
         <View style={styles.emptyContainer}>
@@ -1020,6 +1006,11 @@ export default function CheckoutModal({
                 returnTo="catalog"
               />
             </ScrollView>
+          ) : isCheckoutDataLoading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#203686" />
+              <ThemedText style={styles.loadingText}>Загрузка...</ThemedText>
+            </View>
           ) : (
             <>
               {isLoadingRecipients ? (
