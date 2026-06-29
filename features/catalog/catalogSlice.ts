@@ -162,6 +162,11 @@ interface CategoryState {
 
   order: any;
   isLoadingCheckoutPageData: boolean;
+  isApplyingPromoCode: boolean;
+  appliedPromoCode: {
+    code: string;
+    discountPercent: number;
+  } | null;
 
   returns: any[];
   return: ReturnRequestDetail | null;
@@ -220,6 +225,8 @@ const initialState: CategoryState = {
   isLoadingCart: false,
   order: null,
   isLoadingCheckoutPageData: false,
+  isApplyingPromoCode: false,
+  appliedPromoCode: null,
 
   returns: [],
   return: null,
@@ -825,6 +832,24 @@ export const getCheckoutPageData = createAsyncThunk(
   },
 );
 
+export const applyPromoCode = createAsyncThunk(
+  "catalog/applyPromoCode",
+  async (code: string, { rejectWithValue }) => {
+    try {
+      const response = await axdef.post("/api/Order/apply-promo-code", {
+        code: code.trim(),
+      });
+      return response.data?.data;
+    } catch (error: any) {
+      console.log("Error applying promo code:", error);
+      if (error.response?.status !== 401) {
+        return rejectWithValue(error);
+      }
+      throw error;
+    }
+  },
+);
+
 export const getRecipients = createAsyncThunk(
   "catalog/getRecipients",
   async (deliveryAddressId: string, { rejectWithValue }) => {
@@ -1057,6 +1082,9 @@ const catalogSlice = createSlice({
     },
     clearCart: (state) => {
       state.cart = [];
+    },
+    clearAppliedPromoCode: (state) => {
+      state.appliedPromoCode = null;
     },
     clearAddresses: (state) => {
       state.addresses = [];
@@ -1626,6 +1654,25 @@ const catalogSlice = createSlice({
       axiosErrorHandler(action?.payload);
     });
 
+    builder.addCase(applyPromoCode.pending, (state) => {
+      state.isApplyingPromoCode = true;
+    });
+
+    builder.addCase(applyPromoCode.fulfilled, (state, action) => {
+      state.isApplyingPromoCode = false;
+      if (action.payload?.code) {
+        state.appliedPromoCode = {
+          code: action.payload.code,
+          discountPercent: action.payload.discountPercent ?? 0,
+        };
+      }
+    });
+
+    builder.addCase(applyPromoCode.rejected, (state) => {
+      state.isApplyingPromoCode = false;
+      state.appliedPromoCode = null;
+    });
+
     builder.addCase(addDeliveryAddress.pending, (state) => {
       state.isAddingAddress = true;
     });
@@ -1670,6 +1717,7 @@ export const {
   updateCartItemQuantity,
   removeCartItem,
   clearCart,
+  clearAppliedPromoCode,
   clearAddresses,
   clearRecipients,
   clearCatalogState,

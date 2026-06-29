@@ -17,6 +17,8 @@ import {
 import { ModalHeader } from "@/features/auth/ui/Header";
 import {
   AddToCart,
+  applyPromoCode,
+  clearAppliedPromoCode,
   getCart,
   putFavorite,
   putUnFavorite,
@@ -32,6 +34,7 @@ import { CompanySelectModal } from "@/features/shared/ui/CompanySelectModal";
 import { CompanySelectionModal } from "@/features/shared/ui/CompanySelectionModalSmall";
 import { isIndividualCompany } from "@/features/shared/utils/companyType";
 import { CustomCheckbox } from "@/features/shared/ui/components/CustomCheckBox";
+import { PromoCodeInput } from "@/features/shared/ui/components/PromoCodeInput";
 import { buildTemplateLineFromProduct } from "@/features/templates/buildTemplateLine";
 import { useTemplatePicker } from "@/features/templates/TemplatePickerContext";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -403,6 +406,39 @@ export default function ShopScreen() {
   }>({ isAccrueBonuses: false, bonusPercent: 0 });
 
   const authParams = useAppSelector((state) => state.auth.params);
+  const isApplyingPromoCode = useAppSelector(
+    (state) => state.catalog.isApplyingPromoCode,
+  );
+  const appliedPromoCode = useAppSelector(
+    (state) => state.catalog.appliedPromoCode,
+  );
+  const [promoCodeInput, setPromoCodeInput] = useState("");
+  const [promoHasError, setPromoHasError] = useState(false);
+
+  const handlePromoCodeChange = useCallback(
+    (text: string) => {
+      setPromoCodeInput(text);
+      setPromoHasError(false);
+      if (appliedPromoCode && text.trim() !== appliedPromoCode.code) {
+        dispatch(clearAppliedPromoCode());
+      }
+    },
+    [appliedPromoCode, dispatch],
+  );
+
+  const handleApplyPromoCode = useCallback(async () => {
+    const code = promoCodeInput.trim();
+    if (!code || isApplyingPromoCode) return;
+
+    setPromoHasError(false);
+    try {
+      const result = await dispatch(applyPromoCode(code)).unwrap();
+      setPromoCodeInput(result.code);
+      setPromoHasError(false);
+    } catch {
+      setPromoHasError(true);
+    }
+  }, [dispatch, isApplyingPromoCode, promoCodeInput]);
 
   const handleAddToCartPress = useCallback(
     (product: any) => {
@@ -650,6 +686,11 @@ export default function ShopScreen() {
     ? Math.floor(totalPrice * (bonusParams.bonusPercent / 100))
     : 0;
 
+    const discountPercent = appliedPromoCode?.discountPercent ?? 0;
+    const discountAmount =
+      discountPercent > 0 ? (totalPrice * discountPercent) / 100 : 0;
+    const finalPrice = Math.max(totalPrice - discountAmount, 0);
+
     // Проверяем, есть ли среди выбранных недоступные товары
     const hasUnavailableSelected = selectedUnavailableItems.length > 0;
 
@@ -659,9 +700,12 @@ export default function ShopScreen() {
       totalWeight,
       hasUnavailableSelected,
       selectedUnavailableCount: selectedUnavailableItems.length,
-      bonusAmount
+      bonusAmount,
+      discountAmount,
+      finalPrice,
+      discountPercent,
     };
-  }, [cartItems, selectedItems, bonusParams]);
+  }, [cartItems, selectedItems, bonusParams, appliedPromoCode]);
 
   const selectedInCartCount = useMemo(
     () => cartItems.filter((item) => selectedItems.has(item.id)).length,
@@ -891,6 +935,17 @@ export default function ShopScreen() {
                     • {totals.totalWeight} кг
                   </ThemedText>
                 </View>
+
+                <View style={styles.promoCodeWrapper}>
+                  <PromoCodeInput
+                    value={promoCodeInput}
+                    onChangeText={handlePromoCodeChange}
+                    onApply={handleApplyPromoCode}
+                    loading={isApplyingPromoCode}
+                    hasError={promoHasError}
+                  />
+                </View>
+
                 <View style={styles.uCartMain}>
                   <ThemedText darkColor="#FBFCFF" lightColor="#1B1B1C" style={{ fontSize: 16 }}>
                     Товары ({totals.totalItems})
@@ -912,7 +967,10 @@ export default function ShopScreen() {
                     Скидка
                   </ThemedText>
                   <ThemedText lightColor="#6FBD15" darkColor="#6FBD15" style={{ fontSize: 16, fontWeight: "600" }}>
-                    0 ₽
+                    {totals.discountAmount > 0
+                      ? `-${formatPrice(totals.discountAmount)}`
+                      : "0"}{" "}
+                    ₽
                   </ThemedText>
                 </View>
 
@@ -950,7 +1008,12 @@ export default function ShopScreen() {
                     ИТОГО
                   </ThemedText>
                   <ThemedText darkColor="#FBFCFF" lightColor="#1B1B1C">
-                    {formatPrice(totals.totalPrice)} ₽
+                    {formatPrice(
+                      totals.discountAmount > 0
+                        ? totals.finalPrice
+                        : totals.totalPrice,
+                    )}{" "}
+                    ₽
                   </ThemedText>
                 </View>
               </View>
@@ -1042,7 +1105,12 @@ export default function ShopScreen() {
           <View style={styles.bottomPanelContent}>
             <View style={styles.bottomLeft}>
               <ThemedText darkColor="#FBFCFF" style={styles.bottomTotalPrice}>
-                {formatPrice(totals.totalPrice)} ₽
+                {formatPrice(
+                  totals.discountAmount > 0
+                    ? totals.finalPrice
+                    : totals.totalPrice,
+                )}{" "}
+                ₽
               </ThemedText>
               <ThemedText style={styles.bottomItemsCount}>
                 {totals.totalItems > 0 && totals.totalItems}{" "}
@@ -1543,6 +1611,9 @@ const styles = StyleSheet.create({
     display: "flex",
     flexDirection: "column",
     paddingTop: 16,
+  },
+  promoCodeWrapper: {
+    marginTop: 12,
   },
   uCartMain: {
     paddingTop: 16,
