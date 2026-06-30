@@ -7,6 +7,7 @@ import { getCart, getMyOrders, getOrderPageData } from "../catalog/catalogSlice"
 import { getInlineParams } from "../shared/services/utils";
 import type { AppDispatch } from "@/store/store";
 import type { OrderReminderSettings } from "@/features/shared/types/orderReminderSettings";
+import type { QuietPeriodSettings } from "@/features/shared/types/quietPeriodSettings";
 
 interface AuthState {
   user: any | null;
@@ -76,6 +77,9 @@ interface AuthState {
   orderReminderSettings: OrderReminderSettings | null;
   isLoadingOrderReminderSettings: boolean;
   isUpdatingOrderReminderSettings: boolean;
+  quietPeriodSettings: QuietPeriodSettings | null;
+  isLoadingQuietPeriodSettings: boolean;
+  isUpdatingQuietPeriodSettings: boolean;
   pushes: {
     title: string;
     body: string;
@@ -134,6 +138,9 @@ const initialState: AuthState = {
   orderReminderSettings: null,
   isLoadingOrderReminderSettings: false,
   isUpdatingOrderReminderSettings: false,
+  quietPeriodSettings: null,
+  isLoadingQuietPeriodSettings: false,
+  isUpdatingQuietPeriodSettings: false,
   pushes: [],
   uncheckedPushesCount: 0,
   isLoadingPushes: false,
@@ -553,6 +560,32 @@ export const updateOrderReminderSettings = createAsyncThunk(
         "/api/Account/push/order-reminder-settings",
         payload,
       );
+      return { response: res, payload };
+    } catch (error) {
+      console.log(error);
+      return rejectWithValue(error);
+    }
+  },
+);
+
+export const getQuietPeriodSettings = createAsyncThunk(
+  "user/getQuietPeriodSettings",
+  async (_, { rejectWithValue }) => {
+    try {
+      const res = await axdef.get("/api/Account/push/quiet-period");
+      return res;
+    } catch (error) {
+      console.log(error);
+      return rejectWithValue(error);
+    }
+  },
+);
+
+export const updateQuietPeriodSettings = createAsyncThunk(
+  "user/updateQuietPeriodSettings",
+  async (payload: QuietPeriodSettings, { rejectWithValue }) => {
+    try {
+      const res = await axdef.put("/api/Account/push/quiet-period", payload);
       return { response: res, payload };
     } catch (error) {
       console.log(error);
@@ -1145,6 +1178,38 @@ const authSlice = createSlice({
     builder.addCase(updateOrderReminderSettings.rejected, (state, action) => {
       state.isUpdatingOrderReminderSettings = false;
       state.error = "Ошибка обновления напоминаний о заказе";
+      axiosErrorHandler(action?.payload);
+    });
+
+    builder.addCase(getQuietPeriodSettings.pending, (state) => {
+      state.isLoadingQuietPeriodSettings = true;
+      state.error = null;
+    });
+
+    builder.addCase(getQuietPeriodSettings.fulfilled, (state, action) => {
+      state.isLoadingQuietPeriodSettings = false;
+      state.quietPeriodSettings = action.payload?.data?.data ?? null;
+    });
+
+    builder.addCase(getQuietPeriodSettings.rejected, (state, action) => {
+      state.isLoadingQuietPeriodSettings = false;
+      state.error = "Ошибка загрузки тихого периода";
+      axiosErrorHandler(action?.payload);
+    });
+
+    builder.addCase(updateQuietPeriodSettings.pending, (state) => {
+      state.isUpdatingQuietPeriodSettings = true;
+      state.error = null;
+    });
+
+    builder.addCase(updateQuietPeriodSettings.fulfilled, (state, action) => {
+      state.isUpdatingQuietPeriodSettings = false;
+      state.quietPeriodSettings = action.payload.payload;
+    });
+
+    builder.addCase(updateQuietPeriodSettings.rejected, (state, action) => {
+      state.isUpdatingQuietPeriodSettings = false;
+      state.error = "Ошибка обновления тихого периода";
       axiosErrorHandler(action?.payload);
     });
 

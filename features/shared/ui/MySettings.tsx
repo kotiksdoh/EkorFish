@@ -3,12 +3,19 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import {
   getPushSettings,
+  getQuietPeriodSettings,
   updatePushPreference,
+  updateQuietPeriodSettings,
 } from "@/features/auth/authSlice";
 import { ModalHeader } from "@/features/auth/ui/Header";
+import {
+  buildQuietPeriodPayload,
+  formatQuietTimeForDisplay,
+  isValidQuietTime,
+} from "@/features/shared/types/quietPeriodSettings";
 import { useAppTheme } from "@/hooks/use-theme-color";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Animated,
@@ -19,6 +26,7 @@ import {
   View,
 } from "react-native";
 import { CustomCheckbox } from "./components/CustomCheckBox";
+import AnimatedTextInput from "./components/CustomInput";
 
 interface MySettingsProps {
   visible: boolean;
@@ -39,9 +47,15 @@ interface AppSwitchProps {
   value: boolean;
   onValueChange: (value: boolean) => void;
   isDark: boolean;
+  disabled?: boolean;
 }
 
-const AppSwitch: React.FC<AppSwitchProps> = ({ value, onValueChange, isDark }) => {
+const AppSwitch: React.FC<AppSwitchProps> = ({
+  value,
+  onValueChange,
+  isDark,
+  disabled = false,
+}) => {
   const thumbTranslate = useRef(
     new Animated.Value(value ? SWITCH_THUMB_TRANSLATE : 0)
   ).current;
@@ -57,7 +71,8 @@ const AppSwitch: React.FC<AppSwitchProps> = ({ value, onValueChange, isDark }) =
   return (
     <TouchableOpacity
       activeOpacity={0.8}
-      onPress={() => onValueChange(!value)}
+      onPress={() => !disabled && onValueChange(!value)}
+      disabled={disabled}
       style={[
         styles.appSwitchTrack,
         {
@@ -91,20 +106,46 @@ const formatTimeValue = (rawValue: string) => {
   return `${digitsOnly.slice(0, 2)}:${digitsOnly.slice(2)}`;
 };
 
+const QUIET_PERIOD_DEBOUNCE_MS = 600;
+
 // Компонент уведомлений
 const NotificationsScreen: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   const { isDark } = useAppTheme();
   const dispatch = useAppDispatch();
-  const { pushSettings, isLoadingPushSettings, isUpdatingPushPreference } =
-    useAppSelector((state) => state.auth);
-  const [quietMode, setQuietMode] = useState(false);
+  const {
+    pushSettings,
+    isLoadingPushSettings,
+    isUpdatingPushPreference,
+    quietPeriodSettings,
+    isLoadingQuietPeriodSettings,
+    isUpdatingQuietPeriodSettings,
+  } = useAppSelector((state) => state.auth);
   const [quietStartTime, setQuietStartTime] = useState("22:00");
   const [quietEndTime, setQuietEndTime] = useState("08:00");
-  const [deliveryMethod, setDeliveryMethod] = useState("push");
+  const isHydratingQuietPeriodRef = useRef(true);
 
   useEffect(() => {
     dispatch(getPushSettings());
+    dispatch(getQuietPeriodSettings());
   }, [dispatch]);
+
+  useEffect(() => {
+    if (!quietPeriodSettings) return;
+
+    isHydratingQuietPeriodRef.current = true;
+    setQuietStartTime(formatQuietTimeForDisplay(quietPeriodSettings.startTime));
+    setQuietEndTime(formatQuietTimeForDisplay(quietPeriodSettings.endTime));
+
+    const timeoutId = setTimeout(() => {
+      isHydratingQuietPeriodRef.current = false;
+    }, 0);
+
+    return () => clearTimeout(timeoutId);
+  }, [
+    quietPeriodSettings?.startTime,
+    quietPeriodSettings?.endTime,
+    quietPeriodSettings?.isEnabled,
+  ]);
 
   const toggleNotification = (pushNotificationType: number, isEnabled: boolean) => {
     dispatch(
@@ -114,6 +155,77 @@ const NotificationsScreen: React.FC<{ onBack: () => void }> = ({ onBack }) => {
       }),
     );
   };
+
+  const persistQuietPeriod = useCallback(
+    (nextSettings: {
+      isEnabled: boolean;
+      startTime: string;
+      endTime: string;
+    }) => {
+      dispatch(
+        updateQuietPeriodSettings(
+          buildQuietPeriodPayload({
+            isEnabled: nextSettings.isEnabled,
+            startTime: nextSettings.startTime,
+            endTime: nextSettings.endTime,
+          }),
+        ),
+      );
+    },
+    [dispatch],
+  );
+
+  const handleQuietModeToggle = (isEnabled: boolean) => {
+    if (!quietPeriodSettings || isUpdatingQuietPeriodSettings) return;
+
+    persistQuietPeriod({
+      isEnabled,
+      startTime: quietStartTime,
+      endTime: quietEndTime,
+    });
+  };
+
+  useEffect(() => {
+    if (
+      isHydratingQuietPeriodRef.current ||
+      !quietPeriodSettings?.isEnabled ||
+      isLoadingQuietPeriodSettings
+    ) {
+      return;
+    }
+
+    if (!isValidQuietTime(quietStartTime) || !isValidQuietTime(quietEndTime)) {
+      return;
+    }
+
+    const serverStart = formatQuietTimeForDisplay(quietPeriodSettings.startTime);
+    const serverEnd = formatQuietTimeForDisplay(quietPeriodSettings.endTime);
+
+    if (quietStartTime === serverStart && quietEndTime === serverEnd) {
+      return;
+    }
+
+    const timeoutId = setTimeout(() => {
+      if (isUpdatingQuietPeriodSettings) return;
+
+      persistQuietPeriod({
+        isEnabled: quietPeriodSettings.isEnabled,
+        startTime: quietStartTime,
+        endTime: quietEndTime,
+      });
+    }, QUIET_PERIOD_DEBOUNCE_MS);
+
+    return () => clearTimeout(timeoutId);
+  }, [
+    quietStartTime,
+    quietEndTime,
+    quietPeriodSettings,
+    isLoadingQuietPeriodSettings,
+    isUpdatingQuietPeriodSettings,
+    persistQuietPeriod,
+  ]);
+
+  const isQuietModeEnabled = quietPeriodSettings?.isEnabled ?? false;
 
   return (
     <View style={styles.fullScreenContent}>
@@ -167,51 +279,73 @@ const NotificationsScreen: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         </View>
       </ThemedView>
 
-      {/* <ThemedView
+      <ThemedView
         lightColor="#FFFFFF"
         darkColor="#151516"
         style={styles.paymentsMainContainer}
       >
-        <View style={styles.documentRow}>
-          <ThemedText lightColor="#1B1B1C" darkColor="#FBFCFF">
-            Включить тихий период
-          </ThemedText>
-          <AppSwitch
-            value={quietMode}
-            onValueChange={setQuietMode}
-            isDark={isDark}
-          />
-        </View>
-        <ThemedText
-          style={styles.infoText}
-          lightColor="#80818B"
-          darkColor="#FBFCFF80"
-        >
-          В это время уведомления будут приходить без звука и вибрации
-        </ThemedText>
-        {quietMode && (
-          <View style={styles.quietTimeRow}>
-            <AnimatedTextInput
-              placeholder="Не беспокоить с:"
-              value={quietStartTime}
-              onChangeText={(text) => setQuietStartTime(formatTimeValue(text))}
-              keyboardType="number-pad"
-              maxLength={5}
-              style={styles.quietTimeInput}
-            />
-            <AnimatedTextInput
-              placeholder="До:"
-              value={quietEndTime}
-              onChangeText={(text) => setQuietEndTime(formatTimeValue(text))}
-              keyboardType="number-pad"
-              maxLength={5}
-              style={styles.quietTimeInput}
-            />
+        {isLoadingQuietPeriodSettings || !quietPeriodSettings ? (
+          <View style={styles.loaderContainer}>
+            <ActivityIndicator size="small" color={isDark ? "#FBFCFF" : "#203686"} />
+            <ThemedText lightColor="#1B1B1C" darkColor="#FBFCFF">
+              Загрузка тихого периода...
+            </ThemedText>
           </View>
+        ) : (
+          <>
+            <View style={styles.documentRow}>
+              <ThemedText lightColor="#1B1B1C" darkColor="#FBFCFF">
+                Включить тихий период
+              </ThemedText>
+              <AppSwitch
+                value={isQuietModeEnabled}
+                onValueChange={handleQuietModeToggle}
+                isDark={isDark}
+                disabled={isUpdatingQuietPeriodSettings}
+              />
+            </View>
+            <ThemedText
+              style={styles.infoText}
+              lightColor="#80818B"
+              darkColor="#FBFCFF80"
+            >
+              В это время уведомления будут приходить без звука и вибрации
+            </ThemedText>
+            {isQuietModeEnabled ? (
+              <View style={styles.quietTimeRow}>
+                <AnimatedTextInput
+                  placeholder="Не беспокоить с:"
+                  value={quietStartTime}
+                  onChangeText={(text) => setQuietStartTime(formatTimeValue(text))}
+                  keyboardType="number-pad"
+                  maxLength={5}
+                  style={styles.quietTimeInput}
+                  disabled={isUpdatingQuietPeriodSettings}
+                />
+                <AnimatedTextInput
+                  placeholder="До"
+                  value={quietEndTime}
+                  onChangeText={(text) => setQuietEndTime(formatTimeValue(text))}
+                  keyboardType="number-pad"
+                  maxLength={5}
+                  style={styles.quietTimeInput}
+                  disabled={isUpdatingQuietPeriodSettings}
+                />
+              </View>
+            ) : null}
+            {isUpdatingQuietPeriodSettings ? (
+              <View style={styles.updatingRow}>
+                <ActivityIndicator
+                  size="small"
+                  color={isDark ? "#4C94FF" : "#203686"}
+                />
+              </View>
+            ) : null}
+          </>
         )}
       </ThemedView>
 
-      <ThemedView
+      {/* <ThemedView
         lightColor="#FFFFFF"
         darkColor="#151516"
         style={[styles.paymentsMainContainer, { flex: 1 }]}
@@ -494,6 +628,10 @@ const styles = StyleSheet.create({
   quietTimeInput: {
     flex: 1,
     height: 48,
+  },
+  updatingRow: {
+    alignItems: "center",
+    paddingBottom: 8,
   },
   appSwitchTrack: {
     width: SWITCH_TRACK_WIDTH,
