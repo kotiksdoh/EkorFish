@@ -64,21 +64,17 @@ const CartItemComponent = memo(({
       lightColor="#FFFFFF"
       style={styles.cartItem}
     >
+      <View style={styles.checkboxColumn}>
+        <CustomCheckbox
+          value={isSelected}
+          onValueChange={onToggleSelect}
+          lightColor={"#F2F4F7"}
+          darkColor={"#202022"}
+          disabled={!isReturnable}
+        />
+      </View>
+
       <View style={styles.imageContainer}>
-        <ThemedView
-          darkColor="#151516"
-          lightColor="#FFFFFF"
-          style={styles.checkboxPhoto}
-        >
-          <CustomCheckbox
-            style={styles.checkboxPhoto}
-            value={isSelected}
-            onValueChange={onToggleSelect}
-            lightColor={"#F2F4F7"}
-            darkColor={"#202022"}
-            disabled={!isReturnable}
-          />
-        </ThemedView>
         <Image
           source={imageSource}
           style={styles.image}
@@ -357,20 +353,15 @@ const styles = StyleSheet.create({
   },
   cartItem: {
     flexDirection: "row",
+    alignItems: "flex-start",
     paddingVertical: 16,
   },
-  checkboxPhoto: {
-    padding: 2,
-    position: "absolute",
-    top: 2,
-    left: 10,
-    borderRadius: 10,
-    minWidth: 6,
-    maxWidth: 6,
-    width: 6,
-    height: 6,
-    zIndex: 1,
+  checkboxColumn: {
+    width: 20,
+    height: 55,
+    justifyContent: "center",
     alignItems: "center",
+    marginRight: 8,
   },
   imageContainer: {
     width: 74,

@@ -125,6 +125,7 @@ const AnimatedTextInput: React.FC<AnimatedTextInputProps> = ({
       <ThemedView 
         style={[
           styles.container,
+          multiline && styles.containerMultiline,
           style,
           { backgroundColor: isDarkMode ? '#ECEFFA0D' : '#03051E08' },
         ]}
@@ -136,7 +137,9 @@ const AnimatedTextInput: React.FC<AnimatedTextInputProps> = ({
           ref={inputRef}
           style={[
             styles.input,
-            Platform.OS === 'android' && styles.inputAndroid,
+            multiline && styles.inputMultiline,
+            Platform.OS === 'android' && !multiline && styles.inputAndroid,
+            Platform.OS === 'android' && multiline && styles.inputAndroidMultiline,
             inputStyle,
             { 
               color: color
@@ -144,13 +147,14 @@ const AnimatedTextInput: React.FC<AnimatedTextInputProps> = ({
           ]}
           placeholder=""
           placeholderTextColor="transparent"
+          underlineColorAndroid="transparent"
           keyboardType={keyboardType as any}
           value={value}
           onChangeText={handleChangeText}
           onFocus={handleFocus}
           onBlur={handleBlur}
           maxLength={maxLength}
-          textAlignVertical="center"
+          textAlignVertical={multiline ? "top" : "center"}
           multiline={multiline}
           blurOnSubmit={!multiline}
           returnKeyType={multiline ? "done" : returnKeyType}
@@ -173,6 +177,12 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
     justifyContent: 'center',
     position: 'relative',
+    overflow: 'hidden',
+  },
+  containerMultiline: {
+    height: undefined,
+    minHeight: 80,
+    justifyContent: 'flex-start',
   },
   input: {
     borderRadius: 12,
@@ -186,11 +196,24 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 10,
   },
+  inputMultiline: {
+    height: undefined,
+    minHeight: 80,
+    textAlignVertical: 'top',
+    paddingTop: 28,
+    paddingBottom: 12,
+  },
   inputAndroid: {
     paddingTop: Platform.OS === 'android' ? 20 : 20,
     paddingBottom: Platform.OS === 'android' ? 8 : 10,
     includeFontPadding: false,
     textAlignVertical: 'center',
+  },
+  inputAndroidMultiline: {
+    paddingTop: 28,
+    paddingBottom: 12,
+    includeFontPadding: false,
+    textAlignVertical: 'top',
   },
   placeholder: {
     position: 'absolute',
