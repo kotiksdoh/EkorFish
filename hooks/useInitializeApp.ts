@@ -11,6 +11,7 @@ import {
 } from "@/features/auth/authSlice";
 import { getCart, getMyOrders, getOrderPageData } from "@/features/catalog/catalogSlice";
 import { store } from "@/store/store";
+import { loadMontserratFonts } from "@/utils/loadMontserratFonts";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const INIT_REQUEST_TIMEOUT_MS = 12000;
@@ -49,9 +50,9 @@ const loadAppResources = async () => {
     store.dispatch(setBootstrapStatus("loading"));
 
     const token = await AsyncStorage.getItem("token");
-    // 1. Загружаем шрифты
+    await withTimeout(loadMontserratFonts(), "fonts");
 
-    // 2. Инициализируем данные приложения
+    // Инициализируем данные приложения
     const categoriesOk = await withTimeout(
       store.dispatch(getCategoryItems("")).unwrap(),
       "categories",

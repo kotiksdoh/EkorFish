@@ -30,10 +30,10 @@ import {
 import { ProductCard } from "@/features/shared/ui/ProductCard";
 import { TownSelectionModal } from "@/features/shared/ui/TownSelectionModal";
 import AnimatedTextInput from "@/features/shared/ui/components/CustomInput";
-import { TemplatePickerBanner } from "@/features/templates/TemplatePickerBanner";
-import { buildTemplateLineFromProduct } from "@/features/templates/buildTemplateLine";
-import { useTemplatePicker } from "@/features/templates/TemplatePickerContext";
 import { prefetchProductImageUrls } from "@/features/shared/utils/prefetchProductImages";
+import { TemplatePickerBanner } from "@/features/templates/TemplatePickerBanner";
+import { useTemplatePicker } from "@/features/templates/TemplatePickerContext";
+import { buildTemplateLineFromProduct } from "@/features/templates/buildTemplateLine";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -1444,6 +1444,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     fontFamily: "Montserrat",
     fontSize: 14,
+    fontWeight: 500
   },
   filterButton: {
     flexDirection: "row",
@@ -1457,6 +1458,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     fontFamily: "Montserrat",
     fontSize: 14,
+    fontWeight: 500
   },
   filterBadge: {
     position: "absolute",
@@ -1603,7 +1605,8 @@ const styles = StyleSheet.create({
   },
   modalResetText: {
     fontFamily: "Montserrat",
-    fontSize: 16,
+    fontSize: 14,
+    fontWeight: 500
     // color: "#203686",
   },
   filtersSheet: {

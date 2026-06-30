@@ -1898,7 +1898,7 @@ const phisUser = StyleSheet.create({
     flex: 1,
     width: "100%",
     borderRadius: 16,
-    paddingTop: 12,
+    paddingTop: 30,
     paddingRight: 16,
     paddingBottom: 16,
     paddingLeft: 16,

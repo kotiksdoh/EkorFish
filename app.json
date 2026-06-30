@@ -24,7 +24,11 @@
           "NSAllowsArbitraryLoads": true
         },
         "ITSAppUsesNonExemptEncryption": false,
-        "LSApplicationQueriesSchemes": ["tel", "tg", "mailto"]
+        "LSApplicationQueriesSchemes": [
+          "tel",
+          "tg",
+          "mailto"
+        ]
       },
       "supportsTablet": false
     },
@@ -109,7 +113,8 @@
           }
         }
       ],
-      "expo-notifications"
+      "expo-notifications",
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true,

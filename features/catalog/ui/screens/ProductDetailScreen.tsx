@@ -594,7 +594,8 @@ export function ProductDetailScreen() {
                   lightColor={"#1B1B1C"}
                   darkColor="#FBFCFF"
                 >
-                  {selectedPurchaseOption?.price?.toLocaleString("ru-RU")} ₽
+                  {selectedPurchaseOption?.price?.toLocaleString("ru-RU")} ₽/
+                  {product?.measureType === "килограмм" ? "кг" : "шт"}
                 </ThemedText>
               </ThemedView>
 
