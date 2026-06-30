@@ -187,8 +187,8 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
   },
   inputAndroid: {
-    paddingTop: Platform.OS === 'android' ? 25 : 20,
-    paddingBottom: Platform.OS === 'android' ? 5 : 10,
+    paddingTop: Platform.OS === 'android' ? 20 : 20,
+    paddingBottom: Platform.OS === 'android' ? 8 : 10,
     includeFontPadding: false,
     textAlignVertical: 'center',
   },
