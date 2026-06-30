@@ -2,13 +2,18 @@ import { ThemedView } from "@/components/themed-view";
 import SearchInput from "@/features/auth/ui/components/SearchInput";
 import { SearchScreenWithHistory } from "@/features/home/ui/screens/SearchScreenWithHistory";
 import { CatalogCard } from "@/features/shared/ui/CatalogCard";
+import {
+  CATALOG_GRID_GAP,
+  CATALOG_GRID_HORIZONTAL_PADDING,
+  getCatalogGridCardWidth,
+} from "@/features/shared/ui/catalogGridLayout";
 import { TemplatePickerBanner } from "@/features/templates/TemplatePickerBanner";
 import { useTemplatePicker } from "@/features/templates/TemplatePickerContext";
 import { useAppSelector } from "@/store/hooks";
 import { useHeaderHeight } from "@react-navigation/elements";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
-import { FlatList, Platform, StyleSheet, TouchableOpacity, View } from "react-native";
+import { FlatList, Platform, StyleSheet, TouchableOpacity, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export const CatalogScreen = () => {
@@ -32,6 +37,11 @@ export const CatalogScreen = () => {
 
   const catalog = useAppSelector((state) => state.auth.categories);
   const router = useRouter();
+  const { width: screenWidth } = useWindowDimensions();
+  const catalogCardCellStyle = useMemo(
+    () => ({ width: getCatalogGridCardWidth(screenWidth) }),
+    [screenWidth],
+  );
 
   const handleSearchPress = () => {
     setShowSearch(true);
@@ -54,7 +64,7 @@ export const CatalogScreen = () => {
 
   const renderCatalogCard = useCallback(
     ({ item }: { item: any }) => (
-      <View style={styles.catalogCardCell}>
+      <View style={catalogCardCellStyle}>
         <CatalogCard
           id={item.id}
           img={item.imageUrl}
@@ -63,7 +73,7 @@ export const CatalogScreen = () => {
         />
       </View>
     ),
-    [],
+    [catalogCardCellStyle],
   );
 
   const keyExtractor = useCallback((item: any) => String(item.id), []);
@@ -133,15 +143,11 @@ const styles = StyleSheet.create({
   content: {
     paddingBottom: 12,
   },
-  catalogCardCell: {
-    flex: 1,
-    minWidth: 0,
-  },
   columnWrapper: {
-    paddingLeft: 16,
-    paddingRight: 16,
+    paddingLeft: CATALOG_GRID_HORIZONTAL_PADDING,
+    paddingRight: CATALOG_GRID_HORIZONTAL_PADDING,
 
-    gap: 8,
+    gap: CATALOG_GRID_GAP,
     marginBottom: 8,
   },
 });

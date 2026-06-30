@@ -1,15 +1,25 @@
 import { ThemedText } from "@/components/themed-text";
 import { CatalogCard } from "@/features/shared/ui/CatalogCard";
+import {
+  CATALOG_GRID_GAP,
+  CATALOG_GRID_HORIZONTAL_PADDING,
+  getCatalogGridCardWidth,
+} from "@/features/shared/ui/catalogGridLayout";
 import { useAppSelector } from "@/store/hooks";
-import React, { useCallback } from "react";
-import { FlatList, StyleSheet, View } from "react-native";
+import React, { useCallback, useMemo } from "react";
+import { FlatList, StyleSheet, View, useWindowDimensions } from "react-native";
 
 export default function Catalog() {
   const catalog = useAppSelector((state) => state.auth.categories);
+  const { width: screenWidth } = useWindowDimensions();
+  const catalogCardCellStyle = useMemo(
+    () => ({ width: getCatalogGridCardWidth(screenWidth) }),
+    [screenWidth],
+  );
 
   const renderCatalogCard = useCallback(
     ({ item }: { item: any }) => (
-      <View style={styles.catalogCardCell}>
+      <View style={catalogCardCellStyle}>
         <CatalogCard
           id={item.id}
           img={item.imageUrl}
@@ -18,7 +28,7 @@ export default function Catalog() {
         />
       </View>
     ),
-    [],
+    [catalogCardCellStyle],
   );
 
   const keyExtractor = useCallback((item: any) => String(item.id), []);
@@ -57,8 +67,8 @@ export default function Catalog() {
 
 const styles = StyleSheet.create({
   container: {
-    paddingLeft: 16,
-    paddingRight: 16,
+    paddingLeft: CATALOG_GRID_HORIZONTAL_PADDING,
+    paddingRight: CATALOG_GRID_HORIZONTAL_PADDING,
     borderRadius: 8,
     marginTop: 24,
     marginBottom: 12
@@ -71,11 +81,7 @@ const styles = StyleSheet.create({
     fontFamily: "Montserrat",
   },
   columnWrapper: {
-    gap: 8,
+    gap: CATALOG_GRID_GAP,
     marginBottom: 8,
-  },
-  catalogCardCell: {
-    flex: 1,
-    minWidth: 0,
   },
 });
