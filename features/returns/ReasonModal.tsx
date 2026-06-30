@@ -2,14 +2,16 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { ModalHeader } from "@/features/auth/ui/Header";
+import { useKeyboardAwareScroll } from "@/features/shared/hooks/useKeyboardAwareScroll";
+import AnimatedTextInput from "@/features/shared/ui/components/CustomInput";
 import { Image } from "expo-image";
 import React, { useEffect, useState } from "react";
 import {
+  KeyboardAvoidingView,
   Modal,
   Platform,
   ScrollView,
   StyleSheet,
-  TextInput,
   TouchableOpacity,
   View,
   useColorScheme,
@@ -52,6 +54,13 @@ export function ReasonPickerContent({
     undefined,
   );
   const [comment, setComment] = useState(selectedComment || "");
+  const {
+    scrollRef,
+    keyboardHeight,
+    handleScroll,
+    onInputFocus: handleCommentFocus,
+    androidKeyboardMargin,
+  } = useKeyboardAwareScroll({ enabled: true });
 
   useEffect(() => {
     setSelectedReason(selectedReasonId);
@@ -82,12 +91,26 @@ export function ReasonPickerContent({
         onBackPress={handleClose}
       />
 
-      <ScrollView
-        style={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContentContainer}
-        keyboardShouldPersistTaps="handled"
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoiding}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 8 : 0}
       >
+        <ScrollView
+          ref={scrollRef}
+          style={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={[
+            styles.scrollContentContainer,
+            {
+              paddingBottom: keyboardHeight > 0 ? 24 : 16,
+            },
+          ]}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
+        >
         {product ? (
           <ThemedView
             darkColor="#151516"
@@ -202,38 +225,42 @@ export function ReasonPickerContent({
           >
             Опишите проблему
           </ThemedText>
-          <TextInput
-            style={[styles.commentInput, isDark && styles.commentInputDark]}
+          <AnimatedTextInput
             placeholder="Опишите, что не так с товаром"
-            placeholderTextColor="#80818B"
             value={comment}
             onChangeText={setComment}
             multiline
-            numberOfLines={4}
-            textAlignVertical="top"
+            onFocus={handleCommentFocus}
+            style={styles.commentInputWrap}
           />
         </ThemedView>
-      </ScrollView>
+        </ScrollView>
 
-      <ThemedView
-        darkColor="#151516"
-        lightColor="#FFFFFF"
-        style={[
-          styles.bottomPanel,
-          { paddingBottom: (Platform.OS === "ios" ? 34 : 16) + insets.bottom },
-        ]}
-      >
-        <TouchableOpacity
+        <ThemedView
+          darkColor="#151516"
+          lightColor="#FFFFFF"
           style={[
-            styles.submitButton,
-            selectedReason === undefined && styles.submitButtonDisabled,
+            styles.bottomPanel,
+            {
+              paddingBottom: (Platform.OS === "ios" ? 34 : 16) + insets.bottom,
+            },
+            androidKeyboardMargin > 0 && {
+              marginBottom: androidKeyboardMargin,
+            },
           ]}
-          disabled={selectedReason === undefined}
-          onPress={handleSelect}
         >
-          <ThemedText style={styles.submitButtonText}>Выбрать</ThemedText>
-        </TouchableOpacity>
-      </ThemedView>
+          <TouchableOpacity
+            style={[
+              styles.submitButton,
+              selectedReason === undefined && styles.submitButtonDisabled,
+            ]}
+            disabled={selectedReason === undefined}
+            onPress={handleSelect}
+          >
+            <ThemedText style={styles.submitButtonText}>Выбрать</ThemedText>
+          </TouchableOpacity>
+        </ThemedView>
+      </KeyboardAvoidingView>
     </ThemedView>
   );
 }
@@ -261,12 +288,15 @@ const styles = StyleSheet.create({
   modalContainer: {
     flex: 1,
   },
+  keyboardAvoiding: {
+    flex: 1,
+  },
   scrollContent: {
     flex: 1,
     paddingTop: 8,
   },
   scrollContentContainer: {
-    paddingBottom: 80,
+    flexGrow: 1,
   },
   productCard: {
     borderRadius: 12,
@@ -371,28 +401,10 @@ const styles = StyleSheet.create({
   reasonNameSelectedDark: {
     color: "#FFFFFF",
   },
-  commentInput: {
-    backgroundColor: "#03051E08",
-    borderRadius: 12,
-    borderWidth: 0.1,
-    borderColor: "transparent",
-    paddingHorizontal: 12,
-    paddingTop: 12,
-    paddingBottom: 12,
-    fontSize: 16,
-    fontWeight: "500",
-    textAlignVertical: "top",
-    minHeight: 100,
-  },
-  commentInputDark: {
-    backgroundColor: "#ECEFFA0D",
-    color: "#F2F4F7",
+  commentInputWrap: {
+    minHeight: 80,
   },
   bottomPanel: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingHorizontal: 20,

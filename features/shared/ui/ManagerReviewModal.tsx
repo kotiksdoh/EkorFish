@@ -2,6 +2,7 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { createReview, getManagerReviewOptions, getMyInfo, setCompany } from '@/features/auth/authSlice';
+import { useKeyboardAwareScroll } from '@/features/shared/hooks/useKeyboardAwareScroll';
 import { useAppTheme } from '@/hooks/use-theme-color';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { Image } from "expo-image";
@@ -20,7 +21,6 @@ import {
     View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useKeyboardAwareScroll } from '@/features/shared/hooks/useKeyboardAwareScroll';
 import Svg, { Path } from "react-native-svg";
 import { baseUrl } from '../services/axios';
 import { CustomCheckbox } from './components/CustomCheckBox';
@@ -445,12 +445,12 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
     },
     modalTitle: {
-        fontSize: 24,
+        fontSize: 20,
         fontWeight: "600",
         fontFamily: "Montserrat",
         marginBottom: 24,
         marginTop: 8,
-        textAlign: "center",
+        // textAlign: "center",
     },
     managerInfoContainer: {
         display: 'flex',

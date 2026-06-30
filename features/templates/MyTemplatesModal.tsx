@@ -1045,7 +1045,10 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
                       {
                         paddingBottom: 16 + Math.max(insets.bottom, 16),
                         transform: [{ translateY: createSheetTranslateY }],
-                        marginBottom: createAndroidKeyboardMargin,
+                        marginBottom:
+                          Platform.OS === "ios" && createKeyboardHeight > 0
+                            ? Math.max(0, createKeyboardHeight - insets.bottom)
+                            : createAndroidKeyboardMargin,
                       },
                     ]}
                   >
@@ -1098,6 +1101,7 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
                     value={cName}
                     onChangeText={setCName}
                     multiline={false}
+                    onFocus={handleCreateDescFocus}
                   />
                   <View style={{ height: 12 }} />
                   <AnimatedTextInput

@@ -1111,7 +1111,7 @@ const ReconciliationActScreen: React.FC<{ onBack: () => void }> = ({
               { paddingBottom: footerPadding },
             ]}
           >
-            <ThemedText style={styles.infoText} darkColor="#FBFCFF80">
+            <ThemedText style={styles.infoText} lightColor="#1B1B1C" darkColor="#FBFCFF80">
               Акт будет сформирован в 1С и отправлен в течение 24 часов
             </ThemedText>
 
@@ -1805,7 +1805,7 @@ export const MyFinanceModal: React.FC<MyFinanceProps> = ({
                 activeOpacity={0.7}
               >
                 <View style={styles.documentRow}>
-                  <ThemedText>Запросить акт-сверки</ThemedText>
+                  <ThemedText style={styles.documentRowText}>Запросить акт-сверки</ThemedText>
                   <ArrowIconRight />
                 </View>
               </TouchableOpacity>
@@ -1814,7 +1814,7 @@ export const MyFinanceModal: React.FC<MyFinanceProps> = ({
                 activeOpacity={0.7}
               >
                 <View style={styles.documentRow}>
-                  <ThemedText>Запросить прайс-лист</ThemedText>
+                  <ThemedText style={styles.documentRowText}>Запросить прайс-лист</ThemedText>
                   <ArrowIconRight />
                 </View>
               </TouchableOpacity>
@@ -2116,6 +2116,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 18,
   },
+  documentRowText:{
+    fontWeight: "500",
+    fontSize: 16
+  },
 
   // Пустые и загрузочные состояния
   emptyContainer: {
@@ -2249,8 +2253,9 @@ const styles = StyleSheet.create({
     color: "#FF6B6B",
   },
   infoText: {
-    fontSize: 12,
-    textAlign: "center",
+    fontSize: 14,
+    fontWeight: 500,
+    // textAlign: "center",
     marginBottom: 12,
   },
 

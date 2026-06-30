@@ -1,10 +1,10 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { Image } from "expo-image";
 import React, { memo, useCallback, useMemo } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import { baseUrl } from "../shared/services/axios";
 import { formatDate } from "../shared/services/utils";
 import { CustomCheckbox } from "../shared/ui/components/CustomCheckBox";
@@ -357,7 +357,7 @@ const styles = StyleSheet.create({
   },
   cartItem: {
     flexDirection: "row",
-    padding: 16,
+    paddingVertical: 16,
   },
   checkboxPhoto: {
     padding: 2,
@@ -416,6 +416,7 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   quantityControls: {
+    paddingVertical: 6,
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#F5F5F5",
