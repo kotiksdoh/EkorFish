@@ -95,6 +95,8 @@ interface AddToCartModalProps {
    * Добавляет нижний padding, чтобы кнопки не перекрывались системной навигацией.
    */
   nestedInModal?: boolean;
+  /** Скрыть фото и название (экран товара со слайдером) */
+  hideProductHeader?: boolean;
 }
 
 // Маппинг иконок по кодам
@@ -131,6 +133,7 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
   existingCartItem,
   variant = "cart",
   nestedInModal = false,
+  hideProductHeader = false,
 }) => {
   const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme();
@@ -149,7 +152,6 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
   const translateY = useRef(new Animated.Value(MODAL_HEIGHT)).current;
 
   const backgroundColor = useThemeColor({}, "background");
- 
   const getQuantityForOption = useCallback(
     (optionId: string) => {
       if (!existingCartItem?.length) return 0;
@@ -347,57 +349,59 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
         <View style={[styles.swipeIndicator, { backgroundColor: "#C0C0C5" }]} />
       </View>
 
-      <View style={styles.header}>
-        <View style={styles.productImageWrapper}>
-          <Image
-            source={
-              showProductPlaceholder
-                ? PLACEHOLDER_IMAGE
-                : { uri: product.image }
-            }
-            style={styles.productImage}
-            resizeMode={showProductPlaceholder ? "contain" : "cover"}
-            onLoadStart={
-              showProductPlaceholder ? undefined : () => setIsImageLoading(true)
-            }
-            onLoadEnd={
-              showProductPlaceholder ? undefined : () => setIsImageLoading(false)
-            }
-            onError={
-              showProductPlaceholder
-                ? undefined
-                : () => {
-                    setImageError(true);
-                    setIsImageLoading(false);
-                  }
-            }
-          />
-          {!showProductPlaceholder && isImageLoading ? (
-            <View
-              style={[
-                styles.productImageLoading,
-                isDarkMode
-                  ? styles.productImageLoadingDark
-                  : styles.productImageLoadingLight,
-              ]}
+      {!hideProductHeader ? (
+        <View style={styles.header}>
+          <View style={styles.productImageWrapper}>
+            <Image
+              source={
+                showProductPlaceholder
+                  ? PLACEHOLDER_IMAGE
+                  : { uri: product.image }
+              }
+              style={styles.productImage}
+              resizeMode={showProductPlaceholder ? "contain" : "cover"}
+              onLoadStart={
+                showProductPlaceholder ? undefined : () => setIsImageLoading(true)
+              }
+              onLoadEnd={
+                showProductPlaceholder ? undefined : () => setIsImageLoading(false)
+              }
+              onError={
+                showProductPlaceholder
+                  ? undefined
+                  : () => {
+                      setImageError(true);
+                      setIsImageLoading(false);
+                    }
+              }
+            />
+            {!showProductPlaceholder && isImageLoading ? (
+              <View
+                style={[
+                  styles.productImageLoading,
+                  isDarkMode
+                    ? styles.productImageLoadingDark
+                    : styles.productImageLoadingLight,
+                ]}
+              >
+                <ActivityIndicator
+                  size="small"
+                  color={isDarkMode ? "#4C94FF" : "#203686"}
+                />
+              </View>
+            ) : null}
+          </View>
+          <View style={styles.productInfo}>
+            <ThemedText
+              style={styles.productName}
+              numberOfLines={2}
+              ellipsizeMode="tail"
             >
-              <ActivityIndicator
-                size="small"
-                color={isDarkMode ? "#4C94FF" : "#203686"}
-              />
-            </View>
-          ) : null}
+              {product.name}
+            </ThemedText>
+          </View>
         </View>
-        <View style={styles.productInfo}>
-          <ThemedText
-            style={styles.productName}
-            numberOfLines={2}
-            ellipsizeMode="tail"
-          >
-            {product.name}
-          </ThemedText>
-        </View>
-      </View>
+      ) : null}
 
       <ThemedView
         style={[

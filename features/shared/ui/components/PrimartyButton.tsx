@@ -163,7 +163,7 @@ export const PrimaryButton: React.FC<PrimaryButtonProps> = ({
   };
 
   const textStyles = {
-    fontWeight: '600',
+    fontWeight: '500',
     textAlign: 'center' as const,
     color: textColor,
     ...textSizeStyles[size],

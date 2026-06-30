@@ -917,6 +917,7 @@ export function ProductDetailScreen() {
             product={selectedProductForCart ?? product}
             onAddToCart={handleAddToCart}
             existingCartItem={existingCartItem}
+            hideProductHeader
             variant={
               templatePicker.pickingForTemplateId ? "template" : "cart"
             }
