@@ -19,8 +19,8 @@ import {
   createRecipient,
   deleteRecipient,
   getCart,
-  getMyOrders,
   getCheckoutPageData,
+  getMyOrders,
   getRecipients,
 } from "@/features/catalog/catalogSlice";
 import { RecommendedOrderProducts } from "@/features/catalog/ui/components/RecommendedOrderProducts/RecommendedOrderProducts";
@@ -1019,27 +1019,31 @@ export default function CheckoutModal({
                 </ThemedText>
 
                 <View style={styles.successButtons}>
-                  <PrimaryButton
-                    title="Детали заказа"
-                    onPress={() => {
-                      if (createdOrderId) {
-                        setShowOrderDetailsModal(true);
-                      }
-                    }}
-                    variant="third"
-                    size="md"
-                    style={styles.successButton}
-                  />
-                  <PrimaryButton
-                    title="В каталог"
-                    onPress={async () => {
-                      await closeSuccessAndRefreshCart();
-                      router.navigate("/dashboard");
-                    }}
-                    variant="primary"
-                    size="md"
-                    style={styles.successButton}
-                  />
+                  <View style={styles.successButton}>
+                    <PrimaryButton
+                      title="Детали заказа"
+                      onPress={() => {
+                        if (createdOrderId) {
+                          setShowOrderDetailsModal(true);
+                        }
+                      }}
+                      variant="third"
+                      size="md"
+                      fullWidth
+                    />
+                  </View>
+                  <View style={styles.successButton}>
+                    <PrimaryButton
+                      title="В каталог"
+                      onPress={async () => {
+                        await closeSuccessAndRefreshCart();
+                        router.navigate("/dashboard");
+                      }}
+                      variant="primary"
+                      size="md"
+                      fullWidth
+                    />
+                  </View>
                 </View>
               </ThemedView>
 
@@ -2586,7 +2590,7 @@ const styles = StyleSheet.create({
     paddingTop: 8,
   },
   successContainer: {
-    padding: 24,
+    padding: 16,
     alignItems: "center",
     borderRadius: 24,
   },
@@ -2607,11 +2611,13 @@ const styles = StyleSheet.create({
   },
   successButtons: {
     flexDirection: "row",
-    gap: 12,
+    gap: 8,
     width: "100%",
+    alignSelf: "stretch",
   },
   successButton: {
     flex: 1,
+    minWidth: 0,
   },
   confirmModalContent: {
     borderTopLeftRadius: 24,

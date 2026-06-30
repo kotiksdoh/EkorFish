@@ -500,26 +500,30 @@ export const MyReturnsThirdStep: React.FC<MyReturnsThirdStepProps> = ({
               </ThemedText>
 
               <View style={styles.successButtons}>
-                <PrimaryButton
-                  title="Детали возврата"
-                  onPress={() => {
-                    setShowSuccessContent(false);
-                    onViewReturnDetails?.();
-                  }}
-                  variant="third"
-                  size="md"
-                  style={styles.successButton}
-                />
-                <PrimaryButton
-                  title="На главную"
-                  onPress={() => {
-                    setShowSuccessContent(false);
-                    onNavigateHome?.();
-                  }}
-                  variant="primary"
-                  size="md"
-                  style={styles.successButton}
-                />
+                <View style={styles.successButton}>
+                  <PrimaryButton
+                    title="Детали возврата"
+                    onPress={() => {
+                      setShowSuccessContent(false);
+                      onViewReturnDetails?.();
+                    }}
+                    variant="third"
+                    size="md"
+                    fullWidth
+                  />
+                </View>
+                <View style={styles.successButton}>
+                  <PrimaryButton
+                    title="На главную"
+                    onPress={() => {
+                      setShowSuccessContent(false);
+                      onNavigateHome?.();
+                    }}
+                    variant="primary"
+                    size="md"
+                    fullWidth
+                  />
+                </View>
               </View>
             </ThemedView>
 
@@ -916,9 +920,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 8,
     width: "100%",
+    alignSelf: "stretch",
   },
   successButton: {
     flex: 1,
+    minWidth: 0,
   },
   buttonDisabled: {
     opacity: 0.5,
