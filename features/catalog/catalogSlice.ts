@@ -53,7 +53,7 @@ interface ReturnRequestDetailItem {
   returnQuantity: number;
   measureType: string;
   unitPrice: number;
-  reason: number;
+  reason: number | string;
   comment: string;
 }
 
@@ -66,11 +66,14 @@ interface ReturnRequestDetailOrder {
 interface ReturnRequestDetail {
   id: number;
   createdAt: string;
-  status: number;
-  refundMethod: number;
-  returnMethod: number;
+  status: number | string;
+  refundMethod: number | string;
+  returnMethod: number | string;
   deliveryAddress?: string | null;
   storageName?: string | null;
+  orderId?: number;
+  orderCreatedAt?: string;
+  items?: ReturnRequestDetailItem[];
   orders: ReturnRequestDetailOrder[];
   totalAmount: number;
   totalWeight: number;

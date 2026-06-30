@@ -40,19 +40,9 @@ import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  Dimensions,
-  InteractionManager,
-  Linking,
-  Modal,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { ActivityIndicator, Alert, Dimensions, InteractionManager, Linking, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { AppModal } from "@/features/shared/ui/AppModal";
+
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PrimaryButton } from "./components/PrimartyButton";
 
@@ -407,7 +397,7 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
 
   return (
     <>
-      <Modal
+      <AppModal
         visible={visible}
         animationType="none"
         transparent={false}
@@ -1187,7 +1177,7 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
           />
         </View>
       </SnapBottomSheet>
-      </Modal>
+      </AppModal>
     </>
   );
 };

@@ -8,16 +8,9 @@ import { baseUrl } from "@/features/shared/services/axios";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import React, { useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  Image,
-  Modal,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { ActivityIndicator, Image, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { AppModal } from "@/features/shared/ui/AppModal";
+
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import AnimatedTextInput from "./components/CustomInput";
 import { DatePickerWithIcon } from "./components/DatePickerCustom";
@@ -487,7 +480,7 @@ const [contactPerson, setContactPerson] = useState('') */}
   }
 
   return (
-    <Modal
+    <AppModal
       animationType="slide"
       transparent={true}
       visible={visible}
@@ -495,7 +488,7 @@ const [contactPerson, setContactPerson] = useState('') */}
       statusBarTranslucent={true}
     >
       {body}
-    </Modal>
+    </AppModal>
   );
 };
 

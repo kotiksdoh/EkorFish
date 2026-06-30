@@ -12,15 +12,9 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { Image } from "expo-image";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
-import {
-  ActivityIndicator,
-  Dimensions,
-  FlatList,
-  Modal,
-  StyleSheet,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { ActivityIndicator, Dimensions, FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { AppModal } from "@/features/shared/ui/AppModal";
+
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PrimaryButton } from "./components/PrimartyButton";
 import ReturnsCard from "./components/ReturnsCard";
@@ -174,7 +168,7 @@ export const MyReturnsModal: React.FC<MyReturnsProps> = ({
 
   return (
     <>
-      <Modal
+      <AppModal
         animationType="slide"
         transparent={false}
         visible={returnsListModalVisible}
@@ -226,7 +220,7 @@ export const MyReturnsModal: React.FC<MyReturnsProps> = ({
             )}
           </ThemedView>
         </ThemedView>
-      </Modal>
+      </AppModal>
 
       <MyReturnsFirstStep 
         visible={visibleFirstStep} 

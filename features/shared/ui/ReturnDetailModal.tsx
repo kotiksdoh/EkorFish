@@ -7,17 +7,17 @@ import {
   IconCard,
   IconCloseNew,
   IconCompanyNew,
+  IconDocument,
   IconGeo,
   IconMessage,
-  IconNumber,
-  IconUser
+  IconNumber
 } from "@/assets/icons/icons";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { getReturnRequestDetail } from "@/features/catalog/catalogSlice";
-import { isReturnReasonSelected } from "@/features/returns/returnReason";
 import type { ReturnReasonId } from "@/features/returns/returnReason";
-import { baseUrl } from "@/features/shared/services/axios";
+import { isReturnReasonSelected } from "@/features/returns/returnReason";
+import { baseUrl, axdef } from "@/features/shared/services/axios";
 import { openTelegramByPhone } from "@/features/shared/utils/phoneLinking";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -26,19 +26,10 @@ import * as Clipboard from "expo-clipboard";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useMemo, useState } from "react";
+import { ActivityIndicator, Alert, Animated, Dimensions, Linking, ScrollView, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import { AppModal } from "@/features/shared/ui/AppModal";
+
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import {
-  ActivityIndicator,
-  Alert,
-  Animated,
-  Dimensions,
-  Modal,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  TouchableWithoutFeedback,
-  View,
-} from "react-native";
 import { SnapBottomSheet } from "./SnapBottomSheet";
 import { PrimaryButton } from "./components/PrimartyButton";
 
@@ -69,6 +60,13 @@ type ReturnLine = {
   comment?: string;
 };
 
+type OrderDocument = {
+  id: string;
+  fileName: string;
+  fileUrl: string;
+  createdAt: string;
+};
+
 export const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
   visible,
   onClose,
@@ -80,6 +78,9 @@ export const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
 
   const [productsModalVisible, setProductsModalVisible] = useState(false);
   const [statusModalVisible, setStatusModalVisible] = useState(false);
+  const [documentsModalVisible, setDocumentsModalVisible] = useState(false);
+  const [documents, setDocuments] = useState<OrderDocument[]>([]);
+  const [isLoadingDocuments, setIsLoadingDocuments] = useState(false);
   const [productsModalTranslateY] = useState(new Animated.Value(screenHeight));
   const [isProductsModalClosing, setIsProductsModalClosing] = useState(false);
   const [companyManager, setCompanyManager] = useState<CompanyManager | null>(
@@ -98,6 +99,10 @@ export const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
   useEffect(() => {
     if (visible && returnRequestId) {
       dispatch(getReturnRequestDetail(returnRequestId));
+    } else {
+      setDocumentsModalVisible(false);
+      setDocuments([]);
+      setIsLoadingDocuments(false);
     }
   }, [visible, returnRequestId, dispatch]);
 
@@ -159,6 +164,43 @@ export const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
 
   const handleMessageManager = () => {
     void openTelegramByPhone(companyManager);
+  };
+
+  const openDocumentsModal = async () => {
+    const orderId = detail?.orderId;
+    if (!orderId) return;
+
+    setDocumentsModalVisible(true);
+    setIsLoadingDocuments(true);
+    try {
+      const response = await axdef.get(`/api/Order/${orderId}/documents`);
+      setDocuments(response?.data?.data || []);
+    } catch (error) {
+      console.error("Error loading order documents:", error);
+      Alert.alert("Ошибка", "Не удалось загрузить документы возврата");
+      setDocuments([]);
+    } finally {
+      setIsLoadingDocuments(false);
+    }
+  };
+
+  const handleOpenDocument = async (fileUrl: string) => {
+    try {
+      const normalizedUrl =
+        fileUrl?.startsWith("http://") || fileUrl?.startsWith("https://")
+          ? fileUrl
+          : `${baseUrl}/${String(fileUrl || "").replace(/^\/+/, "")}`;
+
+      const canOpen = await Linking.canOpenURL(normalizedUrl);
+      if (!canOpen) {
+        Alert.alert("Ошибка", "Не удалось открыть документ");
+        return;
+      }
+      await Linking.openURL(normalizedUrl);
+    } catch (error) {
+      console.error("Error opening document:", error);
+      Alert.alert("Ошибка", "Не удалось открыть документ");
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -406,7 +448,7 @@ export const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
 
   return (
     <>
-      <Modal
+      <AppModal
         visible={visible}
         animationType="none"
         transparent={false}
@@ -478,7 +520,7 @@ export const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                       ]}
                     >
                       <ThemedText lightColor="#80818B" style={styles.infoLabel}>
-                        Номер заявки
+                        Номер возврата
                       </ThemedText>
                       <ThemedText style={styles.infoValue}>
                         №{detail.id}
@@ -547,7 +589,7 @@ export const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                       ]}
                     >
                       <ThemedText lightColor="#80818B" style={styles.infoLabel}>
-                        {detail.storageName ? "Склад" : "Адрес"}
+                        {detail.storageName ? "Склад" : "Адрес возврата"}
                       </ThemedText>
                       <ThemedText style={styles.infoValue}>
                         {detail.storageName || detail.deliveryAddress || "-"}
@@ -555,7 +597,7 @@ export const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                     </View>
                   </View>
 
-                  <View style={styles.infoRow}>
+                  {/* <View style={styles.infoRow}>
                     <ThemedView
                       lightColor="#F2F4F7"
                       darkColor="#202022"
@@ -574,7 +616,7 @@ export const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                       </ThemedText>
                       <ThemedText style={styles.infoValue}>-</ThemedText>
                     </View>
-                  </View>
+                  </View> */}
 
                   <View style={styles.infoRow}>
                     <ThemedView
@@ -647,18 +689,19 @@ export const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                     }
                   />
                 </View>
-                {/* <PrimaryButton
+                <PrimaryButton
                   title="Документы"
-                  onPress={() => Alert.alert("Документы", "Недоступно")}
+                  onPress={openDocumentsModal}
                   variant="third"
                   size="md"
                   style={styles.documentsButton}
                   activeOpacity={0.8}
                   fullWidth
+                  disabled={!detail?.orderId}
                   customIcon={
                     <IconDocument color={isDarkMode ? "#FBFCFF" : "#1B1B1C"} />
                   }
-                /> */}
+                />
               </ThemedView>
 
               <ThemedView lightColor="#FFFFFF" style={styles.productsBlock}>
@@ -706,7 +749,7 @@ export const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
           )}
         </ThemedView>
 
-        <Modal
+        <AppModal
           visible={productsModalVisible}
           animationType="none"
           transparent={true}
@@ -749,7 +792,7 @@ export const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
               </TouchableWithoutFeedback>
             </View>
           </TouchableWithoutFeedback>
-        </Modal>
+        </AppModal>
 
         <SnapBottomSheet
           visible={statusModalVisible}
@@ -872,7 +915,50 @@ export const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
               })}
           </ScrollView>
         </SnapBottomSheet>
-      </Modal>
+
+        <SnapBottomSheet
+          visible={documentsModalVisible}
+          title="Документы возврата"
+          titleAlign="left"
+          onClose={() => setDocumentsModalVisible(false)}
+        >
+          {isLoadingDocuments ? (
+            <View style={styles.documentsLoader}>
+              <ActivityIndicator
+                size="small"
+                color={isDarkMode ? "#4C94FF" : "#203686"}
+              />
+            </View>
+          ) : documents.length === 0 ? (
+            <ThemedText
+              style={styles.documentsEmpty}
+              lightColor="#80818B"
+              darkColor="#FBFCFF80"
+            >
+              Документы не найдены
+            </ThemedText>
+          ) : (
+            <View style={styles.documentsList}>
+              {documents.map((doc) => (
+                <TouchableOpacity
+                  key={doc.id}
+                  style={[
+                    styles.documentItem,
+                    { backgroundColor: isDarkMode ? "#2E2E32" : "#F2F4F7" },
+                  ]}
+                  activeOpacity={0.7}
+                  onPress={() => handleOpenDocument(doc.fileUrl)}
+                >
+                  <ThemedText style={styles.documentName} numberOfLines={1}>
+                    {doc.fileName}
+                  </ThemedText>
+                  <ArrowIconRight />
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+        </SnapBottomSheet>
+      </AppModal>
     </>
   );
 };
@@ -958,6 +1044,33 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 12,
     alignItems: "center",
+  },
+  documentsLoader: {
+    paddingVertical: 20,
+    alignItems: "center",
+  },
+  documentsEmpty: {
+    fontSize: 14,
+    fontWeight: "500",
+    paddingBottom: 16,
+  },
+  documentsList: {
+    gap: 8,
+    paddingBottom: 16,
+  },
+  documentItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+  },
+  documentName: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: "500",
+    marginRight: 8,
   },
   productsBlock: {
     borderRadius: 24,

@@ -3,16 +3,9 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import React, { useCallback, useEffect, useRef } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import {
-  Animated,
-  Dimensions,
-  Modal,
-  PanResponder,
-  Platform,
-  StyleSheet,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Animated, Dimensions, PanResponder, Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { AppModal } from "@/features/shared/ui/AppModal";
+
 
 const SCREEN_HEIGHT = Dimensions.get("window").height;
 const MAX_SHEET_HEIGHT = SCREEN_HEIGHT * 0.92;
@@ -94,7 +87,7 @@ export function SnapBottomSheet({
   ).current;
 
   return (
-    <Modal
+    <AppModal
       visible={visible}
       animationType="none"
       transparent
@@ -141,7 +134,7 @@ export function SnapBottomSheet({
           </View>
         ) : null}
       </View>
-    </Modal>
+    </AppModal>
   );
 }
 

@@ -28,21 +28,9 @@ import React, {
   useRef,
   useState,
 } from "react";
-import {
-  ActivityIndicator,
-  Animated,
-  Dimensions,
-  KeyboardAvoidingView,
-  Modal,
-  NativeScrollEvent,
-  NativeSyntheticEvent,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  TouchableWithoutFeedback,
-  View,
-} from "react-native";
+import { ActivityIndicator, Animated, Dimensions, KeyboardAvoidingView, NativeScrollEvent, NativeSyntheticEvent, Platform, ScrollView, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import { AppModal } from "@/features/shared/ui/AppModal";
+
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { formatDate } from "../services/utils";
@@ -195,7 +183,7 @@ const PaymentFiltersModal: React.FC<{
   });
 
   return (
-    <Modal
+    <AppModal
       visible={visible}
       animationType="none"
       transparent={true}
@@ -316,7 +304,7 @@ const PaymentFiltersModal: React.FC<{
           </TouchableWithoutFeedback>
         </View>
       </TouchableWithoutFeedback>
-    </Modal>
+    </AppModal>
   );
 };
 
@@ -1501,7 +1489,7 @@ export const MyFinanceModal: React.FC<MyFinanceProps> = ({
 
   if (showPaymentsHistory) {
     return (
-      <Modal
+      <AppModal
         animationType="slide"
         transparent={false}
         visible={visible}
@@ -1516,13 +1504,13 @@ export const MyFinanceModal: React.FC<MyFinanceProps> = ({
         >
           <PaymentsHistoryScreen onBack={() => setShowPaymentsHistory(false)} />
         </ThemedView>
-      </Modal>
+      </AppModal>
     );
   }
 
   if (showReconciliationAct) {
     return (
-      <Modal
+      <AppModal
         animationType="slide"
         transparent={false}
         visible={visible}
@@ -1539,13 +1527,13 @@ export const MyFinanceModal: React.FC<MyFinanceProps> = ({
             onBack={() => setShowReconciliationAct(false)}
           />
         </ThemedView>
-      </Modal>
+      </AppModal>
     );
   }
 
   if (showPriceList) {
     return (
-      <Modal
+      <AppModal
         animationType="slide"
         transparent={false}
         visible={visible}
@@ -1560,12 +1548,12 @@ export const MyFinanceModal: React.FC<MyFinanceProps> = ({
         >
           <PriceListScreen onBack={() => setShowPriceList(false)} />
         </ThemedView>
-      </Modal>
+      </AppModal>
     );
   }
 
   return (
-    <Modal
+    <AppModal
       animationType="slide"
       transparent={false}
       visible={visible}
@@ -1822,7 +1810,7 @@ export const MyFinanceModal: React.FC<MyFinanceProps> = ({
           </ThemedView>
         </ScrollView>
       </ThemedView>
-    </Modal>
+    </AppModal>
   );
 };
 

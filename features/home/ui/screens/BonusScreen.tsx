@@ -2,17 +2,9 @@
 
 import * as Clipboard from "expo-clipboard";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import {
-  ActivityIndicator,
-  Animated,
-  Dimensions,
-  Modal,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  View,
-  useColorScheme
-} from "react-native";
+import { ActivityIndicator, Animated, Dimensions, ScrollView, StyleSheet, TouchableOpacity, View, useColorScheme } from 'react-native';
+import { AppModal } from "@/features/shared/ui/AppModal";
+
 import { useDispatch, useSelector } from "react-redux";
 
 import { LemonIcon } from "@/assets/icons/icons";
@@ -290,7 +282,7 @@ export const BonusPage: React.FC<BonusPageProps> = ({
   const groupedFirstThree = getGroupedFirstThree();
 
   return (
-    <Modal
+    <AppModal
       animationType="slide"
       transparent={true}
       visible={visible}
@@ -429,7 +421,7 @@ export const BonusPage: React.FC<BonusPageProps> = ({
         </ScrollView>
 
         {/* Модалка с полной историей начислений - без группировки по датам внутри дня */}
-        <Modal
+        <AppModal
             visible={historyModalVisible}
             animationType="slide"
             transparent={true}
@@ -530,7 +522,7 @@ export const BonusPage: React.FC<BonusPageProps> = ({
                 <View style={styles.bottomSpacer} />
                 </ScrollView>
             </ThemedView>
-            </Modal>
+            </AppModal>
         <AddToCartModal
           visible={showAddToCartModal}
           onClose={() => {
@@ -543,7 +535,7 @@ export const BonusPage: React.FC<BonusPageProps> = ({
           variant="cart"
         />
       </ThemedView>
-    </Modal>
+    </AppModal>
   );
 };
 

@@ -9,16 +9,9 @@ import { useAppDispatch } from "@/store/hooks";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import {
-  ActivityIndicator,
-  Animated,
-  FlatList,
-  LayoutChangeEvent,
-  Modal,
-  StyleSheet,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { ActivityIndicator, Animated, FlatList, LayoutChangeEvent, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { AppModal } from "@/features/shared/ui/AppModal";
+
 
 interface MyOrdersProps {
   visible: boolean;
@@ -233,7 +226,7 @@ export const MyOrdersModal: React.FC<MyOrdersProps> = ({
   );
 
   return (
-    <Modal
+    <AppModal
       animationType="slide"
       transparent={false}
       visible={visible}
@@ -345,7 +338,7 @@ export const MyOrdersModal: React.FC<MyOrdersProps> = ({
 
           </ThemedView>
         </ThemedView>
-    </Modal>
+    </AppModal>
   );
 };
 

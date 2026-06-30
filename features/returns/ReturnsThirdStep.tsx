@@ -12,17 +12,9 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { Image as ExpoImage } from "expo-image";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  ActivityIndicator,
-  FlatList,
-  Image,
-  Modal,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { ActivityIndicator, FlatList, Image, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { AppModal } from "@/features/shared/ui/AppModal";
+
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AddToCart, createReturnRequest } from "../catalog/catalogSlice";
 import { baseUrl } from "../shared/services/axios";
@@ -423,7 +415,7 @@ export const MyReturnsThirdStep: React.FC<MyReturnsThirdStepProps> = ({
   };
 
   return (
-    <Modal
+    <AppModal
       animationType="slide"
       transparent={false}
       visible={visible}
@@ -720,7 +712,7 @@ export const MyReturnsThirdStep: React.FC<MyReturnsThirdStepProps> = ({
           nestedInModal={showSuccessContent}
         />
       </ThemedView>
-    </Modal>
+    </AppModal>
   );
 };
 

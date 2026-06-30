@@ -5,17 +5,9 @@ import { getMyInfo, getTowns, updateUserTown } from "@/features/auth/authSlice";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import React, { useEffect, useRef, useState } from "react";
-import {
-  ActivityIndicator,
-  Animated,
-  Dimensions,
-  Modal,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  TouchableWithoutFeedback,
-  View,
-} from "react-native";
+import { ActivityIndicator, Animated, Dimensions, ScrollView, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import { AppModal } from "@/features/shared/ui/AppModal";
+
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AnimatedStackedSheet } from "./AnimatedStackedSheet";
 
@@ -291,7 +283,7 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
   }
 
   return (
-    <Modal
+    <AppModal
       visible={visible || isClosing}
       animationType="none"
       transparent={true}
@@ -335,7 +327,7 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
           </TouchableWithoutFeedback>
         </View>
       </TouchableWithoutFeedback>
-    </Modal>
+    </AppModal>
   );
 };
 

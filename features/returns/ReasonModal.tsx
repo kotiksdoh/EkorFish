@@ -6,16 +6,9 @@ import { useKeyboardAwareScroll } from "@/features/shared/hooks/useKeyboardAware
 import AnimatedTextInput from "@/features/shared/ui/components/CustomInput";
 import { Image } from "expo-image";
 import React, { useEffect, useState } from "react";
-import {
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  View,
-  useColorScheme,
-} from "react-native";
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TouchableOpacity, View, useColorScheme } from 'react-native';
+import { AppModal } from "@/features/shared/ui/AppModal";
+
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { baseUrl } from "../shared/services/axios";
 import type { ReturnReasonId } from "./returnReason";
@@ -271,7 +264,7 @@ export function ReasonModal({
   ...props
 }: ReasonPickerProps & { visible: boolean }) {
   return (
-    <Modal
+    <AppModal
       animationType="slide"
       transparent={false}
       visible={visible}
@@ -280,7 +273,7 @@ export function ReasonModal({
       statusBarTranslucent
     >
       <ReasonPickerContent {...props} />
-    </Modal>
+    </AppModal>
   );
 }
 

@@ -6,15 +6,9 @@ import React, {
   useRef,
   useState,
 } from "react";
-import {
-  Animated,
-  Dimensions,
-  Modal,
-  StyleSheet,
-  TouchableOpacity,
-  View,
-  type ViewStyle,
-} from "react-native";
+import { Animated, Dimensions, StyleSheet, TouchableOpacity, View, type ViewStyle } from 'react-native';
+import { AppModal } from "@/features/shared/ui/AppModal";
+
 
 import {
   animateBottomSheetClose,
@@ -99,7 +93,7 @@ export const BottomSheetModal = forwardRef<
   }, [visible, isClosing, overlayOpacity, translateY]);
 
   return (
-    <Modal
+    <AppModal
       visible={isPresented}
       animationType="none"
       transparent
@@ -125,7 +119,7 @@ export const BottomSheetModal = forwardRef<
           {children}
         </Animated.View>
       </Animated.View>
-    </Modal>
+    </AppModal>
   );
 });
 

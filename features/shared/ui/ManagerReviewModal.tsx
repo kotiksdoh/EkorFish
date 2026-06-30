@@ -7,19 +7,9 @@ import { useAppTheme } from '@/hooks/use-theme-color';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { Image } from "expo-image";
 import React, { useEffect, useMemo, useState } from 'react';
-import {
-    ActivityIndicator,
-    Alert,
-    Keyboard,
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    TouchableOpacity,
-    TouchableWithoutFeedback,
-    View,
-} from 'react-native';
+import { ActivityIndicator, Alert, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import { AppModal } from "@/features/shared/ui/AppModal";
+
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from "react-native-svg";
 import { baseUrl } from '../services/axios';
@@ -206,7 +196,7 @@ export const ManagerReviewModal: React.FC<ManagerReviewModalProps> = ({
     const isSubmitDisabled = rating === 0 || isSubmitting;
 
     return (
-        <Modal
+        <AppModal
             visible={visible}
             animationType="none"
             transparent={true}
@@ -396,7 +386,7 @@ export const ManagerReviewModal: React.FC<ManagerReviewModalProps> = ({
                     </TouchableWithoutFeedback>
                 </View>
             </TouchableWithoutFeedback>
-        </Modal>
+        </AppModal>
     );
 };
 

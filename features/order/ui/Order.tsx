@@ -48,6 +48,7 @@ import {
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { useRouter } from "expo-router";
+import { AppModal } from "@/features/shared/ui/AppModal";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -57,7 +58,6 @@ import {
   FlatList,
   Image,
   Platform,
-  Modal as RNModal,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
@@ -962,7 +962,7 @@ export default function CheckoutModal({
   const router = useRouter();
   return (
     <>
-      <RNModal
+      <AppModal
         visible={visible}
         animationType="slide"
         transparent={true}
@@ -1412,7 +1412,7 @@ export default function CheckoutModal({
           nestedInModal={showSuccessContent}
         />
 
-      <RNModal
+      <AppModal
         visible={showChangePickupModal}
         animationType="none"
         transparent={true}
@@ -1463,8 +1463,8 @@ export default function CheckoutModal({
             </TouchableWithoutFeedback>
           </View>
         </TouchableWithoutFeedback>
-      </RNModal>
-      </RNModal>
+      </AppModal>
+      </AppModal>
 
       {/* Модалка успешного заказа */}
       {/* <SuccessModal

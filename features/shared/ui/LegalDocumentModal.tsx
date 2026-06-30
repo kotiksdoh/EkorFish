@@ -6,7 +6,9 @@ import {
 } from '@/features/shared/ui/LegalDocumentViewer';
 import type { LegalDocumentId } from '@/features/shared/legal/buildLegalHtml';
 import React from 'react';
-import { Modal, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
+import { AppModal } from "@/features/shared/ui/AppModal";
+
 
 type LegalDocumentModalProps = {
   visible: boolean;
@@ -26,7 +28,7 @@ export const LegalDocumentModal: React.FC<LegalDocumentModalProps> = ({
   }
 
   return (
-    <Modal
+    <AppModal
       animationType="slide"
       transparent
       visible={visible}
@@ -50,7 +52,7 @@ export const LegalDocumentModal: React.FC<LegalDocumentModalProps> = ({
           />
         </ThemedView>
       </ThemedView>
-    </Modal>
+    </AppModal>
   );
 };
 

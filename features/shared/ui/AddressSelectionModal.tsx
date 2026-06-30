@@ -10,19 +10,9 @@ import {
 } from "@/features/shared/services/addressStorage";
 import { useAppDispatch } from "@/store/hooks";
 import React, { useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  Animated,
-  Dimensions,
-  Modal,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  TouchableWithoutFeedback,
-  View,
-  useColorScheme,
-} from "react-native";
+import { ActivityIndicator, Animated, Dimensions, Platform, ScrollView, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, View, useColorScheme } from 'react-native';
+import { AppModal } from "@/features/shared/ui/AppModal";
+
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AddAddressFormPanel } from "./AddAddressFormPanel";
 import { AddAddressModal } from "./AddAddressModal";
@@ -378,7 +368,7 @@ export const AddressSelectionModal: React.FC<AddressSelectionModalProps> = ({
   }
 
   return (
-    <Modal
+    <AppModal
       visible={visible}
       animationType="none"
       transparent={true}
@@ -405,7 +395,7 @@ export const AddressSelectionModal: React.FC<AddressSelectionModalProps> = ({
         </View>
       </TouchableWithoutFeedback>
       {childOverlays}
-    </Modal>
+    </AppModal>
   );
 };
 

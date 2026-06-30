@@ -24,16 +24,9 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { syncPushTokenToBackend } from "@/hooks/usePushNotifications";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import {
-  Image,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Image, KeyboardAvoidingView, Platform, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import { AppModal } from "@/features/shared/ui/AppModal";
+
 import {
   SafeAreaProvider,
   useSafeAreaInsets,
@@ -551,7 +544,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     }
   };
   return (
-    <Modal
+    <AppModal
       animationType="slide"
       transparent={true}
       visible={visible}
@@ -1391,7 +1384,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         operatorEmail={supportContacts.email}
         onClose={() => setLegalDocumentId(null)}
       />
-    </Modal>
+    </AppModal>
   );
 };
 

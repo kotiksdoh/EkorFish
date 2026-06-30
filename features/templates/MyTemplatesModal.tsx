@@ -26,22 +26,9 @@ import {
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { Image } from "expo-image";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import {
-  ActivityIndicator,
-  Animated,
-  Dimensions,
-  FlatList,
-  Keyboard,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  TouchableWithoutFeedback,
-  View,
-  useColorScheme,
-} from "react-native";
+import { ActivityIndicator, Animated, Dimensions, FlatList, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, View, useColorScheme } from 'react-native';
+import { AppModal } from "@/features/shared/ui/AppModal";
+
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { OrderFromTemplateConfirmOverlay } from "./OrderFromTemplateConfirmModal";
@@ -562,7 +549,7 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
     ) : null;
 
   const detailContent = (
-    <Modal
+    <AppModal
       visible={!!detailId}
       animationType="slide"
       onRequestClose={() => {
@@ -939,12 +926,12 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
         {orderConfirmOverlay}
       </ThemedView>
 
-    </Modal>
+    </AppModal>
   );
 
   return (
     <>
-      <Modal
+      <AppModal
         visible={templatesListModalVisible}
         animationType="slide"
         transparent={false}
@@ -1179,7 +1166,7 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
           ) : null}
           {!createOpen ? orderConfirmOverlay : null}
         </ThemedView>
-      </Modal>
+      </AppModal>
 
       {detailContent}
 

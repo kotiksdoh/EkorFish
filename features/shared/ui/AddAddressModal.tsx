@@ -1,4 +1,5 @@
-import { Modal } from "react-native";
+import { AppModal } from "@/features/shared/ui/AppModal";
+
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AddAddressFormPanel } from "./AddAddressFormPanel";
 
@@ -18,7 +19,7 @@ export const AddAddressModal: React.FC<AddAddressModalProps> = ({
   if (!visible) return null;
 
   return (
-    <Modal
+    <AppModal
       animationType="slide"
       transparent={false}
       visible={visible}
@@ -35,6 +36,6 @@ export const AddAddressModal: React.FC<AddAddressModalProps> = ({
           }}
         />
       </SafeAreaProvider>
-    </Modal>
+    </AppModal>
   );
 };

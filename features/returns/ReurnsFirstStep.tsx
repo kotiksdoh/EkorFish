@@ -5,17 +5,9 @@ import { getMyReturnableOrders } from "@/features/catalog/catalogSlice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { useFocusEffect } from "expo-router";
 import React, { useCallback, useMemo } from "react";
-import {
-  ActivityIndicator,
-  Dimensions,
-  FlatList,
-  Modal,
-  Platform,
-  StyleSheet,
-  TouchableOpacity,
-  View,
-  useColorScheme
-} from "react-native";
+import { ActivityIndicator, Dimensions, FlatList, Platform, StyleSheet, TouchableOpacity, View, useColorScheme } from 'react-native';
+import { AppModal } from "@/features/shared/ui/AppModal";
+
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ReturnsOrderCard from "./ReturnOrderCard";
 
@@ -164,7 +156,7 @@ export const MyReturnsFirstStep: React.FC<MyReturnsFirstStepProps> = ({
   );
 
   return (
-    <Modal
+    <AppModal
       animationType="slide"
       transparent={false}
       visible={visible}
@@ -252,7 +244,7 @@ export const MyReturnsFirstStep: React.FC<MyReturnsFirstStepProps> = ({
           </ThemedView>
         )}
       </ThemedView>
-    </Modal>
+    </AppModal>
   );
 };
 

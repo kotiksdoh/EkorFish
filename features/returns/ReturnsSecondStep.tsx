@@ -6,14 +6,9 @@ import { updateReturnItemReason } from "@/features/catalog/catalogSlice";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import React, { useMemo, useState } from "react";
-import {
-  FlatList,
-  Modal,
-  Platform,
-  StyleSheet,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { FlatList, Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { AppModal } from "@/features/shared/ui/AppModal";
+
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ReasonPickerContent } from "./ReasonModal";
 import { SelectedReturnItem } from "./SelectedReturnItem";
@@ -209,7 +204,7 @@ export const MyReturnsSecondStep: React.FC<MyReturnsSecondStepProps> = ({
   );
 
   return (
-    <Modal
+    <AppModal
       animationType="slide"
       transparent={false}
       visible={visible}
@@ -344,7 +339,7 @@ export const MyReturnsSecondStep: React.FC<MyReturnsSecondStepProps> = ({
           </>
         )}
       </ThemedView>
-    </Modal>
+    </AppModal>
   );
 };
 

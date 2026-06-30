@@ -2,6 +2,7 @@ import { ArrowIconRight } from "@/assets/icons/icons";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Fonts } from "@/constants/theme";
+import { AppModal } from "@/features/shared/ui/AppModal";
 import { PrimaryButton } from "@/features/shared/ui/components/PrimartyButton";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
@@ -11,7 +12,6 @@ import {
   Animated,
   Dimensions,
   Image,
-  Modal as RNModal,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
@@ -323,7 +323,7 @@ export const ProfileEditModal = ({
   return (
     <>
       {/* Основная модалка */}
-      <RNModal
+      <AppModal
         visible={visible}
         animationType="none"
         statusBarTranslucent={true}
@@ -540,7 +540,7 @@ export const ProfileEditModal = ({
             </TouchableWithoutFeedback>
           </View>
         </TouchableWithoutFeedback>
-      </RNModal>
+      </AppModal>
     </>
   );
 };

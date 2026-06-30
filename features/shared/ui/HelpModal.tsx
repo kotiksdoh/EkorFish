@@ -16,16 +16,9 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  Linking,
-  Modal,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { ActivityIndicator, Alert, Linking, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { AppModal } from "@/features/shared/ui/AppModal";
+
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { LegalDocumentId } from "@/features/shared/legal/buildLegalHtml";
 import { HtmlContentViewer } from "@/features/shared/ui/HtmlContentViewer";
@@ -449,7 +442,7 @@ export const HelpModal: React.FC<HelpProps> = ({ visible, onClose }) => {
   };
 
   return (
-    <Modal
+    <AppModal
       animationType="slide"
       transparent={true}
       visible={visible}
@@ -461,7 +454,7 @@ export const HelpModal: React.FC<HelpProps> = ({ visible, onClose }) => {
         {renderCurrentScreen()}
         {renderSupportModal()}
       </ThemedView>
-    </Modal>
+    </AppModal>
   );
 };
 

@@ -16,15 +16,9 @@ import {
 import { useAppTheme } from "@/hooks/use-theme-color";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import {
-  ActivityIndicator,
-  Animated,
-  Dimensions,
-  Modal,
-  StyleSheet,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { ActivityIndicator, Animated, Dimensions, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { AppModal } from "@/features/shared/ui/AppModal";
+
 import { CustomCheckbox } from "./components/CustomCheckBox";
 import AnimatedTextInput from "./components/CustomInput";
 
@@ -430,7 +424,7 @@ export const MySettingsModal: React.FC<MySettingsProps> = ({
 
   if (showNotifications) {
     return (
-      <Modal
+      <AppModal
         animationType="slide"
         transparent={true}
         visible={visible}
@@ -444,12 +438,12 @@ export const MySettingsModal: React.FC<MySettingsProps> = ({
         >
           <NotificationsScreen onBack={() => setShowNotifications(false)} />
         </ThemedView>
-      </Modal>
+      </AppModal>
     );
   }
 
   return (
-    <Modal
+    <AppModal
       animationType="slide"
       transparent={true}
       visible={visible}
@@ -536,7 +530,7 @@ export const MySettingsModal: React.FC<MySettingsProps> = ({
           </TouchableOpacity> */}
         </ThemedView>
       </ThemedView>
-    </Modal>
+    </AppModal>
   );
 };
 

@@ -3,17 +3,9 @@ import { ArrowIconRight } from "@/assets/icons/icons";
 import { ThemedText } from "@/components/themed-text";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import React, { useEffect, useState } from "react";
-import {
-  Animated,
-  Dimensions,
-  Modal,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  TouchableWithoutFeedback,
-  View,
-} from "react-native";
+import { Animated, Dimensions, Platform, ScrollView, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import { AppModal } from "@/features/shared/ui/AppModal";
+
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PrimaryButton } from "./components/PrimartyButton";
 
@@ -92,7 +84,7 @@ export const CompanySelectionModal: React.FC<CompanySelectionModalProps> = ({
   };
 
   return (
-    <Modal
+    <AppModal
       visible={visible}
       animationType="none"
       transparent={true}
@@ -213,7 +205,7 @@ export const CompanySelectionModal: React.FC<CompanySelectionModalProps> = ({
           </TouchableWithoutFeedback>
         </View>
       </TouchableWithoutFeedback>
-    </Modal>
+    </AppModal>
   );
 };
 

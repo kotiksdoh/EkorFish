@@ -27,16 +27,9 @@ import { PrimaryButton } from "@/features/shared/ui/components/PrimartyButton";
 import { useAppTheme } from "@/hooks/use-theme-color";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import {
-  ActivityIndicator,
-  Animated,
-  Dimensions,
-  Modal,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { ActivityIndicator, Animated, Dimensions, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { AppModal } from "@/features/shared/ui/AppModal";
+
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface OrderReminderModalProps {
@@ -315,7 +308,7 @@ export const OrderReminderModal: React.FC<OrderReminderModalProps> = ({
   const isEnabled = orderReminderSettings?.isEnabled ?? false;
 
   return (
-    <Modal
+    <AppModal
       animationType="slide"
       transparent={true}
       visible={visible}
@@ -572,7 +565,7 @@ export const OrderReminderModal: React.FC<OrderReminderModalProps> = ({
           </ScrollView>
         </SnapBottomSheet>
       </ThemedView>
-    </Modal>
+    </AppModal>
   );
 };
 

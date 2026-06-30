@@ -1,54 +1,27 @@
 // app/_layout.tsx
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { ThemeProvider as AppThemeProvider, useTheme } from '@/contexts/ThemeContext';
+import { AppToastHost } from '@/features/shared/ui/AppToastHost';
 import { SplashScreen } from '@/features/shared/ui/components/splash-screen';
-import { buildAppToastConfig } from '@/features/shared/ui/appToastConfig';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useCrashlytics, useCrashlyticsUser } from '@/hooks/useCrashlytics';
 import { useInitializeApp } from '@/hooks/useInitializeApp';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
-import { ThemeProvider as AppThemeProvider } from '@/contexts/ThemeContext';
-import { useTheme } from '@/contexts/ThemeContext';
 import { store } from '@/store/store';
 import { DarkTheme, DefaultTheme, ThemeProvider as NavigationThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useMemo, useState } from 'react';
-import { ActivityIndicator, Button, StyleSheet } from 'react-native';
+import { useState } from 'react';
+import { ActivityIndicator, Button, StyleSheet, View } from 'react-native';
 import 'react-native-reanimated';
 import { Provider } from 'react-redux';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import '@/utils/configureTextAccessibility';
-import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
-import ToastManager from 'toastify-react-native';
 import '../global.css';
 
 export const unstable_settings = {
   anchor: '(tabs)',
 };
-
-function AppToastHost() {
-  const insets = useSafeAreaInsets();
-  const { currentTheme } = useTheme();
-  const isDark = currentTheme === 'dark';
-  const toastConfig = useMemo(() => buildAppToastConfig(isDark), [isDark]);
-
-  return (
-    <ToastManager
-      config={toastConfig}
-      useModal={false}
-      position="top"
-      topOffset={10 + insets.top}
-      bottomOffset={12 + insets.bottom}
-      duration={4200}
-      showProgressBar={false}
-      showCloseIcon={false}
-      animationStyle="none"
-      width="92%"
-      minHeight={64}
-      theme={isDark ? 'dark' : 'light'}
-    />
-  );
-}
 
 function CrashlyticsUserSync() {
   useCrashlyticsUser();
@@ -58,20 +31,15 @@ function CrashlyticsUserSync() {
 function RootLayoutContent() {
   const { currentTheme } = useTheme();
   const navigationTheme = currentTheme === 'dark' ? DarkTheme : DefaultTheme;
-  
+
   return (
     <NavigationThemeProvider value={navigationTheme}>
-      <SafeAreaProvider>
-        <Provider store={store}>
-          <CrashlyticsUserSync />
-          <Stack>
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-          </Stack>
-          <StatusBar style={currentTheme === 'dark' ? 'light' : 'dark'} />
-          <AppToastHost />
-        </Provider>
-      </SafeAreaProvider>
+      <CrashlyticsUserSync />
+      <Stack>
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+      </Stack>
+      <StatusBar style={currentTheme === 'dark' ? 'light' : 'dark'} />
     </NavigationThemeProvider>
   );
 }
@@ -98,7 +66,7 @@ function AppContent() {
       </ThemedView>
     );
   }
-  
+
   if (error) {
     return (
       <ThemedView style={stylesLoad.errorContainer}>
@@ -117,12 +85,22 @@ function AppContent() {
 export default function RootLayout() {
   return (
     <AppThemeProvider>
-      <AppContent />
+      <SafeAreaProvider>
+        <Provider store={store}>
+          <View style={stylesLoad.appRoot}>
+            <AppContent />
+            <AppToastHost />
+          </View>
+        </Provider>
+      </SafeAreaProvider>
     </AppThemeProvider>
   );
 }
 
 const stylesLoad = StyleSheet.create({
+  appRoot: {
+    flex: 1,
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',

@@ -5,15 +5,9 @@ import { ModalHeader } from "@/features/auth/ui/Header";
 import { AnimatedStackedSheet } from "@/features/shared/ui/AnimatedStackedSheet";
 import { useAppTheme } from "@/hooks/use-theme-color";
 import React, { useEffect, useMemo, useState } from "react";
-import {
-  ActivityIndicator,
-  FlatList,
-  Modal,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { ActivityIndicator, FlatList, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { AppModal } from "@/features/shared/ui/AppModal";
+
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type PushItem = {
@@ -87,7 +81,7 @@ export const PushNotificationsModal: React.FC<PushNotificationsModalProps> = ({
   }, [visible]);
 
   return (
-    <Modal
+    <AppModal
       visible={visible}
       animationType="slide"
       statusBarTranslucent
@@ -212,7 +206,7 @@ export const PushNotificationsModal: React.FC<PushNotificationsModalProps> = ({
           </ScrollView>
         </AnimatedStackedSheet>
       </ThemedView>
-    </Modal>
+    </AppModal>
   );
 };
 
