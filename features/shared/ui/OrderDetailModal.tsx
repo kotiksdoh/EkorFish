@@ -94,6 +94,7 @@ interface OrderDetails {
   companyAddress?: string;
   profileFullName?: string;
   canCancel?: boolean;
+  hasPaid?: boolean;
 }
 
 interface OrderDocument {
@@ -632,9 +633,18 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                   <ThemedText lightColor="#80818B" style={styles.totalLabel}>
                     Итого
                   </ThemedText>
-                  <ThemedText style={styles.totalValue}>
-                    {formatPrice(orderDetails.totalAmount)} ₽
-                  </ThemedText>
+                  <View style={styles.totalRow}>
+                    <ThemedText style={styles.totalValue}>
+                      {formatPrice(orderDetails.totalAmount)} ₽
+                    </ThemedText>
+                    <ThemedText
+                      lightColor="#6FBD15"
+                      darkColor="#6FBD15"
+                      style={styles.paidStatus}
+                    >
+                      {orderDetails.hasPaid ? "Оплачено" : ""}
+                    </ThemedText>
+                  </View>
                 </View>
 
                 {/* Общий вес */}
@@ -1265,6 +1275,12 @@ const styles = StyleSheet.create({
   totalContainer: {
     flexDirection: "column",
   },
+  totalRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
   totalLabel: {
     fontSize: 16,
     fontWeight: "500",
@@ -1272,6 +1288,12 @@ const styles = StyleSheet.create({
   totalValue: {
     fontSize: 16,
     fontWeight: "600",
+    flexShrink: 1,
+  },
+  paidStatus: {
+    fontSize: 14,
+    fontWeight: "500",
+    flexShrink: 0,
   },
   weightContainer: {
     flexDirection: "row",
