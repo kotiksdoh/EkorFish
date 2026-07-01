@@ -492,7 +492,7 @@ export const MyReturnsThirdStep: React.FC<MyReturnsThirdStepProps> = ({
               </ThemedText>
 
               <View style={styles.successButtons}>
-                <View style={styles.successButton}>
+                <View style={styles.successButtonDetails}>
                   <PrimaryButton
                     title="Детали возврата"
                     onPress={() => {
@@ -502,9 +502,10 @@ export const MyReturnsThirdStep: React.FC<MyReturnsThirdStepProps> = ({
                     variant="third"
                     size="md"
                     fullWidth
+                    style={styles.successActionButton}
                   />
                 </View>
-                <View style={styles.successButton}>
+                <View style={styles.successButtonHome}>
                   <PrimaryButton
                     title="На главную"
                     onPress={() => {
@@ -514,6 +515,7 @@ export const MyReturnsThirdStep: React.FC<MyReturnsThirdStepProps> = ({
                     variant="primary"
                     size="md"
                     fullWidth
+                    style={styles.successActionButton}
                   />
                 </View>
               </View>
@@ -914,9 +916,16 @@ const styles = StyleSheet.create({
     width: "100%",
     alignSelf: "stretch",
   },
-  successButton: {
-    flex: 1,
+  successButtonDetails: {
+    flex: 3,
     minWidth: 0,
+  },
+  successButtonHome: {
+    flex: 2,
+    minWidth: 0,
+  },
+  successActionButton: {
+    paddingHorizontal: 12,
   },
   buttonDisabled: {
     opacity: 0.5,
