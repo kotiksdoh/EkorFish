@@ -23,6 +23,8 @@ import {
   getMyOrders,
   getRecipients,
 } from "@/features/catalog/catalogSlice";
+import { getCheckoutOrderBlockers } from "@/features/order/checkoutBlockers";
+import { CheckoutBlockerHint } from "@/features/order/ui/CheckoutBlockerHint";
 import { RecommendedOrderProducts } from "@/features/catalog/ui/components/RecommendedOrderProducts/RecommendedOrderProducts";
 import { PrimaryButton } from "@/features/home";
 import { getAxiosErrorMessage } from "@/features/shared/services/api";
@@ -774,9 +776,32 @@ export default function CheckoutModal({
   );
 
   // Проверяем, есть ли недоступные товары среди выбранных
-  const hasUnavailableSelected = cartItems.some(
-    (item) => selectedItems.has(item.id) && !isItemAvailable(item)
-  );
+  const orderBlockers = useMemo(() => {
+    const mainRecipient = recipients[0];
+    return getCheckoutOrderBlockers({
+      selectedCartItems,
+      deliveryMethod:
+        selectedMethod === DeliveryMethod.Pickup ? "pickup" : "delivery",
+      hasAddress: Boolean(selectedAddress?.id),
+      hasPickupStorage: Boolean(selectedPickupAddress),
+      hasDateTime: Boolean(selectedDateTime.date && selectedDateTime.time),
+      hasMainRecipient: Boolean(
+        mainRecipient?.fullname?.trim() &&
+          mainRecipient?.phoneNumber?.trim() &&
+          mainRecipient?.email?.trim(),
+      ),
+    });
+  }, [
+    selectedCartItems,
+    selectedMethod,
+    selectedAddress?.id,
+    selectedPickupAddress,
+    selectedDateTime.date,
+    selectedDateTime.time,
+    recipients,
+  ]);
+
+  const isCheckoutBlocked = orderBlockers.length > 0;
   useEffect(() => {
     if (me?.storageId) {
       setSelectedPickupAddress(me.storageId);
@@ -1308,13 +1333,13 @@ export default function CheckoutModal({
                       variant="primary"
                       size="md"
                       loading={isCreatingOrder}
-                      disabled={
-                        isCreatingOrder || 
-                        (selectedMethod === DeliveryMethod.Pickup && hasUnavailableSelected)
-                      }
+                      disabled={isCreatingOrder || isCheckoutBlocked}
                       activeOpacity={0.8}
                       fullWidth
                     />
+                    {!isCreatingOrder && isCheckoutBlocked ? (
+                      <CheckoutBlockerHint messages={orderBlockers} />
+                    ) : null}
                   </ThemedView>
                 </ScrollView>
               )}

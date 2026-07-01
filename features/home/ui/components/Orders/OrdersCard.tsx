@@ -1,12 +1,23 @@
-import { ArrowIconRight, Copy } from "@/assets/icons/icons";
+import { ArrowIconRight, Copy, RepeatOrderIcon } from "@/assets/icons/icons";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import {
+  checkForReorder,
+  getCart,
+  reorderOrder,
+} from "@/features/catalog/catalogSlice";
 import { OrderDetailsModal } from "@/features/shared/ui/OrderDetailModal";
+import { OrderReorderSheet } from "@/features/shared/ui/OrderReorderSheet";
+import { canShowOrderRepeatButton } from "@/features/shared/utils/orderRepeat";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useAppDispatch } from "@/store/hooks";
 import * as Clipboard from "expo-clipboard";
-import React, { useState } from "react";
+import { useRouter } from "expo-router";
+import React, { useCallback, useState } from "react";
 import {
   Alert,
+  InteractionManager,
+  Platform,
   StyleSheet,
   TouchableOpacity,
   View,
@@ -24,6 +35,7 @@ export interface Order {
 interface OrdersCardProps {
   order: Order;
   fullWidth: boolean;
+  showRepeatButton?: boolean;
   onReorderSuccess?: () => void;
   onOrderUpdated?: () => void;
 }
@@ -59,12 +71,22 @@ const formatDeliveryDate = (dateString: string): string => {
 export default function OrdersCard({
   order,
   fullWidth,
+  showRepeatButton = false,
   onReorderSuccess,
   onOrderUpdated,
 }: OrdersCardProps) {
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === "dark";
+  const dispatch = useAppDispatch();
+  const router = useRouter();
   const [modalVisible, setModalVisible] = useState(false);
+  const [reorderSheetVisible, setReorderSheetVisible] = useState(false);
+  const [canReorderFully, setCanReorderFully] = useState(true);
+  const [isCheckingReorder, setIsCheckingReorder] = useState(false);
+  const [isReordering, setIsReordering] = useState(false);
+
+  const shouldShowRepeatButton =
+    showRepeatButton && canShowOrderRepeatButton(order);
 
   const handleCopyId = async () => {
     await Clipboard.setStringAsync(order.id.toString());
@@ -72,6 +94,62 @@ export default function OrdersCard({
       "Скопировано",
       `ID заказа ${order.id} скопирован в буфер обмена.`,
     );
+  };
+
+  const finishReorderNavigation = useCallback(() => {
+    const finish = () => {
+      onReorderSuccess?.();
+      router.replace("/(tabs)/shop");
+    };
+
+    if (Platform.OS === "ios") {
+      InteractionManager.runAfterInteractions(() => {
+        setTimeout(finish, 320);
+      });
+      return;
+    }
+
+    finish();
+  }, [onReorderSuccess, router]);
+
+  const openReorderSheet = async () => {
+    if (isCheckingReorder) return;
+
+    setIsCheckingReorder(true);
+    try {
+      const result = await dispatch(checkForReorder(order.id)).unwrap();
+      setCanReorderFully(Boolean(result));
+      setReorderSheetVisible(true);
+    } catch (error) {
+      Alert.alert("Ошибка", "Не удалось проверить возможность повторного заказа");
+    } finally {
+      setIsCheckingReorder(false);
+    }
+  };
+
+  const handleReorder = async () => {
+    if (isReordering) return;
+
+    setIsReordering(true);
+    try {
+      await dispatch(reorderOrder(order.id)).unwrap();
+      await dispatch(getCart()).unwrap();
+      setReorderSheetVisible(false);
+
+      const proceed = () => {
+        setIsReordering(false);
+        finishReorderNavigation();
+      };
+
+      if (Platform.OS === "ios") {
+        setTimeout(proceed, 280);
+      } else {
+        proceed();
+      }
+    } catch (error) {
+      setIsReordering(false);
+      Alert.alert("Ошибка", "Не удалось повторить заказ. Попробуйте позже.");
+    }
   };
 
   return (
@@ -129,6 +207,30 @@ export default function OrdersCard({
         >
           {formatDeliveryDate(order.deliveryDate)}
         </ThemedText>
+
+        {shouldShowRepeatButton ? (
+          <TouchableOpacity
+            style={[
+              styles.repeatButton,
+              isDarkMode ? styles.repeatButtonDark : styles.repeatButtonLight,
+            ]}
+            onPress={openReorderSheet}
+            activeOpacity={0.85}
+            disabled={isCheckingReorder}
+          >
+            <RepeatOrderIcon fill={isDarkMode ? "#1B1B1C" : "#FFFFFF"} />
+            <ThemedText
+              style={[
+                styles.repeatButtonText,
+                isDarkMode
+                  ? styles.repeatButtonTextDark
+                  : styles.repeatButtonTextLight,
+              ]}
+            >
+              {isCheckingReorder ? "Проверяем..." : "Повторить заказ"}
+            </ThemedText>
+          </TouchableOpacity>
+        ) : null}
       </ThemedView>
 
       {/* Модальное окно с деталями заказа */}
@@ -138,6 +240,17 @@ export default function OrdersCard({
         orderId={order.id}
         onReorderSuccess={onReorderSuccess}
         onOrderUpdated={onOrderUpdated}
+      />
+
+      <OrderReorderSheet
+        visible={reorderSheetVisible}
+        orderId={order.id}
+        canReorderFully={canReorderFully}
+        isReordering={isReordering}
+        productsCount={order.productsCount}
+        totalAmount={order.totalAmount}
+        onClose={() => setReorderSheetVisible(false)}
+        onConfirm={handleReorder}
       />
     </>
   );
@@ -188,5 +301,31 @@ const styles = StyleSheet.create({
   date: {
     fontSize: 14,
     fontWeight: "400",
+  },
+  repeatButton: {
+    marginTop: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    alignSelf: "flex-start",
+  },
+  repeatButtonLight: {
+    backgroundColor: "#1B1B1C",
+  },
+  repeatButtonDark: {
+    backgroundColor: "#FFFFFF",
+  },
+  repeatButtonText: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  repeatButtonTextLight: {
+    color: "#FFFFFF",
+  },
+  repeatButtonTextDark: {
+    color: "#1B1B1C",
   },
 });

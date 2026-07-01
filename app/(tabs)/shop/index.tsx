@@ -3,7 +3,6 @@ import {
   ArrowIconRight,
   CartIcon,
   IconCompanyNew,
-  InfoIcon,
   LemonIcon,
   LikeIcon,
   TrashIcon,
@@ -32,11 +31,11 @@ import { baseUrl } from "@/features/shared/services/axios";
 import { AddToCartModal } from "@/features/shared/ui/AddToCartModal";
 import { CompanySelectModal } from "@/features/shared/ui/CompanySelectModal";
 import { CompanySelectionModal } from "@/features/shared/ui/CompanySelectionModalSmall";
-import { isIndividualCompany } from "@/features/shared/utils/companyType";
 import { CustomCheckbox } from "@/features/shared/ui/components/CustomCheckBox";
 import { PromoCodeInput } from "@/features/shared/ui/components/PromoCodeInput";
-import { buildTemplateLineFromProduct } from "@/features/templates/buildTemplateLine";
+import { isIndividualCompany } from "@/features/shared/utils/companyType";
 import { useTemplatePicker } from "@/features/templates/TemplatePickerContext";
+import { buildTemplateLineFromProduct } from "@/features/templates/buildTemplateLine";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -723,6 +722,9 @@ export default function ShopScreen() {
     });
   };
 
+  const isCheckoutBlocked =
+    totals.totalItems === 0 || totals.hasUnavailableSelected;
+
   const isIndividual = isIndividualCompany(currentCompany);
   const companyDisplayName =
     currentCompany?.name || me?.companies?.[0]?.name || "";
@@ -1028,31 +1030,8 @@ export default function ShopScreen() {
               activeOpacity={0.8}
               fullWidth
               style={styles.contButton}
-              disabled={
-                totals.totalItems === 0 || totals.hasUnavailableSelected
-              }
+              disabled={isCheckoutBlocked}
             />
-            {totals.totalItems === 0 ? (
-              <ThemedView
-                darkColor="#202022"
-                lightColor="#F2F4F7"
-                style={styles.chooseProducts}
-              >
-                <ThemedView
-                  darkColor="#151516"
-                  lightColor="#FFFFFF"
-                  style={styles.iconStyleCont}
-                >
-                  <InfoIcon
-                    stroke={isDarkMode ? "#FBFCFF" : "#1B1B1C"}
-                    fill={isDarkMode ? "#FBFCFF" : "#1B1B1C"}
-                  />
-                </ThemedView>
-                <ThemedText darkColor="#FBFCFF" lightColor="#1B1B1C">
-                  Выберите товары, чтобы перейти к оформлению заказа
-                </ThemedText>
-              </ThemedView>
-            ) : null}
 
             <ThemedView
               lightColor="#E1F0FF"
@@ -1103,45 +1082,42 @@ export default function ShopScreen() {
           style={styles.bottomPanel}
         >
           <View style={styles.bottomPanelContent}>
-            <View style={styles.bottomLeft}>
-              <ThemedText darkColor="#FBFCFF" style={styles.bottomTotalPrice}>
-                {formatPrice(
-                  totals.discountAmount > 0
-                    ? totals.finalPrice
-                    : totals.totalPrice,
-                )}{" "}
-                ₽
-              </ThemedText>
-              <ThemedText style={styles.bottomItemsCount}>
-                {totals.totalItems > 0 && totals.totalItems}{" "}
-                {totals.totalItems > 0
-                  ? getDeclension(totals.totalItems, [
-                      "товар",
-                      "товара",
-                      "товаров",
-                    ])
-                  : "Товары не выбраны"}
-              </ThemedText>
-            </View>
+              <View style={styles.bottomLeft}>
+                <ThemedText darkColor="#FBFCFF" style={styles.bottomTotalPrice}>
+                  {formatPrice(
+                    totals.discountAmount > 0
+                      ? totals.finalPrice
+                      : totals.totalPrice,
+                  )}{" "}
+                  ₽
+                </ThemedText>
+                <ThemedText style={styles.bottomItemsCount}>
+                  {totals.totalItems > 0 && totals.totalItems}{" "}
+                  {totals.totalItems > 0
+                    ? getDeclension(totals.totalItems, [
+                        "товар",
+                        "товара",
+                        "товаров",
+                      ])
+                    : "Товары не выбраны"}
+                </ThemedText>
+              </View>
 
-            <TouchableOpacity
-              style={[
-                styles.bottomCheckoutButton,
-                isDarkMode && {
-                  backgroundColor: "#3881EE",
-                },
-                (totals.totalItems === 0 || totals.hasUnavailableSelected) &&
-                  styles.checkoutButtonDisabled,
-              ]}
-              disabled={
-                totals.totalItems === 0 || totals.hasUnavailableSelected
-              }
-              onPress={() => setCheckoutModalVisible(true)}
-            >
-              <ThemedText style={styles.bottomCheckoutButtonText}>
-                Перейти к оформлению
-              </ThemedText>
-            </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.bottomCheckoutButton,
+                  isDarkMode && {
+                    backgroundColor: "#3881EE",
+                  },
+                  isCheckoutBlocked && styles.checkoutButtonDisabled,
+                ]}
+                disabled={isCheckoutBlocked}
+                onPress={() => setCheckoutModalVisible(true)}
+              >
+                <ThemedText style={styles.bottomCheckoutButtonText}>
+                  Перейти к оформлению
+                </ThemedText>
+              </TouchableOpacity>
           </View>
 
           {/* {totals.totalItems === 0 && (
@@ -1485,7 +1461,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   bottomItemsCount: {
-    fontSize: 14,
+    fontSize: 12,
     color: "#80818B",
     marginBottom: 4,
   },

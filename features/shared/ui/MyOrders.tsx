@@ -201,6 +201,7 @@ export const MyOrdersModal: React.FC<MyOrdersProps> = ({
         <OrdersCard
           order={item}
           fullWidth={true}
+          showRepeatButton
           onReorderSuccess={onClose}
           onOrderUpdated={() => fetchOrders(tab, false)}
         />
