@@ -51,9 +51,11 @@ const ReturnsCard: React.FC<ReturnsCardProps> = ({
           <View
             style={[
               styles.statusBadge,
-              returns.status === 'pending' && styles.pendingBadge,
+              returns.status === 'pending' &&
+                (isDark ? styles.pendingBadgeDark : styles.pendingBadge),
               returns.status === 'approved' && styles.approvedBadge,
-              returns.status === 'rejected' && styles.rejectedBadge,
+              returns.status === 'rejected' &&
+                (isDark ? styles.rejectedBadgeDark : styles.rejectedBadge),
             ]}
           >
             <ThemedText style={styles.statusText}>
@@ -61,7 +63,7 @@ const ReturnsCard: React.FC<ReturnsCardProps> = ({
             </ThemedText>
           </View>
           <View style={styles.statusCount}>
-          <ThemedText style={styles.statusCountText} lightColor="#80818B">
+          <ThemedText style={styles.statusCountText} lightColor="#80818B" darkColor="#FBFCFF80">
             {returns.totalProductsCount} товара • {returns.totalRefundAmount} ₽ 
           </ThemedText>
           </View>
@@ -128,8 +130,14 @@ const styles = StyleSheet.create({
   pendingBadge: {
     backgroundColor: "#DADFE3",
   },
+  pendingBadgeDark: {
+    backgroundColor: "#3C3C41",
+  },
   rejectedBadge: {
     backgroundColor: "#DADFE3",
+  },
+  rejectedBadgeDark: {
+    backgroundColor: "#3C3C41",
   },
   statusText: {
     fontSize: 12,

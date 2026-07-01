@@ -7,8 +7,8 @@ import { Image } from "expo-image";
 import React, { memo } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 import { baseUrl } from "../shared/services/axios";
-import { isReturnReasonSelected } from "./returnReason";
 import type { ReturnReasonId } from "./returnReason";
+import { isReturnReasonSelected } from "./returnReason";
 
 interface SelectedReturnItemProps {
   item: {
@@ -48,6 +48,7 @@ export const SelectedReturnItem = memo(({ item, onSelectReason }: SelectedReturn
       lightColor="#FFFFFF"
       style={styles.container}
     >
+      <View style={styles.blockContainer}>
       <View style={styles.imageContainer}>
         <Image source={imageSource} style={styles.image} contentFit="cover" />
       </View>
@@ -70,7 +71,8 @@ export const SelectedReturnItem = memo(({ item, onSelectReason }: SelectedReturn
             {formatPrice(item.price * item.returnQuantity)} ₽
           </ThemedText>
         </View>
-
+      </View>
+      </View>
         {hasReason && item.reasonName && (
           <ThemedView
             style={[
@@ -103,7 +105,7 @@ export const SelectedReturnItem = memo(({ item, onSelectReason }: SelectedReturn
               >
                 Редактировать
               </ThemedText>
-              <ArrowIconRight />
+              <ArrowIconRight stroke="#FBFCFF"/>
             </TouchableOpacity>
           </ThemedView>
         )}
@@ -126,18 +128,23 @@ export const SelectedReturnItem = memo(({ item, onSelectReason }: SelectedReturn
             <ArrowIconRight />
           </TouchableOpacity>
         )}
-      </View>
+      
+     
     </ThemedView>
   );
 });
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: "row",
+    flexDirection: "column",
     padding: 16,
     borderRadius: 16,
     marginBottom: 8,
   },
+  blockContainer: {
+    flexDirection: "row",
+  },
+  
   imageContainer: {
     width: 74,
     height: 55,
@@ -173,6 +180,7 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   reasonSection: {
+    marginTop: 16,
     flexDirection: "row",
     alignItems: "center",
     borderRadius: 8,
@@ -189,11 +197,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   selectedReason: {
-    fontSize: 12,
-    fontWeight: "500",
+    fontSize: 14,
+    fontWeight: "600",
     lineHeight: 16,
   },
   reasonButtonEmpty: {
+    marginTop: 16,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "flex-end",
@@ -226,7 +235,9 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   reasonButtonTextSelectedActive: {
-    fontSize: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 3,
+    fontSize: 14,
     fontWeight: "500",
     color: "#FBFCFF",
   },

@@ -3,11 +3,11 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { ModalHeader } from "@/features/auth/ui/Header";
 import { useKeyboardAwareScroll } from "@/features/shared/hooks/useKeyboardAwareScroll";
+import { AppModal } from "@/features/shared/ui/AppModal";
 import AnimatedTextInput from "@/features/shared/ui/components/CustomInput";
 import { Image } from "expo-image";
 import React, { useEffect, useState } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TouchableOpacity, View, useColorScheme } from 'react-native';
-import { AppModal } from "@/features/shared/ui/AppModal";
 
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { baseUrl } from "../shared/services/axios";
@@ -250,7 +250,7 @@ export function ReasonPickerContent({
             disabled={selectedReason === undefined}
             onPress={handleSelect}
           >
-            <ThemedText style={styles.submitButtonText}>Выбрать</ThemedText>
+            <ThemedText style={styles.submitButtonText}>Сохранить и продолжить</ThemedText>
           </TouchableOpacity>
         </ThemedView>
       </KeyboardAvoidingView>
@@ -340,7 +340,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: "600",
-    marginBottom: 16,
+    marginBottom: 24,
   },
   reasonsList: {
     gap: 10,
@@ -420,6 +420,6 @@ const styles = StyleSheet.create({
   submitButtonText: {
     color: "#FFFFFF",
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: "500",
   },
 });

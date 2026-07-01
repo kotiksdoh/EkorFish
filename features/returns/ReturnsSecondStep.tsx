@@ -3,11 +3,11 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { ModalHeader } from "@/features/auth/ui/Header";
 import { updateReturnItemReason } from "@/features/catalog/catalogSlice";
+import { AppModal } from "@/features/shared/ui/AppModal";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import React, { useMemo, useState } from "react";
 import { FlatList, Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
-import { AppModal } from "@/features/shared/ui/AppModal";
 
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ReasonPickerContent } from "./ReasonModal";
@@ -290,17 +290,9 @@ export const MyReturnsSecondStep: React.FC<MyReturnsSecondStepProps> = ({
               ]}
             >
               <View style={styles.bottomPanelContent}>
+              {totals.totalItems > 0 ?
                 <View style={styles.bottomLeft}>
                   <ThemedText
-                    darkColor="#FBFCFF"
-                    lightColor="#1B1B1C"
-                    style={styles.bottomTotalPrice}
-                  >
-                    {formatPrice(totals.totalPrice)} ₽
-                  </ThemedText>
-                  <ThemedText
-                    lightColor="#80818B"
-                    darkColor="#FBFCFF80"
                     style={styles.bottomItemsCount}
                   >
                     {totals.totalItems > 0
@@ -311,7 +303,16 @@ export const MyReturnsSecondStep: React.FC<MyReturnsSecondStepProps> = ({
                         ])}`
                       : "Товары не выбраны"}
                   </ThemedText>
+                  <ThemedText
+                    darkColor="#FBFCFF"
+                    lightColor="#1B1B1C"
+                    style={styles.bottomTotalPrice}
+                  >
+                    {formatPrice(totals.totalPrice)} ₽
+                  </ThemedText>
+
                 </View>
+                  : null}
               </View>
 
               <TouchableOpacity
@@ -409,12 +410,13 @@ const styles = StyleSheet.create({
     marginBottom: 16
   },
   bottomItemsCount: {
-    fontSize: 14,
+    fontWeight: "500",
+    fontSize: 16,
     marginBottom: 4,
   },
   bottomTotalPrice: {
-    fontSize: 20,
-    fontWeight: "700",
+    fontSize: 16,
+    fontWeight: "600",
     marginBottom: 4,
   },
   bottomButton: {
