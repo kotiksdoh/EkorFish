@@ -224,7 +224,7 @@ const styles = StyleSheet.create({
   cartItem: {
     flexDirection: "row",
     paddingVertical: 5,
-    paddingHorizontal: 16,
+    // paddingHorizontal: 16,
     borderRadius: 12,
   },
   imageContainer: {

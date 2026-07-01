@@ -10,6 +10,7 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { ModalHeader } from "@/features/auth/ui/Header";
 import { useKeyboardAwareScroll } from "@/features/shared/hooks/useKeyboardAwareScroll";
+import { AppModal } from "@/features/shared/ui/AppModal";
 import { CustomCheckbox } from "@/features/shared/ui/components/CustomCheckBox";
 import AnimatedTextInput from "@/features/shared/ui/components/CustomInput";
 import { PrimaryButton } from "@/features/shared/ui/components/PrimartyButton";
@@ -27,7 +28,6 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { Image } from "expo-image";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Animated, Dimensions, FlatList, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, View, useColorScheme } from 'react-native';
-import { AppModal } from "@/features/shared/ui/AppModal";
 
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -1423,8 +1423,8 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   totalLabel: {
-    fontSize: 17,
-    fontWeight: "700",
+    fontSize: 20,
+    fontWeight: "600",
   },
   totalRightCol: {
     alignItems: "flex-end",
