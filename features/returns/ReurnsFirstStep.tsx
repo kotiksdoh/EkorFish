@@ -2,11 +2,11 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { ModalHeader } from "@/features/auth/ui/Header";
 import { getMyReturnableOrders } from "@/features/catalog/catalogSlice";
+import { AppModal } from "@/features/shared/ui/AppModal";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { useFocusEffect } from "expo-router";
 import React, { useCallback, useMemo } from "react";
 import { ActivityIndicator, Dimensions, FlatList, Platform, StyleSheet, TouchableOpacity, View, useColorScheme } from 'react-native';
-import { AppModal } from "@/features/shared/ui/AppModal";
 
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ReturnsOrderCard from "./ReturnOrderCard";
@@ -207,13 +207,9 @@ export const MyReturnsFirstStep: React.FC<MyReturnsFirstStepProps> = ({
             ]}
           >
             <View style={styles.bottomPanelContent}>
+            {totals.selectedProductsCount > 0 ?
               <View style={styles.bottomLeft}>
-                <ThemedText darkColor="#FBFCFF" lightColor="#1B1B1C" style={styles.bottomTotalPrice}>
-                  {formatPrice(totals.totalPrice)} ₽
-                </ThemedText>
-                <ThemedText 
-                  lightColor="#80818B" 
-                  darkColor="#FBFCFF80" 
+              <ThemedText 
                   style={styles.bottomItemsCount}
                 >
                   {totals.selectedProductsCount > 0 ? (
@@ -222,7 +218,13 @@ export const MyReturnsFirstStep: React.FC<MyReturnsFirstStepProps> = ({
                     "Товары не выбраны"
                   )}
                 </ThemedText>
+
+                <ThemedText darkColor="#FBFCFF" lightColor="#1B1B1C" style={styles.bottomTotalPrice}>
+                  {formatPrice(totals.totalPrice)} ₽
+                </ThemedText>
               </View>
+              : null
+              }
 
 
             </View>
@@ -363,12 +365,13 @@ const styles = StyleSheet.create({
     marginBottom: 16
   },
   bottomItemsCount: {
-    fontSize: 14,
+    fontSize: 15,
+    fontWeight: "500",
     marginBottom: 4,
   },
   bottomTotalPrice: {
-    fontSize: 20,
-    fontWeight: "700",
+    fontSize: 16,
+    fontWeight: "600",
     marginBottom: 4,
   },
   bottomCheckoutButton: {

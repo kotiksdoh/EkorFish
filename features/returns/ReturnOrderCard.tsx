@@ -423,6 +423,7 @@ const styles = StyleSheet.create({
   },
   plusMinus: {
     fontSize: 16,
+    fontWeight: '500'
   },
   quantityTextKg: {
     fontSize: 12,
