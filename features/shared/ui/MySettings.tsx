@@ -8,17 +8,36 @@ import {
   updateQuietPeriodSettings,
 } from "@/features/auth/authSlice";
 import { ModalHeader } from "@/features/auth/ui/Header";
+import { useKeyboardAwareScroll } from "@/features/shared/hooks/useKeyboardAwareScroll";
+import {
+  clearRecentlyViewedCache,
+  clearSearchHistory,
+  loadPrivacySettings,
+  savePrivacySettings,
+  type PrivacySettings,
+} from "@/features/shared/services/privacyStorage";
 import {
   buildQuietPeriodPayload,
   formatQuietTimeForDisplay,
   isValidQuietTime,
 } from "@/features/shared/types/quietPeriodSettings";
+import { AppModal } from "@/features/shared/ui/AppModal";
 import { useAppTheme } from "@/hooks/use-theme-color";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Animated, Dimensions, StyleSheet, TouchableOpacity, View } from 'react-native';
-import { AppModal } from "@/features/shared/ui/AppModal";
+import {
+  ActivityIndicator,
+  Animated,
+  Dimensions,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { CustomCheckbox } from "./components/CustomCheckBox";
 import AnimatedTextInput from "./components/CustomInput";
 
@@ -101,6 +120,212 @@ const formatTimeValue = (rawValue: string) => {
 };
 
 const QUIET_PERIOD_DEBOUNCE_MS = 600;
+
+const PrivacyScreen: React.FC<{ onBack: () => void }> = ({ onBack }) => {
+  const { isDark } = useAppTheme();
+  const [privacySettings, setPrivacySettings] = useState<PrivacySettings>({
+    anonymousStatistics: true,
+    showInCompanyContactSearch: true,
+  });
+  const [isLoadingPrivacySettings, setIsLoadingPrivacySettings] = useState(true);
+  const [isClearingSearchHistory, setIsClearingSearchHistory] = useState(false);
+  const [isClearingCachedData, setIsClearingCachedData] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const hydratePrivacySettings = async () => {
+      try {
+        const settings = await loadPrivacySettings();
+        if (isMounted) {
+          setPrivacySettings(settings);
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoadingPrivacySettings(false);
+        }
+      }
+    };
+
+    void hydratePrivacySettings();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const updatePrivacySetting = useCallback(
+    async (key: keyof PrivacySettings, value: boolean) => {
+      const nextSettings = { ...privacySettings, [key]: value };
+      setPrivacySettings(nextSettings);
+
+      try {
+        await savePrivacySettings(nextSettings);
+      } catch (error) {
+        console.error("Ошибка сохранения настроек конфиденциальности:", error);
+        setPrivacySettings(privacySettings);
+      }
+    },
+    [privacySettings],
+  );
+
+  const handleClearSearchHistory = useCallback(async () => {
+    if (isClearingSearchHistory) return;
+
+    setIsClearingSearchHistory(true);
+    try {
+      await clearSearchHistory();
+    } catch (error) {
+      console.error("Ошибка очистки истории поиска:", error);
+    } finally {
+      setIsClearingSearchHistory(false);
+    }
+  }, [isClearingSearchHistory]);
+
+  const handleClearCachedData = useCallback(async () => {
+    if (isClearingCachedData) return;
+
+    setIsClearingCachedData(true);
+    try {
+      await clearRecentlyViewedCache();
+    } catch (error) {
+      console.error("Ошибка очистки кэшированных данных:", error);
+    } finally {
+      setIsClearingCachedData(false);
+    }
+  }, [isClearingCachedData]);
+
+  return (
+    <View style={styles.fullScreenContent}>
+      <ModalHeader
+        title="Конфиденциальность"
+        showBackButton={true}
+        onBackPress={onBack}
+      />
+
+      <ScrollView
+        style={styles.notificationsScrollView}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={styles.privacyScrollContent}
+      >
+        <ThemedView
+          lightColor="#FFFFFF"
+          darkColor="#151516"
+          style={styles.privacyCard}
+        >
+          {isLoadingPrivacySettings ? (
+            <View style={styles.loaderContainer}>
+              <ActivityIndicator
+                size="large"
+                color={isDark ? "#FBFCFF" : "#203686"}
+              />
+            </View>
+          ) : (
+            <>
+              <View style={styles.privacyOptionRow}>
+                <CustomCheckbox
+                  value={privacySettings.anonymousStatistics}
+                  onValueChange={(value: boolean) =>
+                    void updatePrivacySetting("anonymousStatistics", value)
+                  }
+                  style={undefined}
+                  lightColor={"#F2F4F7"}
+                  darkColor={"#202022"}
+                  disabled={isLoadingPrivacySettings}
+                />
+                <ThemedText
+                  lightColor="#1B1B1C"
+                  darkColor="#FBFCFF"
+                  style={styles.privacyCheckboxLabel}
+                >
+                  Сбор анонимной статистики для улучшения сервиса
+                </ThemedText>
+              </View>
+
+              <View
+                style={[
+                  styles.privacyDivider,
+                  { backgroundColor: isDark ? "#252527" : "#F0F3F7" },
+                ]}
+              />
+
+              <View style={styles.privacyOptionRow}>
+                <CustomCheckbox
+                  value={privacySettings.showInCompanyContactSearch}
+                  onValueChange={(value: boolean) =>
+                    void updatePrivacySetting("showInCompanyContactSearch", value)
+                  }
+                  style={undefined}
+                  lightColor={"#F2F4F7"}
+                  darkColor={"#202022"}
+                  disabled={isLoadingPrivacySettings}
+                />
+                <ThemedText
+                  lightColor="#1B1B1C"
+                  darkColor="#FBFCFF"
+                  style={styles.privacyCheckboxLabel}
+                >
+                  Показывать меня в поиске контактов компании
+                </ThemedText>
+              </View>
+            </>
+          )}
+        </ThemedView>
+
+        <ThemedView
+          lightColor="#FFFFFF"
+          darkColor="#151516"
+          style={styles.privacyCard}
+        >
+          <View style={styles.privacyActionsGroup}>
+            <TouchableOpacity
+              style={[
+                styles.privacyActionButton,
+                isDark && styles.privacyActionButtonDark,
+              ]}
+              activeOpacity={0.7}
+              onPress={() => void handleClearSearchHistory()}
+              disabled={isClearingSearchHistory}
+            >
+              {isClearingSearchHistory ? (
+                <ActivityIndicator
+                  size="small"
+                  color={isDark ? "#FBFCFF" : "#203686"}
+                />
+              ) : (
+                <ThemedText style={{fontWeight: '500', fontSize: 16}} lightColor="#1B1B1C" darkColor="#FBFCFF">
+                  Очистить историю поиска
+                </ThemedText>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.privacyActionButton,
+                isDark && styles.privacyActionButtonDark,
+              ]}
+              activeOpacity={0.7}
+              onPress={() => void handleClearCachedData()}
+              disabled={isClearingCachedData}
+            >
+              {isClearingCachedData ? (
+                <ActivityIndicator
+                  size="small"
+                  color={isDark ? "#FBFCFF" : "#203686"}
+                />
+              ) : (
+                <ThemedText style={{fontWeight: '500', fontSize: 16}} lightColor="#1B1B1C" darkColor="#FBFCFF">
+                  Удалить все кэшированные данные
+                </ThemedText>
+              )}
+            </TouchableOpacity>
+          </View>
+        </ThemedView>
+      </ScrollView>
+    </View>
+  );
+};
 
 // Компонент уведомлений
 const NotificationsScreen: React.FC<{ onBack: () => void }> = ({ onBack }) => {
@@ -220,6 +445,21 @@ const NotificationsScreen: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   ]);
 
   const isQuietModeEnabled = quietPeriodSettings?.isEnabled ?? false;
+  const insets = useSafeAreaInsets();
+  const bottomInset = Math.max(insets.bottom, 16);
+  const {
+    scrollRef: quietPeriodScrollRef,
+    keyboardHeight: quietPeriodKeyboardHeight,
+    handleScroll: handleQuietPeriodScroll,
+    onInputFocus: handleQuietInputFocus,
+  } = useKeyboardAwareScroll({ enabled: true });
+
+  const quietPeriodKeyboardPadding =
+    quietPeriodKeyboardHeight > 0
+      ? Platform.OS === "android"
+        ? Math.round(quietPeriodKeyboardHeight * 0.99)
+        : 24
+      : 0;
 
   return (
     <View style={styles.fullScreenContent}>
@@ -229,6 +469,24 @@ const NotificationsScreen: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         onBackPress={onBack}
       />
 
+      <KeyboardAvoidingView
+        style={styles.notificationsKeyboardAvoiding}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 12 : 0}
+      >
+        <ScrollView
+          ref={quietPeriodScrollRef}
+          style={styles.notificationsScrollView}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          onScroll={handleQuietPeriodScroll}
+          scrollEventThrottle={16}
+          contentContainerStyle={{
+            flexGrow: 1,
+            paddingBottom: bottomInset + quietPeriodKeyboardPadding,
+          }}
+        >
       <ThemedView
         lightColor="#FFFFFF"
         darkColor="#151516"
@@ -302,7 +560,7 @@ const NotificationsScreen: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         ) : (
           <>
             <View style={styles.documentRow}>
-              <ThemedText lightColor="#1B1B1C" darkColor="#FBFCFF">
+              <ThemedText style={{fontWeight: '500', fontSize: 16}} lightColor="#1B1B1C" darkColor="#FBFCFF">
                 Включить тихий период
               </ThemedText>
               <AppSwitch
@@ -329,6 +587,7 @@ const NotificationsScreen: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                   maxLength={5}
                   style={styles.quietTimeInput}
                   disabled={isUpdatingQuietPeriodSettings}
+                  onFocus={handleQuietInputFocus}
                 />
                 <AnimatedTextInput
                   placeholder="До"
@@ -338,6 +597,7 @@ const NotificationsScreen: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                   maxLength={5}
                   style={styles.quietTimeInput}
                   disabled={isUpdatingQuietPeriodSettings}
+                  onFocus={handleQuietInputFocus}
                 />
               </View>
             ) : null}
@@ -420,6 +680,8 @@ const NotificationsScreen: React.FC<{ onBack: () => void }> = ({ onBack }) => {
           </ThemedText>
         </TouchableOpacity>
       </ThemedView> */}
+        </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 };
@@ -430,11 +692,33 @@ export const MySettingsModal: React.FC<MySettingsProps> = ({
 }) => {
   const { themeMode, setThemeMode, isDark } = useAppTheme();
   const [showNotifications, setShowNotifications] = useState<boolean>(false);
+  const [showPrivacy, setShowPrivacy] = useState<boolean>(false);
 
   const handleCloseAll = () => {
     setShowNotifications(false);
+    setShowPrivacy(false);
     onClose();
   };
+
+  if (showPrivacy) {
+    return (
+      <AppModal
+        animationType="slide"
+        transparent={true}
+        visible={visible}
+        onRequestClose={handleCloseAll}
+        statusBarTranslucent={true}
+      >
+        <ThemedView
+          lightColor="#EBEDF0"
+          darkColor="#040508"
+          style={styles.modalContainer}
+        >
+          <PrivacyScreen onBack={() => setShowPrivacy(false)} />
+        </ThemedView>
+      </AppModal>
+    );
+  }
 
   if (showNotifications) {
     return (
@@ -485,7 +769,7 @@ export const MySettingsModal: React.FC<MySettingsProps> = ({
           </ThemedText>
 
           <View style={styles.documentRow}>
-            <ThemedText lightColor="#1B1B1C" darkColor="#FBFCFF">
+            <ThemedText  style={styles.menuText} lightColor="#1B1B1C" darkColor="#FBFCFF">
               Темная тема
             </ThemedText>
             <AppSwitch
@@ -496,7 +780,7 @@ export const MySettingsModal: React.FC<MySettingsProps> = ({
           </View>
 
           <View style={styles.documentRow}>
-            <ThemedText lightColor="#1B1B1C" darkColor="#FBFCFF">
+            <ThemedText  style={styles.menuText} lightColor="#1B1B1C" darkColor="#FBFCFF">
               Системная тема
             </ThemedText>
             <AppSwitch
@@ -524,8 +808,31 @@ export const MySettingsModal: React.FC<MySettingsProps> = ({
             activeOpacity={0.7}
           >
             <View style={styles.documentRow}>
-              <ThemedText lightColor="#1B1B1C" darkColor="#FBFCFF">
+              <ThemedText  style={styles.menuText} lightColor="#1B1B1C" darkColor="#FBFCFF">
                 Уведомления
+              </ThemedText>
+              <ArrowIconRight />
+            </View>
+          </TouchableOpacity>
+
+          <View
+            style={[
+              styles.divider,
+              { backgroundColor: isDark ? "#252527" : "#F0F3F7" },
+            ]}
+          />
+
+          <ThemedText style={styles.titleBlock} lightColor="#1B1B1C" darkColor="#FBFCFF">
+            Конфиденциальность
+          </ThemedText>
+
+          <TouchableOpacity
+            onPress={() => setShowPrivacy(true)}
+            activeOpacity={0.7}
+          >
+            <View style={styles.documentRow}>
+              <ThemedText  style={styles.menuText} lightColor="#1B1B1C" darkColor="#FBFCFF">
+                Конфиденциальность
               </ThemedText>
               <ArrowIconRight />
             </View>
@@ -555,6 +862,56 @@ const styles = StyleSheet.create({
   fullScreenContent: {
     flex: 1,
   },
+  notificationsKeyboardAvoiding: {
+    flex: 1,
+  },
+  notificationsScrollView: {
+    flex: 1,
+  },
+  privacyScrollContent: {
+    flexGrow: 1,
+    // paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 24,
+    gap: 8,
+  },
+  privacyCard: {
+    borderRadius: 16,
+    overflow: "hidden",
+  },
+  privacyOptionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 18,
+  },
+  privacyDivider: {
+    height: 1,
+    marginLeft: 44,
+  },
+  privacyActionsGroup: {
+    padding: 16,
+    gap: 8,
+  },
+  privacyCheckboxLabel: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: "500",
+    lineHeight: 22,
+  },
+  privacyActionButton: {
+    backgroundColor: "#F0F3F7",
+    borderRadius: 12,
+    paddingVertical: 18,
+    paddingHorizontal: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 56,
+  },
+  privacyActionButtonDark: {
+    backgroundColor: "#252527",
+  },
   paymentsMainContainer: {
     paddingHorizontal: 16,
     borderRadius: 16,
@@ -571,6 +928,10 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     paddingVertical: 18,
+  },
+  menuText:{
+    fontWeight: '500',
+    fontSize: 16
   },
   titleBlock:{
     fontWeight: "600",

@@ -13,7 +13,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { Keyboard, ScrollView, StyleSheet } from "react-native";
 import Catalog from "../components/Catalog/Catalog";
 
-const SEARCH_HISTORY_KEY = "@search_history";
+import { SEARCH_HISTORY_STORAGE_KEY } from "@/features/shared/services/privacyStorage";
 
 type SearchCatalogScrollProps = {
   onAddToCartPress: (product: any) => void;
@@ -77,7 +77,7 @@ export const SearchScreenWithHistory: React.FC<
 
   const loadSearchHistory = async () => {
     try {
-      const history = await AsyncStorage.getItem(SEARCH_HISTORY_KEY);
+      const history = await AsyncStorage.getItem(SEARCH_HISTORY_STORAGE_KEY);
       if (history) {
         setSearchHistory(JSON.parse(history));
       }
@@ -90,7 +90,7 @@ export const SearchScreenWithHistory: React.FC<
     if (!query.trim()) return;
 
     try {
-      const history = await AsyncStorage.getItem(SEARCH_HISTORY_KEY);
+      const history = await AsyncStorage.getItem(SEARCH_HISTORY_STORAGE_KEY);
       let historyArray: string[] = history ? JSON.parse(history) : [];
 
       historyArray = historyArray.filter(
@@ -104,7 +104,7 @@ export const SearchScreenWithHistory: React.FC<
       }
 
       await AsyncStorage.setItem(
-        SEARCH_HISTORY_KEY,
+        SEARCH_HISTORY_STORAGE_KEY,
         JSON.stringify(historyArray),
       );
       setSearchHistory(historyArray);
@@ -128,7 +128,7 @@ export const SearchScreenWithHistory: React.FC<
 
   const handleClearHistory = useCallback(async () => {
     try {
-      await AsyncStorage.removeItem(SEARCH_HISTORY_KEY);
+      await AsyncStorage.removeItem(SEARCH_HISTORY_STORAGE_KEY);
       setSearchHistory([]);
     } catch (error) {
       console.error("Ошибка очистки истории поиска:", error);
@@ -140,7 +140,7 @@ export const SearchScreenWithHistory: React.FC<
       const newHistory = currentHistory.filter((item) => item !== itemToRemove);
 
       void AsyncStorage.setItem(
-        SEARCH_HISTORY_KEY,
+        SEARCH_HISTORY_STORAGE_KEY,
         JSON.stringify(newHistory),
       ).catch((error) => {
         console.error("Ошибка удаления элемента из истории:", error);

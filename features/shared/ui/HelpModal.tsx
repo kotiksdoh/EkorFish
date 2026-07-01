@@ -3,11 +3,12 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { getHeplListThunk, getMyParams } from "@/features/auth/authSlice";
 import { ModalHeader } from "@/features/auth/ui/Header";
-import { openPhoneDialer } from "@/features/shared/utils/phoneLinking";
+import { AppModal } from "@/features/shared/ui/AppModal";
 import {
   getAppVersionInfo,
   loadAppAboutDynamicInfo,
 } from "@/features/shared/utils/appAboutInfo";
+import { openPhoneDialer } from "@/features/shared/utils/phoneLinking";
 import {
   getSupportContactsFromParams,
   normalizeTelegramUrl,
@@ -17,12 +18,11 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, Linking, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
-import { AppModal } from "@/features/shared/ui/AppModal";
 
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { LegalDocumentId } from "@/features/shared/legal/buildLegalHtml";
 import { HtmlContentViewer } from "@/features/shared/ui/HtmlContentViewer";
 import { getLegalDocumentTitle, LegalDocumentViewer } from "@/features/shared/ui/LegalDocumentViewer";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PrimaryButton } from "./components/PrimartyButton";
 import { SnapBottomSheet } from "./SnapBottomSheet";
 
@@ -52,6 +52,9 @@ interface HelpProps {
 
 type ScreenState = 'main' | 'helpList' | 'about' | 'helpContent' | 'legalDocument';
 type SupportModalState = 'hidden' | 'visible';
+
+const formatHelpTypeLabel = (type: string) =>
+  type.charAt(0).toUpperCase() + type.slice(1);
 
 export const HelpModal: React.FC<HelpProps> = ({ visible, onClose }) => {
   const insets = useSafeAreaInsets();
@@ -87,11 +90,26 @@ export const HelpModal: React.FC<HelpProps> = ({ visible, onClose }) => {
     currentHtml: string;
   } | null>(null);
   const [legalDocumentId, setLegalDocumentId] = useState<LegalDocumentId | null>(null);
+  const [selectedHelpType, setSelectedHelpType] = useState<string | null>(null);
   const versionInfo = useMemo(() => getAppVersionInfo(), []);
   const [aboutInfo, setAboutInfo] = useState({
     lastUpdate: "Загрузка...",
     cacheSize: "Загрузка...",
   });
+
+  useEffect(() => {
+    if (!visible) {
+      setSelectedHelpType(null);
+    }
+  }, [visible]);
+
+  const filteredHelpList = useMemo(() => {
+    if (!selectedHelpType) {
+      return helpList;
+    }
+
+    return helpList.filter((helpObj) => helpObj.type === selectedHelpType);
+  }, [helpList, selectedHelpType]);
 
   useEffect(() => {
     if (screenState !== "about") {
@@ -127,6 +145,7 @@ export const HelpModal: React.FC<HelpProps> = ({ visible, onClose }) => {
       setLegalDocumentId(null);
       setScreenState('about');
     } else if (screenState === 'helpList') {
+      setSelectedHelpType(null);
       setScreenState('main');
     } else if (screenState === 'about') {
       setScreenState('main');
@@ -237,21 +256,21 @@ export const HelpModal: React.FC<HelpProps> = ({ visible, onClose }) => {
       <ThemedView lightColor="#FFFFFF" darkColor="#151516" style={styles.mainMenuCard}>
         <TouchableOpacity onPress={loadHelpList} activeOpacity={0.7}>
           <View style={[styles.menuRow, { borderColor: isDark ? "#252527" : "#F0F3F7" }]}>
-            <ThemedText>Помощь</ThemedText>
+            <ThemedText style={styles.menuText}>Помощь</ThemedText>
             <ArrowIconRight />
           </View>
         </TouchableOpacity>
 
         <TouchableOpacity onPress={() => setSupportModalState('visible')} activeOpacity={0.7}>
           <View style={[styles.menuRow, { borderColor: isDark ? "#252527" : "#F0F3F7" }]}>
-            <ThemedText>Поддержка</ThemedText>
+            <ThemedText style={styles.menuText}>Поддержка</ThemedText>
             <ArrowIconRight />
           </View>
         </TouchableOpacity>
 
         <TouchableOpacity onPress={() => setScreenState('about')} activeOpacity={0.7}>
           <View style={[styles.menuRow, { borderColor: isDark ? "#252527" : "#F0F3F7" }]}>
-            <ThemedText>О приложении</ThemedText>
+            <ThemedText style={styles.menuText}>О приложении</ThemedText>
             <ArrowIconRight />
           </View>
         </TouchableOpacity>
@@ -269,8 +288,69 @@ export const HelpModal: React.FC<HelpProps> = ({ visible, onClose }) => {
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
     >
-      <ThemedView lightColor="#FFFFFF" darkColor="#151516" style={styles.helpListCard}>
-        {helpList.map((helpObj) => (
+      <ThemedView
+        lightColor="#FFFFFF"
+        darkColor="#151516"
+        style={styles.helpListCard}
+      >
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.helpChipsScroll}
+          contentContainerStyle={styles.helpChipsContent}
+          keyboardShouldPersistTaps="handled"
+        >
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => setSelectedHelpType(null)}
+          >
+            <View
+              style={[
+                styles.helpChip,
+                isDark && selectedHelpType !== null && styles.helpChipDark,
+                selectedHelpType === null && styles.helpChipSelected,
+              ]}
+            >
+              <ThemedText
+                lightColor={selectedHelpType === null ? "#FBFCFF" : "#1B1B1C"}
+                darkColor="#FBFCFF"
+                style={styles.helpChipText}
+              >
+                Все
+              </ThemedText>
+            </View>
+          </TouchableOpacity>
+
+          {helpList.map((helpObj) => {
+            const isSelected = selectedHelpType === helpObj.type;
+
+            return (
+              <TouchableOpacity
+                key={helpObj.type}
+                activeOpacity={0.7}
+                onPress={() => setSelectedHelpType(helpObj.type)}
+              >
+                <View
+                  style={[
+                    styles.helpChip,
+                    isDark && !isSelected && styles.helpChipDark,
+                    isSelected && styles.helpChipSelected,
+                  ]}
+                >
+                  <ThemedText
+                    lightColor={isSelected ? "#FBFCFF" : "#1B1B1C"}
+                    darkColor={isSelected ? "#FBFCFF" : "#FBFCFF"}
+                    style={styles.helpChipText}
+                  >
+                    {formatHelpTypeLabel(helpObj.type)}
+                  </ThemedText>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+
+        {filteredHelpList.map((helpObj) => (
           <View style={styles.helpSection} key={helpObj.type}>
             <ThemedText
               type="subtitle"
@@ -278,9 +358,9 @@ export const HelpModal: React.FC<HelpProps> = ({ visible, onClose }) => {
               lightColor="#1B1B1C"
               style={styles.helpSectionTitle}
             >
-              {helpObj.type[0].toUpperCase() + helpObj.type.slice(1)}
+              {formatHelpTypeLabel(helpObj.type)}
             </ThemedText>
-            {helpObj.items.map((helpItem) => (
+            {helpObj.items.map((helpItem, index) => (
               <TouchableOpacity
                 key={helpItem.title}
                 onPress={() => onCkickHelp(helpObj, helpItem)}
@@ -289,10 +369,15 @@ export const HelpModal: React.FC<HelpProps> = ({ visible, onClose }) => {
                 <View
                   style={[
                     styles.menuRow,
+                    index === helpObj.items.length - 1 && styles.menuRowLast,
                     { borderColor: isDark ? "#252527" : "#F0F3F7" },
                   ]}
                 >
-                  <ThemedText darkColor="#FBFCFF" lightColor="#1B1B1C">
+                  <ThemedText
+                    darkColor="#FBFCFF"
+                    lightColor="#1B1B1C"
+                    style={styles.helpItemText}
+                  >
                     {helpItem.title}
                   </ThemedText>
                   <ArrowIconRight />
@@ -474,6 +559,30 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingTop: 8,
   },
+  helpChipsScroll: {
+    flexGrow: 0,
+    marginBottom: 8,
+  },
+  helpChipsContent: {
+    paddingTop: 16,
+    gap: 8,
+  },
+  helpChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: "#F0F3F7",
+  },
+  helpChipDark: {
+    backgroundColor: "#202022",
+  },
+  helpChipSelected: {
+    backgroundColor: "#203686",
+  },
+  helpChipText: {
+    fontSize: 14,
+    fontWeight: "500",
+  },
   mainMenuCard: {
     borderRadius: 16,
     paddingHorizontal: 16,
@@ -485,17 +594,32 @@ const styles = StyleSheet.create({
     paddingVertical: 18,
     borderBottomWidth: 1,
   },
+  menuText:{
+    fontWeight: '500',
+    fontSize: 16
+  },
   helpSection: {
-    marginBottom: 24,
     gap: 4,
   },
   helpSectionTitle: {
-    paddingTop: 16,
+    paddingTop: 8,
     paddingBottom: 8,
+    fontSize: 20,
+    fontWeight: "600",
   },
   helpListCard: {
     borderRadius: 16,
     paddingHorizontal: 16,
+    overflow: "hidden",
+  },
+  helpItemText: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: "500",
+    paddingRight: 12,
+  },
+  menuRowLast: {
+    borderBottomWidth: 0,
   },
   aboutContainer: {
     flex: 1,
