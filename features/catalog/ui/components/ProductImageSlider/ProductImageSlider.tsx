@@ -299,6 +299,7 @@ export const ProductImageSlider: React.FC<ProductImageSliderProps> = ({
                   currentIndex={currentIndex}
                   autoPlayInterval={autoPlayInterval}
                   isPlaying={isAutoPlaying && isScreenFocused}
+                  variant="product"
                 />
               </TouchableOpacity>
             ))}

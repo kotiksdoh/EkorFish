@@ -7,6 +7,7 @@ interface ProgressIndicatorProps {
   currentIndex: number;
   autoPlayInterval: number;
   isPlaying: boolean;
+  variant?: "default" | "product";
 }
 
 export const ProgressIndicator: React.FC<ProgressIndicatorProps> = ({
@@ -14,6 +15,7 @@ export const ProgressIndicator: React.FC<ProgressIndicatorProps> = ({
   currentIndex,
   autoPlayInterval = 4000,
   isPlaying,
+  variant = "default",
 }) => {
   const progressWidth = useRef(new Animated.Value(6)).current; // Начальная ширина 6px
   const isActive = index === currentIndex;
@@ -41,22 +43,41 @@ export const ProgressIndicator: React.FC<ProgressIndicatorProps> = ({
       progressWidth.setValue(6);
     }
   }, [isActive, isPlaying, autoPlayInterval, progressWidth]);
-  const systemTheme = useColorScheme(); 
-  const currentTheme = systemTheme || 'light' 
-  const codeBackgroundColor = currentTheme === 'dark' ? '#202022' : '#F2F4F7';
+  const systemTheme = useColorScheme();
+  const isDarkMode = systemTheme === "dark";
+
+  const colors =
+    variant === "product"
+      ? isDarkMode
+        ? {
+            dot: "rgba(255, 255, 255, 0.5)",
+            track: "rgba(255, 255, 255, 0.3)",
+            progress: "#202022",
+          }
+        : {
+            dot: "#C0C0C5",
+            track: "#C0C0C5",
+            progress: "#80818B",
+          }
+      : {
+          dot: "rgba(255, 255, 255, 0.5)",
+          track: "rgba(255, 255, 255, 0.3)",
+          progress: isDarkMode ? "#202022" : "#F2F4F7",
+        };
+
   // Только активный слайд показывает анимирующуюся линию
   if (isActive) {
     return (
       <View style={styles.container}>
-        <View style={styles.track}>
-          <Animated.View 
+        <View style={[styles.track, { backgroundColor: colors.track }]}>
+          <Animated.View
             style={[
               styles.progress,
               {
                 width: progressWidth,
-                backgroundColor:codeBackgroundColor
-              }
-            ]} 
+                backgroundColor: colors.progress,
+              },
+            ]}
           />
         </View>
       </View>
@@ -64,7 +85,7 @@ export const ProgressIndicator: React.FC<ProgressIndicatorProps> = ({
   }
 
   // Все остальные - просто точки
-  return <View style={styles.dot} />;
+  return <View style={[styles.dot, { backgroundColor: colors.dot }]} />;
 };
 
 const styles = StyleSheet.create({
@@ -74,19 +95,16 @@ const styles = StyleSheet.create({
   track: {
     width: 32, // w-8
     height: 6, // h-1.5
-    backgroundColor: 'rgba(255, 255, 255, 0.3)', // bg-white/30
     borderRadius: 9999,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   progress: {
-    height: '100%',
-    // backgroundColor: '#FFFFFF', // bg-white
+    height: "100%",
     borderRadius: 9999,
   },
   dot: {
     width: 6, // w-1.5
     height: 6, // h-1.5
-    backgroundColor: 'rgba(255, 255, 255, 0.5)', // bg-white/50
     borderRadius: 9999,
     marginHorizontal: 4,
   },

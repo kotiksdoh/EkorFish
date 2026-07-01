@@ -261,6 +261,7 @@ export const ProductDetailGallery: React.FC<ProductDetailGalleryProps> = ({
                   currentIndex={currentIndex}
                   autoPlayInterval={autoPlayInterval}
                   isPlaying={isAutoPlaying && isScreenFocused}
+                  variant="product"
                 />
               </TouchableOpacity>
             ))}
