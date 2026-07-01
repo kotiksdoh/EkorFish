@@ -82,8 +82,12 @@ export function AnimatedStackedSheet({
     if (!mounted) return;
     if (visible) {
       openWithAnimation();
+      return;
     }
-  }, [visible, mounted, openWithAnimation]);
+    if (!closingRef.current) {
+      closeWithAnimation();
+    }
+  }, [visible, mounted, openWithAnimation, closeWithAnimation]);
 
   useEffect(() => {
     onBindCloseRequest?.(visible && mounted ? closeWithAnimation : null);

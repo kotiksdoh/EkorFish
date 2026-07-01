@@ -1,13 +1,21 @@
 // MyReturnsThirdStep.tsx
+import { ArrowIconRight, IconCompanyNew } from "@/assets/icons/icons";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { setCompany } from "@/features/auth/authSlice";
 import { ModalHeader } from "@/features/auth/ui/Header";
+import { getCompanyAddresses } from "@/features/catalog/catalogSlice";
 import { RecommendedOrderProducts } from "@/features/catalog/ui/components/RecommendedOrderProducts/RecommendedOrderProducts";
 import { AddToCartModal } from "@/features/shared/ui/AddToCartModal";
 import { AddressSelectionModal } from "@/features/shared/ui/AddressSelectionModal";
+import { AnimatedStackedSheet } from "@/features/shared/ui/AnimatedStackedSheet";
 import { TownSelectionModal } from "@/features/shared/ui/TownSelectionModal";
 import { PrimaryButton } from "@/features/shared/ui/components/PrimartyButton";
+import { useSavedAddress } from "@/features/shared/services/useSavedAddress";
+import {
+  formatAddressSummary,
+  getCompanyDeliveryAddresses,
+} from "@/features/shared/utils/deliveryAddress";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { Image as ExpoImage } from "expo-image";
@@ -33,13 +41,33 @@ function classifyReturnMethodByName(name: string | undefined): "address" | "stor
   return "other";
 }
 
+function extractCreatedReturnId(result: unknown): number | null {
+  if (!result || typeof result !== "object") {
+    return null;
+  }
+  const payload = result as Record<string, unknown>;
+  const nested =
+    payload.data && typeof payload.data === "object"
+      ? (payload.data as Record<string, unknown>)
+      : null;
+  const rawId = payload.id ?? nested?.id;
+  if (typeof rawId === "number" && Number.isFinite(rawId)) {
+    return rawId;
+  }
+  if (typeof rawId === "string" && rawId.trim()) {
+    const parsed = Number(rawId);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+}
+
 interface MyReturnsThirdStepProps {
   visible: boolean;
   onClose: () => void;
   /** Закрыть всё и перейти на главную (каталог). */
   onNavigateHome?: () => void;
-  /** Остаться в возвратах: закрыть шаги мастера, обновить список. */
-  onViewReturnDetails?: () => void;
+  /** Остаться в возвратах: закрыть шаги мастера и открыть детали созданной заявки. */
+  onViewReturnDetails?: (returnRequestId?: number) => void;
 }
 
 export const MyReturnsThirdStep: React.FC<MyReturnsThirdStepProps> = ({
@@ -66,20 +94,55 @@ export const MyReturnsThirdStep: React.FC<MyReturnsThirdStepProps> = ({
   const [deliveryAddressId, setDeliveryAddressId] = useState<string | null>(null);
   const [storageIdForReturn, setStorageIdForReturn] = useState<string | null>(null);
   const [selectedAddressForReturn, setSelectedAddressForReturn] = useState<any | null>(null);
+  const [showAddressSummaryModal, setShowAddressSummaryModal] = useState(false);
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [showTownModal, setShowTownModal] = useState(false);
+  const [summaryAddresses, setSummaryAddresses] = useState<any[]>([]);
+  const [isSummaryAddressesLoading, setIsSummaryAddressesLoading] = useState(false);
+  const { savedAddress } = useSavedAddress(currentCompany?.id);
   const [showSuccessContent, setShowSuccessContent] = useState(false);
   const [selectedProductForCart, setSelectedProductForCart] = useState<any>(null);
   const [existingCartItem, setExistingCartItem] = useState<any>(null);
   const [showAddToCartModal, setShowAddToCartModal] = useState(false);
+  const [createdReturnId, setCreatedReturnId] = useState<number | null>(null);
 
   useEffect(() => {
     if (!visible) {
       setShowSuccessContent(false);
+      setShowAddressSummaryModal(false);
       setShowAddressModal(false);
       setShowTownModal(false);
+      setCreatedReturnId(null);
     }
   }, [visible]);
+
+  useEffect(() => {
+    if (!showAddressSummaryModal || !currentCompany?.id) {
+      return;
+    }
+
+    let cancelled = false;
+    const loadSummaryAddresses = async () => {
+      setIsSummaryAddressesLoading(true);
+      try {
+        const result = await dispatch(getCompanyAddresses(currentCompany.id));
+        if (!cancelled && getCompanyAddresses.fulfilled.match(result)) {
+          setSummaryAddresses(result.payload || []);
+        }
+      } catch (error) {
+        console.error("Error loading return pickup addresses:", error);
+      } finally {
+        if (!cancelled) {
+          setIsSummaryAddressesLoading(false);
+        }
+      }
+    };
+
+    loadSummaryAddresses();
+    return () => {
+      cancelled = true;
+    };
+  }, [showAddressSummaryModal, currentCompany?.id, dispatch]);
 
   // Получаем методы возврата и возврата денег из статусов
   const returnMethods = (returnsStatuses as any)?.returnMethods || [];
@@ -175,21 +238,46 @@ export const MyReturnsThirdStep: React.FC<MyReturnsThirdStepProps> = ({
     return classifyReturnMethodByName(selectedReturnMethodMeta?.name);
   }, [selectedReturnMethodMeta]);
 
+  const companyDeliveryAddresses = useMemo(
+    () =>
+      summaryAddresses.length > 0
+        ? summaryAddresses
+        : getCompanyDeliveryAddresses(currentCompany),
+    [summaryAddresses, currentCompany],
+  );
+
+  const displayAddressForReturnSummary = useMemo(() => {
+    if (selectedAddressForReturn) {
+      return selectedAddressForReturn;
+    }
+    if (
+      savedAddress?.id &&
+      companyDeliveryAddresses.some((address: any) => address.id === savedAddress.id)
+    ) {
+      return savedAddress;
+    }
+    return companyDeliveryAddresses[0] ?? null;
+  }, [selectedAddressForReturn, savedAddress, companyDeliveryAddresses]);
+
   const handleReturnMethodSelect = useCallback(
     (method: any) => {
       setSelectedReturnMethod(method.method);
       const kind = classifyReturnMethodByName(method.name);
       if (kind === "address") {
         setStorageIdForReturn(null);
-        setShowAddressModal(true);
+        setShowAddressSummaryModal(true);
       } else if (kind === "storage") {
         setDeliveryAddressId(null);
         setSelectedAddressForReturn(null);
+        setShowAddressSummaryModal(false);
+        setShowAddressModal(false);
         setShowTownModal(true);
       } else {
         setDeliveryAddressId(null);
         setStorageIdForReturn(null);
         setSelectedAddressForReturn(null);
+        setShowAddressSummaryModal(false);
+        setShowAddressModal(false);
       }
     },
     []
@@ -215,7 +303,34 @@ export const MyReturnsThirdStep: React.FC<MyReturnsThirdStepProps> = ({
 
   const handleAddCompanyForReturn = useCallback(() => {
     setShowAddressModal(false);
+    setShowAddressSummaryModal(false);
   }, []);
+
+  const handleApplyReturnPickupAddress = useCallback(() => {
+    if (!displayAddressForReturnSummary?.id) {
+      setShowAddressModal(true);
+      return;
+    }
+    setSelectedAddressForReturn(displayAddressForReturnSummary);
+    setDeliveryAddressId(String(displayAddressForReturnSummary.id));
+    setShowAddressSummaryModal(false);
+  }, [displayAddressForReturnSummary]);
+
+  const closeReturnLocationModals = useCallback(() => {
+    if (showAddressModal) {
+      setShowAddressModal(false);
+      return true;
+    }
+    if (showAddressSummaryModal) {
+      setShowAddressSummaryModal(false);
+      return true;
+    }
+    if (showTownModal) {
+      setShowTownModal(false);
+      return true;
+    }
+    return false;
+  }, [showAddressModal, showAddressSummaryModal, showTownModal]);
 
   const hasRequiredReturnLocation = useMemo(() => {
     if (returnMethodKind === "address") {
@@ -264,7 +379,8 @@ export const MyReturnsThirdStep: React.FC<MyReturnsThirdStepProps> = ({
         payload.storageId = storageIdForReturn;
       }
 
-      await dispatch(createReturnRequest(payload)).unwrap();
+      const result = await dispatch(createReturnRequest(payload)).unwrap();
+      setCreatedReturnId(extractCreatedReturnId(result));
       setShowSuccessContent(true);
     } catch (error) {
       console.error("Error creating return request:", error);
@@ -318,6 +434,11 @@ export const MyReturnsThirdStep: React.FC<MyReturnsThirdStepProps> = ({
     deliveryAddressId,
     storageIdForReturn,
   ]);
+
+  const openCreatedReturnDetails = useCallback(() => {
+    setShowSuccessContent(false);
+    onViewReturnDetails?.(createdReturnId ?? undefined);
+  }, [createdReturnId, onViewReturnDetails]);
 
   const renderProductRow = (item: (typeof selectedProducts)[0], isLast: boolean) => {
     const imageSource = item.productImage
@@ -420,17 +541,11 @@ export const MyReturnsThirdStep: React.FC<MyReturnsThirdStepProps> = ({
       transparent={false}
       visible={visible}
       onRequestClose={() => {
-        if (showAddressModal) {
-          setShowAddressModal(false);
-          return;
-        }
-        if (showTownModal) {
-          setShowTownModal(false);
+        if (closeReturnLocationModals()) {
           return;
         }
         if (showSuccessContent) {
-          setShowSuccessContent(false);
-          onViewReturnDetails?.();
+          openCreatedReturnDetails();
         } else {
           onClose();
         }
@@ -450,8 +565,7 @@ export const MyReturnsThirdStep: React.FC<MyReturnsThirdStepProps> = ({
           showCloseButton={true}
           onBackPress={() => {
             if (showSuccessContent) {
-              setShowSuccessContent(false);
-              onViewReturnDetails?.();
+              openCreatedReturnDetails();
             } else {
               onClose();
             }
@@ -495,10 +609,7 @@ export const MyReturnsThirdStep: React.FC<MyReturnsThirdStepProps> = ({
                 <View style={styles.successButtonDetails}>
                   <PrimaryButton
                     title="Детали возврата"
-                    onPress={() => {
-                      setShowSuccessContent(false);
-                      onViewReturnDetails?.();
-                    }}
+                    onPress={openCreatedReturnDetails}
                     variant="third"
                     size="md"
                     fullWidth
@@ -679,6 +790,95 @@ export const MyReturnsThirdStep: React.FC<MyReturnsThirdStepProps> = ({
           </>
         )}
 
+        <AnimatedStackedSheet
+          visible={showAddressSummaryModal}
+          onClose={() => setShowAddressSummaryModal(false)}
+          contentHorizontalPadding={0}
+        >
+          <View style={styles.pickupSummaryHeader}>
+            <ThemedText style={styles.pickupSummaryTitle}>
+              Откуда забрать товары?
+            </ThemedText>
+            <ThemedText
+              lightColor="#80818B"
+              darkColor="#FBFCFF80"
+              style={styles.pickupSummaryDescription}
+            >
+              Товары будут забраны во время следующей доставки в вашу компанию.
+            </ThemedText>
+          </View>
+
+          <ThemedView
+            darkColor="#202022"
+            lightColor="#F2F4F7"
+            style={styles.pickupSummaryAddressBlock}
+          >
+            <TouchableOpacity
+              style={styles.pickupSummaryAddressRow}
+              onPress={() => setShowAddressModal(true)}
+              activeOpacity={0.7}
+            >
+              <View style={styles.pickupSummaryAddressRowInner}>
+                <ThemedView
+                  lightColor="#FFFFFF"
+                  darkColor="#151516"
+                  style={styles.pickupSummaryIcon}
+                >
+                  <IconCompanyNew color={isDark ? "#FBFCFF" : "#1B1B1C"} />
+                </ThemedView>
+                <View style={styles.pickupSummaryAddressColumn}>
+                  <ThemedText
+                    darkColor="#FBFCFF"
+                    lightColor="#1B1B1C"
+                    style={styles.pickupSummaryCompanyName}
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                  >
+                    {currentCompany?.name || "Выберите компанию"}
+                  </ThemedText>
+                  {isSummaryAddressesLoading ? (
+                    <ActivityIndicator size="small" color="#203686" />
+                  ) : (
+                    <ThemedText
+                      lightColor="#80818B"
+                      darkColor="#FBFCFF80"
+                      style={styles.pickupSummaryAddressText}
+                      numberOfLines={2}
+                      ellipsizeMode="tail"
+                    >
+                      {formatAddressSummary(displayAddressForReturnSummary)}
+                    </ThemedText>
+                  )}
+                </View>
+              </View>
+              <ArrowIconRight />
+            </TouchableOpacity>
+
+            <PrimaryButton
+              title={
+                companyDeliveryAddresses.length === 0
+                  ? "Добавить адрес"
+                  : "Изменить адрес"
+              }
+              onPress={() => setShowAddressModal(true)}
+              variant="black"
+              size="md"
+              fullWidth
+            />
+          </ThemedView>
+
+          <View style={styles.pickupSummaryApplyContainer}>
+            <PrimaryButton
+              title="Применить"
+              onPress={handleApplyReturnPickupAddress}
+              variant="primary"
+              size="md"
+              fullWidth
+              disabled={!displayAddressForReturnSummary?.id}
+            />
+          </View>
+        </AnimatedStackedSheet>
+
         <AddressSelectionModal
           stacked
           visible={showAddressModal}
@@ -690,6 +890,7 @@ export const MyReturnsThirdStep: React.FC<MyReturnsThirdStepProps> = ({
           onSelectCompany={handleSelectCompanyForReturn}
           onSelectAddress={handleSelectAddressForReturn}
           onAddCompany={handleAddCompanyForReturn}
+          modalTitle="Откуда забрать товары?"
         />
 
         <TownSelectionModal
@@ -699,6 +900,7 @@ export const MyReturnsThirdStep: React.FC<MyReturnsThirdStepProps> = ({
           onClose={() => setShowTownModal(false)}
           storageId={storageIdForReturn || (me as any)?.storageId || ""}
           onTownSelected={handleTownSelectedForReturn}
+          modalTitle="Выберите склад для возврата"
         />
 
         <AddToCartModal
@@ -883,6 +1085,64 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlign: "center",
     marginTop: 8,
+  },
+  pickupSummaryHeader: {
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 16,
+  },
+  pickupSummaryTitle: {
+    fontSize: 20,
+    fontWeight: "600",
+    marginBottom: 8,
+  },
+  pickupSummaryDescription: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: "500",
+  },
+  pickupSummaryAddressBlock: {
+    marginHorizontal: 20,
+    padding: 8,
+    borderRadius: 16,
+  },
+  pickupSummaryAddressRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  pickupSummaryAddressRowInner: {
+    flexDirection: "row",
+    gap: 12,
+    flex: 1,
+    flexShrink: 1,
+    alignItems: "flex-start",
+  },
+  pickupSummaryIcon: {
+    padding: 8,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    alignSelf: "flex-start",
+  },
+  pickupSummaryAddressColumn: {
+    flex: 1,
+    flexShrink: 1,
+  },
+  pickupSummaryCompanyName: {
+    fontWeight: "600",
+    fontSize: 16,
+    marginBottom: 4,
+  },
+  pickupSummaryAddressText: {
+    fontSize: 14,
+    fontWeight: "500",
+    lineHeight: 20,
+  },
+  pickupSummaryApplyContainer: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
   },
   successScrollView: {
     flex: 1,

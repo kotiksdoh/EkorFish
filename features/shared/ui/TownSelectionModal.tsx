@@ -25,6 +25,8 @@ interface TownSelectionModalProps {
   stacked?: boolean;
   /** Только выбор склада без обновления профиля (заявка на возврат). */
   selectionOnly?: boolean;
+  /** Переопределение заголовка (например, заявка на возврат). */
+  modalTitle?: string;
 }
 
 export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
@@ -35,7 +37,9 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
   embedded = false,
   stacked = false,
   selectionOnly = false,
+  modalTitle,
 }) => {
+  const townModalTitle = modalTitle ?? "Укажите город";
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === "dark";
   const dispatch = useAppDispatch();
@@ -250,7 +254,7 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
         contentHorizontalPadding={0}
       >
         <View style={styles.modalHeader}>
-          <ThemedText style={styles.modalTitle}>Укажите город</ThemedText>
+          <ThemedText style={styles.modalTitle}>{townModalTitle}</ThemedText>
         </View>
         {townList}
         {applyButton}
@@ -266,7 +270,7 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
         style={styles.embeddedRoot}
       >
         <ModalHeader
-          title="Укажите город"
+          title={townModalTitle}
           showBackButton
           onBackPress={() => closeModalWithAnimation()}
         />
@@ -318,7 +322,7 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
               </TouchableOpacity>
 
               <View style={styles.modalHeader}>
-                <ThemedText style={styles.modalTitle}>Укажите город</ThemedText>
+                <ThemedText style={styles.modalTitle}>{townModalTitle}</ThemedText>
               </View>
 
               {townList}

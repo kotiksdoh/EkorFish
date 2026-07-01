@@ -17,7 +17,8 @@ import { ThemedView } from "@/components/themed-view";
 import { getReturnRequestDetail } from "@/features/catalog/catalogSlice";
 import type { ReturnReasonId } from "@/features/returns/returnReason";
 import { isReturnReasonSelected } from "@/features/returns/returnReason";
-import { baseUrl, axdef } from "@/features/shared/services/axios";
+import { axdef, baseUrl } from "@/features/shared/services/axios";
+import { AppModal } from "@/features/shared/ui/AppModal";
 import { openTelegramByPhone } from "@/features/shared/utils/phoneLinking";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -27,13 +28,47 @@ import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, Animated, Dimensions, Linking, ScrollView, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
-import { AppModal } from "@/features/shared/ui/AppModal";
 
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SnapBottomSheet } from "./SnapBottomSheet";
 import { PrimaryButton } from "./components/PrimartyButton";
 
 const { height: screenHeight } = Dimensions.get("window");
+
+const RETURN_STATUS_ORDER = ["pending", "approved", "rejected"] as const;
+
+function normalizeReturnStatusKey(status: unknown): string {
+  return String(status ?? "").trim().toLowerCase();
+}
+
+function sortReturnStatuses(list: any[]): any[] {
+  return [...list].sort((a, b) => {
+    const aIndex = RETURN_STATUS_ORDER.indexOf(
+      normalizeReturnStatusKey(a.status) as (typeof RETURN_STATUS_ORDER)[number],
+    );
+    const bIndex = RETURN_STATUS_ORDER.indexOf(
+      normalizeReturnStatusKey(b.status) as (typeof RETURN_STATUS_ORDER)[number],
+    );
+    return (aIndex === -1 ? 999 : aIndex) - (bIndex === -1 ? 999 : bIndex);
+  });
+}
+
+function filterReturnStatusTimeline(
+  statuses: any[],
+  currentStatus: unknown,
+): any[] {
+  const currentKey = normalizeReturnStatusKey(currentStatus);
+  return statuses.filter((item) => {
+    const itemKey = normalizeReturnStatusKey(item.status);
+    if (currentKey === "approved" && itemKey === "rejected") {
+      return false;
+    }
+    if (currentKey === "rejected" && itemKey === "approved") {
+      return false;
+    }
+    return true;
+  });
+}
 
 interface ReturnDetailModalProps {
   visible: boolean;
@@ -95,7 +130,7 @@ export const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
     (state) => state.catalog.returnsStatuses,
   ) as any;
   const dispatch = useAppDispatch();
-
+  console.log('returnsStatuses', pageData)
   useEffect(() => {
     if (visible && returnRequestId) {
       dispatch(getReturnRequestDetail(returnRequestId));
@@ -335,11 +370,13 @@ export const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
         lightColor="#FFFFFF"
         style={styles.returnItemContainer}
       >
+        <View style={styles.contUnder}>
         <View style={styles.returnItemImageContainer}>
           <Image source={imageSource} style={styles.returnItemImage} contentFit="cover" />
         </View>
 
         <View style={styles.returnItemInfoContainer}>
+        <View>
           <View style={styles.returnItemHeaderRow}>
             <ThemedText
               style={styles.returnItemProductName}
@@ -357,8 +394,11 @@ export const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
               {formatPrice(item.totalPrice)} ₽
             </ThemedText>
           </View>
-
-          {hasReason && item.reasonName ? (
+         </View>
+       
+        </View>
+        </View>
+        {hasReason && item.reasonName ? (
             <ThemedView
               style={[
                 styles.returnItemReasonSection,
@@ -375,14 +415,14 @@ export const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                   {item.reasonName}
                   {item.comment ? ` (${item.comment})` : ""}
                 </ThemedText>
-                <ThemedText
+                {/* <ThemedText
                   style={styles.returnItemQtyLine}
                   lightColor="#80818B"
                   darkColor="#FBFCFF80"
                 >
                   {formatPrice(item.price)}₽ / {getMeasureLabel(item.measureType)} •{" "}
                   {item.returnQuantity} {getMeasureLabel(item.measureType)}
-                </ThemedText>
+                </ThemedText> */}
               </View>
             </ThemedView>
           ) : (
@@ -400,28 +440,30 @@ export const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
               >
                 Причина не указана
               </ThemedText>
-              <ThemedText
+              {/* <ThemedText
                 style={styles.returnItemQtyLine}
                 lightColor="#80818B"
                 darkColor="#FBFCFF80"
               >
                 {formatPrice(item.price)}₽ / {getMeasureLabel(item.measureType)} •{" "}
                 {item.returnQuantity} {getMeasureLabel(item.measureType)}
-              </ThemedText>
+              </ThemedText> */}
             </ThemedView>
           )}
-        </View>
       </ThemedView>
     );
   };
 
   const statusList = useMemo(() => {
     const list = pageData?.returnRequestStatuses || [];
-    const sorted = [...list].sort((a: any, b: any) => (a.status ?? 0) - (b.status ?? 0));
+    const sorted = sortReturnStatuses(list);
+    const filtered = detail
+      ? filterReturnStatusTimeline(sorted, detail.status)
+      : sorted;
 
     // На Android иногда приходит пустой справочник статусов,
     // поэтому показываем хотя бы текущий статус заявки, чтобы модалка не была пустой.
-    if (sorted.length === 0 && detail) {
+    if (filtered.length === 0 && detail) {
       return [
         {
           status: detail.status ?? 0,
@@ -430,18 +472,24 @@ export const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
       ];
     }
 
-    return sorted;
+    return filtered;
   }, [pageData, detail]);
 
   const getCurrentStatusName = () => {
     if (!detail) return "";
-    const s = statusList.find((x: any) => x.status === detail.status);
+    const currentKey = normalizeReturnStatusKey(detail.status);
+    const s = statusList.find(
+      (x: any) => normalizeReturnStatusKey(x.status) === currentKey,
+    );
     return s?.name || "Статус обновляется";
   };
 
   const getCurrentStatusIndex = () => {
     if (!detail) return -1;
-    return statusList.findIndex((x: any) => x.status === detail.status);
+    const currentKey = normalizeReturnStatusKey(detail.status);
+    return statusList.findIndex(
+      (x: any) => normalizeReturnStatusKey(x.status) === currentKey,
+    );
   };
 
   if (!visible) return null;
@@ -482,7 +530,7 @@ export const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
             </View>
           ) : !detail ? (
             <View style={styles.errorContainer}>
-              <ThemedText>Заказ не найден</ThemedText>
+              <ThemedText>Возврат не найден</ThemedText>
             </View>
           ) : (
             <ScrollView
@@ -707,7 +755,7 @@ export const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
               <ThemedView lightColor="#FFFFFF" style={styles.productsBlock}>
                 <View style={styles.productsHeader}>
                   <ThemedText style={styles.productsTitle}>
-                    Состав возврата
+                    Товары к возврату
                   </ThemedText>
                   <TouchableOpacity
                     onPress={() => setProductsModalVisible(true)}
@@ -1087,10 +1135,14 @@ const styles = StyleSheet.create({
   moreButton: { fontSize: 14, fontWeight: "500" },
   // Карточка товара — как в SelectedReturnItem (ReturnsSecondStep)
   returnItemContainer: {
-    flexDirection: "row",
-    padding: 16,
+    flexDirection: "column",
+    // padding: 16,
     borderRadius: 16,
     marginBottom: 8,
+  },
+  contUnder: {
+    flexDirection: "row",
+
   },
   returnItemImageContainer: {
     width: 74,
@@ -1127,6 +1179,7 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   returnItemReasonSection: {
+    marginTop: 16,
     borderRadius: 8,
     padding: 12,
     gap: 4,
@@ -1139,8 +1192,8 @@ const styles = StyleSheet.create({
   },
   returnItemReasonContent: { flex: 1 },
   returnItemSelectedReason: {
-    fontSize: 12,
-    fontWeight: "500",
+    fontSize: 14,
+    fontWeight: "600",
     lineHeight: 16,
   },
   returnItemQtyLine: {

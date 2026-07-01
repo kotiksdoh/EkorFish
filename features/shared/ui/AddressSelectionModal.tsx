@@ -37,6 +37,8 @@ interface AddressSelectionModalProps {
   embedded?: boolean;
   /** Bottom sheet поверх уже открытого fullScreen Modal (без вложенного Modal). */
   stacked?: boolean;
+  /** Переопределение заголовка (например, заявка на возврат). */
+  modalTitle?: string;
 }
 
 export const AddressSelectionModal: React.FC<AddressSelectionModalProps> = ({
@@ -52,7 +54,9 @@ export const AddressSelectionModal: React.FC<AddressSelectionModalProps> = ({
   onAddressAdded,
   embedded = false,
   stacked = false,
+  modalTitle,
 }) => {
+  const addressModalTitle = modalTitle ?? "Выберите адрес доставки";
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === "dark";
   const insets = useSafeAreaInsets();
@@ -71,6 +75,13 @@ export const AddressSelectionModal: React.FC<AddressSelectionModalProps> = ({
       loadSavedAddress();
     }
   }, [visible, currentCompany?.id]);
+
+  useEffect(() => {
+    if (!visible) {
+      setShowCompanyModal(false);
+      setShowAddAddressModal(false);
+    }
+  }, [visible]);
 
   const loadSavedAddress = async () => {
     if (!currentCompany?.id) return;
@@ -182,9 +193,7 @@ export const AddressSelectionModal: React.FC<AddressSelectionModalProps> = ({
 
       {!embedded && !stacked && (
         <View style={styles.modalHeader}>
-          <ThemedText style={styles.modalTitle}>
-            Выберите адрес доставки
-          </ThemedText>
+          <ThemedText style={styles.modalTitle}>{addressModalTitle}</ThemedText>
         </View>
       )}
 
@@ -245,9 +254,11 @@ export const AddressSelectionModal: React.FC<AddressSelectionModalProps> = ({
                   {address.floor && `, эт. ${address.floor}`}
                   {address.apartment && `, кв. ${address.apartment}`}
                 </ThemedText>
-                <ThemedText lightColor="#80818B" darkColor="#FBFCFF80" numberOfLines={2} style={styles.underAddressText}>
+                {address?.comment ?
+                <ThemedText lightColor="#80818B" darkColor="#FBFCFF80" numberOfLines={1} style={styles.underAddressText}>
                   {address.comment && address.comment}
                 </ThemedText>
+                 : null}
               </View>
               <ArrowIconRight />
             </TouchableOpacity>
@@ -336,13 +347,13 @@ export const AddressSelectionModal: React.FC<AddressSelectionModalProps> = ({
           contentHorizontalPadding={0}
         >
           <View style={styles.modalHeader}>
-            <ThemedText style={styles.modalTitle}>
-              Выберите адрес доставки
-            </ThemedText>
+            <ThemedText style={styles.modalTitle}>{addressModalTitle}</ThemedText>
           </View>
           {addressList}
         </AnimatedStackedSheet>
-        {childOverlays}
+        {(showCompanyModal || showAddAddressModal) && (
+          <View style={styles.stackedChildOverlay}>{childOverlays}</View>
+        )}
       </>
     );
   }
@@ -355,7 +366,7 @@ export const AddressSelectionModal: React.FC<AddressSelectionModalProps> = ({
         style={styles.embeddedRoot}
       >
         <ModalHeader
-          title="Выберите адрес доставки"
+          title={addressModalTitle}
           showBackButton
           onBackPress={closeModalWithAnimation}
         />
@@ -416,6 +427,10 @@ const styles = StyleSheet.create({
   embeddedOverlay: {
     ...StyleSheet.absoluteFillObject,
     zIndex: 10,
+  },
+  stackedChildOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 60,
   },
   modalOverlay: {
     flex: 1,

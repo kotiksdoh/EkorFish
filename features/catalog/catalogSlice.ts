@@ -970,7 +970,7 @@ export const createReturnRequest = createAsyncThunk(
   async (payload: any, { rejectWithValue }) => {
     try {
       const response = await axdef.post("/api/ReturnRequest", payload);
-      return response.data;
+      return response.data.data ?? response.data;
     } catch (error: any) {
       console.log("Error creating return request:", error);
       if (error.response?.status !== 401) {

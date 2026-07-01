@@ -71,10 +71,32 @@ export const MyReturnsModal: React.FC<MyReturnsProps> = ({
     router.navigate("/dashboard");
   }, [dispatch, onClose]);
 
-  const handleViewReturnDetails = useCallback(() => {
-    handleExitReturnFlow();
-    dispatch(getMyReturns());
-  }, [dispatch, handleExitReturnFlow]);
+  const handleViewReturnDetails = useCallback(
+    async (returnRequestId?: number) => {
+      handleExitReturnFlow();
+
+      if (returnRequestId != null) {
+        setSelectedReturnId(returnRequestId);
+        setVisibleReturnDetail(true);
+        dispatch(getMyReturns());
+        return;
+      }
+
+      try {
+        const refreshedReturns = await dispatch(getMyReturns()).unwrap();
+        const latestReturn = Array.isArray(refreshedReturns)
+          ? refreshedReturns[0]
+          : null;
+        if (latestReturn?.id != null) {
+          setSelectedReturnId(latestReturn.id);
+          setVisibleReturnDetail(true);
+        }
+      } catch {
+        dispatch(getMyReturns());
+      }
+    },
+    [dispatch, handleExitReturnFlow],
+  );
 
   useFocusEffect(
     useCallback(() => {
