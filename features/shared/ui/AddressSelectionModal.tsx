@@ -8,10 +8,10 @@ import {
   getSavedAddress,
   saveSelectedAddress,
 } from "@/features/shared/services/addressStorage";
+import { AppModal } from "@/features/shared/ui/AppModal";
 import { useAppDispatch } from "@/store/hooks";
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, Animated, Dimensions, Platform, ScrollView, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, View, useColorScheme } from 'react-native';
-import { AppModal } from "@/features/shared/ui/AppModal";
 
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AddAddressFormPanel } from "./AddAddressFormPanel";
@@ -241,8 +241,12 @@ export const AddressSelectionModal: React.FC<AddressSelectionModalProps> = ({
               <View style={styles.addressInfo}>
                 <ThemedText numberOfLines={2} style={styles.addressText}>
                   {address.address}
-                  {address.apartment && `, кв. ${address.apartment}`}
                   {address.entrance && `, под. ${address.entrance}`}
+                  {address.floor && `, эт. ${address.floor}`}
+                  {address.apartment && `, кв. ${address.apartment}`}
+                </ThemedText>
+                <ThemedText lightColor="#80818B" darkColor="#FBFCFF80" numberOfLines={2} style={styles.underAddressText}>
+                  {address.comment && address.comment}
                 </ThemedText>
               </View>
               <ArrowIconRight />
@@ -477,6 +481,11 @@ const styles = StyleSheet.create({
   },
   addressText: {
     fontSize: 16,
+    fontWeight: "500",
+    lineHeight: 22,
+  },
+  underAddressText: {
+    fontSize: 14,
     fontWeight: "500",
     lineHeight: 22,
   },

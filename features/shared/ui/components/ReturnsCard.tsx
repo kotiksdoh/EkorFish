@@ -51,9 +51,9 @@ const ReturnsCard: React.FC<ReturnsCardProps> = ({
           <View
             style={[
               styles.statusBadge,
-              returns.status === 0 && styles.pendingBadge,
-              returns.status === 1 && styles.approvedBadge,
-              returns.status === 2 && styles.rejectedBadge,
+              returns.status === 'pending' && styles.pendingBadge,
+              returns.status === 'approved' && styles.approvedBadge,
+              returns.status === 'rejected' && styles.rejectedBadge,
             ]}
           >
             <ThemedText style={styles.statusText}>

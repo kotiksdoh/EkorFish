@@ -950,7 +950,7 @@ export default function ShopScreen() {
                 </View>
 
                 <View style={styles.uCartMain}>
-                  <ThemedText darkColor="#FBFCFF" lightColor="#1B1B1C" style={{ fontSize: 16 }}>
+                  <ThemedText darkColor="#FBFCFF" lightColor="#1B1B1C" style={{ fontSize: 16, fontWeight: "500" }}>
                     Товары ({totals.totalItems})
                   </ThemedText>
                   <ThemedText darkColor="#FBFCFF" lightColor="#1B1B1C" style={{ fontSize: 16, fontWeight: "600" }}>
@@ -966,7 +966,7 @@ export default function ShopScreen() {
                     },
                   ]}
                 >
-                  <ThemedText darkColor="#FBFCFF" lightColor="#1B1B1C" style={{ fontSize: 16 }}>
+                  <ThemedText darkColor="#FBFCFF" lightColor="#1B1B1C" style={{ fontSize: 16, fontWeight: "500" }}>
                     Скидка
                   </ThemedText>
                   <ThemedText lightColor="#6FBD15" darkColor="#6FBD15" style={{ fontSize: 16, fontWeight: "600" }}>
@@ -989,7 +989,7 @@ export default function ShopScreen() {
                       <ThemedText 
                         darkColor="#FBFCFF" 
                         lightColor="#1B1B1C"
-                        style={{ fontSize: 16 }}
+                        style={{ fontSize: 16, fontWeight: "500" }}
                       >
                         Бонусов начислим
                       </ThemedText>
@@ -1007,7 +1007,7 @@ export default function ShopScreen() {
                   )}
 
                 <View style={styles.totalCountMain}>
-                  <ThemedText darkColor="#FBFCFF" lightColor="#1B1B1C">
+                  <ThemedText style={{ fontSize: 18, fontWeight: "500" }} darkColor="#FBFCFF" lightColor="#1B1B1C">
                     ИТОГО
                   </ThemedText>
                   <ThemedText darkColor="#FBFCFF" lightColor="#1B1B1C">
@@ -1606,7 +1606,7 @@ const styles = StyleSheet.create({
     paddingTop: 16,
   },
   promoCodeWrapper: {
-    marginTop: 12,
+    marginTop: 24,
   },
   uCartMain: {
     paddingTop: 16,

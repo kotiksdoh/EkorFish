@@ -44,6 +44,14 @@ import {
   mergeAddressIntoCompany,
 } from "@/features/shared/utils/deliveryAddress";
 import {
+  formatPhoneForApi,
+  formatPhoneInput,
+  isPhoneInputComplete,
+  isRecipientContactComplete,
+  isValidEmail,
+  sanitizeEmailInput,
+} from "@/features/shared/utils/contactInput";
+import {
   getTimeSlotsForDate,
   isWorkingDeliveryDay,
 } from "@/features/shared/utils/nearestDelivery";
@@ -127,6 +135,8 @@ interface Recipient {
   deliveryAddressId?: string;
   isExisting?: boolean; // флаг для существующих получателей с бекенда
 }
+
+const MAX_ADDITIONAL_RECIPIENTS = 5;
 
 interface DateTimeSelection {
   date: string;
@@ -330,8 +340,8 @@ export default function CheckoutModal({
       const formattedRecipients = savedRecipients.map((r: any) => ({
         id: r.id,
         fullname: r.fullname || "",
-        phoneNumber: r.phoneNumber || "",
-        email: r.email || "",
+        phoneNumber: r.phoneNumber ? formatPhoneInput(r.phoneNumber) : "",
+        email: r.email ? sanitizeEmailInput(r.email) : "",
         deliveryAddressId: r.deliveryAddressId,
         isExisting: true,
       }));
@@ -435,6 +445,10 @@ export default function CheckoutModal({
   };
 
   const addRecipient = () => {
+    if (recipients.length - 1 >= MAX_ADDITIONAL_RECIPIENTS) {
+      return;
+    }
+
     const newRecipient: Recipient = {
       id: Date.now().toString(),
       fullname: "",
@@ -466,8 +480,15 @@ export default function CheckoutModal({
     field: keyof Recipient,
     value: string,
   ) => {
+    const nextValue =
+      field === "phoneNumber"
+        ? formatPhoneInput(value)
+        : field === "email"
+          ? sanitizeEmailInput(value)
+          : value;
+
     setRecipients(
-      recipients.map((r) => (r.id === id ? { ...r, [field]: value } : r)),
+      recipients.map((r) => (r.id === id ? { ...r, [field]: nextValue } : r)),
     );
   };
 
@@ -527,37 +548,43 @@ export default function CheckoutModal({
   // Валидация получателей
   const validateRecipients = (): boolean => {
     const mainRecipient = recipients[0];
-    if (
-      !mainRecipient?.fullname?.trim() ||
-      !mainRecipient?.phoneNumber?.trim() ||
-      !mainRecipient?.email?.trim()
-    ) {
-      Alert.alert("Ошибка", "Заполните все поля основного получателя");
+    if (!mainRecipient?.fullname?.trim()) {
+      Alert.alert("Ошибка", "Заполните ФИО основного получателя");
+      return false;
+    }
+    if (!isPhoneInputComplete(mainRecipient.phoneNumber || "")) {
+      Alert.alert("Ошибка", "Введите корректный номер телефона основного получателя");
+      return false;
+    }
+    if (!isValidEmail(mainRecipient.email || "")) {
+      Alert.alert("Ошибка", "Введите корректный email основного получателя");
       return false;
     }
 
-    // Проверяем дополнительных получателей
-    // for (let i = 1; i < recipients.length; i++) {
-    //   const recipient = recipients[i];
-    //   // Если хоть одно поле заполнено, проверяем все
-    //   if (recipient.fullname.trim() || recipient.phoneNumber.trim() || recipient.email.trim()) {
-    //     if (!recipient.fullname.trim() || !recipient.phoneNumber.trim() || !recipient.email.trim()) {
-    //       Alert.alert('Ошибка', `Заполните все поля дополнительного получателя ${i}`);
-    //       return false;
-    //     }
-    //   }
-    // }
+    for (let i = 1; i < recipients.length; i++) {
+      const recipient = recipients[i];
+      const hasAnyField =
+        recipient.fullname.trim() ||
+        recipient.phoneNumber.trim() ||
+        recipient.email.trim();
+
+      if (hasAnyField && !isRecipientContactComplete(recipient)) {
+        Alert.alert(
+          "Ошибка",
+          `Заполните корректно все поля дополнительного получателя ${i}`,
+        );
+        return false;
+      }
+    }
 
     return true;
   };
   const getFilledRecipientsForOrder = () =>
     recipients
-      .filter(
-        (r) => r.fullname.trim() && r.phoneNumber.trim() && r.email.trim(),
-      )
+      .filter((r) => isRecipientContactComplete(r))
       .map((r) => ({
         fullname: r.fullname.trim(),
-        phoneNumber: r.phoneNumber.trim(),
+        phoneNumber: formatPhoneForApi(r.phoneNumber),
         email: r.email.trim(),
       }));
 
@@ -638,9 +665,7 @@ export default function CheckoutModal({
     if (!selectedAddress?.id) return false;
     // Фильтруем только заполненных получателей, которых еще нет на бекенде
     const recipientsToCreate = recipients
-      ?.filter(
-        (r) => r.fullname.trim() || r.phoneNumber.trim() || r.email.trim(),
-      )
+      ?.filter((r) => isRecipientContactComplete(r))
       ?.filter((r) => !r.isExisting); // Не создаем тех, кто уже есть
 
     if (recipientsToCreate.length === 0) return true;
@@ -653,7 +678,7 @@ export default function CheckoutModal({
       for (const recipient of recipientsToCreate) {
         const recipientData = {
           fullname: recipient.fullname.trim(),
-          phoneNumber: recipient.phoneNumber.trim(),
+          phoneNumber: formatPhoneForApi(recipient.phoneNumber),
           email: recipient.email.trim(),
         };
 
@@ -785,11 +810,7 @@ export default function CheckoutModal({
       hasAddress: Boolean(selectedAddress?.id),
       hasPickupStorage: Boolean(selectedPickupAddress),
       hasDateTime: Boolean(selectedDateTime.date && selectedDateTime.time),
-      hasMainRecipient: Boolean(
-        mainRecipient?.fullname?.trim() &&
-          mainRecipient?.phoneNumber?.trim() &&
-          mainRecipient?.email?.trim(),
-      ),
+      hasMainRecipient: isRecipientContactComplete(mainRecipient || {}),
     });
   }, [
     selectedCartItems,
@@ -1203,7 +1224,7 @@ export default function CheckoutModal({
                         <AnimatedTextInput
                           placeholder="Телефон *"
                           keyboardType="phone-pad"
-                          maxLength={12}
+                          maxLength={18}
                           value={recipient.phoneNumber}
                           onChangeText={(text) =>
                             updateRecipient(recipient.id, "phoneNumber", text)
@@ -1213,6 +1234,9 @@ export default function CheckoutModal({
                         <AnimatedTextInput
                           placeholder="Email *"
                           keyboardType="email-address"
+                          autoCapitalize="none"
+                          autoCorrect={false}
+                          maxLength={254}
                           value={recipient.email}
                           onChangeText={(text) =>
                             updateRecipient(recipient.id, "email", text)
@@ -1221,17 +1245,19 @@ export default function CheckoutModal({
                       </View>
                     ))}
 
-                    <TouchableOpacity
-                      style={styles.addButton}
-                      onPress={addRecipient}
-                    >
-                      <ThemedText
-                        style={styles.addButtonText}
-                        lightColor="#203686"
+                    {recipients.length - 1 < MAX_ADDITIONAL_RECIPIENTS ? (
+                      <TouchableOpacity
+                        style={styles.addButton}
+                        onPress={addRecipient}
                       >
-                        + Добавить получателя
-                      </ThemedText>
-                    </TouchableOpacity>
+                        <ThemedText
+                          style={styles.addButtonText}
+                          lightColor="#203686"
+                        >
+                          + Добавить получателя
+                        </ThemedText>
+                      </TouchableOpacity>
+                    ) : null}
                   </ThemedView>
 
                   {/* Блок товаров */}
