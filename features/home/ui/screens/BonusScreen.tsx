@@ -1,9 +1,9 @@
 // BonusPage.tsx
 
+import { AppModal } from "@/features/shared/ui/AppModal";
 import * as Clipboard from "expo-clipboard";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Animated, Dimensions, ScrollView, StyleSheet, TouchableOpacity, View, useColorScheme } from 'react-native';
-import { AppModal } from "@/features/shared/ui/AppModal";
 
 import { useDispatch, useSelector } from "react-redux";
 
@@ -403,7 +403,7 @@ export const BonusPage: React.FC<BonusPageProps> = ({
                         <ThemedText
                           style={[
                             styles.compactHistoryAmount,
-                            { color: item.bonus > 0 ? "#27AE60" : "#EB5757" }
+                            // { color: item.bonus > 0 ? "#27AE60" : "#EB5757" }
                           ]}
                         >
                           {item.bonus > 0 ? "+" : ""}{item.bonus}
@@ -493,7 +493,6 @@ export const BonusPage: React.FC<BonusPageProps> = ({
                                 <ThemedText
                                   style={[
                                     styles.fullHistoryAmount,
-                                    { color: item.bonus > 0 ? "#27AE60" : "#EB5757" }
                                   ]}
                                 >
                                   {item.bonus > 0 ? "+" : ""}{item.bonus}
@@ -679,8 +678,8 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   fullHistoryAmount: {
-    fontSize: 18,
-    fontWeight: "700",
+    fontSize: 16,
+    fontWeight: "600",
   },
   bottomSpacer: {
     height: 20,

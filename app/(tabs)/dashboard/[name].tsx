@@ -1807,6 +1807,7 @@ const styles = StyleSheet.create({
   sortOptionText: {
     fontFamily: "Montserrat",
     fontSize: 16,
+    fontWeight: '500',
     color: "#1B1B1C",
   },
   sortOptionTextSelected: {

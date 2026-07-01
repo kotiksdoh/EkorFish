@@ -25,6 +25,7 @@ import {
 } from "@/features/catalog/catalogSlice";
 import { getAxiosErrorMessage } from "@/features/shared/services/api";
 import { axdef, baseUrl } from "@/features/shared/services/axios";
+import { AppModal } from "@/features/shared/ui/AppModal";
 import {
   BottomSheetModal,
   type BottomSheetModalRef,
@@ -41,7 +42,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Alert, Dimensions, InteractionManager, Linking, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
-import { AppModal } from "@/features/shared/ui/AppModal";
 
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PrimaryButton } from "./components/PrimartyButton";
@@ -1319,7 +1319,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 12,
     alignItems: "center",
-    marginBottom: 12,
+    // marginBottom: 12,
   },
   documentsButtonText: {
     fontSize: 14,
