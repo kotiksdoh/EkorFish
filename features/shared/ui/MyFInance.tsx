@@ -647,6 +647,16 @@ const PaymentsHistoryScreen: React.FC<{ onBack: () => void }> = ({
             </View>
           )}
 
+          {!isLoading && groupedPayments.length === 0 && (
+            <ThemedText
+              style={styles.paymentsEmptyText}
+              lightColor="#80818B"
+              darkColor="#FBFCFF80"
+            >
+              Пусто
+            </ThemedText>
+          )}
+
           {groupedPayments.length > 0 && (
             <>
               {groupedPayments.map((group) => (
@@ -1683,6 +1693,15 @@ export const MyFinanceModal: React.FC<MyFinanceProps> = ({
                 </ThemedText>
               </TouchableOpacity>
             </View>
+            {!loading && !hasPaymentHistory ? (
+              <ThemedText
+                style={styles.paymentsEmptyText}
+                lightColor="#80818B"
+                darkColor="#FBFCFF80"
+              >
+                Пусто
+              </ThemedText>
+            ) : null}
             {payments?.length > 0 &&
               (() => {
                 // Сортируем платежи от новых к старым
@@ -1976,6 +1995,13 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     marginTop: 8,
+  },
+  paymentsEmptyText: {
+    fontSize: 14,
+    fontWeight: "500",
+    textAlign: "center",
+    paddingTop: 24,
+    paddingBottom: 8,
   },
   paymentsScrollViewFull: {
     flex: 1,

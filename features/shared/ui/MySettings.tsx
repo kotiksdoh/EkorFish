@@ -246,8 +246,15 @@ const NotificationsScreen: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         <View style={styles.formGroup}>
           {isLoadingPushSettings ? (
             <View style={styles.loaderContainer}>
-              <ActivityIndicator size="small" color={isDark ? "#FBFCFF" : "#203686"} />
-              <ThemedText lightColor="#1B1B1C" darkColor="#FBFCFF">
+              <ActivityIndicator
+                size="large"
+                color={isDark ? "#FBFCFF" : "#203686"}
+              />
+              <ThemedText
+                lightColor="#80818B"
+                darkColor="#FBFCFF80"
+                style={styles.loaderText}
+              >
                 Загрузка настроек...
               </ThemedText>
             </View>
@@ -280,8 +287,15 @@ const NotificationsScreen: React.FC<{ onBack: () => void }> = ({ onBack }) => {
       >
         {isLoadingQuietPeriodSettings || !quietPeriodSettings ? (
           <View style={styles.loaderContainer}>
-            <ActivityIndicator size="small" color={isDark ? "#FBFCFF" : "#203686"} />
-            <ThemedText lightColor="#1B1B1C" darkColor="#FBFCFF">
+            <ActivityIndicator
+              size="large"
+              color={isDark ? "#FBFCFF" : "#203686"}
+            />
+            <ThemedText
+              lightColor="#80818B"
+              darkColor="#FBFCFF80"
+              style={styles.loaderText}
+            >
               Загрузка тихого периода...
             </ThemedText>
           </View>
@@ -580,9 +594,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   loaderContainer: {
-    flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    justifyContent: "center",
+    gap: 12,
+    paddingVertical: 32,
+    paddingHorizontal: 16,
+    minHeight: 120,
+    width: "100%",
+  },
+  loaderText: {
+    fontSize: 14,
+    fontWeight: "500",
+    textAlign: "center",
   },
   radioOption: {
     flexDirection: "row",
@@ -625,7 +648,8 @@ const styles = StyleSheet.create({
   },
   updatingRow: {
     alignItems: "center",
-    paddingBottom: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
   },
   appSwitchTrack: {
     width: SWITCH_TRACK_WIDTH,
