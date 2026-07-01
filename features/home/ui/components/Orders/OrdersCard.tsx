@@ -9,6 +9,7 @@ import {
 import { OrderDetailsModal } from "@/features/shared/ui/OrderDetailModal";
 import { OrderReorderSheet } from "@/features/shared/ui/OrderReorderSheet";
 import { canShowOrderRepeatButton } from "@/features/shared/utils/orderRepeat";
+import { formatProductCount } from "@/features/shared/utils/pluralize";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAppDispatch } from "@/store/hooks";
 import * as Clipboard from "expo-clipboard";
@@ -180,7 +181,7 @@ export default function OrdersCard({
             darkColor="#A0A5B3"
             style={styles.countTotalText}
           >
-            {order.productsCount} шт • {order.totalAmount.toFixed(2)} ₽
+            {formatProductCount(order.productsCount)} • {order.totalAmount.toFixed(2)} ₽
           </ThemedText>
         </View>
 
@@ -307,7 +308,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    paddingVertical: 10,
+    paddingVertical: 7,
     paddingHorizontal: 14,
     borderRadius: 12,
     alignSelf: "flex-start",

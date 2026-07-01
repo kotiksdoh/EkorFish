@@ -63,6 +63,9 @@ const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 
 const SHELF_LIFE_PERCENT_MAX = 100;
 const BOTTOM_THRESHOLD = Math.max(320, screenHeight * 0.35);
+const EMPTY_FILTER_RANGE = { min: "", max: "" };
+
+type FilterRange = { min: string; max: string };
 
 function normalizeShelfLifePercentInput(text: string): string {
   if (text === "") return "";
@@ -221,6 +224,8 @@ export default function CatalogDetailScreen() {
       forceStorageId?: string,
       forceSubcategoryId?: string | null,
       sortOverride?: ProductSortId,
+      priceRangeOverride?: FilterRange,
+      shelfLifeRangeOverride?: FilterRange,
     ) => Promise<void>
   >(async () => {});
   const resetAndLoadCategoryRef = useRef<() => void>(() => {});
@@ -284,6 +289,8 @@ export default function CatalogDetailScreen() {
       forceStorageId?: string,
       forceSubcategoryId?: string | null,
       sortOverride?: ProductSortId,
+      priceRangeOverride?: FilterRange,
+      shelfLifeRangeOverride?: FilterRange,
     ) => {
       const generationAtStart = loadGenerationRef.current;
 
@@ -320,12 +327,15 @@ export default function CatalogDetailScreen() {
           params.search = searchText;
         }
 
+        const effectivePriceRange = priceRangeOverride ?? priceRange;
+        const effectiveShelfLifeRange = shelfLifeRangeOverride ?? shelfLifeRange;
+
         // Преобразуем в числа
-        const minPrice = priceRange.min
-          ? parseFloat(priceRange.min)
+        const minPrice = effectivePriceRange.min
+          ? parseFloat(effectivePriceRange.min)
           : undefined;
-        const maxPrice = priceRange.max
-          ? parseFloat(priceRange.max)
+        const maxPrice = effectivePriceRange.max
+          ? parseFloat(effectivePriceRange.max)
           : undefined;
 
         if (minPrice !== undefined && !isNaN(minPrice)) {
@@ -335,11 +345,11 @@ export default function CatalogDetailScreen() {
           params.MaxPrice = maxPrice;
         }
 
-        const minShelfLife = shelfLifeRange.min
-          ? parseFloat(shelfLifeRange.min)
+        const minShelfLife = effectiveShelfLifeRange.min
+          ? parseFloat(effectiveShelfLifeRange.min)
           : undefined;
-        const maxShelfLife = shelfLifeRange.max
-          ? parseFloat(shelfLifeRange.max)
+        const maxShelfLife = effectiveShelfLifeRange.max
+          ? parseFloat(effectiveShelfLifeRange.max)
           : undefined;
 
         if (minShelfLife !== undefined && !isNaN(minShelfLife)) {
@@ -438,10 +448,18 @@ export default function CatalogDetailScreen() {
     dispatch(clearSelectedSubcategory());
     selectedSubcategoryIdRef.current = null;
     dispatch(clearSelectedFilters());
-    setPriceRange({ min: "", max: "" });
-    setShelfLifeRange({ min: "", max: "" });
+    setPriceRange(EMPTY_FILTER_RANGE);
+    setShelfLifeRange(EMPTY_FILTER_RANGE);
     dispatch(resetPagination());
-    void loadProductsRef.current(false, initialSearchQuery, undefined, null);
+    void loadProductsRef.current(
+      false,
+      initialSearchQuery,
+      undefined,
+      null,
+      undefined,
+      EMPTY_FILTER_RANGE,
+      EMPTY_FILTER_RANGE,
+    );
     queueMicrotask(() => {
       dispatch(getCategoryFilters(catalogId));
     });
@@ -860,11 +878,22 @@ export default function CatalogDetailScreen() {
   );
 
   const resetFilters = useCallback(() => {
+    loadGenerationRef.current += 1;
+    isFetchingRef.current = false;
     dispatch(clearSelectedFilters());
-    setPriceRange({ min: "", max: "" });
-    setShelfLifeRange({ min: "", max: "" });
+    setPriceRange(EMPTY_FILTER_RANGE);
+    setShelfLifeRange(EMPTY_FILTER_RANGE);
+    dispatch(resetPagination());
     flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
-    void loadProducts(false, searchQuery);
+    void loadProducts(
+      false,
+      searchQuery,
+      undefined,
+      undefined,
+      undefined,
+      EMPTY_FILTER_RANGE,
+      EMPTY_FILTER_RANGE,
+    );
   }, [dispatch, loadProducts, searchQuery]);
 
   const renderListEmpty = useCallback(() => {

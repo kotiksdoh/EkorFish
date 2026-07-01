@@ -3,6 +3,7 @@ import {
   ArrowIconRight,
   CartIcon,
   IconCompanyNew,
+  InfoIcon,
   LemonIcon,
   LikeIcon,
   TrashIcon,
@@ -1033,6 +1034,26 @@ export default function ShopScreen() {
               disabled={isCheckoutBlocked}
             />
 
+            {selectedInCartCount === 0 ? (
+              <ThemedView
+                lightColor="#F2F4F7"
+                darkColor="#202022"
+                style={styles.chooseProducts}
+              >
+                <InfoIcon
+                  fill={isDarkMode ? "#FBFCFF80" : "#80818B"}
+                  stroke={isDarkMode ? "#FBFCFF80" : "#80818B"}
+                />
+                <ThemedText
+                  darkColor="#FBFCFF"
+                  lightColor="#1B1B1C"
+                  style={styles.chooseProductsText}
+                >
+                  Выберите товары, чтобы перейти к оформлению заказа
+                </ThemedText>
+              </ThemedView>
+            ) : null}
+
             <ThemedView
               lightColor="#E1F0FF"
               darkColor="#212945"
@@ -1120,11 +1141,6 @@ export default function ShopScreen() {
               </TouchableOpacity>
           </View>
 
-          {/* {totals.totalItems === 0 && (
-            <ThemedText style={styles.bottomHintText}>
-              Выберите товары чтобы перейти к оформлению заказа
-            </ThemedText>
-          )} */}
         </ThemedView>
 
 
@@ -1521,17 +1537,18 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   chooseProducts: {
-    marginTop: 24,
-    padding: 8,
-    display: "flex",
+    marginTop: 16,
+    padding: 12,
     flexDirection: "row",
     borderRadius: 16,
     alignItems: "center",
     gap: 12,
   },
   chooseProductsText: {
-    fontWeight: 500,
+    flex: 1,
+    fontWeight: "500",
     fontSize: 14,
+    lineHeight: 18,
   },
   iconStyleCont: {
     borderRadius: 10,
