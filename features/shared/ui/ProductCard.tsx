@@ -261,6 +261,11 @@ const ProductCardComponent: React.FC<ProductCardProps> = ({
   );
   const hasDates = Boolean(formattedDateFrom || formattedDateTo);
 
+  const quantityBadgeLabel = isTemplatePick
+    ? totalTemplateQuantity
+    : totalCartQuantity;
+  const badgeLabelLength = quantityBadgeLabel?.length ?? 0;
+
   return (
     <>
       <TouchableOpacity
@@ -396,38 +401,51 @@ const ProductCardComponent: React.FC<ProductCardProps> = ({
                 </ThemedText>
               </View>
 
-              {(isTemplatePick ? totalTemplateQuantity : totalCartQuantity) ? (
-                <View style={styles.cartBadge}>
-                  <ThemedText style={styles.cartBadgeText}>
-                    {isTemplatePick
-                      ? totalTemplateQuantity
-                      : totalCartQuantity}
-                  </ThemedText>
-                </View>
-              ) : null}
-
-              <TouchableOpacity
-                style={[
-                  styles.cartButton,
-                  (isTemplatePick
-                    ? !!totalTemplateQuantity
-                    : !!cartItem) && styles.cartButtonActive,
-                ]}
-                onPress={handleCartPress}
-                activeOpacity={0.7}
-              >
-                {isTemplatePick ? (
-                  <ThemedText
-                    lightColor="#203686"
-                    darkColor="#4C94FF"
-                    style={styles.plusGlyph}
+              <View style={styles.cartButtonWrapper}>
+                {quantityBadgeLabel ? (
+                  <View
+                    style={[
+                      styles.cartBadge,
+                      badgeLabelLength >= 3 && styles.cartBadgeWide,
+                      badgeLabelLength === 2 && styles.cartBadgeMedium,
+                      isTemplatePick && styles.cartBadgeTemplate,
+                    ]}
                   >
-                    +
-                  </ThemedText>
-                ) : (
-                  <CartIcon />
-                )}
-              </TouchableOpacity>
+                    <ThemedText
+                      style={[
+                        styles.cartBadgeText,
+                        badgeLabelLength >= 2 && styles.cartBadgeTextCompact,
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {quantityBadgeLabel}
+                    </ThemedText>
+                  </View>
+                ) : null}
+
+                <TouchableOpacity
+                  style={[
+                    styles.cartButton,
+                    (isTemplatePick
+                      ? !!totalTemplateQuantity
+                      : !!cartItem) && styles.cartButtonActive,
+                  ]}
+                  onPress={handleCartPress}
+                  activeOpacity={0.7}
+                >
+                  {isTemplatePick ? (
+                    <ThemedText
+                      lightColor="#203686"
+                      darkColor="#4C94FF"
+                      style={styles.plusGlyph}
+                    >
+                      +
+                    </ThemedText>
+                  ) : (
+                    <CartIcon />
+                  )}
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
 
@@ -498,18 +516,34 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
   heartIconActive: {},
+  cartButtonWrapper: {
+    position: "relative",
+    marginLeft: 8,
+  },
   cartBadge: {
     position: "absolute",
-    top: -8,
-    right: -8,
+    top: -6,
+    right: -4,
     backgroundColor: "#FF3B30",
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
+    borderRadius: 9,
+    minWidth: 18,
+    height: 18,
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 4,
     zIndex: 3,
+  },
+  cartBadgeMedium: {
+    minWidth: 22,
+    paddingHorizontal: 4,
+  },
+  cartBadgeWide: {
+    minWidth: 28,
+    paddingHorizontal: 5,
+  },
+  cartBadgeTemplate: {
+    top: -8,
+    right: -10,
   },
   cartBadgeText: {
     color: "#FFFFFF",
@@ -520,6 +554,11 @@ const styles = StyleSheet.create({
     textAlign: "center",
     textAlignVertical: "center",
     includeFontPadding: false,
+  },
+  cartBadgeTextCompact: {
+    fontSize: 10,
+    lineHeight: 12,
+    letterSpacing: -0.2,
   },
   infoContainer: {
     padding: 8,
@@ -600,7 +639,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 12,
-    marginLeft: 8,
   },
   cartButtonActive: {
     backgroundColor: "#FFED32", // Можно сделать другой цвет

@@ -1,10 +1,10 @@
 // screens/HomeScreen.tsx
 import { ThemedView } from "@/components/themed-view";
 import SearchInput from "@/features/auth/ui/components/SearchInput";
-import { AddToCart } from "@/features/catalog/catalogSlice";
 import { AddToCartModal } from "@/features/shared/ui/AddToCartModal";
+import { useTemplateAwareAddToCart } from "@/features/templates/useTemplateAwareAddToCart";
 import ManagerSection from "@/features/shared/ui/ManagerSection";
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { useAppSelector } from "@/store/hooks";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -36,14 +36,17 @@ export const HomeScreen = ({
 }) => {
   const [showHeavyBlocks, setShowHeavyBlocks] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<any>(null);
-  const [existingCartItem, setExistingCartItem] = useState<any>(null);
-  const [showAddToCartModal, setShowAddToCartModal] = useState(false);
-  const cartItems = useAppSelector((state) => state.catalog.cart);
-  const dispatch = useAppDispatch();
-
-  const sliderItems = useAppSelector((state) => state.auth.sliders);
+  const {
+    selectedProduct,
+    existingCartItem,
+    showAddToCartModal,
+    handleAddToCartPress,
+    handleAddToCart,
+    closeAddToCartModal,
+    variant: addToCartVariant,
+  } = useTemplateAwareAddToCart();
   const router = useRouter();
+  const sliderItems = useAppSelector((state) => state.auth.sliders);
   const orders = useAppSelector((state) => state.catalog.orders);
   const sliderData = useMemo(
     () => (sliderItems.length > 0 ? sliderItems : SLIDER_ITEMS),
@@ -79,28 +82,6 @@ export const HomeScreen = ({
     );
   }, [router]);
 
-  const handleAddToCartPress = useCallback((product: any) => {
-    const cartItemsForProduct =
-      cartItems?.filter((item: any) => item.productId === product.id) || [];
-
-    setSelectedProduct(product);
-    setExistingCartItem(cartItemsForProduct);
-    setShowAddToCartModal(true);
-  }, [cartItems]);
-
-  const handleAddToCart = useCallback((
-    productId: string,
-    optionId: string,
-    quantity: number,
-  ) => {
-    dispatch(
-      AddToCart({
-        productId: productId,
-        productPurchaseOptionId: optionId,
-        quantity: quantity,
-      }),
-    );
-  }, [dispatch]);
   return (
     <>
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
@@ -171,14 +152,11 @@ export const HomeScreen = ({
       />
         <AddToCartModal
           visible={showAddToCartModal}
-          onClose={() => {
-            setShowAddToCartModal(false);
-            setExistingCartItem(null);
-          }}
+          onClose={closeAddToCartModal}
           product={selectedProduct}
           onAddToCart={handleAddToCart}
           existingCartItem={existingCartItem}
-          variant="cart"
+          variant={addToCartVariant}
         />
     </>
   );

@@ -1,12 +1,12 @@
 // features/search/ui/SearchScreenWithHistory.tsx
 import { ThemedView } from "@/components/themed-view";
 import {
-  AddToCart,
   getSegmentPopularProducts,
 } from "@/features/catalog/catalogSlice";
 import SimilarProducts from "@/features/catalog/ui/components/SimilarProducts/SimilarProducts";
 import { SearchTopArea } from "@/features/home/ui/components/SearchTopArea/SearchTopArea";
 import { AddToCartModal } from "@/features/shared/ui/AddToCartModal";
+import { useTemplateAwareAddToCart } from "@/features/templates/useTemplateAwareAddToCart";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { useCallback, useEffect, useState } from "react";
@@ -49,12 +49,17 @@ export const SearchScreenWithHistory: React.FC<
 > = ({ visible, onClose, onSearch, returnTo = "catalog" }) => {
   const dispatch = useAppDispatch();
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
-  const [selectedProduct, setSelectedProduct] = useState<any>(null);
-  const [existingCartItem, setExistingCartItem] = useState<any>(null);
-  const [showAddToCartModal, setShowAddToCartModal] = useState(false);
+  const {
+    selectedProduct,
+    existingCartItem,
+    showAddToCartModal,
+    handleAddToCartPress,
+    handleAddToCart,
+    closeAddToCartModal,
+    variant: addToCartVariant,
+  } = useTemplateAwareAddToCart();
   const searchHints = useAppSelector((state) => state.auth.searchHints);
   const searchHintsLower = useAppSelector((state) => state.auth.searchHintsLower);
-  const cartItems = useAppSelector((state) => state.catalog.cart);
   const me = useAppSelector((state) => state.auth.me);
 
   useEffect(() => {
@@ -145,33 +150,6 @@ export const SearchScreenWithHistory: React.FC<
     });
   }, []);
 
-  const handleAddToCartPress = useCallback(
-    (product: any) => {
-      const cartItemsForProduct =
-        cartItems?.filter((item: any) => item.productId === product.id) || [];
-
-      setSelectedProduct(product);
-      setExistingCartItem(cartItemsForProduct);
-      setShowAddToCartModal(true);
-    },
-    [cartItems],
-  );
-
-  const handleAddToCart = useCallback(
-    (productId: string, optionId: string, quantity: number) => {
-      dispatch(
-        AddToCart({
-          productId,
-          productPurchaseOptionId: optionId,
-          quantity,
-        }),
-      );
-      setShowAddToCartModal(false);
-      setExistingCartItem(null);
-    },
-    [dispatch],
-  );
-
   if (!visible) return null;
 
   return (
@@ -198,14 +176,11 @@ export const SearchScreenWithHistory: React.FC<
 
       <AddToCartModal
         visible={showAddToCartModal}
-        onClose={() => {
-          setShowAddToCartModal(false);
-          setExistingCartItem(null);
-        }}
+        onClose={closeAddToCartModal}
         product={selectedProduct}
         onAddToCart={handleAddToCart}
         existingCartItem={existingCartItem}
-        variant="cart"
+        variant={addToCartVariant}
       />
     </ThemedView>
   );

@@ -12,8 +12,8 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { clearBonusHistory, getBonusHistory } from "@/features/auth/authSlice";
 import { ModalHeader } from "@/features/auth/ui/Header";
-import { AddToCart } from "@/features/catalog/catalogSlice";
 import { AddToCartModal } from "@/features/shared/ui/AddToCartModal";
+import { useTemplateAwareAddToCart } from "@/features/templates/useTemplateAwareAddToCart";
 import { useAppSelector } from "@/store/hooks";
 import { TRootState } from "@/store/store";
 import SpecialOffers from "../components/SpecialOffers/SpecialOffers";
@@ -89,17 +89,20 @@ export const BonusPage: React.FC<BonusPageProps> = ({
   const isLoadingBonus = useSelector((state: TRootState) => state.auth.isLoadingBonus);
   const hasMoreBonus = useSelector((state: TRootState) => state.auth.hasMoreBonus);
   const currentBonusPage = useSelector((state: TRootState) => state.auth.currentBonusPage);
-  const cartItems = useAppSelector((state) => state.catalog.cart);
-  
+  const {
+    selectedProduct,
+    existingCartItem,
+    showAddToCartModal,
+    handleAddToCartPress,
+    handleAddToCart,
+    closeAddToCartModal,
+    variant: addToCartVariant,
+  } = useTemplateAwareAddToCart();
+
   const [historyModalVisible, setHistoryModalVisible] = useState(false);
   const [historyModalTranslateY] = useState(new Animated.Value(screenHeight));
   const [isHistoryModalClosing, setIsHistoryModalClosing] = useState(false);
-  
-  // Состояние для отслеживания загрузки следующих страниц
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<any>(null);
-  const [existingCartItem, setExistingCartItem] = useState<any>(null);
-  const [showAddToCartModal, setShowAddToCartModal] = useState(false);
   
   // Ref для предотвращения множественных запросов
   const isFetchingRef = useRef(false);
@@ -224,29 +227,6 @@ export const BonusPage: React.FC<BonusPageProps> = ({
     if (user?.bonusNumber) {
       await Clipboard.setStringAsync(user.bonusNumber);
     }
-  };
-
-  const handleAddToCartPress = (product: any) => {
-    const cartItemsForProduct =
-      cartItems?.filter((item: any) => item.productId === product.id) || [];
-
-    setSelectedProduct(product);
-    setExistingCartItem(cartItemsForProduct);
-    setShowAddToCartModal(true);
-  };
-
-  const handleAddToCart = (
-    productId: string,
-    optionId: string,
-    quantity: number,
-  ) => {
-    dispatch(
-      AddToCart({
-        productId,
-        productPurchaseOptionId: optionId,
-        quantity,
-      }),
-    );
   };
 
   // Группировка первых 3 записей по дате для компактного отображения
@@ -524,14 +504,11 @@ export const BonusPage: React.FC<BonusPageProps> = ({
             </AppModal>
         <AddToCartModal
           visible={showAddToCartModal}
-          onClose={() => {
-            setShowAddToCartModal(false);
-            setExistingCartItem(null);
-          }}
+          onClose={closeAddToCartModal}
           product={selectedProduct}
           onAddToCart={handleAddToCart}
           existingCartItem={existingCartItem}
-          variant="cart"
+          variant={addToCartVariant}
         />
       </ThemedView>
     </AppModal>

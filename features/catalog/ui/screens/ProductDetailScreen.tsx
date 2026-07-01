@@ -477,6 +477,13 @@ export function ProductDetailScreen() {
     return linesForBottomBar.reduce((sum, item) => sum + item.quantity, 0);
   }, [linesForBottomBar]);
 
+  const quantityBadgeLabel = useMemo(() => {
+    if (totalCartQuantity == null || totalCartQuantity <= 0) return null;
+    return totalCartQuantity > 10 ? "10+" : String(totalCartQuantity);
+  }, [totalCartQuantity]);
+
+  const badgeLabelLength = quantityBadgeLabel?.length ?? 0;
+
   const productSliderItems = useMemo(() => {
     if (!Array.isArray(product?.images)) return [];
 
@@ -879,19 +886,41 @@ export function ProductDetailScreen() {
               activeOpacity={hasAuthToken ? 0.9 : 1}
             >
               <View style={styles.addToCartContent}>
-                <View style={styles.cartIconContainer}>
+                <View
+                  style={[
+                    styles.cartIconContainer,
+                    templatePicker.pickingForTemplateId
+                      ? styles.cartIconContainerTemplate
+                      : styles.cartIconContainerCart,
+                  ]}
+                >
                   {templatePicker.pickingForTemplateId ? (
                     <ThemedText style={styles.templatePlusIcon}>+</ThemedText>
                   ) : (
                     <Ionicons name="cart-outline" size={24} color="#FFFFFF" />
                   )}
-                  {totalCartQuantity != null && totalCartQuantity > 0 && (
-                    <View style={styles.cartBadge}>
-                      <ThemedText style={styles.cartBadgeText}>
-                        {totalCartQuantity > 10 ? "10+" : totalCartQuantity}
+                  {quantityBadgeLabel ? (
+                    <View
+                      style={[
+                        styles.cartBadge,
+                        badgeLabelLength >= 3 && styles.cartBadgeWide,
+                        badgeLabelLength === 2 && styles.cartBadgeMedium,
+                        templatePicker.pickingForTemplateId
+                          ? styles.cartBadgeTemplate
+                          : styles.cartBadgeCart,
+                      ]}
+                    >
+                      <ThemedText
+                        style={[
+                          styles.cartBadgeText,
+                          badgeLabelLength >= 2 && styles.cartBadgeTextCompact,
+                        ]}
+                        numberOfLines={1}
+                      >
+                        {quantityBadgeLabel}
                       </ThemedText>
                     </View>
-                  )}
+                  ) : null}
                 </View>
                 <ThemedText style={styles.addToCartText}>
                   {templatePicker.pickingForTemplateId
@@ -1186,17 +1215,43 @@ const styles = StyleSheet.create({
     position: "relative",
     marginRight: 8,
   },
+  cartIconContainerCart: {
+    width: 24,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  cartIconContainerTemplate: {
+    width: 22,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   cartBadge: {
     position: "absolute",
-    top: -8,
-    right: -8,
+    top: -6,
+    right: -6,
     backgroundColor: "#FF3B30",
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
+    borderRadius: 9,
+    minWidth: 18,
+    height: 18,
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 4,
+  },
+  cartBadgeMedium: {
+    minWidth: 22,
+    paddingHorizontal: 4,
+  },
+  cartBadgeWide: {
+    minWidth: 28,
+    paddingHorizontal: 5,
+  },
+  cartBadgeTemplate: {
+    top: -8,
+    right: -14,
+  },
+  cartBadgeCart: {
+    top: -8,
+    right: -12,
   },
   cartBadgeText: {
     color: "#FFFFFF",
@@ -1207,5 +1262,10 @@ const styles = StyleSheet.create({
     textAlign: "center",
     textAlignVertical: "center",
     includeFontPadding: false,
+  },
+  cartBadgeTextCompact: {
+    fontSize: 10,
+    lineHeight: 12,
+    letterSpacing: -0.2,
   },
 });
