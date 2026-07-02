@@ -97,13 +97,13 @@ const CartItemComponent = ({
   const stockInfoBackgroundColor = !isAvailable
     ? "#FF860526"
     : isDarkMode
-      ? "#2E2E32"
-      : "#EBEDF0";
+      ? "#EBEDF0"
+      : "#2E2E32";
   const stockInfoTextColor = !isAvailable
     ? "#FF8605"
     : isDarkMode
-      ? "#FBFCFF"
-      : "#1B1B1C";
+      ? "#1B1B1C"
+      : "#FBFCFF";
 
   const handleToggleFavorite = async () => {
     try {
@@ -525,17 +525,21 @@ export default function ShopScreen() {
         const token = await AsyncStorage.getItem("token");
         if (!token) {
           console.log("No token found - skipping favorites loading");
-          return; // Выходим, если нет токена
+          return;
         }
 
         loadCart();
       };
 
-      checkTokenAndLoad();
+      void checkTokenAndLoad();
 
       return () => {
+        setCheckoutModalVisible(false);
+        setCompanyModalVisible(false);
+        setRegisterModalVisible(false);
+        setShowAddToCartModal(false);
       };
-    }, [dispatch]), 
+    }, [dispatch]),
   );
 
   useEffect(() => {
@@ -1552,7 +1556,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   secondMain: {
-    marginTop: 16,
+    marginTop: 8,
     borderRadius: 24,
     paddingHorizontal: 16,
     paddingBottom: 16,

@@ -19,8 +19,6 @@ type ContentProps = {
   template: TemplateSummary | null;
   onClose: () => void;
   onCloseTemplates?: () => void;
-  /** Перед анимированным закрытием при переходе к оформлению */
-  onCheckoutAfterClose?: () => void;
 };
 
 function formatMoney(n: number) {
@@ -43,7 +41,6 @@ export function OrderFromTemplateConfirmContent({
   template,
   onClose,
   onCloseTemplates,
-  onCheckoutAfterClose,
 }: ContentProps) {
   const dispatch = useAppDispatch();
   const router = useRouter();
@@ -103,7 +100,7 @@ export function OrderFromTemplateConfirmContent({
           onPress={async () => {
             const ok = await doFillCart();
             if (!ok) return;
-            onCheckoutAfterClose?.();
+            onCloseTemplates?.();
             onClose();
             router.navigate("/shop");
           }}
@@ -128,7 +125,6 @@ export function OrderFromTemplateConfirmOverlay({
   onBindCloseRequest?: (close: (() => void) | null) => void;
 }) {
   const closeAnimatedRef = useRef<(() => void) | null>(null);
-  const pendingCheckoutRef = useRef(false);
 
   if (!template) return null;
 
@@ -140,19 +136,11 @@ export function OrderFromTemplateConfirmOverlay({
     }
   };
 
-  const handleSheetClosed = () => {
-    onClose();
-    if (pendingCheckoutRef.current) {
-      pendingCheckoutRef.current = false;
-      onCloseTemplates?.();
-    }
-  };
-
   return (
     <AnimatedStackedSheet
       visible={visible}
       showBackdrop
-      onClose={handleSheetClosed}
+      onClose={onClose}
       onBindCloseRequest={(fn) => {
         closeAnimatedRef.current = fn;
         onBindCloseRequest?.(fn);
@@ -168,9 +156,6 @@ export function OrderFromTemplateConfirmOverlay({
       <OrderFromTemplateConfirmContent
         template={template}
         onClose={requestClose}
-        onCheckoutAfterClose={() => {
-          pendingCheckoutRef.current = true;
-        }}
         onCloseTemplates={onCloseTemplates}
       />
     </AnimatedStackedSheet>

@@ -288,6 +288,10 @@ export default function TabTwoScreen() {
       if (resumeDetailTemplateId && hasAuthToken && authChecked) {
         setTemplatesModalVisible(true);
       }
+
+      return () => {
+        setTemplatesModalVisible(false);
+      };
     }, [resumeDetailTemplateId, hasAuthToken, authChecked]),
   );
 

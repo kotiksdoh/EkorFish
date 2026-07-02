@@ -12,8 +12,8 @@ import {
   setCompany,
   updateUserTown,
 } from "@/features/auth/authSlice";
-import { ModalHeader } from "@/features/auth/ui/Header";
 import { useAuthGate } from "@/features/auth/hooks/useAuthGate";
+import { ModalHeader } from "@/features/auth/ui/Header";
 import {
   AddToCart,
   createOrder,
@@ -24,26 +24,21 @@ import {
   getMyOrders,
   getRecipients,
 } from "@/features/catalog/catalogSlice";
-import { getCheckoutOrderBlockers } from "@/features/order/checkoutBlockers";
-import { CheckoutBlockerHint } from "@/features/order/ui/CheckoutBlockerHint";
 import { RecommendedOrderProducts } from "@/features/catalog/ui/components/RecommendedOrderProducts/RecommendedOrderProducts";
 import { PrimaryButton } from "@/features/home";
+import { getCheckoutOrderBlockers } from "@/features/order/checkoutBlockers";
+import { CheckoutBlockerHint } from "@/features/order/ui/CheckoutBlockerHint";
 import { getAxiosErrorMessage } from "@/features/shared/services/api";
 import { useSavedAddress } from "@/features/shared/services/useSavedAddress";
 import { AddAddressModal } from "@/features/shared/ui/AddAddressModal";
 import { AddToCartModal } from "@/features/shared/ui/AddToCartModal";
 import { AddressSelectionModal } from "@/features/shared/ui/AddressSelectionModal";
 import { AnimatedStackedSheet } from "@/features/shared/ui/AnimatedStackedSheet";
+import { AppModal } from "@/features/shared/ui/AppModal";
 import { CompanySelectionModal } from "@/features/shared/ui/CompanySelectionModalSmall";
 import { OrderDetailsModal } from "@/features/shared/ui/OrderDetailModal";
 import { CustomCheckbox } from "@/features/shared/ui/components/CustomCheckBox";
 import AnimatedTextInput from "@/features/shared/ui/components/CustomInput";
-import {
-  formatAddressSummary,
-  getCompanyDeliveryAddresses,
-  getFirstCompanyDeliveryAddress,
-  mergeAddressIntoCompany,
-} from "@/features/shared/utils/deliveryAddress";
 import {
   formatPhoneForApi,
   formatPhoneInput,
@@ -53,13 +48,18 @@ import {
   sanitizeEmailInput,
 } from "@/features/shared/utils/contactInput";
 import {
+  formatAddressSummary,
+  getCompanyDeliveryAddresses,
+  getFirstCompanyDeliveryAddress,
+  mergeAddressIntoCompany,
+} from "@/features/shared/utils/deliveryAddress";
+import {
   getTimeSlotsForDate,
   isWorkingDeliveryDay,
 } from "@/features/shared/utils/nearestDelivery";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { useRouter } from "expo-router";
-import { AppModal } from "@/features/shared/ui/AppModal";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -390,19 +390,6 @@ export default function CheckoutModal({
     }
   }, [currentCompany?.id, savedAddress, selectedMethod]);
 
-  useEffect(() => {
-    if (selectedMethod !== DeliveryMethod.Pickup || !currentCompany?.id) return;
-    const resolved = resolveDefaultCompanyAddress();
-    if (resolved) {
-      setSelectedAddress(resolved);
-    }
-  }, [
-    selectedMethod,
-    currentCompany?.id,
-    companyDeliveryAddresses.length,
-    resolveDefaultCompanyAddress,
-  ]);
-
   const handleAddressAdded = useCallback(
     async (newAddress: any) => {
       if (currentCompany && newAddress) {
@@ -624,16 +611,20 @@ export default function CheckoutModal({
     // }
     const userInfo: Record<string, string> = {};
 
-    const deliveryAddressId =
-      selectedAddress?.id ??
-      getFirstCompanyDeliveryAddress(currentCompany)?.id ??
-      "";
+    if (selectedMethod === DeliveryMethod.Delivery) {
+      const deliveryAddressId =
+        selectedAddress?.id ??
+        getFirstCompanyDeliveryAddress(currentCompany)?.id ??
+        "";
+
+      if (deliveryAddressId) {
+        userInfo.deliveryAddressId = deliveryAddressId;
+      }
+    }
 
     if (selectedMethod === DeliveryMethod.Pickup) {
       userInfo.storageId = selectedPickupAddress;
     }
-
-    userInfo.deliveryAddressId = deliveryAddressId;
 
     if (currentCompany?.type === "individual") {
       userInfo.individualProfileId = currentCompany.id;
@@ -710,12 +701,11 @@ export default function CheckoutModal({
 
   // Оформление заказа
   const handleCreateOrder = async () => {
-    if (!selectedAddress?.id) {
-      if (selectedMethod === DeliveryMethod.Pickup) {
-        setShowNeedAddressSheet(true);
-      } else {
-        Alert.alert("Ошибка", "Выберите адрес доставки");
-      }
+    if (
+      selectedMethod === DeliveryMethod.Delivery &&
+      !selectedAddress?.id
+    ) {
+      Alert.alert("Ошибка", "Выберите адрес доставки");
       return;
     }
 
@@ -736,8 +726,11 @@ export default function CheckoutModal({
       return;
     }
 
-    const recipientsCreated = await createRecipientsForOrder();
-    if (!recipientsCreated) return;
+    if (selectedMethod === DeliveryMethod.Delivery) {
+      const recipientsCreated = await createRecipientsForOrder();
+      if (!recipientsCreated) return;
+    }
+
     try {
       const orderData = prepareOrderData();
       const result = await dispatch(createOrder(orderData)).unwrap();
@@ -845,7 +838,7 @@ export default function CheckoutModal({
   };
 
   const renderCompanyAddressBlock = () => (
-    <View style={{ marginTop: selectedMethod === DeliveryMethod.Pickup ? 16 : 0 }}>
+    <View>
       <ThemedText
         darkColor="#FBFCFF"
         lightColor="#1B1B1C"
@@ -1153,7 +1146,8 @@ export default function CheckoutModal({
                     {selectedMethod === DeliveryMethod.Pickup &&
                       renderPickupContent()}
 
-                    {renderCompanyAddressBlock()}
+                    {selectedMethod === DeliveryMethod.Delivery &&
+                      renderCompanyAddressBlock()}
                   </ThemedView>
 
                   {/* Блок даты и времени */}
@@ -1257,17 +1251,14 @@ export default function CheckoutModal({
                     ))}
 
                     {recipients.length - 1 < MAX_ADDITIONAL_RECIPIENTS ? (
-                      <TouchableOpacity
-                        style={styles.addButton}
+                      <PrimaryButton
+                        title="+ Добавить получателя"
                         onPress={addRecipient}
-                      >
-                        <ThemedText
-                          style={styles.addButtonText}
-                          lightColor="#203686"
-                        >
-                          + Добавить получателя
-                        </ThemedText>
-                      </TouchableOpacity>
+                        variant="third"
+                        size="md"
+                        fullWidth
+                        style={styles.addButton}
+                      />
                     ) : null}
                   </ThemedView>
 
@@ -1439,8 +1430,7 @@ export default function CheckoutModal({
               lightColor="#80818B"
               darkColor="#FBFCFF80"
             >
-              Для оформления заказа добавьте адрес компании. При самовывозе он
-              также передаётся в заказ.
+              Для оформления заказа добавьте адрес компании.
             </ThemedText>
           </AnimatedStackedSheet>
         ) : null}
@@ -2058,12 +2048,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingTop: 16,
+    paddingTop: 8,
   },
   block: {
     borderRadius: 24,
     padding: 16,
-    marginBottom: 16,
+    marginBottom: 8,
   },
   lastBlock: {
     marginBottom: 16,
@@ -2211,10 +2201,6 @@ const styles = StyleSheet.create({
   },
   addButton: {
     marginTop: 8,
-  },
-  addButtonText: {
-    fontSize: 14,
-    fontWeight: "500",
   },
   cartItem: {
     flexDirection: "row",
