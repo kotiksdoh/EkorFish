@@ -40,6 +40,7 @@ import {
   searchCompany,
   sendCode,
 } from "../../authSlice";
+import { clearPendingAuthTokens } from "../../services/pendingAuthTokens";
 import { ModalHeader } from "../Header";
 // import Error from '../../../../assets/icons/png/error.png'
 interface LoginModalProps {
@@ -411,6 +412,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   };
 
   const handleClose = () => {
+    clearPendingAuthTokens();
     resetModal();
     onClose();
   };

@@ -752,26 +752,27 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
             {!detailEmpty ? (
               <View style={{ marginTop: detailEditing ? 16 : 12 }}>
                 <View style={styles.itemsHeaderRow}>
-                  {/* <ThemedText
+                  <ThemedText
                     style={styles.itemsTitle}
                     lightColor="#1B1B1C"
                     darkColor="#FBFCFF"
                   >
                     Товары
-                  </ThemedText> */}
+                  </ThemedText>
                   {showEditBulkActions ? (
                     <TouchableOpacity
                       onPress={() => void deleteSelected()}
                       disabled={selectedItemIds.size === 0 || isDeletingBulk}
-                      activeOpacity={0.8}
-                      style={[
-                        styles.deleteSelectedBtn,
-                        (selectedItemIds.size === 0 || isDeletingBulk) &&
-                          styles.deleteSelectedBtnDisabled,
-                      ]}
+                      activeOpacity={0.7}
+                      hitSlop={8}
+                      style={
+                        selectedItemIds.size === 0 || isDeletingBulk
+                          ? styles.deleteSelectedBtnDisabled
+                          : undefined
+                      }
                     >
                       <ThemedText style={styles.deleteSelectedText}>
-                        {isDeletingBulk ? "Удаление..." : "Удалить выбранное"}
+                        {isDeletingBulk ? "Удаление..." : "Удалить выбранные"}
                       </ThemedText>
                     </TouchableOpacity>
                   ) : null}
@@ -1368,19 +1369,13 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "600",
   },
-  deleteSelectedBtn: {
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 10,
-    backgroundColor: "#F2F4F7",
-  },
   deleteSelectedBtnDisabled: {
-    opacity: 0.5,
+    opacity: 0.45,
   },
   deleteSelectedText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#1B1B1C",
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#C12B2B",
   },
   itemRowWrap: {
     flexDirection: "row",

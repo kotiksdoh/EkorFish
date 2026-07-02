@@ -1,3 +1,4 @@
+import { RepeatOrderIcon } from "@/assets/icons/icons";
 import { ThemedText } from "@/components/themed-text";
 import { PrimaryButton } from "@/features/shared/ui/components/PrimartyButton";
 import { SnapBottomSheet } from "@/features/shared/ui/SnapBottomSheet";
@@ -105,6 +106,7 @@ export function OrderReorderSheet({
               fullWidth
               style={styles.reorderButton}
               disabled={isReordering}
+              customIcon={<RepeatOrderIcon fill="#FBFCFF" />}
             />
           </View>
         </>
@@ -145,6 +147,7 @@ export function OrderReorderSheet({
               variant="primary"
               fullWidth
               disabled={isReordering}
+              customIcon={<RepeatOrderIcon fill="#FBFCFF" />}
             />
             <View style={{ height: 10 }} />
             <PrimaryButton
@@ -163,6 +166,7 @@ export function OrderReorderSheet({
 const styles = StyleSheet.create({
   reorderSubTitle: {
     fontSize: 14,
+    fontWeight: "500",
     marginBottom: 12,
   },
   reorderList: {

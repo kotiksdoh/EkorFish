@@ -1,4 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { clearPendingAuthTokens } from "./pendingAuthTokens";
 
 export const AUTH_SESSION_STORAGE_KEYS = [
   "token",
@@ -31,6 +32,7 @@ export async function clearAuthSessionStorage(): Promise<void> {
 }
 
 export async function clearAuthSession(): Promise<void> {
+  clearPendingAuthTokens();
   await clearAuthSessionStorage();
 
   try {

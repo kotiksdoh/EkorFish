@@ -1,4 +1,8 @@
 import { clearAuthSession } from "@/features/auth/services/clearAuthSession";
+import {
+  getPendingAccessToken,
+  getPendingRefreshToken,
+} from "@/features/auth/services/pendingAuthTokens";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 
@@ -91,7 +95,10 @@ axdef.defaults.baseURL = baseUrl;
 axdef.interceptors.request.use(async (config) => {
   config.headers["Content-Type"] = "application/json";
   try {
-    const token = await AsyncStorage.getItem("token");
+    let token = await AsyncStorage.getItem("token");
+    if (!token) {
+      token = getPendingAccessToken();
+    }
     console.log(
       `[AXIOS][REQUEST] ${String(config.method).toUpperCase()} ${config.baseURL ?? ""}${config.url ?? ""} | token=${token ? "present" : "missing"}`,
     );
@@ -129,7 +136,10 @@ axdef.interceptors.response.use(
       originalRequest._retry = true;
       console.log(`[AXIOS][401] refresh flow started for ${requestUrl}`);
       try {
-        const refreshToken = await AsyncStorage.getItem("token_refresh");
+        let refreshToken = await AsyncStorage.getItem("token_refresh");
+        if (!refreshToken) {
+          refreshToken = getPendingRefreshToken();
+        }
         console.log(
           `[AXIOS][401] refresh token in storage: ${refreshToken ? "present" : "missing"}`,
         );

@@ -12,7 +12,7 @@ import {
   IconMessage,
   IconNumber,
   IconUser,
-  RepeatOrderIcon
+  RepeatOrderIcon,
 } from "@/assets/icons/icons";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
@@ -41,7 +41,18 @@ import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Alert, Dimensions, InteractionManager, Linking, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+  InteractionManager,
+  Linking,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PrimaryButton } from "./components/PrimartyButton";
@@ -144,7 +155,9 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
   const [canReorderFully, setCanReorderFully] = useState<boolean | null>(null);
   const [productsModalVisible, setProductsModalVisible] = useState(false);
   const [statusModalVisible, setStatusModalVisible] = useState(false);
-  const [companyManager, setCompanyManager] = useState<CompanyManager | null>(null);
+  const [companyManager, setCompanyManager] = useState<CompanyManager | null>(
+    null,
+  );
 
   const productsListBottomPadding = Math.max(insets.bottom, 16) + 16;
 
@@ -173,7 +186,9 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
       }
       try {
         const storedCompanyRaw = await AsyncStorage.getItem("company");
-        const storedCompany = storedCompanyRaw ? JSON.parse(storedCompanyRaw) : null;
+        const storedCompany = storedCompanyRaw
+          ? JSON.parse(storedCompanyRaw)
+          : null;
         setCompanyManager(storedCompany?.manager || null);
       } catch (error) {
         console.error("Error loading company manager from storage:", error);
@@ -252,14 +267,17 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
   };
 
   const getOrderTotalWeightOrQuantity = () => {
-    if (typeof orderDetails?.totalWeight === "number" && orderDetails.totalWeight > 0) {
+    if (
+      typeof orderDetails?.totalWeight === "number" &&
+      orderDetails.totalWeight > 0
+    ) {
       return `${orderDetails.totalWeight} кг`;
     }
     return `${getOrderTotalQuantity()} шт`;
   };
-  
+
   const getCurrentStatusName = () => {
-    return orderDetails?.statuses.at(-1)?.name || ''
+    return orderDetails?.statuses.at(-1)?.name || "";
   };
 
   const getCurrentStatusIndex = () => {
@@ -284,11 +302,16 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
     if (!orderDetails || isCheckingReorder) return;
     setIsCheckingReorder(true);
     try {
-      const result = await dispatch(checkForReorder(orderDetails.orderId)).unwrap();
+      const result = await dispatch(
+        checkForReorder(orderDetails.orderId),
+      ).unwrap();
       setCanReorderFully(Boolean(result));
       setReorderModalVisible(true);
     } catch (error) {
-      Alert.alert("Ошибка", "Не удалось проверить возможность повторного заказа");
+      Alert.alert(
+        "Ошибка",
+        "Не удалось проверить возможность повторного заказа",
+      );
     } finally {
       setIsCheckingReorder(false);
     }
@@ -299,7 +322,9 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
     setDocumentsModalVisible(true);
     setIsLoadingDocuments(true);
     try {
-      const response = await axdef.get(`/api/Order/${orderDetails.orderId}/documents`);
+      const response = await axdef.get(
+        `/api/Order/${orderDetails.orderId}/documents`,
+      );
       setDocuments(response?.data?.data || []);
     } catch (error) {
       console.error("Error loading order documents:", error);
@@ -690,7 +715,9 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                       style={styles.cancelButton}
                       disabled={isCheckingReorder}
                       customIcon={
-                        <RepeatOrderIcon fill={isDarkMode ? "#FBFCFF" : "#1B1B1C"} />
+                        <RepeatOrderIcon
+                          fill={isDarkMode ? "#FBFCFF" : "#1B1B1C"}
+                        />
                       }
                     />
                   )}
@@ -883,310 +910,336 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
           </ScrollView>
         </BottomSheetModal>
 
-      <SnapBottomSheet
-        visible={statusModalVisible}
-        title="Статус вашего заказа"
-        titleAlign="left"
-        onClose={closeStatusModal}
-      >
-        <ScrollView
-          style={styles.statusesList}
-          showsVerticalScrollIndicator
-          nestedScrollEnabled
-          bounces
-          contentContainerStyle={styles.statusesListContent}
+        <SnapBottomSheet
+          visible={statusModalVisible}
+          title="Статус вашего заказа"
+          titleAlign="left"
+          onClose={closeStatusModal}
         >
+          <ScrollView
+            style={styles.statusesList}
+            showsVerticalScrollIndicator
+            nestedScrollEnabled
+            bounces
+            contentContainerStyle={styles.statusesListContent}
+          >
             {orderDetails?.statuses?.map((status, index) => {
-                        const currentIndex = getCurrentStatusIndex();
-                        const isCurrent = index === currentIndex;
-                        const isNext = index === currentIndex + 1;
-                        const isPast = index < currentIndex;
-                        const isFuture = index > currentIndex + 1;
-                        const isLast = index === orderDetails.statuses.length - 1;
+              const currentIndex = getCurrentStatusIndex();
+              const isCurrent = index === currentIndex;
+              const isNext = index === currentIndex + 1;
+              const isPast = index < currentIndex;
+              const isFuture = index > currentIndex + 1;
+              const isLast = index === orderDetails.statuses.length - 1;
 
-                        // Определяем цвета линии
-                        let lineColors: [string, string];
-                        if (isPast || isCurrent) {
-                          if (!isDarkMode) {
-                            lineColors = ["#203686", "#203686"]; // Для пройденных и текущего - синяя
-                          } else {
-                            lineColors = ["#3881EE", "#3881EE"];
-                          }
-                        } else if (isNext) {
-                          if (!isDarkMode) {
-                            lineColors = ["#203686", "#80818B"]; // Для следующего - градиент синий -> серый
-                          } else {
-                            lineColors = ["#3881EE", "#80818B"];
-                          }
-                        } else {
-                          lineColors = ["#80818B", "#80818B"]; // Для будущих - серая
-                        }
+              // Определяем цвета линии
+              let lineColors: [string, string];
+              if (isPast || isCurrent) {
+                if (!isDarkMode) {
+                  lineColors = ["#203686", "#203686"]; // Для пройденных и текущего - синяя
+                } else {
+                  lineColors = ["#3881EE", "#3881EE"];
+                }
+              } else if (isNext) {
+                if (!isDarkMode) {
+                  lineColors = ["#203686", "#80818B"]; // Для следующего - градиент синий -> серый
+                } else {
+                  lineColors = ["#3881EE", "#80818B"];
+                }
+              } else {
+                lineColors = ["#80818B", "#80818B"]; // Для будущих - серая
+              }
 
-                        return (
-                          <View
-                            key={status.id}
-                            style={styles.statusItemContainer}
-                          >
-                            <View style={styles.statusLeftColumn}>
-                              {/* Кружок статуса */}
-                              <View
-                                style={[
-                                  styles.statusCircle,
-                                  (isPast || isCurrent) &&
-                                    styles.statusCircleCompleted,
-                                  isDarkMode &&
-                                    (isPast || isCurrent) && {
-                                      borderColor: "#3881EE",
-                                      backgroundColor: "#3881EE",
-                                    },
-                                  isNext && styles.statusCircleNext,
-                                  isDarkMode &&
-                                    isNext && {
-                                      backgroundColor: "#202022",
-                                      borderColor: "#3881EE",
-                                    },
-                                  isFuture && styles.statusCirclePending,
-                                  isDarkMode &&
-                                    isFuture && {
-                                      backgroundColor: "#202022",
-                                    },
-                                ]}
-                              >
-                                {(isPast || isCurrent) && (
-                                  <View style={styles.statusCircleCheckmark}>
-                                    <IconAccept />
-                                  </View>
-                                )}
-                                {isNext && (
-                                  <View
-                                    style={[
-                                      styles.statusCurrentDot,
-                                      isDarkMode && {
-                                        backgroundColor: "#3881EE",
-                                      },
-                                    ]}
-                                  />
-                                )}
-                              </View>
+              return (
+                <View key={status.id} style={styles.statusItemContainer}>
+                  <View style={styles.statusLeftColumn}>
+                    {/* Кружок статуса */}
+                    <View
+                      style={[
+                        styles.statusCircle,
+                        (isPast || isCurrent) && styles.statusCircleCompleted,
+                        isDarkMode &&
+                          (isPast || isCurrent) && {
+                            borderColor: "#3881EE",
+                            backgroundColor: "#3881EE",
+                          },
+                        isNext && styles.statusCircleNext,
+                        isDarkMode &&
+                          isNext && {
+                            backgroundColor: "#202022",
+                            borderColor: "#3881EE",
+                          },
+                        isFuture && styles.statusCirclePending,
+                        isDarkMode &&
+                          isFuture && {
+                            backgroundColor: "#202022",
+                          },
+                      ]}
+                    >
+                      {(isPast || isCurrent) && (
+                        <View style={styles.statusCircleCheckmark}>
+                          <IconAccept />
+                        </View>
+                      )}
+                      {isNext && (
+                        <View
+                          style={[
+                            styles.statusCurrentDot,
+                            isDarkMode && {
+                              backgroundColor: "#3881EE",
+                            },
+                          ]}
+                        />
+                      )}
+                    </View>
 
-                              {/* Линия между статусами (кроме последнего) */}
-                              {!isLast && (
-                                <View style={styles.statusLineContainer}>
-                                  <LinearGradient
-                                    colors={lineColors}
-                                    start={{ x: 0, y: 0 }}
-                                    end={{ x: 0, y: 1 }}
-                                    style={styles.statusLine}
-                                  />
-                                </View>
-                              )}
-                            </View>
+                    {/* Линия между статусами (кроме последнего) */}
+                    {!isLast && (
+                      <View style={styles.statusLineContainer}>
+                        <LinearGradient
+                          colors={lineColors}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 0, y: 1 }}
+                          style={styles.statusLine}
+                        />
+                      </View>
+                    )}
+                  </View>
 
-                            {/* Название статуса и дата - центрируем по вертикали */}
-                            <View style={styles.statusRightColumn}>
-                              <View style={styles.statusTextContainer}>
-                                <ThemedText
-                                  style={[
-                                    styles.statusName,
-                                    (isPast || isCurrent || isNext) &&
-                                      styles.statusNameCompleted,
-                                    isDarkMode &&
-                                      (isPast || isCurrent || isNext) && {
-                                        color: "#FBFCFF",
-                                      },
-                                  ]}
-                                >
-                                  {status.name}
-                                </ThemedText>
-                                <ThemedText
-                                  lightColor="#80818B"
-                                  darkColor="#80818B"
-                                  style={styles.statusDate}
-                                >
-                                  {formatStatusDate(status.date)}
-                                </ThemedText>
-                              </View>
-                            </View>
-                          </View>
-                        );
+                  {/* Название статуса и дата - центрируем по вертикали */}
+                  <View style={styles.statusRightColumn}>
+                    <View style={styles.statusTextContainer}>
+                      <ThemedText
+                        style={[
+                          styles.statusName,
+                          (isPast || isCurrent || isNext) &&
+                            styles.statusNameCompleted,
+                          isDarkMode &&
+                            (isPast || isCurrent || isNext) && {
+                              color: "#FBFCFF",
+                            },
+                        ]}
+                      >
+                        {status.name}
+                      </ThemedText>
+                      <ThemedText
+                        lightColor="#80818B"
+                        darkColor="#80818B"
+                        style={styles.statusDate}
+                      >
+                        {formatStatusDate(status.date)}
+                      </ThemedText>
+                    </View>
+                  </View>
+                </View>
+              );
             })}
-        </ScrollView>
-      </SnapBottomSheet>
-      <SnapBottomSheet
-        visible={documentsModalVisible}
-        title="Документы заказа"
-        titleAlign="left"
-        onClose={() => setDocumentsModalVisible(false)}
-      >
-        {isLoadingDocuments ? (
-          <View style={styles.documentsLoader}>
-            <ActivityIndicator size="small" color={isDarkMode ? "#4C94FF" : "#203686"} />
-          </View>
-        ) : documents.length === 0 ? (
-          <ThemedText style={styles.documentsEmpty} lightColor="#80818B" darkColor="#FBFCFF80">
-            Документы не найдены
-          </ThemedText>
-        ) : (
-          <View style={styles.documentsList}>
-            {documents.map((doc) => (
-              <TouchableOpacity
-                key={doc.id}
-                style={[
-                  styles.documentItem,
-                  { backgroundColor: isDarkMode ? "#2E2E32" : "#F2F4F7" },
-                ]}
-                activeOpacity={0.7}
-                onPress={() => handleOpenDocument(doc.fileUrl)}
-              >
-                <ThemedText style={styles.documentName} numberOfLines={1}>
-                  {doc.fileName}
-                </ThemedText>
-                <ArrowIconRight />
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
-      </SnapBottomSheet>
-      <SnapBottomSheet
-        visible={reorderModalVisible}
-        title={
-          canReorderFully
-            ? `Повторить заказ №${orderDetails?.orderId}`
-            : `Повторить заказ №${orderDetails?.orderId}?`
-        }
-        titleAlign="left"
-        onClose={() => setReorderModalVisible(false)}
-      >
-        {canReorderFully ? (
-          <>
+          </ScrollView>
+        </SnapBottomSheet>
+        <SnapBottomSheet
+          visible={documentsModalVisible}
+          title="Документы заказа"
+          titleAlign="left"
+          onClose={() => setDocumentsModalVisible(false)}
+        >
+          {isLoadingDocuments ? (
+            <View style={styles.documentsLoader}>
+              <ActivityIndicator
+                size="small"
+                color={isDarkMode ? "#4C94FF" : "#203686"}
+              />
+            </View>
+          ) : documents.length === 0 ? (
             <ThemedText
-              style={styles.reorderSubTitle}
+              style={styles.documentsEmpty}
               lightColor="#80818B"
               darkColor="#FBFCFF80"
             >
-              В корзину будет добавлено:
+              Документы не найдены
             </ThemedText>
-            <View style={styles.reorderList}>
-              <ThemedText style={styles.reorderListItem} lightColor="#1B1B1C" darkColor="#FBFCFF">
-                • {orderDetails?.products?.length || 0} товара
-              </ThemedText>
-              <ThemedText style={styles.reorderListItem} lightColor="#1B1B1C" darkColor="#FBFCFF">
-                • {getOrderTotalWeightOrQuantity()}
-              </ThemedText>
-              <ThemedText style={styles.reorderListItem} lightColor="#1B1B1C" darkColor="#FBFCFF">
-                • На сумму {formatMoneyNoFraction(orderDetails?.totalAmount || 0)} ₽
-              </ThemedText>
+          ) : (
+            <View style={styles.documentsList}>
+              {documents.map((doc) => (
+                <TouchableOpacity
+                  key={doc.id}
+                  style={[
+                    styles.documentItem,
+                    { backgroundColor: isDarkMode ? "#2E2E32" : "#F2F4F7" },
+                  ]}
+                  activeOpacity={0.7}
+                  onPress={() => handleOpenDocument(doc.fileUrl)}
+                >
+                  <ThemedText style={styles.documentName} numberOfLines={1}>
+                    {doc.fileName}
+                  </ThemedText>
+                  <ArrowIconRight />
+                </TouchableOpacity>
+              ))}
             </View>
-            <ThemedText style={styles.reorderWarning} lightColor="#C12B2B" darkColor="#FF6B6B">
-              Текущая корзина будет очищена
-            </ThemedText>
-            <View
-              style={[
-                styles.reorderButtonsRow,
-                Platform.OS === "android" && { paddingBottom: 2 },
-              ]}
-            >
-              <PrimaryButton
-                title="Отмена"
-                onPress={() => setReorderModalVisible(false)}
-                variant="third"
-                fullWidth
-                style={styles.reorderButton}
-              />
-              <PrimaryButton
-                title={isReordering ? "Загрузка..." : "Повторить"}
-                onPress={handleReorder}
-                variant="primary"
-                fullWidth
-                style={styles.reorderButton}
-                disabled={isReordering}
-              />
-            </View>
-          </>
-        ) : (
-          <>
-            <ThemedText style={styles.reorderMissingTitle} lightColor="#1B1B1C" darkColor="#FBFCFF">
-              Некоторые товары сейчас отсутствуют.
-            </ThemedText>
-            <ThemedText
-              style={styles.reorderMissingText}
-              lightColor="#80818B"
-              darkColor="#80818B"
-            >
-              При повторении заказа система автоматически подберет аналоги из той же
-              ценовой группы. Если подходящей замены не найдется, будут предложены
-              товары из той же категории.
-            </ThemedText>
-            <ThemedText style={styles.reorderWarning} lightColor="#C12B2B" darkColor="#FF6B6B">
-              Текущая корзина будет очищена
-            </ThemedText>
-            <View
-              style={[
-                styles.reorderButtonsColumn,
-                Platform.OS === "android" && { paddingBottom: 28 },
-              ]}
-            >
-              <PrimaryButton
-                title={isReordering ? "Загрузка..." : "Повторить с заменой"}
-                onPress={handleReorder}
-                variant="primary"
-                fullWidth
-                disabled={isReordering}
-              />
-              <View style={{ height: 10 }} />
-              <PrimaryButton
-                title="Отмена"
-                onPress={() => setReorderModalVisible(false)}
-                variant="third"
-                fullWidth
-              />
-            </View>
-          </>
-        )}
-      </SnapBottomSheet>
-      <SnapBottomSheet
-        visible={cancelModalVisible}
-        title={`Отменить заказ №${orderDetails?.orderId}?`}
-        titleAlign="left"
-        onClose={() => {
-          if (!isCancelling) {
-            setCancelModalVisible(false);
+          )}
+        </SnapBottomSheet>
+        <SnapBottomSheet
+          visible={reorderModalVisible}
+          title={
+            canReorderFully
+              ? `Повторить заказ №${orderDetails?.orderId}`
+              : `Повторить заказ №${orderDetails?.orderId}?`
           }
-        }}
-      >
-        <ThemedText
-          style={styles.cancelOrderText}
-          lightColor="#80818B"
-          darkColor="#FBFCFF80"
+          titleAlign="left"
+          onClose={() => setReorderModalVisible(false)}
         >
-          Заказ будет отменён. После отмены восстановить его будет нельзя.
-        </ThemedText>
-        <View
-          style={[
-            styles.reorderButtonsRow,
-            Platform.OS === "android" && { paddingBottom: 2 },
-          ]}
+          {canReorderFully ? (
+            <>
+              <ThemedText style={styles.reorderSubTitle}>
+                В корзину будет добавлено:
+              </ThemedText>
+              <View style={styles.reorderList}>
+                <ThemedText
+                  style={styles.reorderListItem}
+                  lightColor="#1B1B1C"
+                  darkColor="#FBFCFF"
+                >
+                  • {orderDetails?.products?.length || 0} товара
+                </ThemedText>
+                <ThemedText
+                  style={styles.reorderListItem}
+                  lightColor="#1B1B1C"
+                  darkColor="#FBFCFF"
+                >
+                  • {getOrderTotalWeightOrQuantity()}
+                </ThemedText>
+                <ThemedText
+                  style={styles.reorderListItem}
+                  lightColor="#1B1B1C"
+                  darkColor="#FBFCFF"
+                >
+                  • На сумму{" "}
+                  {formatMoneyNoFraction(orderDetails?.totalAmount || 0)} ₽
+                </ThemedText>
+              </View>
+              <ThemedText
+                style={styles.reorderWarning}
+                lightColor="#C12B2B"
+                darkColor="#FF6B6B"
+              >
+                Текущая корзина будет очищена
+              </ThemedText>
+              <View
+                style={[
+                  styles.reorderButtonsRow,
+                  Platform.OS === "android" && { paddingBottom: 2 },
+                ]}
+              >
+                <PrimaryButton
+                  title="Отмена"
+                  onPress={() => setReorderModalVisible(false)}
+                  variant="third"
+                  fullWidth
+                  style={styles.reorderButton}
+                />
+                <PrimaryButton
+                  title={isReordering ? "Загрузка..." : "Повторить"}
+                  onPress={handleReorder}
+                  variant="primary"
+                  fullWidth
+                  style={styles.reorderButton}
+                  disabled={isReordering}
+                  customIcon={<RepeatOrderIcon fill="#FBFCFF" />}
+                />
+              </View>
+            </>
+          ) : (
+            <>
+              <ThemedText
+                style={styles.reorderMissingTitle}
+                lightColor="#1B1B1C"
+                darkColor="#FBFCFF"
+              >
+                Некоторые товары сейчас отсутствуют.
+              </ThemedText>
+              <ThemedText
+                style={styles.reorderMissingText}
+                lightColor="#80818B"
+                darkColor="#80818B"
+              >
+                При повторении заказа система автоматически подберет аналоги из
+                той же ценовой группы. Если подходящей замены не найдется, будут
+                предложены товары из той же категории.
+              </ThemedText>
+              <ThemedText
+                style={styles.reorderWarning}
+                lightColor="#C12B2B"
+                darkColor="#FF6B6B"
+              >
+                Текущая корзина будет очищена
+              </ThemedText>
+              <View
+                style={[
+                  styles.reorderButtonsColumn,
+                  Platform.OS === "android" && { paddingBottom: 28 },
+                ]}
+              >
+                <PrimaryButton
+                  title={isReordering ? "Загрузка..." : "Повторить с заменой"}
+                  onPress={handleReorder}
+                  variant="primary"
+                  fullWidth
+                  disabled={isReordering}
+                  customIcon={<RepeatOrderIcon fill="#FBFCFF" />}
+                />
+                <View style={{ height: 10 }} />
+                <PrimaryButton
+                  title="Отмена"
+                  onPress={() => setReorderModalVisible(false)}
+                  variant="third"
+                  fullWidth
+                />
+              </View>
+            </>
+          )}
+        </SnapBottomSheet>
+        <SnapBottomSheet
+          visible={cancelModalVisible}
+          title={`Отменить заказ №${orderDetails?.orderId}?`}
+          titleAlign="left"
+          onClose={() => {
+            if (!isCancelling) {
+              setCancelModalVisible(false);
+            }
+          }}
         >
-          <PrimaryButton
-            title="Назад"
-            onPress={() => setCancelModalVisible(false)}
-            variant="third"
-            fullWidth
-            style={styles.reorderButton}
-            disabled={isCancelling}
-          />
-          <PrimaryButton
-            title={isCancelling ? "Отменяем..." : "Отменить заказ"}
-            onPress={() => {
-              void confirmCancelOrder();
-            }}
-            variant="primary"
-            fullWidth
-            style={styles.reorderButton}
-            disabled={isCancelling}
-          />
-        </View>
-      </SnapBottomSheet>
+          <ThemedText
+            style={styles.cancelOrderText}
+            lightColor="#80818B"
+            darkColor="#FBFCFF80"
+          >
+            Заказ будет отменён. После отмены восстановить его будет нельзя.
+          </ThemedText>
+          <View
+            style={[
+              styles.reorderButtonsRow,
+              Platform.OS === "android" && { paddingBottom: 2 },
+            ]}
+          >
+            <PrimaryButton
+              title="Назад"
+              onPress={() => setCancelModalVisible(false)}
+              variant="third"
+              fullWidth
+              style={styles.reorderButton}
+              disabled={isCancelling}
+            />
+            <PrimaryButton
+              title={isCancelling ? "Отменяем..." : "Отменить заказ"}
+              onPress={() => {
+                void confirmCancelOrder();
+              }}
+              variant="primary"
+              fullWidth
+              style={styles.reorderButton}
+              disabled={isCancelling}
+            />
+          </View>
+        </SnapBottomSheet>
       </AppModal>
     </>
   );
@@ -1645,11 +1698,10 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     opacity: 0.7,
   },
-  statusTextContainer: {
-  },
+  statusTextContainer: {},
   reorderSubTitle: {
     fontSize: 14,
-    fontWeight: "500",
+    fontWeight: "600",
     marginBottom: 10,
   },
   reorderList: {

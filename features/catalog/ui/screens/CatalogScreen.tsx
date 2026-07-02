@@ -9,6 +9,7 @@ import {
 } from "@/features/shared/ui/catalogGridLayout";
 import { TemplatePickerBanner } from "@/features/templates/TemplatePickerBanner";
 import { useTemplatePicker } from "@/features/templates/TemplatePickerContext";
+import { DashboardBootstrapBanner } from "../components/DashboardBootstrapBanner";
 import { useAppSelector } from "@/store/hooks";
 import { useHeaderHeight } from "@react-navigation/elements";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -96,6 +97,7 @@ export const CatalogScreen = () => {
               />
             </View>
           </TouchableOpacity>
+          <DashboardBootstrapBanner />
         </ThemedView>
         <TemplatePickerBanner />
       </View>

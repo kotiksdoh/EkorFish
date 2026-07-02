@@ -1,4 +1,4 @@
-import { LikeIcon, TrashIcon } from "@/assets/icons/icons";
+import { IconRemoveSmall, LikeIcon } from "@/assets/icons/icons";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import {
@@ -139,7 +139,7 @@ export function TemplateOrderLineCard({
         ) : null}
 
         {editMode ? (
-          <View style={styles.priceRow}>
+          <View style={styles.actionsRow}>
             <TouchableOpacity
               style={styles.favoriteButton}
               onPress={() => void handleFavorite()}
@@ -159,8 +159,7 @@ export function TemplateOrderLineCard({
                 lightColor="#F2F4F7"
                 darkColor="#202022"
               >
-                <TrashIcon
-                  stroke={isDarkMode ? "#FBFCFF" : "#1B1B1C"}
+                <IconRemoveSmall
                   fill={isDarkMode ? "#FBFCFF" : "#1B1B1C"}
                 />
               </ThemedView>
@@ -240,6 +239,7 @@ const styles = StyleSheet.create({
   },
   dopItemInfo: {
     flex: 1,
+    minWidth: 0,
     flexDirection: "column",
   },
   itemInfo: {
@@ -267,7 +267,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginTop: 4,
-    flexWrap: "wrap",
+  },
+  actionsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 4,
+    flexWrap: "nowrap",
   },
   quantityTextKg: {
     fontSize: 12,
@@ -281,6 +286,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginRight: 4,
+    flexShrink: 0,
   },
   favoriteTheme: {
     borderRadius: 8,
@@ -289,15 +295,17 @@ const styles = StyleSheet.create({
   deleteButton: {
     flexDirection: "row",
     alignItems: "center",
-    marginRight: 4,
+    flexShrink: 0,
   },
   quantityControls: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#F5F5F5",
     borderRadius: 8,
     paddingHorizontal: 6,
-    marginLeft: "auto",
+    marginLeft: 4,
+    minWidth: 0,
   },
   quantityButton: {
     paddingHorizontal: 6,
@@ -312,9 +320,10 @@ const styles = StyleSheet.create({
     opacity: 0.35,
   },
   quantityText: {
+    flex: 1,
     fontSize: 16,
     fontWeight: "500",
-    minWidth: 72,
+    minWidth: 0,
     textAlign: "center",
   },
 });

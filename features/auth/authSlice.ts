@@ -5,7 +5,12 @@ import api, { axiosErrorHandler } from "../shared/services/api";
 import { axdef, baseUrl } from "../shared/services/axios";
 import { getCart, getMyOrders, getOrderPageData } from "../catalog/catalogSlice";
 import { getInlineParams } from "../shared/services/utils";
-import type { AppDispatch } from "@/store/store";
+import type { AppDispatch, TRootState } from "@/store/store";
+import {
+  needsRegistrationCompletion,
+  persistAuthTokens,
+  setPendingAuthTokens,
+} from "./services/pendingAuthTokens";
 import type { OrderReminderSettings } from "@/features/shared/types/orderReminderSettings";
 import type { QuietPeriodSettings } from "@/features/shared/types/quietPeriodSettings";
 
@@ -181,6 +186,18 @@ export const sendCode = createAsyncThunk(
   async (payload: any, { rejectWithValue }) => {
     try {
       const data = await api.admin.post("/api/Account/verify-code", payload);
+      const userData = data?.data?.data;
+      const accessToken = userData?.tokens?.accessToken;
+      const refreshToken = userData?.tokens?.refreshToken;
+
+      if (accessToken && refreshToken) {
+        setPendingAuthTokens(accessToken, refreshToken);
+
+        if (!needsRegistrationCompletion(userData)) {
+          await persistAuthTokens(accessToken, refreshToken);
+        }
+      }
+
       return data;
     } catch (error) {
       console.log(error);
@@ -191,9 +208,13 @@ export const sendCode = createAsyncThunk(
 
 export const compliteProfile = createAsyncThunk(
   "user/compliteProfile",
-  async (payload: any, { rejectWithValue }) => {
+  async (payload: any, { rejectWithValue, getState }) => {
     try {
       const data = await axdef.post("/api/Account/complete-profile", payload);
+      const tokens = (getState() as TRootState).auth.predUserData?.tokens;
+      if (tokens?.accessToken && tokens?.refreshToken) {
+        await persistAuthTokens(tokens.accessToken, tokens.refreshToken);
+      }
       return data;
     } catch (error) {
       console.log(error);
@@ -204,9 +225,13 @@ export const compliteProfile = createAsyncThunk(
 
 export const compliteCompany = createAsyncThunk(
   "user/compliteCompany",
-  async (payload: any, { rejectWithValue }) => {
+  async (payload: any, { rejectWithValue, getState }) => {
     try {
       const data = await axdef.post("/api/Account/companies", payload);
+      const tokens = (getState() as TRootState).auth.predUserData?.tokens;
+      if (tokens?.accessToken && tokens?.refreshToken) {
+        await persistAuthTokens(tokens.accessToken, tokens.refreshToken);
+      }
       return data;
     } catch (error) {
       console.log(error);
@@ -927,29 +952,7 @@ const authSlice = createSlice({
     builder.addCase(sendCode.fulfilled, (state, action) => {
       state.isLoading = false;
       console.log("action", action.payload);
-      if (
-        action?.payload?.data?.data?.tokens?.accessToken &&
-        action?.payload.data?.data?.tokens?.refreshToken
-      ) {
-        // Используем async/await
-        console.log("action.payload?.data", action.payload?.data);
-        state.predUserData = action.payload?.data?.data;
-        (async () => {
-          try {
-            await AsyncStorage.setItem(
-              "token",
-              action.payload?.data?.data?.tokens?.accessToken,
-            );
-            await AsyncStorage.setItem(
-              "token_refresh",
-              action.payload.data?.data?.tokens?.refreshToken,
-            );
-            console.log("Tokens saved to AsyncStorage");
-          } catch (error) {
-            console.error("Error saving tokens:", error);
-          }
-        })();
-      }
+      state.predUserData = action.payload?.data?.data;
     });
     builder.addCase(sendCode.rejected, (state, action) => {
       state.isLoading = false;
