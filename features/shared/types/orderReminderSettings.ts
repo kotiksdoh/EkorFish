@@ -35,7 +35,7 @@ export interface OrderReminderSettings {
 export const DEFAULT_ORDER_REMINDER_SETTINGS: OrderReminderSettings = {
   isEnabled: false,
   remindWhen: "dayBeforeExpectedDate",
-  remindAtTime: "2024-01-01T10:00:00.000Z",
+  remindAtTime: "10:00:00",
   remindAbout: "frequentlyBoughtProducts",
   frequency: "weekly",
   weeklyDay: "monday",
@@ -138,10 +138,17 @@ export function serializeRemindAbout(values: OrderReminderAbout[]): string {
   return values.join(",");
 }
 
-export function formatRemindTime(isoValue: string): string {
-  if (!isoValue) return "10:00";
+export function formatRemindTime(value: string): string {
+  if (!value) return "10:00";
 
-  const date = new Date(isoValue);
+  const timeMatch = value.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
+  if (timeMatch) {
+    const hours = String(Number(timeMatch[1])).padStart(2, "0");
+    const minutes = timeMatch[2];
+    return `${hours}:${minutes}`;
+  }
+
+  const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "10:00";
 
   const hours = String(date.getHours()).padStart(2, "0");
@@ -149,11 +156,37 @@ export function formatRemindTime(isoValue: string): string {
   return `${hours}:${minutes}`;
 }
 
-export function timeLabelToIso(timeLabel: string): string {
+export function timeLabelToApiTime(timeLabel: string): string {
   const [hours, minutes] = timeLabel.split(":").map(Number);
-  const date = new Date();
-  date.setHours(hours || 0, minutes || 0, 0, 0);
-  return date.toISOString();
+  const h = String(hours || 0).padStart(2, "0");
+  const m = String(minutes || 0).padStart(2, "0");
+  return `${h}:${m}:00`;
+}
+
+export function normalizeRemindAtTime(value: string): string {
+  if (!value) return "10:00:00";
+
+  const timeMatch = value.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+  if (timeMatch) {
+    const h = String(Number(timeMatch[1])).padStart(2, "0");
+    const m = timeMatch[2];
+    const s = timeMatch[3] ?? "00";
+    return `${h}:${m}:${s}`;
+  }
+
+  const date = new Date(value);
+  if (!Number.isNaN(date.getTime())) {
+    const h = String(date.getHours()).padStart(2, "0");
+    const m = String(date.getMinutes()).padStart(2, "0");
+    return `${h}:${m}:00`;
+  }
+
+  return "10:00:00";
+}
+
+/** @deprecated Use timeLabelToApiTime */
+export function timeLabelToIso(timeLabel: string): string {
+  return timeLabelToApiTime(timeLabel);
 }
 
 export function getRemindWhenLabel(value: string): string {
@@ -186,7 +219,7 @@ export function buildOrderReminderPayload(
   const payload: OrderReminderSettings = {
     isEnabled: settings.isEnabled,
     remindWhen: normalizeRemindWhen(settings.remindWhen),
-    remindAtTime: settings.remindAtTime,
+    remindAtTime: normalizeRemindAtTime(settings.remindAtTime),
     remindAbout: settings.remindAbout,
     frequency,
   };

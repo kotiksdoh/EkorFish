@@ -172,8 +172,8 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 24,
   },
   ordersSection: {
-    marginTop: 8,
-    marginBottom: 16,
+    // marginTop: 8,
+    // marginBottom: 16,
     paddingLeft: 16,
   },
   ordersList: {

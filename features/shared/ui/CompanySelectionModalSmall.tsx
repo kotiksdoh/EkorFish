@@ -31,6 +31,8 @@ export const CompanySelectionModal: React.FC<CompanySelectionModalProps> = ({
   const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === "dark";
+  const footerBottomPadding =
+    Math.max(insets.bottom, Platform.OS === "android" ? 48 : 24) + 24;
   const [modalTranslateY] = useState(new Animated.Value(screenHeight));
   const [isClosing, setIsClosing] = useState(false);
 
@@ -183,12 +185,7 @@ export const CompanySelectionModal: React.FC<CompanySelectionModalProps> = ({
               <View
                 style={[
                   styles.addButtonContainer,
-                  {
-                    paddingBottom:
-                      Platform.OS === "android"
-                        ? Math.max(insets.bottom, 24) + 12
-                        : 16 + insets.bottom,
-                  },
+                  { paddingBottom: footerBottomPadding },
                 ]}
               >
                 <PrimaryButton
@@ -298,7 +295,7 @@ const styles = StyleSheet.create({
   },
   addButtonContainer: {
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingTop: 12,
   },
   addButton: {
     backgroundColor: "#203686",

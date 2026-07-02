@@ -1,7 +1,12 @@
 import { ArrowIconLeft, CloseIcon, MenuIcon, SearchIcon } from "@/assets/icons/icons";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import {
+  FIXED_TEXT_PROPS,
+  getFixedTextInputStyle,
+} from "@/utils/fixedTextStyle";
 import React from "react";
 import {
+  Platform,
   StyleSheet,
   TextInput,
   TouchableOpacity,
@@ -99,11 +104,12 @@ const SearchInput: React.FC<SearchInputProps> = ({
 
         {/* Поле ввода */}
         <TextInput
-          style={[
+          {...FIXED_TEXT_PROPS}
+          style={getFixedTextInputStyle([
             styles.input,
             disabled && styles.inputDisabled,
-            { color: disabled ? "#A0A0A0" : textColor }, // Динамический цвет текста
-          ]}
+            { color: disabled ? "#A0A0A0" : textColor },
+          ])}
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
@@ -198,9 +204,13 @@ const styles = StyleSheet.create({
     height: "100%",
     fontSize: 16,
     color: "#1B1B1C",
-    fontFamily: "System",
+    fontWeight: "500",
     paddingVertical: 0,
     paddingHorizontal: 0,
+    ...(Platform.OS === "android" && {
+      includeFontPadding: false,
+      textAlignVertical: "center",
+    }),
   },
   inputDisabled: {
     color: "#A0A0A0",

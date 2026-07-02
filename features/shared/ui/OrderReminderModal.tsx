@@ -20,7 +20,7 @@ import {
   normalizeRemindWhen,
   parseRemindAbout,
   serializeRemindAbout,
-  timeLabelToIso,
+  timeLabelToApiTime,
 } from "@/features/shared/types/orderReminderSettings";
 import { AppModal } from "@/features/shared/ui/AppModal";
 import { MonthlyDayCalendarPicker } from "@/features/shared/ui/components/MonthlyDayCalendarPicker";
@@ -152,7 +152,7 @@ export const OrderReminderModal: React.FC<OrderReminderModalProps> = ({
     setPickerType(null);
     persistSettings({
       ...orderReminderSettings,
-      remindAtTime: timeLabelToIso(timeLabel),
+      remindAtTime: timeLabelToApiTime(timeLabel),
     });
   };
 
@@ -205,27 +205,53 @@ export const OrderReminderModal: React.FC<OrderReminderModalProps> = ({
     persistSettings({ ...orderReminderSettings, monthlyDay: day });
   };
 
+  const renderPickerRadioOption = (
+    key: string,
+    label: string,
+    isSelected: boolean,
+    onPress: () => void,
+  ) => (
+    <TouchableOpacity
+      key={key}
+      style={[
+        styles.pickerRow,
+        isDark && { borderBottomColor: "#323235" },
+      ]}
+      onPress={onPress}
+      activeOpacity={0.7}
+    >
+      <View style={styles.pickerRowContent}>
+        <View
+          style={[
+            styles.radioOuter,
+            isSelected && styles.radioOuterSelected,
+            isDark && isSelected && { borderColor: "#4C94FF" },
+          ]}
+        >
+          {isSelected ? <View style={styles.radioInner} /> : null}
+        </View>
+        <ThemedText
+          lightColor="#1B1B1C"
+          darkColor="#FBFCFF"
+          style={styles.pickerRowText}
+        >
+          {label}
+        </ThemedText>
+      </View>
+    </TouchableOpacity>
+  );
+
   const renderPickerOptions = () => {
     if (pickerType === "remindWhen") {
       return REMIND_WHEN_OPTIONS.map((option) => {
         const isSelected =
           normalizeRemindWhen(orderReminderSettings?.remindWhen ?? "") ===
           option.value;
-        return (
-          <TouchableOpacity
-            key={option.value}
-            style={styles.pickerRow}
-            onPress={() => handleRemindWhenSelect(option.value)}
-            activeOpacity={0.7}
-          >
-            <ThemedText
-              lightColor={isSelected ? "#203686" : "#1B1B1C"}
-              darkColor={isSelected ? "#4C94FF" : "#FBFCFF"}
-              style={styles.pickerRowText}
-            >
-              {option.label}
-            </ThemedText>
-          </TouchableOpacity>
+        return renderPickerRadioOption(
+          option.value,
+          option.label,
+          isSelected,
+          () => handleRemindWhenSelect(option.value),
         );
       });
     }
@@ -235,21 +261,11 @@ export const OrderReminderModal: React.FC<OrderReminderModalProps> = ({
         const isSelected =
           orderReminderSettings &&
           formatRemindTime(orderReminderSettings.remindAtTime) === option.label;
-        return (
-          <TouchableOpacity
-            key={option.value}
-            style={styles.pickerRow}
-            onPress={() => handleTimeSelect(option.label)}
-            activeOpacity={0.7}
-          >
-            <ThemedText
-              lightColor={isSelected ? "#203686" : "#1B1B1C"}
-              darkColor={isSelected ? "#4C94FF" : "#FBFCFF"}
-              style={styles.pickerRowText}
-            >
-              {option.label}
-            </ThemedText>
-          </TouchableOpacity>
+        return renderPickerRadioOption(
+          option.value,
+          option.label,
+          Boolean(isSelected),
+          () => handleTimeSelect(option.label),
         );
       });
     }
@@ -257,21 +273,11 @@ export const OrderReminderModal: React.FC<OrderReminderModalProps> = ({
     if (pickerType === "weeklyDay") {
       return WEEKLY_DAY_OPTIONS.map((option) => {
         const isSelected = orderReminderSettings?.weeklyDay === option.value;
-        return (
-          <TouchableOpacity
-            key={option.value}
-            style={styles.pickerRow}
-            onPress={() => handleWeeklyDaySelect(option.value)}
-            activeOpacity={0.7}
-          >
-            <ThemedText
-              lightColor={isSelected ? "#203686" : "#1B1B1C"}
-              darkColor={isSelected ? "#4C94FF" : "#FBFCFF"}
-              style={styles.pickerRowText}
-            >
-              {option.label}
-            </ThemedText>
-          </TouchableOpacity>
+        return renderPickerRadioOption(
+          option.value,
+          option.label,
+          Boolean(isSelected),
+          () => handleWeeklyDaySelect(option.value),
         );
       });
     }
@@ -733,11 +739,17 @@ const styles = StyleSheet.create({
     maxHeight: PICKER_LIST_MAX_HEIGHT,
   },
   pickerRow: {
-    paddingVertical: 12,
+    paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "#F0F3F7",
+    borderBottomColor: "#F0F0F0",
+  },
+  pickerRowContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
   },
   pickerRowText: {
+    flex: 1,
     fontSize: 16,
     lineHeight: 22,
     fontWeight: "500",

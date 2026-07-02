@@ -753,17 +753,25 @@ export default function HeartScreen() {
           </TouchableOpacity>
 
           <View style={styles.modalHeader}>
-            <TouchableOpacity onPress={resetCurrentGroupFilters}>
-              <ThemedText style={styles.modalResetText} />
-            </TouchableOpacity>
+            <View style={styles.modalHeaderSide}>
+              <TouchableOpacity onPress={resetCurrentGroupFilters}>
+                <ThemedText style={styles.modalResetText} />
+              </TouchableOpacity>
+            </View>
 
-            <ThemedText style={styles.modalTitle}>
+            <ThemedText
+              style={styles.modalTitle}
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
               {selectedFilterGroup?.name || "Фильтры"}
             </ThemedText>
 
-            <TouchableOpacity onPress={applyFilterDraft}>
-              <ThemedText style={styles.modalCloseText}>Готово</ThemedText>
-            </TouchableOpacity>
+            <View style={[styles.modalHeaderSide, styles.modalHeaderSideRight]}>
+              <TouchableOpacity onPress={applyFilterDraft}>
+                <ThemedText style={styles.modalCloseText}>Готово</ThemedText>
+              </TouchableOpacity>
+            </View>
           </View>
 
           <ScrollView
@@ -853,7 +861,7 @@ const styles = StyleSheet.create({
   horizontalFiltersWrapper: {
     marginHorizontal: 16,
     marginTop: 16,
-    marginBottom: 16,
+    marginBottom: 8,
   },
   horizontalFiltersContainer: {
     flexGrow: 0,
@@ -876,6 +884,7 @@ const styles = StyleSheet.create({
   sortFilterButtonText: {
     fontFamily: "Montserrat",
     fontSize: 14,
+    fontWeight: '500',
     marginLeft: 8,
   },
   filterGroupButton: {
@@ -892,6 +901,7 @@ const styles = StyleSheet.create({
   filterGroupText: {
     fontFamily: "Montserrat",
     fontSize: 14,
+    fontWeight: '500'
   },
   filterGroupTextActive: {
     color: "#FFFFFF",
@@ -997,12 +1007,16 @@ const styles = StyleSheet.create({
   },
   modalHeader: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 20,
     paddingVertical: 16,
-    // borderBottomWidth: 1,
-    // borderBottomColor: "#F0F0F0",
+  },
+  modalHeaderSide: {
+    flex: 1,
+    minWidth: 0,
+  },
+  modalHeaderSideRight: {
+    alignItems: "flex-end",
   },
   modalCloseText: {
     fontFamily: "Montserrat",
@@ -1016,9 +1030,14 @@ const styles = StyleSheet.create({
     color: "#203686",
   },
   modalTitle: {
+    flex: 2,
+    flexShrink: 1,
+    minWidth: 0,
     fontFamily: "Montserrat",
     fontSize: 18,
     fontWeight: "600",
+    textAlign: "center",
+    marginHorizontal: 8,
   },
   sortOptionsContainer: {
     paddingHorizontal: 20,
@@ -1082,6 +1101,7 @@ const styles = StyleSheet.create({
   filterOptionText: {
     fontFamily: "Montserrat",
     fontSize: 16,
+    fontWeight: '500'
   },
   filterOptionTextSelected: {
     fontWeight: "600",

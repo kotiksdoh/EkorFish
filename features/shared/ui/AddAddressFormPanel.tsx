@@ -173,8 +173,8 @@ export function AddAddressFormPanel({ companyId, onBack, onSuccess }: Props) {
                 onChangeText={(value) =>
                   setFormData((prev) => ({ ...prev, comment: value }))
                 }
-                multiline
-                style={styles.commentInputWrap}
+                // multiline
+                // style={styles.commentInputWrap}
               />
             </View>
           </ScrollView>

@@ -1,9 +1,15 @@
 import { CalendarFilledIcon } from '@/assets/icons/icons';
-import { ThemedView } from '@/components/themed-view'; // Добавьте этот импорт
+import { ThemedView } from '@/components/themed-view';
 import { useThemeColor } from '@/hooks/use-theme-color';
-import React, { useRef, useState } from 'react';
+import {
+  FIXED_TEXT_PROPS,
+  getFixedTextInputStyle,
+  getFixedTextStyle,
+} from '@/utils/fixedTextStyle';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Animated,
+  Platform,
   StyleSheet,
   TextInput,
   TouchableOpacity,
@@ -40,6 +46,14 @@ export const DatePickerWithIcon: React.FC<DatePickerWithIconProps> = ({
   const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
   const animatedValue = useState(new Animated.Value(value ? 1 : 0))[0];
   const inputRef = useRef<TextInput>(null);
+
+  useEffect(() => {
+    Animated.timing(animatedValue, {
+      toValue: value ? 1 : 0,
+      duration: 200,
+      useNativeDriver: false,
+    }).start();
+  }, [value, animatedValue]);
 
   const showDatePicker = () => {
     setDatePickerVisibility(true);
@@ -112,23 +126,30 @@ export const DatePickerWithIcon: React.FC<DatePickerWithIconProps> = ({
         lightColor='#03051E08'
         darkColor='#ECEFFA0D'
       >
-        <Animated.Text style={[styles.placeholder, animatedStyle]}>
+        <Animated.Text
+          {...FIXED_TEXT_PROPS}
+          style={getFixedTextStyle([styles.placeholder, animatedStyle])}
+        >
           {placeholder}
         </Animated.Text>
         
         <TextInput
           ref={inputRef}
-          style={[
+          {...FIXED_TEXT_PROPS}
+          style={getFixedTextInputStyle([
             styles.input,
+            Platform.OS === 'android' && styles.inputAndroid,
             inputStyle,
-            { 
+            {
               paddingTop: 20,
               paddingBottom: 10,
               color: color,
-              paddingRight: 40, 
-            }
-          ]}
+              paddingRight: 40,
+            },
+          ])}
           placeholder=""
+          placeholderTextColor="transparent"
+          underlineColorAndroid="transparent"
           value={value}
           onChangeText={onChangeText}
           onFocus={handleFocus}
@@ -184,13 +205,17 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     fontWeight: '500',
   },
+  inputAndroid: {
+    includeFontPadding: false,
+    textAlignVertical: 'center',
+  },
   placeholder: {
     position: 'absolute',
     zIndex: 1,
     backgroundColor: 'transparent',
     includeFontPadding: false,
     fontWeight: '500',
-    pointerEvents: 'none', // Добавьте эту строку
+    pointerEvents: 'none',
   },
   iconContainer: {
     position: 'absolute',

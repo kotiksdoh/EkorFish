@@ -8,8 +8,13 @@ import {
   filterSearchHintsFromIndex,
 } from "@/features/home/utils/searchHints";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import {
+  FIXED_TEXT_PROPS,
+  getFixedTextInputStyle,
+} from "@/utils/fixedTextStyle";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  Platform,
   StyleSheet,
   TextInput,
   TouchableOpacity,
@@ -109,7 +114,11 @@ export function SearchTopArea({
           </TouchableOpacity>
           <TextInput
             ref={inputRef}
-            style={[styles.searchInput, { color: textColor }]}
+            {...FIXED_TEXT_PROPS}
+            style={getFixedTextInputStyle([
+              styles.searchInput,
+              { color: textColor },
+            ])}
             placeholder="Найти товары"
             placeholderTextColor="#80818B"
             value={searchQuery}
@@ -197,7 +206,12 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: 8,
     fontSize: 16,
+    fontWeight: "500",
     padding: 0,
+    ...(Platform.OS === "android" && {
+      includeFontPadding: false,
+      textAlignVertical: "center",
+    }),
   },
   clearInputButton: {
     padding: 4,
@@ -213,7 +227,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 16,
+    marginBottom: 12,
   },
   historyTitle: {
     fontSize: 16,

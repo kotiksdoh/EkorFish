@@ -8,10 +8,10 @@ import {
   View,
 } from "react-native";
 
-const WEEKDAY_LABELS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 const DAYS_IN_MONTH = 31;
 const COLUMNS = 7;
 const HORIZONTAL_PADDING = 40;
+const CELL_SIZE = 40;
 
 interface MonthlyDayCalendarPickerProps {
   selectedDay: number;
@@ -27,7 +27,7 @@ export const MonthlyDayCalendarPicker: React.FC<MonthlyDayCalendarPickerProps> =
   const cellSize = useMemo(() => {
     const screenWidth = Dimensions.get("window").width;
     const availableWidth = screenWidth - HORIZONTAL_PADDING;
-    return Math.floor(availableWidth / COLUMNS);
+    return Math.min(CELL_SIZE, Math.floor(availableWidth / COLUMNS));
   }, []);
 
   const days = useMemo(
@@ -37,24 +37,7 @@ export const MonthlyDayCalendarPicker: React.FC<MonthlyDayCalendarPickerProps> =
 
   return (
     <View style={styles.container}>
-      <View style={styles.weekdayRow}>
-        {WEEKDAY_LABELS.map((label) => (
-          <View
-            key={label}
-            style={[styles.weekdayCell, { width: cellSize, height: 28 }]}
-          >
-            <ThemedText
-              lightColor="#80818B"
-              darkColor="#FBFCFF80"
-              style={styles.weekdayText}
-            >
-              {label}
-            </ThemedText>
-          </View>
-        ))}
-      </View>
-
-      <View style={styles.grid}>
+      <View style={[styles.grid, { width: cellSize * COLUMNS }]}>
         {days.map((day) => {
           const isSelected = selectedDay === day;
 
@@ -91,18 +74,7 @@ export const MonthlyDayCalendarPicker: React.FC<MonthlyDayCalendarPickerProps> =
 const styles = StyleSheet.create({
   container: {
     paddingTop: 4,
-  },
-  weekdayRow: {
-    flexDirection: "row",
-    marginBottom: 8,
-  },
-  weekdayCell: {
     alignItems: "center",
-    justifyContent: "center",
-  },
-  weekdayText: {
-    fontSize: 12,
-    fontWeight: "500",
   },
   grid: {
     flexDirection: "row",

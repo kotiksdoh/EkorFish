@@ -753,7 +753,7 @@ export default function ShopScreen() {
             darkColor="#FBFCFF"
             lightColor="#1B1B1C"
             numberOfLines={1}
-            style={{ maxWidth: 150 }}
+            style={{ maxWidth: 150, fontWeight:'500' }}
           >
             {companyDisplayName}
           </ThemedText>

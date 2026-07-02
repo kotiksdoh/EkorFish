@@ -980,6 +980,7 @@ const ReconciliationActScreen: React.FC<{ onBack: () => void }> = ({
                   ]}
                 >
                   <ThemedText
+                    weight="medium"
                     style={[
                       styles.datePickerText,
                       !startDate && styles.datePickerPlaceholder,
@@ -1012,6 +1013,7 @@ const ReconciliationActScreen: React.FC<{ onBack: () => void }> = ({
                   ]}
                 >
                   <ThemedText
+                    weight="medium"
                     style={[
                       styles.datePickerText,
                       !endDate && styles.datePickerPlaceholder,
@@ -2309,7 +2311,6 @@ const styles = StyleSheet.create({
   datePickerText: {
     flex: 1,
     fontSize: 16,
-    fontWeight: "500",
   },
   datePickerPlaceholder: {
     color: "#80818B",
