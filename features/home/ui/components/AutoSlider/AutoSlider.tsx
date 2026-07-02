@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Dimensions,
   FlatList,
+  ImageSourcePropType,
   NativeScrollEvent,
   NativeSyntheticEvent,
   StyleSheet,
@@ -18,6 +19,7 @@ const SLIDER_HEIGHT = 282;
 export interface SlideItem {
   id: string;
   imageUrl: string;
+  localImage?: ImageSourcePropType;
   title?: string;
   subtitle?: string;
 }

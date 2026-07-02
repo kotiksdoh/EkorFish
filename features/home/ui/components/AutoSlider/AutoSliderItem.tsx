@@ -21,7 +21,7 @@ export const AutoSliderItem: React.FC<AutoSliderItemProps> = ({
     <View style={[styles.container, { width: SCREEN_WIDTH }]}>
       <View style={[styles.imageWrapper, { height: sliderHeight }]}>
         <Image
-          source={{ uri: item.imageUrl }}
+          source={item.localImage ?? { uri: item.imageUrl }}
           style={[
             isProduct ? styles.productImage : styles.image, // Добавлен условный стиль
           ]}

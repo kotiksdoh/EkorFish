@@ -15,6 +15,16 @@ type Palette = {
   close: string;
 };
 
+const APP_PRIMARY = {
+  light: "#203686",
+  dark: "#3881EE",
+} as const;
+
+const APP_SURFACE = {
+  light: "#E1F0FF",
+  dark: "#212945",
+} as const;
+
 const PALETTES: Record<ToastVariant, { light: Palette; dark: Palette }> = {
   success: {
     light: {
@@ -39,39 +49,39 @@ const PALETTES: Record<ToastVariant, { light: Palette; dark: Palette }> = {
   error: {
     light: {
       bg: "#FFFFFF",
-      border: "#FECACA",
-      icon: "#DC2626",
-      iconBg: "#FEF2F2",
-      title: "#991B1B",
-      subtitle: "#B91C1C",
+      border: APP_PRIMARY.light,
+      icon: APP_PRIMARY.light,
+      iconBg: APP_SURFACE.light,
+      title: "#1B1B1C",
+      subtitle: APP_PRIMARY.light,
       close: "#6B7280",
     },
     dark: {
       bg: "#151516",
-      border: "#991B1B",
-      icon: "#F87171",
-      iconBg: "#450A0A",
-      title: "#FEE2E2",
-      subtitle: "#FECACA",
+      border: APP_PRIMARY.dark,
+      icon: APP_PRIMARY.dark,
+      iconBg: APP_SURFACE.dark,
+      title: "#FBFCFF",
+      subtitle: "#93C5FD",
       close: "#9CA3AF",
     },
   },
   info: {
     light: {
       bg: "#FFFFFF",
-      border: "#BFDBFE",
-      icon: "#203686",
-      iconBg: "#EFF6FF",
-      title: "#1E3A5F",
-      subtitle: "#203686",
+      border: APP_PRIMARY.light,
+      icon: APP_PRIMARY.light,
+      iconBg: APP_SURFACE.light,
+      title: "#1B1B1C",
+      subtitle: APP_PRIMARY.light,
       close: "#6B7280",
     },
     dark: {
       bg: "#151516",
-      border: "#3B5998",
-      icon: "#4C94FF",
-      iconBg: "#0C1929",
-      title: "#E0E7FF",
+      border: APP_PRIMARY.dark,
+      icon: APP_PRIMARY.dark,
+      iconBg: APP_SURFACE.dark,
+      title: "#FBFCFF",
       subtitle: "#93C5FD",
       close: "#9CA3AF",
     },

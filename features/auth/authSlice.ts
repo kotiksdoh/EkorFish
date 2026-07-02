@@ -758,7 +758,6 @@ const authSlice = createSlice({
     builder.addCase(searchCompany.rejected, (state, action) => {
       state.isLoading = false;
       console.log("action.payload.reject", JSON.stringify(action?.payload));
-      axiosErrorHandler(action?.payload);
     });
 
     builder.addCase(getSliderItems.pending, (state) => {
