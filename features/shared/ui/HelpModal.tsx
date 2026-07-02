@@ -22,6 +22,7 @@ import { ActivityIndicator, Alert, Linking, ScrollView, StyleSheet, TouchableOpa
 import type { LegalDocumentId } from "@/features/shared/legal/buildLegalHtml";
 import { HtmlContentViewer } from "@/features/shared/ui/HtmlContentViewer";
 import { getLegalDocumentTitle, LegalDocumentViewer } from "@/features/shared/ui/LegalDocumentViewer";
+import { webViewScreenWrapperStyle } from "@/features/shared/ui/webViewSurfaceStyles";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PrimaryButton } from "./components/PrimartyButton";
 import { SnapBottomSheet } from "./SnapBottomSheet";
@@ -434,7 +435,11 @@ export const HelpModal: React.FC<HelpProps> = ({ visible, onClose }) => {
   );
 
   const renderLegalDocumentScreen = () => (
-    <ThemedView lightColor="#FFFFFF" darkColor="#151516" style={styles.contentContainer}>
+    <ThemedView
+      lightColor="#FFFFFF"
+      darkColor="#151516"
+      style={styles.webViewScreenContainer}
+    >
       {legalDocumentId && (
         <LegalDocumentViewer
           documentId={legalDocumentId}
@@ -445,7 +450,11 @@ export const HelpModal: React.FC<HelpProps> = ({ visible, onClose }) => {
   );
 
   const renderHelpContentScreen = () => (
-    <ThemedView lightColor="#FFFFFF" darkColor="#151516" style={styles.contentContainer}>
+    <ThemedView
+      lightColor="#FFFFFF"
+      darkColor="#151516"
+      style={styles.webViewScreenContainer}
+    >
       {currentHelpObject && (
         <HtmlContentViewer html={currentHelpObject.currentHtml} />
       )}
@@ -551,6 +560,9 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: 16,
     marginTop: 8,
+  },
+  webViewScreenContainer: {
+    ...webViewScreenWrapperStyle,
   },
   scrollContainer: {
     flex: 1,

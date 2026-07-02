@@ -21,6 +21,7 @@ import {
   serializeRemindAbout,
   timeLabelToIso,
 } from "@/features/shared/types/orderReminderSettings";
+import { AppModal } from "@/features/shared/ui/AppModal";
 import { SnapBottomSheet } from "@/features/shared/ui/SnapBottomSheet";
 import { CustomCheckbox } from "@/features/shared/ui/components/CustomCheckBox";
 import { PrimaryButton } from "@/features/shared/ui/components/PrimartyButton";
@@ -28,7 +29,6 @@ import { useAppTheme } from "@/hooks/use-theme-color";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Animated, Dimensions, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
-import { AppModal } from "@/features/shared/ui/AppModal";
 
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -351,7 +351,7 @@ export const OrderReminderModal: React.FC<OrderReminderModalProps> = ({
             style={styles.card}
           >
             <View style={styles.toggleRow}>
-              <ThemedText lightColor="#1B1B1C" darkColor="#FBFCFF">
+              <ThemedText style={styles.textDef} lightColor="#1B1B1C" darkColor="#FBFCFF">
                 Напоминать о заказе
               </ThemedText>
               <AppSwitch
@@ -402,7 +402,7 @@ export const OrderReminderModal: React.FC<OrderReminderModalProps> = ({
                 <View style={styles.divider} />
 
                 <View style={styles.timeRow}>
-                  <ThemedText lightColor="#1B1B1C" darkColor="#FBFCFF">
+                  <ThemedText style={styles.textDef} lightColor="#1B1B1C" darkColor="#FBFCFF">
                     Время
                   </ThemedText>
                   <TouchableOpacity
@@ -458,22 +458,35 @@ export const OrderReminderModal: React.FC<OrderReminderModalProps> = ({
                   Как часто напоминать?
                 </ThemedText>
 
-                {FREQUENCY_OPTIONS.map((option) => {
-                  const isSelected =
-                    orderReminderSettings.frequency === option.value;
+                <View style={styles.frequencyList}>
+                  {FREQUENCY_OPTIONS.map((option) => {
+                    const isSelected =
+                      orderReminderSettings.frequency === option.value;
 
-                  return (
-                    <View key={option.value} style={styles.frequencyBlock}>
-                      <View style={styles.radioRow}>
+                    return (
+                      <View
+                        key={option.value}
+                        style={[
+                          styles.frequencyRow,
+                          isDark && { borderBottomColor: "#323235" },
+                        ]}
+                      >
                         <TouchableOpacity
-                          style={styles.radioMain}
+                          style={styles.frequencyMain}
                           onPress={() => handleFrequencySelect(option.value)}
                           activeOpacity={0.7}
                           disabled={isUpdatingOrderReminderSettings}
                         >
-                          <View style={styles.radioCircle}>
+                          <View
+                            style={[
+                              styles.radioOuter,
+                              isSelected && styles.radioOuterSelected,
+                              isDark &&
+                                isSelected && { borderColor: "#4C94FF" },
+                            ]}
+                          >
                             {isSelected ? (
-                              <View style={styles.radioSelected} />
+                              <View style={styles.radioInner} />
                             ) : null}
                           </View>
                           <ThemedText
@@ -496,7 +509,9 @@ export const OrderReminderModal: React.FC<OrderReminderModalProps> = ({
                               darkColor="#FBFCFF80"
                               numberOfLines={1}
                             >
-                              {getWeeklyDayLabel(orderReminderSettings.weeklyDay)}
+                              {getWeeklyDayLabel(
+                                orderReminderSettings.weeklyDay,
+                              )}
                             </ThemedText>
                             <ArrowIconRight />
                           </TouchableOpacity>
@@ -519,9 +534,9 @@ export const OrderReminderModal: React.FC<OrderReminderModalProps> = ({
                           </TouchableOpacity>
                         ) : null}
                       </View>
-                    </View>
-                  );
-                })}
+                    );
+                  })}
+                </View>
               </ThemedView>
 
               <PrimaryButton
@@ -599,8 +614,12 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 20,
     fontWeight: "600",
+  },
+  textDef: {
+    fontWeight: '500',
+    fontSize: 16
   },
   valueRow: {
     flexDirection: "row",
@@ -631,44 +650,53 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
+    marginTop: 8
   },
   checkboxLabel: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 16,
+    fontWeight: '500',
     lineHeight: 20,
   },
-  frequencyBlock: {
-    marginBottom: 4,
+  frequencyList: {
+    marginTop: -8,
   },
-  radioRow: {
+  frequencyRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F0F0F0",
+  },
+  frequencyMain: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    paddingVertical: 4,
-  },
-  radioMain: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
+    flex: 1,
     flexShrink: 1,
   },
-  radioCircle: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+  radioOuter: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     borderWidth: 2,
-    borderColor: "#203686",
+    borderColor: "#D8DADE",
     justifyContent: "center",
     alignItems: "center",
   },
-  radioSelected: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: "#203686",
+  radioOuterSelected: {
+    borderColor: "#203686",
+    borderWidth: 5,
+  },
+  radioInner: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: "#FFFFFF",
   },
   radioLabel: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: "500",
   },
   frequencyExtra: {

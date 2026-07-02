@@ -1,11 +1,12 @@
 import React, { useCallback, useMemo } from 'react';
-import { Linking, StyleSheet, View } from 'react-native';
+import { Linking, View } from 'react-native';
 import { WebView } from 'react-native-webview';
 import {
   buildLegalDocumentHtml,
   LEGAL_DOCUMENT_TITLES,
   type LegalDocumentId,
 } from '@/features/shared/legal/buildLegalHtml';
+import { webViewSurfaceStyles } from '@/features/shared/ui/webViewSurfaceStyles';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 type LegalDocumentViewerProps = {
@@ -44,12 +45,12 @@ export const LegalDocumentViewer: React.FC<LegalDocumentViewerProps> = ({
   }, []);
 
   return (
-    <View style={styles.container}>
+    <View style={webViewSurfaceStyles.container}>
       <WebView
         originWhitelist={['*']}
         source={{ html }}
         javaScriptEnabled={false}
-        style={styles.webView}
+        style={webViewSurfaceStyles.webView}
         showsVerticalScrollIndicator
         nestedScrollEnabled
         onShouldStartLoadWithRequest={handleShouldStartLoad}
@@ -57,13 +58,3 @@ export const LegalDocumentViewer: React.FC<LegalDocumentViewerProps> = ({
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  webView: {
-    flex: 1,
-    backgroundColor: 'transparent',
-  },
-});

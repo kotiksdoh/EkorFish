@@ -1,7 +1,8 @@
 import { wrapHtmlContent } from '@/features/shared/utils/wrapHtmlContent';
+import { webViewSurfaceStyles } from '@/features/shared/ui/webViewSurfaceStyles';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import React, { useCallback, useMemo } from 'react';
-import { Linking, StyleSheet, View } from 'react-native';
+import { Linking, View } from 'react-native';
 import { WebView } from 'react-native-webview';
 
 type HtmlContentViewerProps = {
@@ -36,12 +37,12 @@ export const HtmlContentViewer: React.FC<HtmlContentViewerProps> = ({
   }, []);
 
   return (
-    <View style={styles.container}>
+    <View style={webViewSurfaceStyles.container}>
       <WebView
         originWhitelist={['*']}
         source={{ html: wrappedHtml }}
         javaScriptEnabled={false}
-        style={styles.webView}
+        style={webViewSurfaceStyles.webView}
         showsVerticalScrollIndicator
         nestedScrollEnabled
         onShouldStartLoadWithRequest={handleShouldStartLoad}
@@ -49,13 +50,3 @@ export const HtmlContentViewer: React.FC<HtmlContentViewerProps> = ({
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  webView: {
-    flex: 1,
-    backgroundColor: 'transparent',
-  },
-});

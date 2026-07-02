@@ -529,7 +529,7 @@ const NotificationsScreen: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                   darkColor={"#202022"}
                   disabled={isUpdatingPushPreference}
                 />
-                <ThemedText lightColor="#1B1B1C" darkColor="#FBFCFF">
+                <ThemedText style={styles.defText} lightColor="#1B1B1C" darkColor="#FBFCFF">
                   {item.name}
                 </ThemedText>
               </View>
@@ -954,6 +954,10 @@ const styles = StyleSheet.create({
     gap: 8,
     alignItems: "center",
   },
+  defText:{
+    fontWeight: '500',
+    fontSize: 16
+  },
   loaderContainer: {
     alignItems: "center",
     justifyContent: "center",
@@ -995,7 +999,8 @@ const styles = StyleSheet.create({
   infoText: {
     fontSize: 14,
     fontWeight: "500",
-    marginVertical: 12,
+    marginTop: 6,
+    marginBottom: 12
   },
   quietTimeRow: {
     flexDirection: "row",

@@ -8,6 +8,7 @@ import type { LegalDocumentId } from '@/features/shared/legal/buildLegalHtml';
 import React from 'react';
 import { StyleSheet } from 'react-native';
 import { AppModal } from "@/features/shared/ui/AppModal";
+import { webViewScreenWrapperStyle } from '@/features/shared/ui/webViewSurfaceStyles';
 
 
 type LegalDocumentModalProps = {
@@ -61,9 +62,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    flex: 1,
-    marginTop: 8,
-    borderRadius: 16,
-    overflow: 'hidden',
+    ...webViewScreenWrapperStyle,
   },
 });
