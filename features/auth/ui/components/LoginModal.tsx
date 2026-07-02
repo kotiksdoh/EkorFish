@@ -15,6 +15,7 @@ import { DatePickerWithIcon } from "@/features/shared/ui/components/DatePickerCu
 // import SmartInput from '@/features/shared/ui/components/SmartInput';
 import { getCart, getMyOrders } from "@/features/catalog/catalogSlice";
 import type { LegalDocumentId } from "@/features/shared/legal/buildLegalHtml";
+import { AppModal } from "@/features/shared/ui/AppModal";
 import { LegalDocumentModal } from "@/features/shared/ui/LegalDocumentModal";
 import ManagerSection from "@/features/shared/ui/ManagerSection";
 import SmartInput from "@/features/shared/ui/components/SmartInput";
@@ -25,7 +26,6 @@ import { syncPushTokenToBackend } from "@/hooks/usePushNotifications";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Image, KeyboardAvoidingView, Platform, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
-import { AppModal } from "@/features/shared/ui/AppModal";
 
 import {
   SafeAreaProvider,

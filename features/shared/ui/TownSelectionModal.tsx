@@ -422,6 +422,7 @@ const styles = StyleSheet.create({
   townName: {
     fontFamily: "Montserrat",
     fontSize: 16,
+    fontWeight: '500'
   },
   radioOuter: {
     width: 24,

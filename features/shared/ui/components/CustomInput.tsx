@@ -228,6 +228,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     includeFontPadding: false,
     pointerEvents: 'none',
+    fontWeight: '500'
   },
 });
 

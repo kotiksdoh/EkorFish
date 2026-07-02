@@ -1010,7 +1010,7 @@ export default function ShopScreen() {
                   <ThemedText style={{ fontSize: 18, fontWeight: "500" }} darkColor="#FBFCFF" lightColor="#1B1B1C">
                     ИТОГО
                   </ThemedText>
-                  <ThemedText darkColor="#FBFCFF" lightColor="#1B1B1C">
+                  <ThemedText style={{ fontSize: 20, fontWeight: "600" }} darkColor="#FBFCFF" lightColor="#1B1B1C">
                     {formatPrice(
                       totals.discountAmount > 0
                         ? totals.finalPrice
