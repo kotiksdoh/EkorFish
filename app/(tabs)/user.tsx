@@ -1,6 +1,6 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -28,7 +28,6 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Fonts } from "@/constants/theme";
 import {
-  clearAuthState,
   getCategoryItems,
   getOrderReminderSettings,
   getPushesThunk,
@@ -36,8 +35,8 @@ import {
   getUncheckedPushesCountThunk,
   setCompany,
 } from "@/features/auth/authSlice";
+import { clearAuthSession } from "@/features/auth/services/clearAuthSession";
 import { LoginModal } from "@/features/auth/ui/components/LoginModal";
-import { clearCatalogState } from "@/features/catalog/catalogSlice";
 import { axdef } from "@/features/shared/services/axios";
 import { CompanySelectModal } from "@/features/shared/ui/CompanySelectModal";
 import { HelpModal } from "@/features/shared/ui/HelpModal";
@@ -85,6 +84,7 @@ export default function TabTwoScreen() {
   const [helpModalVisible, setHelpModalVisible] = useState(false);
   const [pushesModalVisible, setPushesModalVisible] = useState(false);
   const [hasAuthToken, setHasAuthToken] = useState(false);
+  const isLoggingOutRef = useRef(false);
   const pageSize = 10;
 
   const { resumeDetailTemplateId } = useTemplatePicker();
@@ -261,11 +261,17 @@ export default function TabTwoScreen() {
 
         const authenticated = Boolean(token);
         setHasAuthToken(authenticated);
-        setLoginModalVisible(!authenticated);
         setAuthChecked(true);
+
+        if (isLoggingOutRef.current) {
+          setLoginModalVisible(false);
+          return;
+        }
+
+        setLoginModalVisible(!authenticated);
       };
 
-      if (!hasAuthToken) {
+      if (!hasAuthToken && !isLoggingOutRef.current) {
         setAuthChecked(false);
       }
 
@@ -328,6 +334,10 @@ export default function TabTwoScreen() {
   }, [dispatch, hasAuthToken]);
 
   const handleLogout = async () => {
+    isLoggingOutRef.current = true;
+    setLoginModalVisible(false);
+    setEditModalVisible(false);
+
     try {
       try {
         const deviceId = await AsyncStorage.getItem("device_id");
@@ -338,18 +348,19 @@ export default function TabTwoScreen() {
         console.error("Ошибка при вызове logout API:", logoutError);
       }
 
-      dispatch(clearAuthState());
-      dispatch(clearCatalogState());
-      await AsyncStorage.clear();
+      await clearAuthSession();
       setHasAuthToken(false);
       await Promise.all([
         dispatch(getCategoryItems("")).unwrap(),
         dispatch(getSliderItems("")).unwrap(),
       ]);
-      setEditModalVisible(false);
       router.replace("/");
     } catch (error) {
-      console.error("Ошибка при очистке AsyncStorage:", error);
+      console.error("Ошибка при выходе:", error);
+    } finally {
+      setTimeout(() => {
+        isLoggingOutRef.current = false;
+      }, 600);
     }
   };
 

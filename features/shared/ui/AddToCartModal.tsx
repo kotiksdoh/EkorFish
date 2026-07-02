@@ -97,6 +97,8 @@ interface AddToCartModalProps {
   nestedInModal?: boolean;
   /** Скрыть фото и название (экран товара со слайдером) */
   hideProductHeader?: boolean;
+  /** Вызывается, если пользователь не авторизован при добавлении в корзину */
+  onAuthRequired?: () => void;
 }
 
 // Маппинг иконок по кодам
@@ -134,6 +136,7 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
   variant = "cart",
   nestedInModal = false,
   hideProductHeader = false,
+  onAuthRequired,
 }) => {
   const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme();
@@ -282,7 +285,8 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
     if (variant === "cart") {
       const token = await AsyncStorage.getItem("token");
       if (!token) {
-        console.log("No token found - skipping favorites loading");
+        closeModal();
+        onAuthRequired?.();
         return;
       }
     }
@@ -290,7 +294,7 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
       onAddToCart(product.id, selectedOption.id, quantity);
       closeModal();
     }
-  }, [product, selectedOption, quantity, onAddToCart, closeModal, variant]);
+  }, [product, selectedOption, quantity, onAddToCart, closeModal, variant, onAuthRequired]);
 
   if (!product || !visible) return null;
 

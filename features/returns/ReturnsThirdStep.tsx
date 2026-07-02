@@ -4,6 +4,7 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { setCompany } from "@/features/auth/authSlice";
 import { ModalHeader } from "@/features/auth/ui/Header";
+import { useAuthGate } from "@/features/auth/hooks/useAuthGate";
 import { getCompanyAddresses } from "@/features/catalog/catalogSlice";
 import { RecommendedOrderProducts } from "@/features/catalog/ui/components/RecommendedOrderProducts/RecommendedOrderProducts";
 import { useSavedAddress } from "@/features/shared/services/useSavedAddress";
@@ -80,6 +81,7 @@ export const MyReturnsThirdStep: React.FC<MyReturnsThirdStepProps> = ({
   const systemTheme = useColorScheme();
   const isDark = systemTheme === "dark";
   const dispatch = useAppDispatch();
+  const { requireAuth, openLogin, authGateModal } = useAuthGate();
 
   const returnableOrders = useAppSelector((state) => state.catalog.returnableOrders);
   const returnRequests = useAppSelector((state) => state.catalog.returnRequests);
@@ -390,14 +392,18 @@ export const MyReturnsThirdStep: React.FC<MyReturnsThirdStepProps> = ({
   };
 
   const handleRecommendedAddToCartPress = useCallback(
-    (product: any) => {
+    async (product: any) => {
+      if (!(await requireAuth())) {
+        return;
+      }
+
       const cartItemsForProduct =
         cartItems?.filter((item: any) => item.productId === product.id) || [];
       setSelectedProductForCart(product);
       setExistingCartItem(cartItemsForProduct);
       setShowAddToCartModal(true);
     },
-    [cartItems],
+    [cartItems, requireAuth],
   );
 
   const handleRecommendedAddToCart = useCallback(
@@ -921,7 +927,9 @@ export const MyReturnsThirdStep: React.FC<MyReturnsThirdStepProps> = ({
           onAddToCart={handleRecommendedAddToCart}
           existingCartItem={existingCartItem}
           nestedInModal={showSuccessContent}
+          onAuthRequired={openLogin}
         />
+        {authGateModal}
       </ThemedView>
     </AppModal>
   );

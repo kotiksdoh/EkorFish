@@ -3,6 +3,7 @@ import { FilterXsIcon, SortIcon, WarningIcon } from "@/assets/icons/icons";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { ModalHeader } from "@/features/auth/ui/Header";
+import { useAuthGate } from "@/features/auth/hooks/useAuthGate";
 import SearchInput from "@/features/auth/ui/components/SearchInput";
 import {
   AddToCart,
@@ -94,6 +95,7 @@ export default function CatalogDetailScreen() {
   const cartItems = useAppSelector((state) => state.catalog.cart);
   const me = useAppSelector((state) => state.auth.me);
   const templatePicker = useTemplatePicker();
+  const { requireAuth, openLogin, authGateModal } = useAuthGate();
 
   const subcategoriesFromProps = useMemo(() => {
     const mapChild = (child: any) => ({
@@ -551,7 +553,11 @@ export default function CatalogDetailScreen() {
 
   const [existingCartItem, setExistingCartItem] = useState<any>(null);
 
-  const handleAddToCartPress = (product: any) => {
+  const handleAddToCartPress = async (product: any) => {
+    if (!templatePicker.pickingForTemplateId && !(await requireAuth())) {
+      return;
+    }
+
     const cartItemsForProduct =
       cartItems?.filter((item: any) => item.productId === product.id) || [];
     const templateLines = templatePicker.pickingForTemplateId
@@ -1339,7 +1345,9 @@ export default function CatalogDetailScreen() {
           variant={
             templatePicker.pickingForTemplateId ? "template" : "cart"
           }
+          onAuthRequired={openLogin}
         />
+        {authGateModal}
         <BottomSheetModal
           ref={sortSheetRef}
           visible={showSortModal}
@@ -1529,6 +1537,7 @@ const styles = StyleSheet.create({
   subcategoryText: {
     fontFamily: "Montserrat",
     fontSize: 14,
+    fontWeight: '500',
     color: "#1B1B1C",
   },
   subcategoryTextActive: {

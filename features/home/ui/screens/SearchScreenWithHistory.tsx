@@ -57,6 +57,8 @@ export const SearchScreenWithHistory: React.FC<
     handleAddToCart,
     closeAddToCartModal,
     variant: addToCartVariant,
+    openLogin,
+    authGateModal,
   } = useTemplateAwareAddToCart();
   const searchHints = useAppSelector((state) => state.auth.searchHints);
   const searchHintsLower = useAppSelector((state) => state.auth.searchHintsLower);
@@ -181,7 +183,9 @@ export const SearchScreenWithHistory: React.FC<
         onAddToCart={handleAddToCart}
         existingCartItem={existingCartItem}
         variant={addToCartVariant}
+        onAuthRequired={openLogin}
       />
+      {authGateModal}
     </ThemedView>
   );
 };

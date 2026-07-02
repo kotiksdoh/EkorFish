@@ -233,7 +233,7 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
   },
   inputAndroid: {
-    paddingTop: Platform.OS === 'android' ? 20 : 20,
+    paddingTop: Platform.OS === 'android' ? 25 : 25,
     paddingBottom: Platform.OS === 'android' ? 10 : 10,
     includeFontPadding: false,
     textAlignVertical: 'center',
@@ -244,6 +244,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     includeFontPadding: false,
     pointerEvents: 'none',
+    fontWeight: '400'
   },
 });
 

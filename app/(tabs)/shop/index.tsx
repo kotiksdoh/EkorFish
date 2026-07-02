@@ -14,6 +14,7 @@ import {
   loadCompanyFromStorage,
   setCompany
 } from "@/features/auth/authSlice";
+import { useAuthGate } from "@/features/auth/hooks/useAuthGate";
 import { ModalHeader } from "@/features/auth/ui/Header";
 import {
   AddToCart,
@@ -399,6 +400,7 @@ export default function ShopScreen() {
   const [existingCartItem, setExistingCartItem] = useState<any>(null);
   const [showAddToCartModal, setShowAddToCartModal] = useState(false);
   const templatePicker = useTemplatePicker();
+  const { requireAuth, openLogin, authGateModal } = useAuthGate();
 
   const [bonusParams, setBonusParams] = useState<{
     isAccrueBonuses: boolean;
@@ -441,7 +443,11 @@ export default function ShopScreen() {
   }, [dispatch, isApplyingPromoCode, promoCodeInput]);
 
   const handleAddToCartPress = useCallback(
-    (product: any) => {
+    async (product: any) => {
+      if (!templatePicker.pickingForTemplateId && !(await requireAuth())) {
+        return;
+      }
+
       const cartItemsForProduct =
         cartItems?.filter((item) => item.productId === product.id) || [];
       const templateLines = templatePicker.pickingForTemplateId
@@ -454,7 +460,7 @@ export default function ShopScreen() {
       );
       setShowAddToCartModal(true);
     },
-    [cartItems, templatePicker],
+    [cartItems, requireAuth, templatePicker],
   );
 
   const handleAddToCart = useCallback(
@@ -1191,7 +1197,9 @@ export default function ShopScreen() {
           onAddToCart={handleAddToCart}
           existingCartItem={existingCartItem}
           variant={templatePicker.pickingForTemplateId ? "template" : "cart"}
+          onAuthRequired={openLogin}
         />
+        {authGateModal}
       </ThemedView>
     </SafeAreaProvider>
   );

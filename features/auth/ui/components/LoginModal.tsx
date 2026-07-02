@@ -1359,7 +1359,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
               <View
                 style={[
                   phisUser.button,
-                  { paddingBottom: insets.bottom + (Platform.OS === "android" ? 12 : 0) },
+                  { paddingBottom: insets.bottom + (Platform.OS === "android" ? 27 : 0) },
                 ]}
               >
                 <PrimaryButton
@@ -1426,6 +1426,7 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
   logoText: {
+    marginTop: 3,
     fontWeight: "500",
     fontSize: 14,
     lineHeight: 17,

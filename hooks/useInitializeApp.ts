@@ -2,6 +2,7 @@ import * as SplashScreenExpo from "expo-splash-screen";
 import { useEffect, useState } from "react";
 // import { loadAppData } from '@/store/slices/appSlice';
 import {
+  clearAuthState,
   getCategoryItems,
   getMyInfo,
   getMyParams,
@@ -9,12 +10,23 @@ import {
   getSliderItems,
   setBootstrapStatus,
 } from "@/features/auth/authSlice";
-import { getCart, getMyOrders, getOrderPageData } from "@/features/catalog/catalogSlice";
+import { registerSessionClearedHandler } from "@/features/auth/services/clearAuthSession";
+import {
+  clearCatalogState,
+  getCart,
+  getMyOrders,
+  getOrderPageData,
+} from "@/features/catalog/catalogSlice";
 import { store } from "@/store/store";
 import { loadMontserratFonts } from "@/utils/loadMontserratFonts";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const INIT_REQUEST_TIMEOUT_MS = 12000;
+
+registerSessionClearedHandler(() => {
+  store.dispatch(clearAuthState());
+  store.dispatch(clearCatalogState());
+});
 
 // Предотвращаем автоматическое скрытие сплеш-скрина
 SplashScreenExpo.preventAutoHideAsync().catch(() => {

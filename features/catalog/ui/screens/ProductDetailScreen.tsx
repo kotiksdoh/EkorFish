@@ -2,6 +2,7 @@ import { CheckCircleIcon, CloseCircleIcon } from "@/assets/icons/icons";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { ModalHeader } from "@/features/auth/ui/Header";
+import { useAuthGate } from "@/features/auth/hooks/useAuthGate";
 import {
   AddToCart,
   clearSimilarProducts,
@@ -106,6 +107,7 @@ export function ProductDetailScreen() {
     return storedProduct;
   }, [storedProduct, productId, activeProductId]);
   const templatePicker = useTemplatePicker();
+  const { requireAuth, openLogin, authGateModal } = useAuthGate();
   const selectedPurchaseOption =
     product?.purchaseOptions?.[selectedPurchaseOptionIndex];
   const totalPrice = selectedPurchaseOption
@@ -282,7 +284,11 @@ export function ProductDetailScreen() {
   };
 
   const handleAddToCartPress = useCallback(
-    (listProduct: any) => {
+    async (listProduct: any) => {
+      if (!templatePicker.pickingForTemplateId && !(await requireAuth())) {
+        return;
+      }
+
       const cartItemsForListProduct =
         cartItems?.filter((item: any) => item.productId === listProduct.id) ||
         [];
@@ -298,8 +304,19 @@ export function ProductDetailScreen() {
       );
       setIsCartModalVisible(true);
     },
-    [cartItems, templatePicker],
+    [cartItems, requireAuth, templatePicker],
   );
+
+  const handleCartButtonPress = useCallback(async () => {
+    if (templatePicker.pickingForTemplateId) {
+      handleOpenCartModal();
+      return;
+    }
+    if (!(await requireAuth())) {
+      return;
+    }
+    handleOpenCartModal();
+  }, [requireAuth, templatePicker.pickingForTemplateId]);
 
   const handleAddToCart = (
     productId: string,
@@ -879,11 +896,9 @@ export function ProductDetailScreen() {
               style={[
                 styles.addToCartButton,
                 isDarkMode && styles.addToCartButtonDark,
-                !hasAuthToken && styles.addToCartButtonDisabled,
               ]}
-              onPress={hasAuthToken ? handleOpenCartModal : undefined}
-              disabled={!hasAuthToken}
-              activeOpacity={hasAuthToken ? 0.9 : 1}
+              onPress={handleCartButtonPress}
+              activeOpacity={0.9}
             >
               <View style={styles.addToCartContent}>
                 <View
@@ -950,7 +965,9 @@ export function ProductDetailScreen() {
             variant={
               templatePicker.pickingForTemplateId ? "template" : "cart"
             }
+            onAuthRequired={openLogin}
           />
+          {authGateModal}
         </View>
       </ThemedView>
     </SafeAreaProvider>

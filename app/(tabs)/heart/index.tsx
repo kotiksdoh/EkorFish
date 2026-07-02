@@ -4,6 +4,7 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import SearchInput from "@/features/auth/ui/components/SearchInput";
 import { ModalHeader } from "@/features/auth/ui/Header";
+import { useAuthGate } from "@/features/auth/hooks/useAuthGate";
 import {
   AddToCart,
   clearSelectedFilters,
@@ -106,6 +107,7 @@ export default function HeartScreen() {
   const filterModalBottomPadding = Math.max(insets.bottom, 12);
   const filterListMaxHeight = Math.round(screenHeight * 0.7 - 108);
   const templatePicker = useTemplatePicker();
+  const { requireAuth, openLogin, authGateModal } = useAuthGate();
   const searchInputRef = useRef<TextInput>(null);
   const router = useRouter();
   const scrollViewRef = useRef<ScrollView>(null);
@@ -123,7 +125,11 @@ export default function HeartScreen() {
   isLoadingFiltersRef.current = isLoadingFilters;
   productsLengthRef.current = products.length;
 
-  const handleAddToCartPress = (product: any) => {
+  const handleAddToCartPress = async (product: any) => {
+    if (!templatePicker.pickingForTemplateId && !(await requireAuth())) {
+      return;
+    }
+
     const cartItemsForProduct =
       cartItems?.filter((item: any) => item.productId === product.id) || [];
     const templateLines = templatePicker.pickingForTemplateId
@@ -818,7 +824,9 @@ export default function HeartScreen() {
           variant={
             templatePicker.pickingForTemplateId ? "template" : "cart"
           }
+          onAuthRequired={openLogin}
         />
+        {authGateModal}
       </ThemedView>
     </SafeAreaProvider>
   );

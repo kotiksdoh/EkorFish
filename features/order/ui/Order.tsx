@@ -13,6 +13,7 @@ import {
   updateUserTown,
 } from "@/features/auth/authSlice";
 import { ModalHeader } from "@/features/auth/ui/Header";
+import { useAuthGate } from "@/features/auth/hooks/useAuthGate";
 import {
   AddToCart,
   createOrder,
@@ -183,6 +184,7 @@ export default function CheckoutModal({
   const [showAddToCartModal, setShowAddToCartModal] = useState(false);
 
   const dispatch = useAppDispatch();
+  const { requireAuth, openLogin, authGateModal } = useAuthGate();
   const tabContainerRef = useRef<View>(null);
   const [tabContainerWidth, setTabContainerWidth] = useState(0);
   const indicatorPosition = useRef(new Animated.Value(0)).current;
@@ -765,14 +767,18 @@ export default function CheckoutModal({
   };
 
   const handleRecommendedAddToCartPress = useCallback(
-    (product: any) => {
+    async (product: any) => {
+      if (!(await requireAuth())) {
+        return;
+      }
+
       const cartItemsForProduct =
         cartItems?.filter((item: any) => item.productId === product.id) || [];
       setSelectedProductForCart(product);
       setExistingCartItem(cartItemsForProduct);
       setShowAddToCartModal(true);
     },
-    [cartItems],
+    [cartItems, requireAuth],
   );
 
   const handleRecommendedAddToCart = useCallback(
@@ -1466,7 +1472,9 @@ export default function CheckoutModal({
           onAddToCart={handleRecommendedAddToCart}
           existingCartItem={existingCartItem}
           nestedInModal={showSuccessContent}
+          onAuthRequired={openLogin}
         />
+        {authGateModal}
 
       <AppModal
         visible={showChangePickupModal}
@@ -2265,6 +2273,7 @@ const styles = StyleSheet.create({
   },
   paymentMethodText: {
     fontSize: 14,
+    fontWeight: '500',
     marginLeft: 12,
   },
   notificationRow: {

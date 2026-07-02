@@ -119,11 +119,19 @@ const ProductCardComponent: React.FC<ProductCardProps> = ({
     }
   };
 
-  const handleCartPress = (e: any) => {
+  const handleCartPress = async (e: any) => {
     e.stopPropagation();
-    if (onAddToCartPress && productData) {
-      onAddToCartPress(productData);
+    if (!onAddToCartPress || !productData) return;
+
+    if (!isTemplatePick) {
+      const token = await AsyncStorage.getItem("token");
+      if (!token) {
+        handleLoginPress();
+        return;
+      }
     }
+
+    onAddToCartPress(productData);
   };
 
   useEffect(() => {

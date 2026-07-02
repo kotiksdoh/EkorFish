@@ -5,7 +5,6 @@ import { updateOrderReminderSettings } from "@/features/auth/authSlice";
 import { ModalHeader } from "@/features/auth/ui/Header";
 import {
   FREQUENCY_OPTIONS,
-  MONTHLY_DAY_OPTIONS,
   OrderReminderAbout,
   OrderReminderSettings,
   REMIND_ABOUT_OPTIONS,
@@ -17,11 +16,14 @@ import {
   getMonthlyDayLabel,
   getRemindWhenLabel,
   getWeeklyDayLabel,
+  normalizeFrequency,
+  normalizeRemindWhen,
   parseRemindAbout,
   serializeRemindAbout,
   timeLabelToIso,
 } from "@/features/shared/types/orderReminderSettings";
 import { AppModal } from "@/features/shared/ui/AppModal";
+import { MonthlyDayCalendarPicker } from "@/features/shared/ui/components/MonthlyDayCalendarPicker";
 import { SnapBottomSheet } from "@/features/shared/ui/SnapBottomSheet";
 import { CustomCheckbox } from "@/features/shared/ui/components/CustomCheckBox";
 import { PrimaryButton } from "@/features/shared/ui/components/PrimartyButton";
@@ -48,6 +50,7 @@ const SWITCH_THUMB_HEIGHT = 24 * switchScale;
 const SWITCH_THUMB_OFFSET = 2 * switchScale;
 const SWITCH_THUMB_TRANSLATE =
   SWITCH_TRACK_WIDTH - SWITCH_THUMB_WIDTH - SWITCH_THUMB_OFFSET * 2;
+const PICKER_LIST_MAX_HEIGHT = 320;
 
 interface AppSwitchProps {
   value: boolean;
@@ -116,7 +119,6 @@ export const OrderReminderModal: React.FC<OrderReminderModalProps> = ({
   );
 
   const [pickerType, setPickerType] = useState<PickerType>(null);
-  const [monthlyDay, setMonthlyDay] = useState("1");
   const [selectedAbout, setSelectedAbout] = useState<OrderReminderAbout[]>([]);
 
   const persistSettings = useCallback(
@@ -129,7 +131,6 @@ export const OrderReminderModal: React.FC<OrderReminderModalProps> = ({
   useEffect(() => {
     if (!visible || !orderReminderSettings) return;
     setSelectedAbout(parseRemindAbout(orderReminderSettings.remindAbout));
-    setMonthlyDay("1");
   }, [visible, orderReminderSettings]);
 
   const handleToggleEnabled = (isEnabled: boolean) => {
@@ -140,7 +141,10 @@ export const OrderReminderModal: React.FC<OrderReminderModalProps> = ({
   const handleRemindWhenSelect = (remindWhen: string) => {
     if (!orderReminderSettings) return;
     setPickerType(null);
-    persistSettings({ ...orderReminderSettings, remindWhen });
+    persistSettings({
+      ...orderReminderSettings,
+      remindWhen: normalizeRemindWhen(remindWhen),
+    });
   };
 
   const handleTimeSelect = (timeLabel: string) => {
@@ -182,6 +186,10 @@ export const OrderReminderModal: React.FC<OrderReminderModalProps> = ({
       nextSettings.weeklyDay = "monday";
     }
 
+    if (frequency === "monthly" && !nextSettings.monthlyDay) {
+      nextSettings.monthlyDay = 1;
+    }
+
     persistSettings(nextSettings);
   };
 
@@ -191,15 +199,18 @@ export const OrderReminderModal: React.FC<OrderReminderModalProps> = ({
     persistSettings({ ...orderReminderSettings, weeklyDay });
   };
 
-  const handleMonthlyDaySelect = (day: string) => {
-    setMonthlyDay(day);
+  const handleMonthlyDaySelect = (day: number) => {
+    if (!orderReminderSettings) return;
     setPickerType(null);
+    persistSettings({ ...orderReminderSettings, monthlyDay: day });
   };
 
   const renderPickerOptions = () => {
     if (pickerType === "remindWhen") {
       return REMIND_WHEN_OPTIONS.map((option) => {
-        const isSelected = orderReminderSettings?.remindWhen === option.value;
+        const isSelected =
+          normalizeRemindWhen(orderReminderSettings?.remindWhen ?? "") ===
+          option.value;
         return (
           <TouchableOpacity
             key={option.value}
@@ -266,29 +277,20 @@ export const OrderReminderModal: React.FC<OrderReminderModalProps> = ({
     }
 
     if (pickerType === "monthlyDay") {
-      return MONTHLY_DAY_OPTIONS.map((option) => {
-        const isSelected = monthlyDay === option.value;
-        return (
-          <TouchableOpacity
-            key={option.value}
-            style={styles.pickerRow}
-            onPress={() => handleMonthlyDaySelect(option.value)}
-            activeOpacity={0.7}
-          >
-            <ThemedText
-              lightColor={isSelected ? "#203686" : "#1B1B1C"}
-              darkColor={isSelected ? "#4C94FF" : "#FBFCFF"}
-              style={styles.pickerRowText}
-            >
-              {option.label}
-            </ThemedText>
-          </TouchableOpacity>
-        );
-      });
+      const selectedDay = Number(orderReminderSettings?.monthlyDay) || 1;
+
+      return (
+        <MonthlyDayCalendarPicker
+          selectedDay={selectedDay}
+          onSelectDay={handleMonthlyDaySelect}
+        />
+      );
     }
 
     return null;
   };
+
+  const isPickerList = pickerType !== null && pickerType !== "monthlyDay";
 
   const getPickerTitle = () => {
     switch (pickerType) {
@@ -461,7 +463,8 @@ export const OrderReminderModal: React.FC<OrderReminderModalProps> = ({
                 <View style={styles.frequencyList}>
                   {FREQUENCY_OPTIONS.map((option) => {
                     const isSelected =
-                      orderReminderSettings.frequency === option.value;
+                      normalizeFrequency(orderReminderSettings.frequency) ===
+                      option.value;
 
                     return (
                       <View
@@ -528,7 +531,7 @@ export const OrderReminderModal: React.FC<OrderReminderModalProps> = ({
                               darkColor="#FBFCFF80"
                               numberOfLines={1}
                             >
-                              {getMonthlyDayLabel(monthlyDay)}
+                              {getMonthlyDayLabel(orderReminderSettings.monthlyDay)}
                             </ThemedText>
                             <ArrowIconRight />
                           </TouchableOpacity>
@@ -568,16 +571,29 @@ export const OrderReminderModal: React.FC<OrderReminderModalProps> = ({
           titleAlign="left"
           onClose={() => setPickerType(null)}
         >
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-            contentContainerStyle={[
-              styles.pickerContent,
-              { paddingBottom: Math.max(insets.bottom, 16) + 16 },
-            ]}
-          >
-            {renderPickerOptions()}
-          </ScrollView>
+          {isPickerList ? (
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              style={styles.pickerScroll}
+              contentContainerStyle={[
+                styles.pickerContent,
+                { paddingBottom: Math.max(insets.bottom, 16) + 16 },
+              ]}
+            >
+              {renderPickerOptions()}
+            </ScrollView>
+          ) : (
+            <View
+              style={[
+                styles.pickerContent,
+                styles.pickerCalendarContent,
+                { paddingBottom: Math.max(insets.bottom, 16) + 16 },
+              ]}
+            >
+              {renderPickerOptions()}
+            </View>
+          )}
         </SnapBottomSheet>
       </ThemedView>
     </AppModal>
@@ -710,14 +726,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 8,
   },
+  pickerCalendarContent: {
+    paddingHorizontal: 12,
+  },
+  pickerScroll: {
+    maxHeight: PICKER_LIST_MAX_HEIGHT,
+  },
   pickerRow: {
-    paddingVertical: 16,
+    paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: "#F0F3F7",
   },
   pickerRowText: {
     fontSize: 16,
     lineHeight: 22,
+    fontWeight: "500",
   },
   updatingRow: {
     alignItems: "center",

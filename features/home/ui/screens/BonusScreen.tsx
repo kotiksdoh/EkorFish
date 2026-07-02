@@ -97,6 +97,8 @@ export const BonusPage: React.FC<BonusPageProps> = ({
     handleAddToCart,
     closeAddToCartModal,
     variant: addToCartVariant,
+    openLogin,
+    authGateModal,
   } = useTemplateAwareAddToCart();
 
   const [historyModalVisible, setHistoryModalVisible] = useState(false);
@@ -509,7 +511,9 @@ export const BonusPage: React.FC<BonusPageProps> = ({
           onAddToCart={handleAddToCart}
           existingCartItem={existingCartItem}
           variant={addToCartVariant}
+          onAuthRequired={openLogin}
         />
+        {authGateModal}
       </ThemedView>
     </AppModal>
   );

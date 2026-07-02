@@ -1,6 +1,10 @@
+export type OrderReminderRemindWhen =
+  | "dayBeforeExpectedDate"
+  | "onExpectedDateDay";
+
 export type OrderReminderFrequency =
   | "weekly"
-  | "biweekly"
+  | "everyTwoWeeks"
   | "monthly"
   | "automatically";
 
@@ -20,11 +24,12 @@ export type OrderReminderAbout =
 
 export interface OrderReminderSettings {
   isEnabled: boolean;
-  remindWhen: string;
+  remindWhen: OrderReminderRemindWhen | string;
   remindAtTime: string;
   remindAbout: string;
-  frequency: OrderReminderFrequency;
+  frequency: OrderReminderFrequency | string;
   weeklyDay?: OrderReminderWeeklyDay | null;
+  monthlyDay?: number | null;
 }
 
 export const DEFAULT_ORDER_REMINDER_SETTINGS: OrderReminderSettings = {
@@ -34,22 +39,22 @@ export const DEFAULT_ORDER_REMINDER_SETTINGS: OrderReminderSettings = {
   remindAbout: "frequentlyBoughtProducts",
   frequency: "weekly",
   weeklyDay: "monday",
+  monthlyDay: 1,
 };
 
-export const REMIND_WHEN_OPTIONS = [
+export const REMIND_WHEN_OPTIONS: {
+  value: OrderReminderRemindWhen;
+  label: string;
+}[] = [
   {
     value: "dayBeforeExpectedDate",
     label: "За день до предполагаемой даты заказа",
   },
   {
-    value: "onExpectedDate",
+    value: "onExpectedDateDay",
     label: "В день предполагаемой даты заказа",
   },
-  {
-    value: "twoDaysBeforeExpectedDate",
-    label: "За 2 дня до предполагаемой даты заказа",
-  },
-] as const;
+];
 
 export const REMIND_ABOUT_OPTIONS: {
   value: OrderReminderAbout;
@@ -74,7 +79,7 @@ export const FREQUENCY_OPTIONS: {
   label: string;
 }[] = [
   { value: "weekly", label: "Еженедельно" },
-  { value: "biweekly", label: "Раз в 2 недели" },
+  { value: "everyTwoWeeks", label: "Раз в 2 недели" },
   { value: "monthly", label: "Ежемесячно" },
   { value: "automatically", label: "Автоматически" },
 ];
@@ -92,14 +97,6 @@ export const WEEKLY_DAY_OPTIONS: {
   { value: "sunday", label: "По воскресеньям" },
 ];
 
-export const MONTHLY_DAY_OPTIONS = Array.from({ length: 28 }, (_, index) => {
-  const day = index + 1;
-  return {
-    value: String(day),
-    label: `${day} числа`,
-  };
-});
-
 export const REMIND_TIME_OPTIONS = Array.from({ length: 25 }, (_, index) => {
   const totalMinutes = 8 * 60 + index * 30;
   const hours = Math.floor(totalMinutes / 60);
@@ -107,6 +104,24 @@ export const REMIND_TIME_OPTIONS = Array.from({ length: 25 }, (_, index) => {
   const label = `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
   return { value: label, label };
 });
+
+export function normalizeRemindWhen(value: string): OrderReminderRemindWhen {
+  if (value === "onExpectedDateDay" || value === "dayBeforeExpectedDate") {
+    return value;
+  }
+  if (value === "onExpectedDate") {
+    return "onExpectedDateDay";
+  }
+  return "dayBeforeExpectedDate";
+}
+
+export function normalizeFrequency(value: string): OrderReminderFrequency {
+  if (value === "biweekly") {
+    return "everyTwoWeeks";
+  }
+  const match = FREQUENCY_OPTIONS.find((option) => option.value === value);
+  return match?.value ?? "weekly";
+}
 
 export function parseRemindAbout(value: string): OrderReminderAbout[] {
   if (!value) return [];
@@ -142,8 +157,9 @@ export function timeLabelToIso(timeLabel: string): string {
 }
 
 export function getRemindWhenLabel(value: string): string {
+  const normalized = normalizeRemindWhen(value);
   return (
-    REMIND_WHEN_OPTIONS.find((option) => option.value === value)?.label ??
+    REMIND_WHEN_OPTIONS.find((option) => option.value === normalized)?.label ??
     REMIND_WHEN_OPTIONS[0].label
   );
 }
@@ -155,26 +171,34 @@ export function getWeeklyDayLabel(value?: string | null): string {
   );
 }
 
-export function getMonthlyDayLabel(value: string): string {
-  return (
-    MONTHLY_DAY_OPTIONS.find((option) => option.value === value)?.label ??
-    MONTHLY_DAY_OPTIONS[0].label
-  );
+export function getMonthlyDayLabel(value?: number | string | null): string {
+  const day = Number(value);
+  if (!Number.isFinite(day) || day < 1 || day > 31) {
+    return "1 числа";
+  }
+  return `${day} числа`;
 }
 
 export function buildOrderReminderPayload(
   settings: OrderReminderSettings,
 ): OrderReminderSettings {
+  const frequency = normalizeFrequency(settings.frequency);
   const payload: OrderReminderSettings = {
     isEnabled: settings.isEnabled,
-    remindWhen: settings.remindWhen,
+    remindWhen: normalizeRemindWhen(settings.remindWhen),
     remindAtTime: settings.remindAtTime,
     remindAbout: settings.remindAbout,
-    frequency: settings.frequency,
+    frequency,
   };
 
-  if (settings.frequency === "weekly") {
+  if (frequency === "weekly") {
     payload.weeklyDay = settings.weeklyDay ?? "monday";
+  }
+
+  if (frequency === "monthly") {
+    const day = Number(settings.monthlyDay);
+    payload.monthlyDay =
+      Number.isFinite(day) && day >= 1 && day <= 31 ? day : 1;
   }
 
   return payload;

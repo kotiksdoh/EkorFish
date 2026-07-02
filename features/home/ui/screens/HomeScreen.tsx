@@ -44,6 +44,8 @@ export const HomeScreen = ({
     handleAddToCart,
     closeAddToCartModal,
     variant: addToCartVariant,
+    openLogin,
+    authGateModal,
   } = useTemplateAwareAddToCart();
   const router = useRouter();
   const sliderItems = useAppSelector((state) => state.auth.sliders);
@@ -157,7 +159,9 @@ export const HomeScreen = ({
           onAddToCart={handleAddToCart}
           existingCartItem={existingCartItem}
           variant={addToCartVariant}
+          onAuthRequired={openLogin}
         />
+      {authGateModal}
     </>
   );
 };

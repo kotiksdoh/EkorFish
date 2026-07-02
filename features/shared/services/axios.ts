@@ -1,3 +1,4 @@
+import { clearAuthSession } from "@/features/auth/services/clearAuthSession";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 
@@ -134,7 +135,7 @@ axdef.interceptors.response.use(
         );
         if (!refreshToken) {
           console.log("[AXIOS][401] refresh aborted: missing token_refresh, clearing session");
-          await AsyncStorage.multiRemove(["token", "token_refresh", "user"]);
+          await clearAuthSession();
           return Promise.reject(error);
         }
 
@@ -151,7 +152,7 @@ axdef.interceptors.response.use(
         );
         if (!nextTokens.accessToken || !nextTokens.refreshToken) {
           console.log("[AXIOS][401] refresh aborted: cannot parse tokens, clearing session");
-          await AsyncStorage.multiRemove(["token", "token_refresh", "user"]);
+          await clearAuthSession();
           return Promise.reject(error);
         }
 
@@ -164,9 +165,18 @@ axdef.interceptors.response.use(
         return axdef(originalRequest);
       } catch (err) {
         console.log("[AXIOS][401] refresh failed, clearing session", err);
-        await AsyncStorage.multiRemove(["token", "token_refresh", "user"]);
+        await clearAuthSession();
         return Promise.reject(err);
       }
+    }
+
+    if (
+      error.response.status === 401 &&
+      isRefreshTokenRequest(originalRequest)
+    ) {
+      console.log("[AXIOS][401] refresh-token rejected, clearing session");
+      await clearAuthSession();
+      return Promise.reject(error);
     }
 
     if (error.response.status === 401) {

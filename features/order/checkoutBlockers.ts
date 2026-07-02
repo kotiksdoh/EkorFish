@@ -89,7 +89,7 @@ export function getCheckoutOrderBlockers({
   }
 
   if (!hasMainRecipient) {
-    messages.push("Заполните ФИО, телефон и e-mail основного получателя.");
+    messages.push("Заполните корректно телефон, e-mail и ФИО основного получателя.");
   }
 
   return messages;
