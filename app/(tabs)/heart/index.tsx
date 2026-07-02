@@ -928,6 +928,8 @@ const styles = StyleSheet.create({
   },
   emptyContainer: {
     paddingVertical: 60,
+    paddingHorizontal: 24,
+    width: "100%",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -935,10 +937,14 @@ const styles = StyleSheet.create({
     marginTop: 24,
     fontSize: 24,
     fontWeight: "600",
+    textAlign: "center",
+    width: "100%",
   },
   emptyTextSecond: {
     marginTop: 8,
     fontSize: 16,
+    textAlign: "center",
+    width: "100%",
   },
   loadingContainer: {
     paddingVertical: 20,

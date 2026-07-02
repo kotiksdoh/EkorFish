@@ -1,6 +1,11 @@
 import { ThemedView } from '@/components/themed-view';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useThemeColor } from '@/hooks/use-theme-color';
+import {
+  FIXED_TEXT_PROPS,
+  getFixedTextInputStyle,
+  getFixedTextStyle,
+} from '@/utils/fixedTextStyle';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Animated,
@@ -130,21 +135,23 @@ const AnimatedTextInput: React.FC<AnimatedTextInputProps> = ({
           { backgroundColor: isDarkMode ? '#ECEFFA0D' : '#03051E08' },
         ]}
       >
-        <Animated.Text style={[styles.placeholder, animatedStyle]}>
+        <Animated.Text
+          {...FIXED_TEXT_PROPS}
+          style={getFixedTextStyle([styles.placeholder, animatedStyle])}
+        >
           {placeholder}
         </Animated.Text>
         <TextInput
           ref={inputRef}
-          style={[
+          {...FIXED_TEXT_PROPS}
+          style={getFixedTextInputStyle([
             styles.input,
             multiline && styles.inputMultiline,
             Platform.OS === 'android' && !multiline && styles.inputAndroid,
             Platform.OS === 'android' && multiline && styles.inputAndroidMultiline,
             inputStyle,
-            { 
-              color: color
-            }
-          ]}
+            { color },
+          ])}
           placeholder=""
           placeholderTextColor="transparent"
           underlineColorAndroid="transparent"

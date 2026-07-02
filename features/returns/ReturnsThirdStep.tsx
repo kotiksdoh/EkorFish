@@ -6,12 +6,13 @@ import { setCompany } from "@/features/auth/authSlice";
 import { ModalHeader } from "@/features/auth/ui/Header";
 import { getCompanyAddresses } from "@/features/catalog/catalogSlice";
 import { RecommendedOrderProducts } from "@/features/catalog/ui/components/RecommendedOrderProducts/RecommendedOrderProducts";
+import { useSavedAddress } from "@/features/shared/services/useSavedAddress";
 import { AddToCartModal } from "@/features/shared/ui/AddToCartModal";
 import { AddressSelectionModal } from "@/features/shared/ui/AddressSelectionModal";
 import { AnimatedStackedSheet } from "@/features/shared/ui/AnimatedStackedSheet";
+import { AppModal } from "@/features/shared/ui/AppModal";
 import { TownSelectionModal } from "@/features/shared/ui/TownSelectionModal";
 import { PrimaryButton } from "@/features/shared/ui/components/PrimartyButton";
-import { useSavedAddress } from "@/features/shared/services/useSavedAddress";
 import {
   formatAddressSummary,
   getCompanyDeliveryAddresses,
@@ -21,7 +22,6 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { Image as ExpoImage } from "expo-image";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, FlatList, Image, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
-import { AppModal } from "@/features/shared/ui/AppModal";
 
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AddToCart, createReturnRequest } from "../catalog/catalogSlice";
@@ -416,6 +416,11 @@ export const MyReturnsThirdStep: React.FC<MyReturnsThirdStepProps> = ({
     [dispatch],
   );
 
+  const handleRecommendedProductPress = useCallback(() => {
+    setShowSuccessContent(false);
+    onClose();
+  }, [onClose]);
+
   const bottomHintMessage = useMemo(() => {
     if (selectedReturnMethod === null || selectedRefundMethod === null) {
       return "Выберите способ возврата и способ возврата денег";
@@ -635,6 +640,7 @@ export const MyReturnsThirdStep: React.FC<MyReturnsThirdStepProps> = ({
             <RecommendedOrderProducts
               visible={showSuccessContent}
               onAddToCartPress={handleRecommendedAddToCartPress}
+              onProductPress={handleRecommendedProductPress}
               returnTo="catalog"
             />
           </ScrollView>
@@ -736,14 +742,7 @@ export const MyReturnsThirdStep: React.FC<MyReturnsThirdStepProps> = ({
               >
                 <View style={styles.bottomPanelContent}>
                   <View style={styles.bottomLeft}>
-                    <ThemedText
-                      darkColor="#FBFCFF"
-                      lightColor="#1B1B1C"
-                      style={styles.bottomTotalPrice}
-                    >
-                      {formatPrice(totals.totalPrice)} ₽
-                    </ThemedText>
-                    <ThemedText
+                  <ThemedText
                       lightColor="#80818B"
                       darkColor="#FBFCFF80"
                       style={styles.bottomItemsCount}
@@ -756,6 +755,14 @@ export const MyReturnsThirdStep: React.FC<MyReturnsThirdStepProps> = ({
                           ])}`
                         : "Товары не выбраны"}
                     </ThemedText>
+                    <ThemedText
+                      darkColor="#FBFCFF"
+                      lightColor="#1B1B1C"
+                      style={styles.bottomTotalPrice}
+                    >
+                      {formatPrice(totals.totalPrice)} ₽
+                    </ThemedText>
+
                   </View>
                 </View>
 
@@ -1064,8 +1071,8 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   bottomTotalPrice: {
-    fontSize: 20,
-    fontWeight: "700",
+    fontSize: 16,
+    fontWeight: "600",
     marginBottom: 4,
   },
   bottomButton: {

@@ -986,6 +986,9 @@ const ReconciliationActScreen: React.FC<{ onBack: () => void }> = ({
                     ]}
                     darkColor="#FBFCFF"
                     lightColor="#1B1B1C"
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.85}
                   >
                     {startDate
                       ? formatDateForDisplay(startDate)
@@ -1015,6 +1018,9 @@ const ReconciliationActScreen: React.FC<{ onBack: () => void }> = ({
                     ]}
                     darkColor="#FBFCFF"
                     lightColor="#1B1B1C"
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.85}
                   >
                     {endDate ? formatDateForDisplay(endDate) : "Конец периода"}
                   </ThemedText>
@@ -2286,7 +2292,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    padding: 14,
+    minHeight: 50,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     backgroundColor: "#F5F5F5",
     borderRadius: 12,
     borderWidth: 1,
@@ -2299,7 +2307,9 @@ const styles = StyleSheet.create({
     borderColor: "#FF6B6B",
   },
   datePickerText: {
+    flex: 1,
     fontSize: 16,
+    fontWeight: "500",
   },
   datePickerPlaceholder: {
     color: "#80818B",

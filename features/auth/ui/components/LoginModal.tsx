@@ -645,7 +645,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                           style={styles.checkboxLink}
                           onPress={() => setLegalDocumentId("privacy")}
                         >
-                          Политику конфиденциальности
+                          Политику{"\u00A0"}конфиденциальности
                         </ThemedText>
                         {"\n"}и{" "}
                         <ThemedText
@@ -656,7 +656,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                             setLegalDocumentId("personalDataConsent")
                           }
                         >
-                          Согласие на обработку персональных данных
+                          Согласие на{"\u00A0"}обработку персональных{"\n"}
+                          данных
                         </ThemedText>
                       </ThemedText>
                     </View>
@@ -1474,27 +1475,26 @@ const styles = StyleSheet.create({
   checkboxContainerInner: {
     borderRadius: 6,
     overflow: "hidden",
-    marginRight: 13,
+    marginRight: 8,
   },
   checkbox: {
-    marginRight: 12,
     marginTop: 2,
     width: 20,
     height: 20,
     borderRadius: 6,
     borderWidth: 0,
-    // backgroundColor: '#F2F4F7'
   },
   checkboxText: {
     flex: 1,
-    fontSize: 13,
-    lineHeight: 20,
+    minWidth: 0,
+    fontSize: 12,
+    lineHeight: 18,
   },
   checkboxLink: {
     textDecorationLine: "none",
     fontWeight: "500",
-    // color: '#203686',
-    fontSize: 13,
+    fontSize: 12,
+    lineHeight: 18,
   },
   modalLoginButton: {
     height: 56,

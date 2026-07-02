@@ -1112,7 +1112,12 @@ export default function ShopScreen() {
                   )}{" "}
                   ₽
                 </ThemedText>
-                <ThemedText style={styles.bottomItemsCount}>
+                <ThemedText
+                  style={styles.bottomItemsCount}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.85}
+                >
                   {totals.totalItems > 0 && totals.totalItems}{" "}
                   {totals.totalItems > 0
                     ? getDeclension(totals.totalItems, [
@@ -1135,7 +1140,12 @@ export default function ShopScreen() {
                 disabled={isCheckoutBlocked}
                 onPress={() => setCheckoutModalVisible(true)}
               >
-                <ThemedText style={styles.bottomCheckoutButtonText}>
+                <ThemedText
+                  style={styles.bottomCheckoutButtonText}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.85}
+                >
                   Перейти к оформлению
                 </ThemedText>
               </TouchableOpacity>
@@ -1472,12 +1482,16 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    gap: 8,
   },
   bottomLeft: {
     flex: 1,
+    minWidth: 0,
+    paddingRight: 4,
   },
   bottomItemsCount: {
     fontSize: 12,
+    fontWeight: "500",
     color: "#80818B",
     marginBottom: 4,
   },
@@ -1487,11 +1501,13 @@ const styles = StyleSheet.create({
   },
   bottomCheckoutButton: {
     backgroundColor: "#203686",
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 12,
-    minWidth: 180,
+    flexShrink: 0,
+    maxWidth: "58%",
     alignItems: "center",
+    justifyContent: "center",
   },
   bottomCheckoutButtonText: {
     color: "#FFFFFF",

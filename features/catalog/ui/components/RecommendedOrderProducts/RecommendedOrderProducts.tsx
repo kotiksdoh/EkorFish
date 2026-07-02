@@ -19,12 +19,14 @@ const cardWidth = (screenWidth - horizontalPadding * 2 - columnGap) / 2;
 interface RecommendedOrderProductsProps {
   visible: boolean;
   onAddToCartPress: (product: any) => void;
+  onProductPress?: () => void;
   returnTo?: "home" | "heart" | "catalog" | "shop";
 }
 
 export function RecommendedOrderProducts({
   visible,
   onAddToCartPress,
+  onProductPress,
   returnTo = "catalog",
 }: RecommendedOrderProductsProps) {
   const dispatch = useAppDispatch();
@@ -93,6 +95,7 @@ export function RecommendedOrderProducts({
                 fullWidth
                 returnTo={returnTo}
                 onAddToCartPress={onAddToCartPress}
+                onBeforeNavigate={onProductPress}
               />
             </View>
           ))}

@@ -1065,7 +1065,7 @@ export default function CheckoutModal({
                 </ThemedText>
 
                 <View style={styles.successButtons}>
-                  <View style={styles.successButton}>
+                  <View style={styles.successButtonDetails}>
                     <PrimaryButton
                       title="Детали заказа"
                       onPress={() => {
@@ -1076,9 +1076,10 @@ export default function CheckoutModal({
                       variant="third"
                       size="md"
                       fullWidth
+                      style={styles.successActionButton}
                     />
                   </View>
-                  <View style={styles.successButton}>
+                  <View style={styles.successButtonHome}>
                     <PrimaryButton
                       title="В каталог"
                       onPress={async () => {
@@ -1088,6 +1089,7 @@ export default function CheckoutModal({
                       variant="primary"
                       size="md"
                       fullWidth
+                      style={styles.successActionButton}
                     />
                   </View>
                 </View>
@@ -1096,6 +1098,9 @@ export default function CheckoutModal({
               <RecommendedOrderProducts
                 visible={showSuccessContent}
                 onAddToCartPress={handleRecommendedAddToCartPress}
+                onProductPress={() => {
+                  void closeSuccessAndRefreshCart();
+                }}
                 returnTo="catalog"
               />
             </ScrollView>
@@ -2666,9 +2671,16 @@ const styles = StyleSheet.create({
     width: "100%",
     alignSelf: "stretch",
   },
-  successButton: {
-    flex: 1,
+  successButtonDetails: {
+    flex: 3,
     minWidth: 0,
+  },
+  successButtonHome: {
+    flex: 2,
+    minWidth: 0,
+  },
+  successActionButton: {
+    paddingHorizontal: 12,
   },
   confirmModalContent: {
     borderTopLeftRadius: 24,

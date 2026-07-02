@@ -1,5 +1,10 @@
 import { ThemedView } from '@/components/themed-view';
 import { useThemeColor } from '@/hooks/use-theme-color';
+import {
+  FIXED_TEXT_PROPS,
+  getFixedTextInputStyle,
+  getFixedTextStyle,
+} from '@/utils/fixedTextStyle';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Animated,
@@ -171,17 +176,21 @@ const SmartInput: React.FC<SmartInputProps> = ({
   return (
     <TouchableWithoutFeedback onPress={() => inputRef.current?.focus()}>
       <ThemedView lightColor='#03051E08' darkColor='#ECEFFA0D' style={[styles.container, style]}>
-        <Animated.Text style={[styles.placeholder, animatedStyle]}>
+        <Animated.Text
+          {...FIXED_TEXT_PROPS}
+          style={getFixedTextStyle([styles.placeholder, animatedStyle])}
+        >
           {placeholder}
         </Animated.Text>
         <TextInput
           ref={inputRef}
-          style={[
+          {...FIXED_TEXT_PROPS}
+          style={getFixedTextInputStyle([
             styles.input,
             Platform.OS === 'android' && styles.inputAndroid,
             inputStyle,
-            { color }
-          ]}
+            { color },
+          ])}
           placeholder=""
           placeholderTextColor="transparent"
           keyboardType={isPhoneMode ? 'phone-pad' : 'email-address'}
