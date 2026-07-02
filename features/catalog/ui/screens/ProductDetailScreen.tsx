@@ -35,9 +35,11 @@ import {
   Dimensions,
   LayoutAnimation,
   LayoutChangeEvent,
+  NativeSyntheticEvent,
   Platform,
   ScrollView,
   StyleSheet,
+  TextLayoutEventData,
   TouchableOpacity,
   UIManager,
   View,
@@ -66,6 +68,7 @@ export function ProductDetailScreen() {
     : params.productId;
 
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isNameTruncated, setIsNameTruncated] = useState(false);
   const [selectedPurchaseOptionIndex, setSelectedPurchaseOptionIndex] =
     useState(0);
   const [quantity, setQuantity] = useState(0);
@@ -444,6 +447,18 @@ export function ProductDetailScreen() {
     setIsExpanded(!isExpanded);
   };
 
+  const handleProductNameLayout = useCallback(
+    (event: NativeSyntheticEvent<TextLayoutEventData>) => {
+      setIsNameTruncated(event.nativeEvent.lines.length > 2);
+    },
+    [],
+  );
+
+  useEffect(() => {
+    setIsNameTruncated(false);
+    setIsExpanded(false);
+  }, [product?.name, productId]);
+
   const handleTabChange = (tab: "description" | "characteristics") => {
     Animated.spring(tabAnim, {
       toValue: tab === "description" ? 0 : 1,
@@ -466,7 +481,7 @@ export function ProductDetailScreen() {
     outputRange: [0, tabContainerWidth] as number[],
   });
 
-  const needsExpandButton = product?.name && product.name.length > 40;
+  const needsExpandButton = isNameTruncated || isExpanded;
 
   const cartItemsForProduct = useMemo(() => {
     if (!product?.id) return [];
@@ -569,30 +584,47 @@ export function ProductDetailScreen() {
               />
 
               <View style={styles.productNameWrapper}>
-                <ThemedText
-                  weight={'semiBold'}
-                  style={styles.themeName}
-                  lightColor="#1B1B1C"
-                  darkColor="#FBFCFF"
-                  numberOfLines={isExpanded ? undefined : 2}
-                  ellipsizeMode="tail"
-                >
-                  {product?.name || ""}
-                </ThemedText>
-
-                {needsExpandButton && (
-                  <TouchableOpacity
-                    style={styles.expandButton}
-                    onPress={toggleExpanded}
-                    activeOpacity={0.7}
+                <View style={styles.productNameContainer}>
+                  <ThemedText
+                    pointerEvents="none"
+                    weight={"semiBold"}
+                    style={[styles.themeName, styles.productNameMeasure]}
+                    lightColor="#1B1B1C"
+                    darkColor="#FBFCFF"
+                    onTextLayout={handleProductNameLayout}
                   >
-                    <Ionicons
-                      name={isExpanded ? "chevron-up" : "chevron-forward"}
-                      size={20}
-                      color="#1B1B1C"
-                    />
-                  </TouchableOpacity>
-                )}
+                    {product?.name || ""}
+                  </ThemedText>
+
+                  <ThemedText
+                    weight={"semiBold"}
+                    style={[
+                      styles.themeName,
+                      isNameTruncated && styles.productNameCollapsed,
+                    ]}
+                    lightColor="#1B1B1C"
+                    darkColor="#FBFCFF"
+                    numberOfLines={isExpanded ? undefined : 2}
+                    ellipsizeMode="tail"
+                  >
+                    {product?.name || ""}
+                  </ThemedText>
+
+                  {needsExpandButton ? (
+                    <TouchableOpacity
+                      style={[styles.expandButton, styles.expandButtonAtSecondLine]}
+                      onPress={toggleExpanded}
+                      activeOpacity={0.7}
+                      hitSlop={8}
+                    >
+                      <Ionicons
+                        name={isExpanded ? "chevron-up" : "chevron-forward"}
+                        size={20}
+                        color={isDarkMode ? "#FBFCFF" : "#1B1B1C"}
+                      />
+                    </TouchableOpacity>
+                  ) : null}
+                </View>
               </View>
             </ThemedView>
 
@@ -1001,27 +1033,39 @@ const styles = StyleSheet.create({
     paddingTop: 16,
   },
   productNameWrapper: {
-    flexDirection: "row",
-    alignItems: "flex-start",
     marginTop: 20,
     marginBottom: 16,
+  },
+  productNameContainer: {
+    position: "relative",
+    width: "100%",
+  },
+  productNameMeasure: {
+    position: "absolute",
+    opacity: 0,
+    left: 0,
+    right: 0,
+    top: 0,
+    zIndex: -1,
   },
   themeName: {
     fontWeight: "600",
     fontSize: 20,
     lineHeight: 24,
-    flex: 1,
-    marginRight: 8,
-    paddingRight: 4,
+  },
+  productNameCollapsed: {
+    paddingRight: 28,
   },
   expandButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    // backgroundColor: '#F2F2F7',
+    width: 24,
+    height: 24,
     justifyContent: "center",
     alignItems: "center",
-    marginTop: 2,
+  },
+  expandButtonAtSecondLine: {
+    position: "absolute",
+    right: 0,
+    top: 24,
   },
   productContent: {
     marginTop: 8,
