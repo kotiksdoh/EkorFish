@@ -10,7 +10,7 @@ import {
   IconDocument,
   IconGeo,
   IconMessage,
-  IconNumber
+  IconNumber,
 } from "@/assets/icons/icons";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
@@ -27,7 +27,18 @@ import * as Clipboard from "expo-clipboard";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Alert, Animated, Dimensions, Linking, ScrollView, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  Animated,
+  Dimensions,
+  Linking,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
+} from "react-native";
 
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SnapBottomSheet } from "./SnapBottomSheet";
@@ -38,16 +49,22 @@ const { height: screenHeight } = Dimensions.get("window");
 const RETURN_STATUS_ORDER = ["pending", "approved", "rejected"] as const;
 
 function normalizeReturnStatusKey(status: unknown): string {
-  return String(status ?? "").trim().toLowerCase();
+  return String(status ?? "")
+    .trim()
+    .toLowerCase();
 }
 
 function sortReturnStatuses(list: any[]): any[] {
   return [...list].sort((a, b) => {
     const aIndex = RETURN_STATUS_ORDER.indexOf(
-      normalizeReturnStatusKey(a.status) as (typeof RETURN_STATUS_ORDER)[number],
+      normalizeReturnStatusKey(
+        a.status,
+      ) as (typeof RETURN_STATUS_ORDER)[number],
     );
     const bIndex = RETURN_STATUS_ORDER.indexOf(
-      normalizeReturnStatusKey(b.status) as (typeof RETURN_STATUS_ORDER)[number],
+      normalizeReturnStatusKey(
+        b.status,
+      ) as (typeof RETURN_STATUS_ORDER)[number],
     );
     return (aIndex === -1 ? 999 : aIndex) - (bIndex === -1 ? 999 : bIndex);
   });
@@ -130,7 +147,7 @@ export const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
     (state) => state.catalog.returnsStatuses,
   ) as any;
   const dispatch = useAppDispatch();
-  console.log('returnsStatuses', pageData)
+  console.log("returnsStatuses", pageData);
   useEffect(() => {
     if (visible && returnRequestId) {
       dispatch(getReturnRequestDetail(returnRequestId));
@@ -149,7 +166,9 @@ export const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
       }
       try {
         const storedCompanyRaw = await AsyncStorage.getItem("company");
-        const storedCompany = storedCompanyRaw ? JSON.parse(storedCompanyRaw) : null;
+        const storedCompany = storedCompanyRaw
+          ? JSON.parse(storedCompanyRaw)
+          : null;
         setCompanyManager(storedCompany?.manager || null);
       } catch (error) {
         console.error("Error loading company manager from storage:", error);
@@ -286,12 +305,16 @@ export const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
 
   const returnMethodName = useMemo(() => {
     const list = pageData?.returnMethods || [];
-    return list.find((m: any) => m.method === detail?.returnMethod)?.name || "-";
+    return (
+      list.find((m: any) => m.method === detail?.returnMethod)?.name || "-"
+    );
   }, [pageData, detail?.returnMethod]);
 
   const refundMethodName = useMemo(() => {
     const list = pageData?.refundMethods || [];
-    return list.find((m: any) => m.method === detail?.refundMethod)?.name || "-";
+    return (
+      list.find((m: any) => m.method === detail?.refundMethod)?.name || "-"
+    );
   }, [pageData, detail?.refundMethod]);
 
   const allLines: ReturnLine[] = useMemo(() => {
@@ -371,51 +394,54 @@ export const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
         style={styles.returnItemContainer}
       >
         <View style={styles.contUnder}>
-        <View style={styles.returnItemImageContainer}>
-          <Image source={imageSource} style={styles.returnItemImage} contentFit="cover" />
-        </View>
-
-        <View style={styles.returnItemInfoContainer}>
-        <View>
-          <View style={styles.returnItemHeaderRow}>
-            <ThemedText
-              style={styles.returnItemProductName}
-              numberOfLines={2}
-              lightColor="#202022"
-              darkColor="#F2F4F7"
-            >
-              {item.productName}
-            </ThemedText>
-            <ThemedText
-              style={styles.returnItemTotalPrice}
-              lightColor="#202022"
-              darkColor="#F2F4F7"
-            >
-              {formatPrice(item.totalPrice)} ₽
-            </ThemedText>
+          <View style={styles.returnItemImageContainer}>
+            <Image
+              source={imageSource}
+              style={styles.returnItemImage}
+              contentFit="cover"
+            />
           </View>
-         </View>
-       
-        </View>
-        </View>
-        {hasReason && item.reasonName ? (
-            <ThemedView
-              style={[
-                styles.returnItemReasonSection,
-                !isDarkMode && styles.returnItemReasonSectionLight,
-                isDarkMode && styles.returnItemReasonSectionDark,
-              ]}
-            >
-              <View style={styles.returnItemReasonContent}>
+
+          <View style={styles.returnItemInfoContainer}>
+            <View>
+              <View style={styles.returnItemHeaderRow}>
                 <ThemedText
-                  style={styles.returnItemSelectedReason}
-                  lightColor="#1B1B1C"
+                  style={styles.returnItemProductName}
+                  numberOfLines={2}
+                  lightColor="#202022"
                   darkColor="#F2F4F7"
                 >
-                  {item.reasonName}
-                  {item.comment ? ` (${item.comment})` : ""}
+                  {item.productName}
                 </ThemedText>
-                {/* <ThemedText
+                <ThemedText
+                  style={styles.returnItemTotalPrice}
+                  lightColor="#202022"
+                  darkColor="#F2F4F7"
+                >
+                  {formatPrice(item.totalPrice)} ₽
+                </ThemedText>
+              </View>
+            </View>
+          </View>
+        </View>
+        {hasReason && item.reasonName ? (
+          <ThemedView
+            style={[
+              styles.returnItemReasonSection,
+              !isDarkMode && styles.returnItemReasonSectionLight,
+              isDarkMode && styles.returnItemReasonSectionDark,
+            ]}
+          >
+            <View style={styles.returnItemReasonContent}>
+              <ThemedText
+                style={styles.returnItemSelectedReason}
+                lightColor="#1B1B1C"
+                darkColor="#F2F4F7"
+              >
+                {item.reasonName}
+                {item.comment ? ` (${item.comment})` : ""}
+              </ThemedText>
+              {/* <ThemedText
                   style={styles.returnItemQtyLine}
                   lightColor="#80818B"
                   darkColor="#FBFCFF80"
@@ -423,24 +449,24 @@ export const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                   {formatPrice(item.price)}₽ / {getMeasureLabel(item.measureType)} •{" "}
                   {item.returnQuantity} {getMeasureLabel(item.measureType)}
                 </ThemedText> */}
-              </View>
-            </ThemedView>
-          ) : (
-            <ThemedView
-              style={[
-                styles.returnItemReasonSection,
-                !isDarkMode && styles.returnItemReasonSectionLight,
-                isDarkMode && styles.returnItemReasonSectionDark,
-              ]}
+            </View>
+          </ThemedView>
+        ) : (
+          <ThemedView
+            style={[
+              styles.returnItemReasonSection,
+              !isDarkMode && styles.returnItemReasonSectionLight,
+              isDarkMode && styles.returnItemReasonSectionDark,
+            ]}
+          >
+            <ThemedText
+              style={styles.returnItemSelectedReason}
+              lightColor="#80818B"
+              darkColor="#FBFCFF80"
             >
-              <ThemedText
-                style={styles.returnItemSelectedReason}
-                lightColor="#80818B"
-                darkColor="#FBFCFF80"
-              >
-                Причина не указана
-              </ThemedText>
-              {/* <ThemedText
+              Причина не указана
+            </ThemedText>
+            {/* <ThemedText
                 style={styles.returnItemQtyLine}
                 lightColor="#80818B"
                 darkColor="#FBFCFF80"
@@ -448,8 +474,8 @@ export const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                 {formatPrice(item.price)}₽ / {getMeasureLabel(item.measureType)} •{" "}
                 {item.returnQuantity} {getMeasureLabel(item.measureType)}
               </ThemedText> */}
-            </ThemedView>
-          )}
+          </ThemedView>
+        )}
       </ThemedView>
     );
   };
@@ -515,7 +541,9 @@ export const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
             </TouchableOpacity>
 
             <View style={styles.headerTitleContainer}>
-              <ThemedText style={styles.headerTitle}>Детали возврата</ThemedText>
+              <ThemedText style={styles.headerTitle}>
+                Детали возврата
+              </ThemedText>
             </View>
 
             <TouchableOpacity onPress={handleCopyId} style={styles.copyButton}>
@@ -711,7 +739,9 @@ export const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                 <View style={styles.buttonsRow}>
                   <PrimaryButton
                     title="Отменить"
-                    onPress={() => Alert.alert("Отмена", "Недоступно для возврата")}
+                    onPress={() =>
+                      Alert.alert("Отмена", "Недоступно для возврата")
+                    }
                     variant="third"
                     size="md"
                     activeOpacity={0.8}
@@ -766,9 +796,9 @@ export const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                   </TouchableOpacity>
                 </View>
 
-                {allLines.slice(0, 2).map((item) => (
-                  renderReturnItemCard(item, item.id)
-                ))}
+                {allLines
+                  .slice(0, 2)
+                  .map((item) => renderReturnItemCard(item, item.id))}
 
                 {allLines.length === 0 && (
                   <ThemedText
@@ -825,7 +855,9 @@ export const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                   </TouchableOpacity>
 
                   <View style={styles.modalHeader}>
-                    <ThemedText style={styles.modalTitle}>Состав возврата</ThemedText>
+                    <ThemedText style={styles.modalTitle}>
+                      Состав возврата
+                    </ThemedText>
                   </View>
 
                   <ScrollView
@@ -833,7 +865,9 @@ export const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
                     showsVerticalScrollIndicator={false}
                   >
                     {allLines.map((item) => (
-                      <View key={item.id}>{renderReturnItemCard(item, `m_${item.id}`)}</View>
+                      <View key={item.id}>
+                        {renderReturnItemCard(item, `m_${item.id}`)}
+                      </View>
                     ))}
                   </ScrollView>
                 </Animated.View>
@@ -855,112 +889,109 @@ export const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
             bounces
             contentContainerStyle={styles.statusesListContent}
           >
-              {statusList.map((status: any, index: number) => {
-                        const currentIndex = getCurrentStatusIndex();
-                        const isCurrent = index === currentIndex;
-                        const isNext = index === currentIndex + 1;
-                        const isPast = index < currentIndex;
-                        const isFuture = index > currentIndex + 1;
-                        const isLast = index === statusList.length - 1;
+            {statusList.map((status: any, index: number) => {
+              const currentIndex = getCurrentStatusIndex();
+              const isCurrent = index === currentIndex;
+              const isNext = index === currentIndex + 1;
+              const isPast = index < currentIndex;
+              const isFuture = index > currentIndex + 1;
+              const isLast = index === statusList.length - 1;
 
-                        let lineColors: [string, string];
-                        if (isPast || isCurrent) {
-                          lineColors = !isDarkMode
-                            ? ["#203686", "#203686"]
-                            : ["#3881EE", "#3881EE"];
-                        } else if (isNext) {
-                          lineColors = !isDarkMode
-                            ? ["#203686", "#80818B"]
-                            : ["#3881EE", "#80818B"];
-                        } else {
-                          lineColors = ["#80818B", "#80818B"];
-                        }
+              let lineColors: [string, string];
+              if (isPast || isCurrent) {
+                lineColors = !isDarkMode
+                  ? ["#203686", "#203686"]
+                  : ["#3881EE", "#3881EE"];
+              } else if (isNext) {
+                lineColors = !isDarkMode
+                  ? ["#203686", "#80818B"]
+                  : ["#3881EE", "#80818B"];
+              } else {
+                lineColors = ["#80818B", "#80818B"];
+              }
 
-                        return (
-                          <View
-                            key={String(status.status)}
-                            style={styles.statusItemContainer}
-                          >
-                            <View style={styles.statusLeftColumn}>
-                              <View
-                                style={[
-                                  styles.statusCircle,
-                                  (isPast || isCurrent) &&
-                                    styles.statusCircleCompleted,
-                                  isDarkMode &&
-                                    (isPast || isCurrent) && {
-                                      borderColor: "#3881EE",
-                                      backgroundColor: "#3881EE",
-                                    },
-                                  isNext && styles.statusCircleNext,
-                                  isDarkMode &&
-                                    isNext && {
-                                      backgroundColor: "#202022",
-                                      borderColor: "#3881EE",
-                                    },
-                                  isFuture && styles.statusCirclePending,
-                                  isDarkMode &&
-                                    isFuture && { backgroundColor: "#202022" },
-                                ]}
-                              >
-                                {(isPast || isCurrent) && (
-                                  <View style={styles.statusCircleCheckmark}>
-                                    <IconAccept />
-                                  </View>
-                                )}
-                                {isNext && (
-                                  <View
-                                    style={[
-                                      styles.statusCurrentDot,
-                                      isDarkMode && {
-                                        backgroundColor: "#3881EE",
-                                      },
-                                    ]}
-                                  />
-                                )}
-                              </View>
+              return (
+                <View
+                  key={String(status.status)}
+                  style={styles.statusItemContainer}
+                >
+                  <View style={styles.statusLeftColumn}>
+                    <View
+                      style={[
+                        styles.statusCircle,
+                        (isPast || isCurrent) && styles.statusCircleCompleted,
+                        isDarkMode &&
+                          (isPast || isCurrent) && {
+                            borderColor: "#3881EE",
+                            backgroundColor: "#3881EE",
+                          },
+                        isNext && styles.statusCircleNext,
+                        isDarkMode &&
+                          isNext && {
+                            backgroundColor: "#202022",
+                            borderColor: "#3881EE",
+                          },
+                        isFuture && styles.statusCirclePending,
+                        isDarkMode &&
+                          isFuture && { backgroundColor: "#202022" },
+                      ]}
+                    >
+                      {(isPast || isCurrent) && (
+                        <View style={styles.statusCircleCheckmark}>
+                          <IconAccept />
+                        </View>
+                      )}
+                      {isNext && (
+                        <View
+                          style={[
+                            styles.statusCurrentDot,
+                            isDarkMode && {
+                              backgroundColor: "#3881EE",
+                            },
+                          ]}
+                        />
+                      )}
+                    </View>
 
-                              {!isLast && (
-                                <View style={styles.statusLineContainer}>
-                                  <LinearGradient
-                                    colors={lineColors}
-                                    start={{ x: 0, y: 0 }}
-                                    end={{ x: 0, y: 1 }}
-                                    style={styles.statusLine}
-                                  />
-                                </View>
-                              )}
-                            </View>
+                    {!isLast && (
+                      <View style={styles.statusLineContainer}>
+                        <LinearGradient
+                          colors={lineColors}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 0, y: 1 }}
+                          style={styles.statusLine}
+                        />
+                      </View>
+                    )}
+                  </View>
 
-                            <View style={styles.statusRightColumn}>
-                              <View style={styles.statusTextContainer}>
-                                <ThemedText
-                                  style={[
-                                    styles.statusName,
-                                    (isPast || isCurrent || isNext) &&
-                                      styles.statusNameCompleted,
-                                    isDarkMode &&
-                                      (isPast || isCurrent || isNext) && {
-                                        color: "#FBFCFF",
-                                      },
-                                  ]}
-                                >
-                                  {status.name}
-                                </ThemedText>
-                                <ThemedText
-                                  lightColor="#80818B"
-                                  darkColor="#80818B"
-                                  style={styles.statusDate}
-                                >
-                                  {formatStatusDate(
-                                    isCurrent ? detail?.createdAt : null,
-                                  )}
-                                </ThemedText>
-                              </View>
-                            </View>
-                          </View>
-                        );
-              })}
+                  <View style={styles.statusRightColumn}>
+                    <View style={styles.statusTextContainer}>
+                      <ThemedText
+                        style={[
+                          styles.statusName,
+                          (isPast || isCurrent || isNext) &&
+                            styles.statusNameCompleted,
+                          isDarkMode &&
+                            (isPast || isCurrent || isNext) && {
+                              color: "#FBFCFF",
+                            },
+                        ]}
+                      >
+                        {status.name}
+                      </ThemedText>
+                      <ThemedText
+                        lightColor="#80818B"
+                        darkColor="#80818B"
+                        style={styles.statusDate}
+                      >
+                        {formatStatusDate(isCurrent ? detail?.createdAt : null)}
+                      </ThemedText>
+                    </View>
+                  </View>
+                </View>
+              );
+            })}
           </ScrollView>
         </SnapBottomSheet>
 
@@ -1013,7 +1044,7 @@ export const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
 
 // Стили — копия из OrderDetailModal.tsx (с минимальными правками).
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: { flex: 1, gap: 8 },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -1037,7 +1068,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   copyButton: { padding: 8 },
-  content: { flex: 1, marginTop: 8 },
+  content: { flex: 1 },
   whiteBlock: {
     borderRadius: 24,
     padding: 20,
@@ -1142,7 +1173,6 @@ const styles = StyleSheet.create({
   },
   contUnder: {
     flexDirection: "row",
-
   },
   returnItemImageContainer: {
     width: 74,
@@ -1310,4 +1340,3 @@ const styles = StyleSheet.create({
   statusNameCompleted: { color: "#1B1B1C" },
   statusDate: { fontSize: 12, fontWeight: "400" },
 });
-

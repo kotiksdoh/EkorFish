@@ -18,6 +18,10 @@ import {
 } from "react-native";
 
 import { LoginModal } from "@/features/auth/ui/components/LoginModal";
+import {
+  QuantityStepperMinusIcon,
+  QuantityStepperPlusIcon,
+} from "@/features/shared/ui/components/QuantityStepperIcons";
 import type { TemplateLineItem } from "./types";
 
 type Props = {
@@ -176,16 +180,7 @@ export function TemplateOrderLineCard({
                 onPress={onDecrease}
                 disabled={line.quantity <= minQ}
               >
-                <ThemedText
-                  style={[
-                    styles.plusMinus,
-                    line.quantity <= minQ && styles.plusMinusDisabled,
-                  ]}
-                  lightColor="#202022"
-                  darkColor="#F2F4F7"
-                >
-                  -
-                </ThemedText>
+                <QuantityStepperMinusIcon disabled={line.quantity <= minQ} />
               </TouchableOpacity>
 
               <ThemedText
@@ -200,9 +195,7 @@ export function TemplateOrderLineCard({
                 style={styles.quantityButton}
                 onPress={onIncrease}
               >
-                <ThemedText style={styles.plusMinus} lightColor="#202022" darkColor="#F2F4F7">
-                  +
-                </ThemedText>
+                <QuantityStepperPlusIcon />
               </TouchableOpacity>
             </ThemedView>
           </View>
@@ -290,12 +283,17 @@ const styles = StyleSheet.create({
   },
   favoriteTheme: {
     borderRadius: 8,
-    padding: 3,
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+    minHeight: 32,
+    justifyContent: "center",
+    alignItems: "center",
   },
   deleteButton: {
     flexDirection: "row",
     alignItems: "center",
     flexShrink: 0,
+    marginRight: 4,
   },
   quantityControls: {
     flex: 1,
@@ -304,20 +302,17 @@ const styles = StyleSheet.create({
     backgroundColor: "#F5F5F5",
     borderRadius: 8,
     paddingHorizontal: 6,
-    marginLeft: 4,
+    paddingVertical: 4,
+    minHeight: 32,
     minWidth: 0,
+    flexShrink: 1,
   },
   quantityButton: {
     paddingHorizontal: 6,
     borderRadius: 6,
     justifyContent: "center",
     alignItems: "center",
-  },
-  plusMinus: {
-    fontSize: 16,
-  },
-  plusMinusDisabled: {
-    opacity: 0.35,
+    flexShrink: 0,
   },
   quantityText: {
     flex: 1,

@@ -2,6 +2,10 @@
 import { PackageIcon, RetailIcon, WholesaleIcon } from "@/assets/icons/icons";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import {
+  QuantityStepperMinusIcon,
+  QuantityStepperPlusIcon,
+} from "@/features/shared/ui/components/QuantityStepperIcons";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -530,7 +534,9 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
               onPress={handleDecreaseQuantity}
               disabled={quantity <= selectedOption.minQuantity}
             >
-              <ThemedText style={styles.quantityButtonText}>-</ThemedText>
+              <QuantityStepperMinusIcon
+                disabled={quantity <= selectedOption.minQuantity}
+              />
             </TouchableOpacity>
 
             <View style={styles.quantityDisplay}>
@@ -547,7 +553,7 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
               onPress={handleIncreaseQuantity}
               disabled={isAtMaxStock}
             >
-              <ThemedText style={styles.quantityButtonText}>+</ThemedText>
+              <QuantityStepperPlusIcon disabled={isAtMaxStock} />
             </TouchableOpacity>
           </View>
         </View>
@@ -743,7 +749,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#F5F5F5",
     borderRadius: 12,
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 4,
   },
   quantityButton: {
     width: 32,
@@ -768,10 +774,6 @@ const styles = StyleSheet.create({
   },
   quantityButtonDisabled: {
     opacity: 0.2,
-  },
-  quantityButtonText: {
-    fontSize: 20,
-    fontWeight: "600",
   },
   quantityDisplay: {
     marginHorizontal: 16,

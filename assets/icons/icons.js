@@ -1669,6 +1669,54 @@ export const IconCompanyNew = ({
   </Svg>
 );
 
+export const IconQuantityPlus = ({
+  width = 16,
+  height = 16,
+  color = "#1B1B1C",
+  disabled = false,
+  ...props
+}) => {
+  const stroke = disabled ? "#C0C0C5" : color;
+
+  return (
+    <Svg width={width} height={height} viewBox="0 0 16 16" fill="none" {...props}>
+      <Path
+        d="M8 2.66699L8 13.3337"
+        stroke={stroke}
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+      <Path
+        d="M2.6665 8L13.3332 8"
+        stroke={stroke}
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+    </Svg>
+  );
+};
+
+export const IconQuantityMinus = ({
+  width = 16,
+  height = 16,
+  color = "#1B1B1C",
+  disabled = false,
+  ...props
+}) => {
+  const stroke = disabled ? "#C0C0C5" : color;
+
+  return (
+    <Svg width={width} height={height} viewBox="0 0 16 16" fill="none" {...props}>
+      <Path
+        d="M2.66667 8H13.3333"
+        stroke={stroke}
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+    </Svg>
+  );
+};
+
 export const IconRemoveSmall = ({
   width = 16,
   height = 16,
