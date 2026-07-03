@@ -521,6 +521,7 @@ const styles = StyleSheet.create({
     },
     optionText: {
         fontSize: 14,
+        fontWeight: '500',
         fontFamily: "Montserrat",
         flex: 1,
     },
