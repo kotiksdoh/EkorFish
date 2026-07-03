@@ -20,6 +20,7 @@
       "bundleIdentifier": "com.kotiksdoh.EkorFishNew",
       "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
+        "NSFaceIDUsageDescription": "Вход в приложение с помощью Face ID",
         "NSAppTransportSecurity": {
           "NSAllowsArbitraryLoads": true
         },
@@ -114,7 +115,13 @@
         }
       ],
       "expo-notifications",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Вход в приложение с помощью Face ID"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

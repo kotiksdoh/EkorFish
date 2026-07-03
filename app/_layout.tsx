@@ -5,6 +5,7 @@ import { ThemeProvider as AppThemeProvider, useTheme } from '@/contexts/ThemeCon
 import { AppToastHost } from '@/features/shared/ui/AppToastHost';
 import { SplashScreen } from '@/features/shared/ui/components/splash-screen';
 import { useCrashlytics, useCrashlyticsUser } from '@/hooks/useCrashlytics';
+import { useBiometricUnlock } from '@/hooks/useBiometricUnlock';
 import { useInitializeApp } from '@/hooks/useInitializeApp';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { store } from '@/store/store';
@@ -46,6 +47,7 @@ function RootLayoutContent() {
 
 function AppContent() {
   const { isReady, error } = useInitializeApp();
+  const { isRequired, isUnlocked, isChecking, retry } = useBiometricUnlock(isReady);
   const [isSplashVisible, setIsSplashVisible] = useState(true);
   useCrashlytics();
   usePushNotifications();
@@ -54,8 +56,18 @@ function AppContent() {
     setIsSplashVisible(false);
   };
 
+  const readyToDismiss =
+    isReady && !isChecking && (!isRequired || isUnlocked);
+
   if (isSplashVisible) {
-    return <SplashScreen onAnimationComplete={handleSplashComplete} />;
+    return (
+      <SplashScreen
+        readyToDismiss={readyToDismiss}
+        onAnimationComplete={handleSplashComplete}
+        onRetry={retry}
+        showRetryHint={isRequired && !isUnlocked && isReady && !isChecking}
+      />
+    );
   }
 
   if (!isReady) {

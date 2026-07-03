@@ -2289,3 +2289,77 @@ export const SupportTelegramIcon = ({
     />
   </Svg>
 );
+
+export const FaceIdIcon = ({
+  width = 24,
+  height = 24,
+  fill = "#80818B",
+  ...props
+}) => (
+  <Svg width={width} height={height} viewBox="0 0 24 24" fill="none" {...props}>
+    <Path
+      d="M16.9062 4.16602H18.9109C19.6964 4.16602 20.3331 4.80273 20.3331 5.58821V7.20807"
+      stroke={fill}
+      strokeWidth="1.25"
+      strokeMiterlimit="10"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <Path
+      d="M7.09382 4.16602H5.08918C4.30371 4.16602 3.66699 4.80273 3.66699 5.58821V7.20807"
+      stroke={fill}
+      strokeWidth="1.25"
+      strokeMiterlimit="10"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <Path
+      d="M7.09382 20.8331H5.08918C4.30371 20.8331 3.66699 20.1964 3.66699 19.4109V17.791"
+      stroke={fill}
+      strokeWidth="1.25"
+      strokeMiterlimit="10"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <Path
+      d="M16.9062 20.8331H18.9109C19.6964 20.8331 20.3331 20.1964 20.3331 19.4109V17.791"
+      stroke={fill}
+      strokeWidth="1.25"
+      strokeMiterlimit="10"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <Path
+      d="M13.5957 11.1758V11.6334"
+      stroke={fill}
+      strokeWidth="1.25"
+      strokeMiterlimit="10"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <Path
+      d="M10.334 11.1758V11.6334"
+      stroke={fill}
+      strokeWidth="1.25"
+      strokeMiterlimit="10"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <Path
+      d="M13.6673 14.166C12.7468 15.2771 11.2545 15.2771 10.334 14.166"
+      stroke={fill}
+      strokeWidth="1.25"
+      strokeMiterlimit="10"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <Path
+      d="M16.9973 13.6448C16.9991 13.591 17 13.5371 17 13.4829V10.6521C17 8.45066 15.167 6.66602 12.906 6.66602H11.094C8.83296 6.66602 7 8.45066 7 10.6521V13.4829C7 16.1614 9.23011 18.3327 11.9811 18.3327H12.0189C13.4485 18.3327 14.7375 17.7463 15.6459 16.807"
+      stroke={fill}
+      strokeWidth="1.25"
+      strokeMiterlimit="10"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);

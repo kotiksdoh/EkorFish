@@ -15,6 +15,7 @@ import {
   ArrowIconRight,
   BoxIcon,
   ExitIcon,
+  FaceIdIcon,
   FinanceAndDocksIcon,
   IconGeo,
   ICricleIcon,
@@ -37,9 +38,17 @@ import {
   setCompany,
 } from "@/features/auth/authSlice";
 import { clearAuthSession } from "@/features/auth/services/clearAuthSession";
+import {
+  authenticateWithBiometrics,
+  getBiometricAvailability,
+  getBiometricLoginLabel,
+  isBiometricLoginEnabled,
+  setBiometricLoginEnabled,
+} from "@/features/auth/services/biometricLogin";
 import { LoginModal } from "@/features/auth/ui/components/LoginModal";
 import { BonusPage } from "@/features/home/ui/screens/BonusScreen";
 import { axdef } from "@/features/shared/services/axios";
+import { AppSwitch } from "@/features/shared/ui/AppSwitch";
 import { CompanySelectModal } from "@/features/shared/ui/CompanySelectModal";
 import { HelpModal } from "@/features/shared/ui/HelpModal";
 import ManagerSection from "@/features/shared/ui/ManagerSection";
@@ -87,6 +96,11 @@ export default function TabTwoScreen() {
   const [pushesModalVisible, setPushesModalVisible] = useState(false);
   const [bonusModalVisible, setBonusModalVisible] = useState(false);
   const [hasAuthToken, setHasAuthToken] = useState(false);
+  const [biometricEnabled, setBiometricEnabled] = useState(false);
+  const [biometricLabel, setBiometricLabel] = useState("Входить по Face ID");
+  const [biometricAvailable, setBiometricAvailable] = useState(false);
+  const [isBiometricLoading, setIsBiometricLoading] = useState(false);
+  const [isBiometricHydrated, setIsBiometricHydrated] = useState(false);
   const isLoggingOutRef = useRef(false);
   const pageSize = 10;
 
@@ -132,6 +146,84 @@ export default function TabTwoScreen() {
 
     loadStoredCompany();
   }, [currentCompany, hasAuthToken]);
+
+  useEffect(() => {
+    if (!hasAuthToken) {
+      setBiometricEnabled(false);
+      setBiometricAvailable(false);
+      setIsBiometricHydrated(true);
+      return;
+    }
+
+    let isMounted = true;
+
+    const hydrateBiometricSettings = async () => {
+      try {
+        const [availability, enabled] = await Promise.all([
+          getBiometricAvailability(),
+          isBiometricLoginEnabled(),
+        ]);
+
+        if (!isMounted) return;
+
+        setBiometricAvailable(availability.available);
+        setBiometricLabel(getBiometricLoginLabel(availability.type));
+        setBiometricEnabled(enabled && availability.available);
+      } catch (error) {
+        console.error("Error loading biometric settings:", error);
+      } finally {
+        if (isMounted) {
+          setIsBiometricHydrated(true);
+        }
+      }
+    };
+
+    setIsBiometricHydrated(false);
+    void hydrateBiometricSettings();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [hasAuthToken]);
+
+  const handleBiometricToggle = useCallback(
+    async (nextValue: boolean) => {
+      if (isBiometricLoading || !biometricAvailable) {
+        return;
+      }
+
+      if (!nextValue) {
+        setIsBiometricLoading(true);
+        try {
+          await setBiometricLoginEnabled(false);
+          setBiometricEnabled(false);
+        } catch (error) {
+          console.error("Error disabling biometric login:", error);
+        } finally {
+          setIsBiometricLoading(false);
+        }
+        return;
+      }
+
+      setIsBiometricLoading(true);
+      try {
+        const success = await authenticateWithBiometrics(
+          "Подтвердите включение биометрического входа",
+        );
+        if (!success) {
+          return;
+        }
+
+        await setBiometricLoginEnabled(true);
+        setBiometricEnabled(true);
+      } catch (error) {
+        console.error("Error enabling biometric login:", error);
+      } finally {
+        setIsBiometricLoading(false);
+      }
+    },
+    [biometricAvailable, isBiometricLoading],
+  );
 
   // Загружаем сохраненные данные профиля
   useEffect(() => {
@@ -696,6 +788,44 @@ export default function TabTwoScreen() {
                 </View>
               </View>
             </TouchableOpacity>
+
+            {biometricAvailable ? (
+              <View style={styles.infoRow}>
+                <ThemedView
+                  lightColor="#F2F4F7"
+                  darkColor="#202022"
+                  style={styles.iconPlaceholder}
+                >
+                  <FaceIdIcon width={22} height={22} />
+                </ThemedView>
+                <View
+                  style={[
+                    styles.infoContent,
+                    isDarkMode && {
+                      borderColor: "#252527",
+                    },
+                  ]}
+                >
+                  <ThemedText lightColor="#1B1B1C" style={styles.infoLabel}>
+                    {biometricLabel}
+                  </ThemedText>
+                  <View style={styles.infoValueContainer}>
+                    {!isBiometricHydrated || isBiometricLoading ? (
+                      <ActivityIndicator
+                        size="small"
+                        color={isDarkMode ? "#4C94FF" : "#203686"}
+                      />
+                    ) : (
+                      <AppSwitch
+                        value={biometricEnabled}
+                        onValueChange={handleBiometricToggle}
+                        isDark={isDarkMode}
+                      />
+                    )}
+                  </View>
+                </View>
+              </View>
+            ) : null}
 
             <TouchableOpacity
               style={styles.infoRow}

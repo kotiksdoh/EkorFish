@@ -45,7 +45,7 @@ function withAndroidFontWeightFix(config) {
       if (!contents.includes('import android.content.Context')) {
         contents = contents.replace(
           /(package [^\n]+\n)/,
-          `$1\nimport android.content.Context\nimport android.content.res.Configuration\nimport android.os.Build\n`,
+          `$1\nimport android.content.Context\nimport android.content.res.Configuration\n`,
         );
       }
 
@@ -55,7 +55,7 @@ function withAndroidFontWeightFix(config) {
         newSrc: `
   override fun attachBaseContext(newBase: Context) {
     val configuration = Configuration(newBase.resources.configuration)
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
       configuration.fontWeightAdjustment = 0
     }
     super.attachBaseContext(newBase.createConfigurationContext(configuration))

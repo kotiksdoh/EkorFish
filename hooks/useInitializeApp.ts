@@ -126,8 +126,6 @@ export const useInitializeApp = () => {
 
         if (success) {
           setIsReady(true);
-          // Скрываем сплеш-скрин Expo
-          await SplashScreenExpo.hideAsync();
         } else {
           setError("Не удалось загрузить ресурсы приложения");
         }
