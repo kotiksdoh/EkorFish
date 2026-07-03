@@ -873,6 +873,7 @@ export default function TabTwoScreen() {
       <BonusPage
         visible={bonusModalVisible && showProfileContent}
         onClose={() => setBonusModalVisible(false)}
+        productReturnTo="user"
       />
     </>
   );

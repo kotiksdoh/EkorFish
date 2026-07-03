@@ -34,6 +34,7 @@ interface BonusTransaction {
 interface BonusPageProps {
   visible: boolean;
   onClose: () => void;
+  productReturnTo?: "home" | "user";
 }
 
 function getOrderNumber(item: BonusTransaction): string | null {
@@ -76,6 +77,7 @@ function getBonusHistoryItemKey(
 export const BonusPage: React.FC<BonusPageProps> = ({
   visible,
   onClose,
+  productReturnTo = "home",
 }) => {
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === "dark";
@@ -321,6 +323,7 @@ export const BonusPage: React.FC<BonusPageProps> = ({
             handleAddToCartPress={handleAddToCartPress}
             onShowAllPress={onClose}
             onProductPress={onClose}
+            returnTo={productReturnTo}
           />
 
           {/* История начислений - компактный блок с группировкой */}

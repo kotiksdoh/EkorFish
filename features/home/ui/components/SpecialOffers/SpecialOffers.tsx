@@ -22,12 +22,14 @@ interface SpecialOffersProps {
   handleAddToCartPress: (product: any) => void;
   onShowAllPress?: () => void;
   onProductPress?: () => void;
+  returnTo?: "home" | "heart" | "catalog" | "shop" | "user";
 }
 
 function SpecialOffersComponent({
   handleAddToCartPress,
   onShowAllPress,
   onProductPress,
+  returnTo = "home",
 }: SpecialOffersProps) {
   const router = useRouter();
   const me = useAppSelector((state) => state.auth.me);
@@ -125,7 +127,7 @@ function SpecialOffersComponent({
                 isFavorite={item.isFavorite}
                 productData={item}
                 fullWidth={true}
-                returnTo="home"
+                returnTo={returnTo}
                 onAddToCartPress={handleAddToCartPress}
                 onBeforeNavigate={onProductPress}
               />
@@ -154,7 +156,8 @@ export default React.memo(SpecialOffersComponent, (prevProps, nextProps) => {
   return (
     prevProps.handleAddToCartPress === nextProps.handleAddToCartPress &&
     prevProps.onShowAllPress === nextProps.onShowAllPress &&
-    prevProps.onProductPress === nextProps.onProductPress
+    prevProps.onProductPress === nextProps.onProductPress &&
+    prevProps.returnTo === nextProps.returnTo
   );
 });
 

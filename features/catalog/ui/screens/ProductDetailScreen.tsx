@@ -350,8 +350,9 @@ export function ProductDetailScreen() {
   };
 
   const productReturnTo = useMemo<
-    "home" | "heart" | "catalog" | "shop"
+    "home" | "heart" | "catalog" | "shop" | "user"
   >(() => {
+    if (segments.includes("user")) return "user";
     if (segments.includes("heart")) return "heart";
     if (segments.includes("shop")) return "shop";
     if (segments.includes("(home)")) return "home";
@@ -368,6 +369,7 @@ export function ProductDetailScreen() {
       (segment) =>
         segment === "heart" ||
         segment === "shop" ||
+        segment === "user" ||
         segment === "dashboard" ||
         segment === "product",
     );
@@ -378,6 +380,10 @@ export function ProductDetailScreen() {
     }
     if (tabSegment === "shop") {
       router.replace("/shop");
+      return;
+    }
+    if (tabSegment === "user") {
+      router.replace("/user");
       return;
     }
     if (tabSegment === "dashboard") {
