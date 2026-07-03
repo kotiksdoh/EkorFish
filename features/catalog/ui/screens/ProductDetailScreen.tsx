@@ -1180,6 +1180,7 @@ const styles = StyleSheet.create({
   },
   descriptionText: {
     fontSize: 16,
+    fontWeight: "500",
     lineHeight: 22,
   },
   characteristicsContainer: {

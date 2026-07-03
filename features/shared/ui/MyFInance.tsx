@@ -17,6 +17,7 @@ import {
   getMyReturnsParams,
 } from "@/features/catalog/catalogSlice";
 import { useKeyboardAwareScroll } from "@/features/shared/hooks/useKeyboardAwareScroll";
+import { AppModal } from "@/features/shared/ui/AppModal";
 import { isIndividualCompany } from "@/features/shared/utils/companyType";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -29,7 +30,6 @@ import React, {
   useState,
 } from "react";
 import { ActivityIndicator, Animated, Dimensions, KeyboardAvoidingView, NativeScrollEvent, NativeSyntheticEvent, Platform, ScrollView, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
-import { AppModal } from "@/features/shared/ui/AppModal";
 
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -1743,8 +1743,10 @@ export const MyFinanceModal: React.FC<MyFinanceProps> = ({
                         fontSize: 12,
                         textTransform: "uppercase",
                         marginVertical: 24,
+                        fontWeight: "600"
                       }}
                       darkColor="#FBFCFF80"
+                      lightColor="#80818B"
                     >
                       {formatDate(group.date)}
                     </ThemedText>
@@ -1758,7 +1760,7 @@ export const MyFinanceModal: React.FC<MyFinanceProps> = ({
                               alignItems: "center",
                             }}
                           >
-                            <ThemedText darkColor="#4C94FF" weight="medium">
+                            <ThemedText lightColor="#203686" darkColor="#4C94FF" weight="medium">
                               {payment.paymentType || "Оплата"}
                             </ThemedText>
                             <View style={styles.amountContainer}>
@@ -1781,15 +1783,17 @@ export const MyFinanceModal: React.FC<MyFinanceProps> = ({
                             }}
                           >
                             <ThemedText
-                              style={{ fontSize: 12 }}
+                              style={{ fontSize: 12, fontWeight: "400" }}
                               darkColor="#FBFCFF80"
+                              lightColor="#80818B"
                             >
                               Счет №{payment.invoiceNumber} от{" "}
                               {formatDate(payment.invoiceDate)}
                             </ThemedText>
                             <ThemedText
-                              style={{ fontSize: 12 }}
+                              style={{ fontSize: 12, fontWeight: "400" }}
                               darkColor="#FBFCFF80"
+                              lightColor="#80818B"
                             >
                               {formatDate(payment.date)}
                             </ThemedText>
@@ -1973,6 +1977,7 @@ const styles = StyleSheet.create({
     borderColor: "#203686",
   },
   filterChipText: {
+    fontWeight: "500",
     fontFamily: "Montserrat",
     fontSize: 14,
   },
@@ -2087,7 +2092,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   companyName: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: "600",
     marginBottom: 8,
   },
@@ -2101,6 +2106,7 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   companyLimit: {
+    marginTop: 24,
     flexDirection: "column",
     justifyContent: "space-between",
   },
@@ -2391,6 +2397,7 @@ const styles = StyleSheet.create({
   },
   subcategoryText: {
     fontFamily: "Montserrat",
+    fontWeight: '500',
     fontSize: 14,
     color: "#1B1B1C",
   },

@@ -2,9 +2,9 @@
 import { SortIcon } from "@/assets/icons/icons";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import SearchInput from "@/features/auth/ui/components/SearchInput";
-import { ModalHeader } from "@/features/auth/ui/Header";
 import { useAuthGate } from "@/features/auth/hooks/useAuthGate";
+import { ModalHeader } from "@/features/auth/ui/Header";
+import SearchInput from "@/features/auth/ui/components/SearchInput";
 import {
   AddToCart,
   clearSelectedFilters,
@@ -15,9 +15,9 @@ import {
 } from "@/features/catalog/catalogSlice";
 import {
   DEFAULT_PRODUCT_SORT,
+  PRODUCT_SORT_OPTIONS,
   applyProductSortToParams,
   getProductSortLabel,
-  PRODUCT_SORT_OPTIONS,
   type ProductSortId,
 } from "@/features/catalog/productSort";
 import { AddToCartModal } from "@/features/shared/ui/AddToCartModal";
@@ -27,9 +27,9 @@ import {
 } from "@/features/shared/ui/BottomSheetModal";
 import { ProductCard } from "@/features/shared/ui/ProductCard";
 import { prefetchProductImageUrls } from "@/features/shared/utils/prefetchProductImages";
-import { buildTemplateLineFromProduct } from "@/features/templates/buildTemplateLine";
 import { TemplatePickerBanner } from "@/features/templates/TemplatePickerBanner";
 import { useTemplatePicker } from "@/features/templates/TemplatePickerContext";
+import { buildTemplateLineFromProduct } from "@/features/templates/buildTemplateLine";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -880,6 +880,10 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     marginRight: 8,
     // minHeight: 36,
+  },
+  sortOptionText:{
+    fontWeight: "500",
+    fontSize: 16
   },
   sortFilterButtonText: {
     fontFamily: "Montserrat",
