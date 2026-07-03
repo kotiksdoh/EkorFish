@@ -38,7 +38,7 @@ import {
 } from "@/features/shared/utils/presetOwnerPayload";
 import { Image } from "expo-image";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Animated, Dimensions, FlatList, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, View, useColorScheme } from 'react-native';
+import { ActivityIndicator, Animated, Dimensions, FlatList, Keyboard, Platform, ScrollView, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, View, useColorScheme } from 'react-native';
 
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -49,6 +49,9 @@ import { useTemplatePicker } from "./TemplatePickerContext";
 import type { TemplateLineItem } from "./types";
 
 const { height: screenHeight } = Dimensions.get("window");
+
+/** Временно: не поднимать sheet «Создание шаблона» вместе с клавиатурой. */
+const CREATE_TEMPLATE_KEYBOARD_AWARE = false;
 
 type Props = {
   visible: boolean;
@@ -181,14 +184,11 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
     null,
   );
   const [registerModalVisible, setRegisterModalVisible] = useState(false);
-  const {
-    scrollRef: createScrollRef,
-    keyboardHeight: createKeyboardHeight,
-    handleScroll: handleCreateScroll,
-    onInputFocus: handleCreateDescFocus,
-    androidKeyboardMargin: createAndroidKeyboardMargin,
-  } = useKeyboardAwareScroll({
-    enabled: createOpen && reminderPickerFor !== "create",
+  const { scrollRef: createScrollRef } = useKeyboardAwareScroll({
+    enabled:
+      CREATE_TEMPLATE_KEYBOARD_AWARE &&
+      createOpen &&
+      reminderPickerFor !== "create",
   });
   const [isClosingCreate, setIsClosingCreate] = useState(false);
   const createSheetTranslateY = useRef(new Animated.Value(screenHeight)).current;
@@ -1295,10 +1295,6 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
                       {
                         paddingBottom: 16 + Math.max(insets.bottom, 16),
                         transform: [{ translateY: createSheetTranslateY }],
-                        marginBottom:
-                          Platform.OS === "ios" && createKeyboardHeight > 0
-                            ? Math.max(0, createKeyboardHeight - insets.bottom)
-                            : createAndroidKeyboardMargin,
                       },
                     ]}
                   >
@@ -1323,23 +1319,15 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
                         Создание шаблона
                       </ThemedText>
                     </View>
-                <KeyboardAvoidingView
-                  style={styles.createKeyboardAvoiding}
-                  behavior={Platform.OS === "ios" ? "padding" : undefined}
-                  keyboardVerticalOffset={Platform.OS === "ios" ? 12 : 0}
-                >
+                <View style={styles.createKeyboardAvoiding}>
                 <ScrollView
                   ref={createScrollRef}
                   keyboardShouldPersistTaps="handled"
                   keyboardDismissMode="on-drag"
                   onScrollBeginDrag={dismissKeyboard}
-                  onScroll={handleCreateScroll}
-                  scrollEventThrottle={16}
                   showsVerticalScrollIndicator={false}
                   style={styles.createOverlayScroll}
-                  contentContainerStyle={{
-                    paddingBottom: createKeyboardHeight > 0 ? 24 : 8,
-                  }}
+                  contentContainerStyle={{ paddingBottom: 8 }}
                 >
                   <TouchableWithoutFeedback
                     onPress={dismissKeyboard}
@@ -1351,7 +1339,6 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
                     value={cName}
                     onChangeText={setCName}
                     multiline={false}
-                    onFocus={handleCreateDescFocus}
                   />
                   <View style={{ height: 12 }} />
                   <AnimatedTextInput
@@ -1360,7 +1347,6 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
                     onChangeText={setCDesc}
                     multiline
                     textAlignVertical="top"
-                    onFocus={handleCreateDescFocus}
                     style={styles.descInputWrap}
                     inputStyle={styles.descInput}
                   />
@@ -1429,7 +1415,7 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
                     isCreating || (!isIndividual && !cSelectedCompany?.id)
                   }
                 />
-                </KeyboardAvoidingView>
+                </View>
                   </Animated.View>
               ) : null}
 
