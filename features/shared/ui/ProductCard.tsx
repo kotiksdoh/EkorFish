@@ -625,7 +625,7 @@ const styles = StyleSheet.create({
   },
   kgLabel: {
     fontFamily: "Montserrat",
-    fontWeight: "400",
+    fontWeight: "600",
     fontSize: 18,
   },
   fullPrice: {
