@@ -21,10 +21,41 @@ function collectStringMessages(value: unknown): string[] {
   return [];
 }
 
+const NETWORK_ERROR_MESSAGE = "Нет подключения к серверу";
+
+export const isAxiosNetworkError = (err: any): boolean => {
+  if (!err || err.response) {
+    return false;
+  }
+
+  const code = String(err.code ?? "").toUpperCase();
+  const message = String(err.message ?? "").trim().toLowerCase();
+
+  if (code === "ERR_CANCELED" || code === "CANCELEDERROR") {
+    return false;
+  }
+
+  return (
+    code === "ERR_NETWORK" ||
+    code === "ECONNABORTED" ||
+    code === "ERR_CONNECTION_REFUSED" ||
+    code === "ECONNREFUSED" ||
+    code === "ETIMEDOUT" ||
+    message === "network error" ||
+    message.includes("network request failed") ||
+    message.includes("failed to connect") ||
+    message.includes("internet connection appears to be offline")
+  );
+};
+
 export const getAxiosErrorMessage = (
   err: any,
   fallback = "Неизвестная ошибка",
 ): string => {
+  if (isAxiosNetworkError(err)) {
+    return NETWORK_ERROR_MESSAGE;
+  }
+
   const errorData = err?.response?.data;
 
   if (typeof errorData === "string" && errorData.trim()) {
@@ -65,6 +96,9 @@ export const getAxiosErrorMessage = (
 
   if (typeof err?.message === "string" && err.message.trim()) {
     const message = err.message.trim();
+    if (/^network error$/i.test(message)) {
+      return NETWORK_ERROR_MESSAGE;
+    }
     if (!/^Request failed with status code \d+$/i.test(message)) {
       return message;
     }

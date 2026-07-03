@@ -15,7 +15,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { AutoSlider } from "../components/AutoSlider";
+import { AutoSlider, SlideItem } from "../components/AutoSlider";
 import { HomeBootstrapBanner } from "../components/HomeBootstrapBanner";
 import Catalog from "../components/Catalog/Catalog";
 import DeliveryInfoCard from "../components/DeliveryInfoCard";
@@ -24,9 +24,12 @@ import OrdersCard from "../components/Orders/OrdersCard";
 import SpecialOffers from "../components/SpecialOffers/SpecialOffers";
 import { SearchScreenWithHistory } from "./SearchScreenWithHistory";
 
-// Временные данные для слайдера (замените на реальные URL)
-const SLIDER_ITEMS: any[] = [
- 
+const FALLBACK_SLIDER_ITEMS: SlideItem[] = [
+  {
+    id: "fallback-main",
+    imageUrl: "",
+    localImage: require("@/assets/images/mainPage.webp"),
+  },
 ];
 
 export const HomeScreen = ({
@@ -49,11 +52,14 @@ export const HomeScreen = ({
   } = useTemplateAwareAddToCart();
   const router = useRouter();
   const sliderItems = useAppSelector((state) => state.auth.sliders);
+  const bootstrapStatus = useAppSelector((state) => state.auth.bootstrapStatus);
   const orders = useAppSelector((state) => state.catalog.orders);
-  const sliderData = useMemo(
-    () => (sliderItems.length > 0 ? sliderItems : SLIDER_ITEMS),
-    [sliderItems],
-  );
+  const sliderData = useMemo(() => {
+    if (bootstrapStatus === "failed" || sliderItems.length === 0) {
+      return FALLBACK_SLIDER_ITEMS;
+    }
+    return sliderItems;
+  }, [sliderItems, bootstrapStatus]);
   const ordersKeyExtractor = useCallback((item: any) => String(item.id), []);
   const renderOrderItem = useCallback(
     ({ item }: { item: any }) => <OrdersCard order={item} fullWidth={false} />,

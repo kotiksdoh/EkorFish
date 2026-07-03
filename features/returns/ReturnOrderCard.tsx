@@ -8,6 +8,10 @@ import { StyleSheet, TouchableOpacity, View } from "react-native";
 import { baseUrl } from "../shared/services/axios";
 import { formatDate } from "../shared/services/utils";
 import { CustomCheckbox } from "../shared/ui/components/CustomCheckBox";
+import {
+  QuantityStepperMinusIcon,
+  QuantityStepperPlusIcon,
+} from "../shared/ui/components/QuantityStepperIcons";
 
 interface ReturnsOrderCardProps {
   returnsOrder: any;
@@ -144,13 +148,7 @@ const CartItemComponent = memo(({
               onPress={handleDecrement}
               disabled={!isReturnable}
             >
-              <ThemedText
-                style={styles.plusMinus}
-                lightColor="#202022"
-                darkColor="#F2F4F7"
-              >
-                -
-              </ThemedText>
+              <QuantityStepperMinusIcon disabled={!isReturnable} />
             </TouchableOpacity>
 
             <ThemedText
@@ -166,13 +164,7 @@ const CartItemComponent = memo(({
               onPress={handleIncrement}
               disabled={!isReturnable}
             >
-              <ThemedText
-                style={styles.plusMinus}
-                lightColor="#202022"
-                darkColor="#F2F4F7"
-              >
-                +
-              </ThemedText>
+              <QuantityStepperPlusIcon disabled={!isReturnable} />
             </TouchableOpacity>
           </ThemedView>
         </View>
@@ -407,7 +399,7 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   quantityControls: {
-    paddingVertical: 6,
+    paddingVertical: 4,
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#F5F5F5",
@@ -417,13 +409,10 @@ const styles = StyleSheet.create({
   },
   quantityButton: {
     paddingHorizontal: 6,
+
     borderRadius: 6,
     justifyContent: "center",
     alignItems: "center",
-  },
-  plusMinus: {
-    fontSize: 16,
-    fontWeight: '500'
   },
   quantityTextKg: {
     fontSize: 12,

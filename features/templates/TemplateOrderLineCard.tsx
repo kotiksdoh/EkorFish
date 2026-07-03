@@ -1,4 +1,4 @@
-import { LikeIcon, TrashIcon } from "@/assets/icons/icons";
+import { IconRemoveSmall, LikeIcon } from "@/assets/icons/icons";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import {
@@ -18,6 +18,10 @@ import {
 } from "react-native";
 
 import { LoginModal } from "@/features/auth/ui/components/LoginModal";
+import {
+  QuantityStepperMinusIcon,
+  QuantityStepperPlusIcon,
+} from "@/features/shared/ui/components/QuantityStepperIcons";
 import type { TemplateLineItem } from "./types";
 
 type Props = {
@@ -139,7 +143,7 @@ export function TemplateOrderLineCard({
         ) : null}
 
         {editMode ? (
-          <View style={styles.priceRow}>
+          <View style={styles.actionsRow}>
             <TouchableOpacity
               style={styles.favoriteButton}
               onPress={() => void handleFavorite()}
@@ -159,8 +163,7 @@ export function TemplateOrderLineCard({
                 lightColor="#F2F4F7"
                 darkColor="#202022"
               >
-                <TrashIcon
-                  stroke={isDarkMode ? "#FBFCFF" : "#1B1B1C"}
+                <IconRemoveSmall
                   fill={isDarkMode ? "#FBFCFF" : "#1B1B1C"}
                 />
               </ThemedView>
@@ -177,16 +180,7 @@ export function TemplateOrderLineCard({
                 onPress={onDecrease}
                 disabled={line.quantity <= minQ}
               >
-                <ThemedText
-                  style={[
-                    styles.plusMinus,
-                    line.quantity <= minQ && styles.plusMinusDisabled,
-                  ]}
-                  lightColor="#202022"
-                  darkColor="#F2F4F7"
-                >
-                  -
-                </ThemedText>
+                <QuantityStepperMinusIcon disabled={line.quantity <= minQ} />
               </TouchableOpacity>
 
               <ThemedText
@@ -201,9 +195,7 @@ export function TemplateOrderLineCard({
                 style={styles.quantityButton}
                 onPress={onIncrease}
               >
-                <ThemedText style={styles.plusMinus} lightColor="#202022" darkColor="#F2F4F7">
-                  +
-                </ThemedText>
+                <QuantityStepperPlusIcon />
               </TouchableOpacity>
             </ThemedView>
           </View>
@@ -240,6 +232,7 @@ const styles = StyleSheet.create({
   },
   dopItemInfo: {
     flex: 1,
+    minWidth: 0,
     flexDirection: "column",
   },
   itemInfo: {
@@ -267,7 +260,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginTop: 4,
-    flexWrap: "wrap",
+  },
+  actionsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 4,
+    flexWrap: "nowrap",
   },
   quantityTextKg: {
     fontSize: 12,
@@ -281,40 +279,46 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginRight: 4,
+    flexShrink: 0,
   },
   favoriteTheme: {
     borderRadius: 8,
-    padding: 3,
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+    minHeight: 32,
+    justifyContent: "center",
+    alignItems: "center",
   },
   deleteButton: {
     flexDirection: "row",
     alignItems: "center",
+    flexShrink: 0,
     marginRight: 4,
   },
   quantityControls: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#F5F5F5",
     borderRadius: 8,
     paddingHorizontal: 6,
-    marginLeft: "auto",
+    paddingVertical: 4,
+    minHeight: 32,
+    minWidth: 0,
+    flexShrink: 1,
   },
   quantityButton: {
     paddingHorizontal: 6,
     borderRadius: 6,
     justifyContent: "center",
     alignItems: "center",
-  },
-  plusMinus: {
-    fontSize: 16,
-  },
-  plusMinusDisabled: {
-    opacity: 0.35,
+    flexShrink: 0,
   },
   quantityText: {
+    flex: 1,
     fontSize: 16,
     fontWeight: "500",
-    minWidth: 72,
+    minWidth: 0,
     textAlign: "center",
   },
 });

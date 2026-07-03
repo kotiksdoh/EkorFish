@@ -35,6 +35,10 @@ import { CompanySelectModal } from "@/features/shared/ui/CompanySelectModal";
 import { CompanySelectionModal } from "@/features/shared/ui/CompanySelectionModalSmall";
 import { CustomCheckbox } from "@/features/shared/ui/components/CustomCheckBox";
 import { PromoCodeInput } from "@/features/shared/ui/components/PromoCodeInput";
+import {
+  QuantityStepperMinusIcon,
+  QuantityStepperPlusIcon,
+} from "@/features/shared/ui/components/QuantityStepperIcons";
 import { isIndividualCompany } from "@/features/shared/utils/companyType";
 import { useTemplatePicker } from "@/features/templates/TemplatePickerContext";
 import { buildTemplateLineFromProduct } from "@/features/templates/buildTemplateLine";
@@ -287,16 +291,13 @@ const CartItemComponent = ({
                 item.quantity <= item.purchaseOptionStep
               }
             >
-              <ThemedText
-                style={[
-                  styles.plusMinus,
-                  !isAvailable && styles.textUnavailable,
-                ]}
-                lightColor="#202022"
-                darkColor="#F2F4F7"
-              >
-                -
-              </ThemedText>
+              <QuantityStepperMinusIcon
+                disabled={
+                  isQuantityUpdating ||
+                  !isAvailable ||
+                  item.quantity <= item.purchaseOptionStep
+                }
+              />
             </TouchableOpacity>
 
             <ThemedText
@@ -306,6 +307,7 @@ const CartItemComponent = ({
               ]}
               lightColor="#202022"
               darkColor="#F2F4F7"
+              numberOfLines={1}
             >
               {item.quantity} {item.measureType === "килограмм" ? "кг" : "шт"}
             </ThemedText>
@@ -317,16 +319,9 @@ const CartItemComponent = ({
               }
               disabled={isQuantityUpdating || !isAvailable}
             >
-              <ThemedText
-                style={[
-                  styles.plusMinus,
-                  !isAvailable && styles.textUnavailable,
-                ]}
-                lightColor="#202022"
-                darkColor="#F2F4F7"
-              >
-                +
-              </ThemedText>
+              <QuantityStepperPlusIcon
+                disabled={isQuantityUpdating || !isAvailable}
+              />
             </TouchableOpacity>
 
             {isQuantityUpdating ? (
@@ -1369,6 +1364,7 @@ const styles = StyleSheet.create({
   },
   dopItemInfo: {
     flex: 1,
+    minWidth: 0,
     display: "flex",
     flexDirection: "column",
   },
@@ -1398,8 +1394,8 @@ const styles = StyleSheet.create({
   },
   priceRow: {
     flexDirection: "row",
-    // alignItems: 'center',
-    // marginBottom: 8,
+    alignItems: "center",
+    flexWrap: "nowrap",
   },
 
   itemActions: {
@@ -1410,14 +1406,21 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginRight: 4,
+    flexShrink: 0,
   },
   favoriteTheme: {
     borderRadius: 8,
-    padding: 3,
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+    minHeight: 32,
+    justifyContent: "center",
+    alignItems: "center",
   },
   deleteButton: {
     flexDirection: "row",
     alignItems: "center",
+    flexShrink: 0,
+    marginRight: 4,
   },
   actionText: {
     fontSize: 12,
@@ -1434,9 +1437,13 @@ const styles = StyleSheet.create({
     backgroundColor: "#F5F5F5",
     borderRadius: 8,
     paddingHorizontal: 6,
-    marginLeft: 4,
+    paddingVertical: 4,
+    minHeight: 32,
     position: "relative",
     overflow: "hidden",
+    flex: 1,
+    minWidth: 0,
+    flexShrink: 1,
   },
   quantityPendingOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -1451,26 +1458,21 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0, 0, 0, 0.28)",
   },
   quantityButton: {
-    // width: 28,
-    // height: 28,
     paddingHorizontal: 6,
-
     borderRadius: 6,
     justifyContent: "center",
     alignItems: "center",
-  },
-  plusMinus: {
-    fontSize: 16,
+    flexShrink: 0,
   },
   quantityTextKg: {
     fontSize: 12,
     fontWeight: "500",
   },
   quantityText: {
+    flex: 1,
     fontSize: 16,
     fontWeight: "500",
-    // marginHorizontal: 8,
-    minWidth: 144,
+    minWidth: 0,
     textAlign: "center",
   },
   itemTotalPrice: {

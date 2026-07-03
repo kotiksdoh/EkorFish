@@ -1669,6 +1669,68 @@ export const IconCompanyNew = ({
   </Svg>
 );
 
+export const IconQuantityPlus = ({
+  width = 16,
+  height = 16,
+  color = "#1B1B1C",
+  disabled = false,
+  ...props
+}) => {
+  const stroke = disabled ? "#C0C0C5" : color;
+
+  return (
+    <Svg width={width} height={height} viewBox="0 0 16 16" fill="none" {...props}>
+      <Path
+        d="M8 2.66699L8 13.3337"
+        stroke={stroke}
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+      <Path
+        d="M2.6665 8L13.3332 8"
+        stroke={stroke}
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+    </Svg>
+  );
+};
+
+export const IconQuantityMinus = ({
+  width = 16,
+  height = 16,
+  color = "#1B1B1C",
+  disabled = false,
+  ...props
+}) => {
+  const stroke = disabled ? "#C0C0C5" : color;
+
+  return (
+    <Svg width={width} height={height} viewBox="0 0 16 16" fill="none" {...props}>
+      <Path
+        d="M2.66667 8H13.3333"
+        stroke={stroke}
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+    </Svg>
+  );
+};
+
+export const IconRemoveSmall = ({
+  width = 16,
+  height = 16,
+  fill = "#1B1B1C",
+  ...props
+}) => (
+  <Svg width={width} height={height} viewBox="0 0 16 16" fill="none" {...props}>
+    <Path
+      d="M4.70057 3.75776C4.44022 3.49741 4.01811 3.49741 3.75776 3.75776C3.49741 4.01811 3.49741 4.44022 3.75776 4.70057L7.05759 8.0004L3.75776 11.3002C3.49741 11.5606 3.49741 11.9827 3.75776 12.243C4.01811 12.5034 4.44022 12.5034 4.70057 12.243L8.0004 8.94321L11.3002 12.243C11.5606 12.5034 11.9827 12.5034 12.243 12.243C12.5034 11.9827 12.5034 11.5606 12.243 11.3002L8.94321 8.0004L12.243 4.70057C12.5034 4.44022 12.5034 4.01811 12.243 3.75776C11.9827 3.49741 11.5606 3.49741 11.3002 3.75776L8.0004 7.05759L4.70057 3.75776Z"
+      fill={fill}
+    />
+  </Svg>
+);
+
 export const IconCloseNew = ({
   width = 24,
   height = 24,
