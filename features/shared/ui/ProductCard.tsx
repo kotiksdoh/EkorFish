@@ -9,6 +9,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Image } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, {
   useCallback,
@@ -411,6 +412,18 @@ const ProductCardComponent: React.FC<ProductCardProps> = ({
                 </ThemedText>
               </View>
 
+              <LinearGradient
+                colors={
+                  isDarkMode
+                    ? ["rgba(21, 21, 22, 0)", "#151516"]
+                    : ["rgba(255, 255, 255, 0)", "#FFFFFF"]
+                }
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.priceFade}
+                pointerEvents="none"
+              />
+
               <View style={styles.cartButtonWrapper}>
                 {quantityBadgeLabel ? (
                   <View
@@ -606,9 +619,18 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-end",
+    position: "relative",
   },
   priceContainer: {
     flex: 1,
+  },
+  priceFade: {
+    position: "absolute",
+    right: 40,
+    top: 0,
+    bottom: 0,
+    width: 20,
+    zIndex: 1,
   },
   kgPriceRow: {
     flexDirection: "row",
