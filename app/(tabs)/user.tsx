@@ -18,6 +18,7 @@ import {
   FinanceAndDocksIcon,
   IconGeo,
   ICricleIcon,
+  LemonIcon,
   MenuRefreshIcon,
   OrderReminderIcon,
   PencilIcon,
@@ -37,6 +38,7 @@ import {
 } from "@/features/auth/authSlice";
 import { clearAuthSession } from "@/features/auth/services/clearAuthSession";
 import { LoginModal } from "@/features/auth/ui/components/LoginModal";
+import { BonusPage } from "@/features/home/ui/screens/BonusScreen";
 import { axdef } from "@/features/shared/services/axios";
 import { CompanySelectModal } from "@/features/shared/ui/CompanySelectModal";
 import { HelpModal } from "@/features/shared/ui/HelpModal";
@@ -83,6 +85,7 @@ export default function TabTwoScreen() {
   const [settingsModalVisible, setSettingsModalVisible] = useState(false);
   const [helpModalVisible, setHelpModalVisible] = useState(false);
   const [pushesModalVisible, setPushesModalVisible] = useState(false);
+  const [bonusModalVisible, setBonusModalVisible] = useState(false);
   const [hasAuthToken, setHasAuthToken] = useState(false);
   const isLoggingOutRef = useRef(false);
   const pageSize = 10;
@@ -408,6 +411,10 @@ export default function TabTwoScreen() {
     if (!login) return "";
     return isEmailLogin(login) ? login : formatPhoneProfile(login);
   }, [hasAuthToken, me?.login]);
+  const formattedBonus = useMemo(
+    () => (me?.bonus ?? 0).toLocaleString("ru-RU"),
+    [me?.bonus],
+  );
   const showProfileContent = authChecked && hasAuthToken;
 
   return (
@@ -431,6 +438,12 @@ export default function TabTwoScreen() {
             {/* Иконка карандаша */}
             <View style={styles.topActions}>
               <TouchableOpacity
+                style={styles.pencilIconContainer}
+                onPress={() => setEditModalVisible(true)}
+              >
+                <PencilIcon width={24} height={24} fill="#1B1B1C" />
+              </TouchableOpacity>
+              <TouchableOpacity
                 style={styles.notificationIconContainer}
                 onPress={handleOpenPushes}
                 activeOpacity={0.8}
@@ -443,12 +456,6 @@ export default function TabTwoScreen() {
                     </ThemedText>
                   </View>
                 ) : null}
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.pencilIconContainer}
-                onPress={() => setEditModalVisible(true)}
-              >
-                <PencilIcon width={24} height={24} fill="#1B1B1C" />
               </TouchableOpacity>
             </View>
 
@@ -466,17 +473,24 @@ export default function TabTwoScreen() {
                       styles.profileImagePlaceholder,
                       { backgroundColor: profileData.coverColor },
                     ]}
-                  >
-                    <ThemedText
-                      weight="bold"
-                      style={styles.profileImagePlaceholderText}
-                    >
-                      {profileData.name?.charAt(0) || ""}
-                      {profileData.surname?.charAt(0) || ""}
-                    </ThemedText>
-                  </View>
+                  />
                 )}
               </View>
+              <TouchableOpacity
+                style={styles.bonusButton}
+                onPress={() => setBonusModalVisible(true)}
+                activeOpacity={0.7}
+              >
+                <LemonIcon />
+                <ThemedText
+                  lightColor="#1B1B1C"
+                  darkColor="#FBFCFF"
+                  style={styles.bonusValue}
+                >
+                  {formattedBonus}
+                </ThemedText>
+                <ArrowIconRight />
+              </TouchableOpacity>
               <ThemedView style={styles.profileInfo}>
                 <ThemedText style={styles.profileName}>{profileTitle}</ThemedText>
                 <ThemedText style={styles.profileEmail}>{profileSubtitle}</ThemedText>
@@ -855,6 +869,11 @@ export default function TabTwoScreen() {
         hasMore={hasMorePushes}
         onLoadMore={handleLoadMorePushes}
       />
+
+      <BonusPage
+        visible={bonusModalVisible && showProfileContent}
+        onClose={() => setBonusModalVisible(false)}
+      />
     </>
   );
 }
@@ -988,8 +1007,21 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
   },
+  bonusButton: {
+    position: "absolute",
+    top: 10,
+    right: 16,
+    zIndex: 2,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  bonusValue: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
   profileName: {
-    fontSize: 18,
+    fontSize: 22,
     fontWeight: "600",
     marginBottom: 4,
     fontFamily: Fonts.rounded,
@@ -1090,13 +1122,5 @@ const styles = StyleSheet.create({
   profileImagePlaceholder: {
     width: "100%",
     height: "100%",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  profileImagePlaceholderText: {
-    fontSize: 32,
-    lineHeight: 40,
-    color: "#FFFFFF",
-    textAlign: "center",
   },
 });

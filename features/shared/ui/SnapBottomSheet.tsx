@@ -20,6 +20,10 @@ type SnapBottomSheetProps = {
   onBackdropPress?: () => void;
   /** Второй sheet поверх (на весь экран Modal, не внутри контента) */
   overlay?: React.ReactNode;
+  /** Подгонять высоту под контент без minHeight */
+  fitContent?: boolean;
+  /** Доп. отступ снизу внутри sheet (без safe area) */
+  contentBottomPadding?: number;
   children: React.ReactNode;
 };
 
@@ -33,6 +37,8 @@ export function SnapBottomSheet({
   onClose,
   onBackdropPress,
   overlay,
+  fitContent = false,
+  contentBottomPadding = 24,
   children,
 }: SnapBottomSheetProps) {
   const insets = useSafeAreaInsets();
@@ -104,10 +110,11 @@ export function SnapBottomSheet({
         <Animated.View
           style={[
             styles.sheet,
+            fitContent && styles.sheetFitContent,
             {
               backgroundColor,
               maxHeight: MAX_SHEET_HEIGHT,
-              paddingBottom: 24 + insets.bottom,
+              paddingBottom: contentBottomPadding + insets.bottom,
               transform: [{ translateY }],
             },
             isDarkMode && { borderColor: "#252527" },
@@ -156,6 +163,9 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
     paddingHorizontal: 16,
     minHeight: 200,
+  },
+  sheetFitContent: {
+    minHeight: undefined,
   },
   handleWrap: {
     alignItems: "center",

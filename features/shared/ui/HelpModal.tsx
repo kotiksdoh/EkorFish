@@ -395,13 +395,13 @@ export const HelpModal: React.FC<HelpProps> = ({ visible, onClose }) => {
     <ThemedView lightColor="#FFFFFF" darkColor="#151516" style={styles.aboutContainer}>
       <LogoIcon />
       <View style={styles.aboutInfo}>
-        <ThemedText darkColor="#FBFCFF">
+        <ThemedText style={styles.defText} darkColor="#FBFCFF">
           Версия: {versionInfo.version} (build {versionInfo.build})
         </ThemedText>
-        <ThemedText darkColor="#FBFCFF">
+        <ThemedText style={styles.defText} darkColor="#FBFCFF">
           Последнее обновление: {aboutInfo.lastUpdate}
         </ThemedText>
-        <ThemedText darkColor="#FBFCFF">
+        <ThemedText style={styles.defText} darkColor="#FBFCFF">
           Размер кэша: {aboutInfo.cacheSize}
         </ThemedText>
       </View>
@@ -466,33 +466,30 @@ export const HelpModal: React.FC<HelpProps> = ({ visible, onClose }) => {
       visible={supportModalState === 'visible'}
       title="Поддержка"
       titleAlign="left"
+      fitContent
+      contentBottomPadding={16}
       onClose={() => setSupportModalState('hidden')}
     >
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-        contentContainerStyle={[
-          styles.supportContent,
-          { paddingBottom: Math.max(insets.bottom, 16) },
-        ]}
-      >
-        <ThemedText>Выберите удобный способ связи</ThemedText>
+      <View style={styles.supportContent}>
+        <ThemedText style={styles.supportSubtitle}>
+          Выберите удобный способ связи
+        </ThemedText>
 
         <View style={styles.contactRow}>
           <TouchableOpacity style={styles.contactButton} onPress={handlePhonePress}>
-            <ThemedView lightColor="#203686" darkColor="#3881EE" style={[styles.contactIcon]}>
+            <ThemedView lightColor="#203686" darkColor="#3881EE" style={styles.contactIcon}>
               <SupportPhoneIcon fill="#FBFCFF" />
             </ThemedView>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.contactButton} onPress={handleTelegramPress}>
-            <ThemedView lightColor="#203686" darkColor="#3881EE" style={[styles.contactIcon]}>
+            <ThemedView lightColor="#203686" darkColor="#3881EE" style={styles.contactIcon}>
               <SupportTelegramIcon fill="#FBFCFF" />
             </ThemedView>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.contactButton} onPress={handleEmailPress}>
-            <ThemedView lightColor="#203686" darkColor="#3881EE" style={[styles.contactIcon]}>
+            <ThemedView lightColor="#203686" darkColor="#3881EE" style={styles.contactIcon}>
               <SupportEmailIcon fill="#FBFCFF" />
             </ThemedView>
           </TouchableOpacity>
@@ -502,16 +499,18 @@ export const HelpModal: React.FC<HelpProps> = ({ visible, onClose }) => {
           <PrimaryButton
             title="Закрыть"
             variant="third"
+            size="sm"
             onPress={() => setSupportModalState('hidden')}
-            style={styles.supportActionButton}
+            style={styles.supportCloseButton}
           />
           <PrimaryButton
             title="Перейти в FAQ"
+            size="sm"
             onPress={handleFaqPress}
-            style={styles.supportActionButton}
+            style={styles.supportFaqButton}
           />
         </View>
-      </ScrollView>
+      </View>
     </SnapBottomSheet>
   );
 
@@ -645,6 +644,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
   },
+  defText:{
+    fontSize: 16,
+    fontWeight: '500'
+  },
   aboutLinks: {
     alignItems: "center",
     gap: 28,
@@ -667,17 +670,20 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   supportContent: {
-    gap: 24,
+    gap: 20,
+  },
+  supportSubtitle: {
+    fontSize: 16,
+    fontWeight: "500",
   },
   contactRow: {
     flexDirection: "row",
     gap: 8,
     justifyContent: "center",
+    alignItems: "center",
   },
   contactButton: {
     alignItems: "center",
-    gap: 8,
-    flex: 1,
   },
   contactIcon: {
     borderRadius: 12,
@@ -692,9 +698,14 @@ const styles = StyleSheet.create({
   },
   supportActionsRow: {
     flexDirection: "row",
-    gap: 12,
+    gap: 8,
   },
-  supportActionButton: {
-    flex: 1,
+  supportCloseButton: {
+    flex: 0.9,
+    paddingHorizontal: 12,
+  },
+  supportFaqButton: {
+    flex: 1.1,
+    paddingHorizontal: 10,
   },
 });

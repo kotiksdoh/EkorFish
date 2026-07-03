@@ -372,11 +372,7 @@ export const ProfileEditModal = ({
                           start={{ x: 0, y: 0 }}
                           end={{ x: 1, y: 0 }}
                           style={styles.avatarPlaceholder}
-                        >
-                          <ThemedText style={styles.avatarPlaceholderText}>
-                            {name?.charAt(0) || ''}{surname?.charAt(0) || ''}
-                          </ThemedText>
-                        </LinearGradient>
+                        />
                       )}
                     </View>
                     {!isIndividualProfile && (
@@ -595,13 +591,6 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarPlaceholderText: {
-    fontSize: 32,
-    color: '#FFFFFF',
-    fontWeight: '600',
   },
   changePhotoText: {
     fontSize: 14,
