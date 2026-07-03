@@ -1694,6 +1694,7 @@ export const MyFinanceModal: React.FC<MyFinanceProps> = ({
               >
                 <ThemedText
                   type="caption"
+                  style={styles.defText}
                   lightColor={hasPaymentHistory ? "#203686" : "#80818B"}
                   darkColor={hasPaymentHistory ? "#4C94FF" : "#FBFCFF80"}
                 >
@@ -1884,6 +1885,10 @@ const styles = StyleSheet.create({
     shadowRadius: 3.84,
     elevation: 5,
   },
+  defText:{
+    fontWeight: "500",
+    fontSize: 14
+  },
   swipeHandleContainer: {
     alignItems: "center",
     paddingTop: 12,
@@ -2064,6 +2069,7 @@ const styles = StyleSheet.create({
   filterButtonText: {
     marginLeft: 8,
     fontFamily: "Montserrat",
+    fontWeight: "500",
     fontSize: 14,
   },
   filterBadge: {

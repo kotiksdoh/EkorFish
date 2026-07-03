@@ -19,6 +19,8 @@ interface SimilarProductsProps {
   handleAddToCartPress: (product: any) => void;
   returnTo?: "home" | "heart" | "catalog" | "shop";
   variant?: "similar" | "segmentPopular";
+  scrollEnabled?: boolean;
+  onBeforeNavigate?: () => void;
 }
 
 function SimilarProductsComponent({
@@ -26,6 +28,8 @@ function SimilarProductsComponent({
   handleAddToCartPress,
   returnTo = "catalog",
   variant = "similar",
+  scrollEnabled = true,
+  onBeforeNavigate,
 }: SimilarProductsProps) {
   const similarProducts = useAppSelector((state) =>
     variant === "segmentPopular"
@@ -71,6 +75,8 @@ function SimilarProductsComponent({
           showsHorizontalScrollIndicator={false}
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
+          scrollEnabled={scrollEnabled}
+          nestedScrollEnabled
         >
           {similarProducts.map((item, index) => (
             <View
@@ -89,6 +95,7 @@ function SimilarProductsComponent({
                 fullWidth
                 returnTo={returnTo}
                 onAddToCartPress={handleAddToCartPress}
+                onBeforeNavigate={onBeforeNavigate}
               />
             </View>
           ))}

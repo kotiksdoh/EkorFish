@@ -200,21 +200,24 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
 
   useEffect(() => {
     if (!visible) {
+      closeOrderConfirmRef.current = null;
       setDetailId(null);
       setDetailEditing(false);
       setCreateOpen(false);
+      setIsClosingCreate(false);
       setOrderConfirmOpen(false);
       setOrderConfirmTemplate(null);
       setReminderPickerFor(null);
       setCompanyModalVisible(false);
       setCompanyModalFor(null);
       setRegisterModalVisible(false);
+      clearResumeDetail();
       return;
     }
 
     dispatch(fetchOrderPresets(listOwnerFilter));
     dispatch(fetchOrderPresetPageData());
-  }, [visible, listOwnerFilter, dispatch]);
+  }, [visible, listOwnerFilter, dispatch, clearResumeDetail]);
 
   useEffect(() => {
     if (visible && resumeDetailTemplateId) {
@@ -288,11 +291,30 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
     setSelectedItemIds(new Set());
   };
 
-  const handleCloseAll = () => {
-    if (dismissOrderConfirmIfOpen()) return;
+  const resetTemplatesUiState = useCallback(() => {
+    closeOrderConfirmRef.current = null;
+    setOrderConfirmOpen(false);
+    setOrderConfirmTemplate(null);
     setDetailId(null);
     setCreateOpen(false);
+    setIsClosingCreate(false);
     setDetailEditing(false);
+    setReminderPickerFor(null);
+    setCompanyModalVisible(false);
+    setCompanyModalFor(null);
+    setRegisterModalVisible(false);
+    clearResumeDetail();
+  }, [clearResumeDetail]);
+
+  const handleCloseAll = () => {
+    if (dismissOrderConfirmIfOpen()) return;
+    resetTemplatesUiState();
+    onClose();
+  };
+
+  /** Синхронное закрытие при переходе к оформлению — без анимации order-confirm. */
+  const handleForceCloseAll = () => {
+    resetTemplatesUiState();
     onClose();
   };
 
@@ -621,7 +643,7 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
       visible={orderConfirmOpen}
       template={orderConfirmTemplate}
       onClose={closeOrderConfirm}
-      onCloseTemplates={handleCloseAll}
+      onCloseTemplates={handleForceCloseAll}
       onBindCloseRequest={(fn) => {
         closeOrderConfirmRef.current = fn;
       }}
@@ -1165,6 +1187,10 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
 
     </AppModal>
   );
+
+  if (!visible) {
+    return null;
+  }
 
   return (
     <>

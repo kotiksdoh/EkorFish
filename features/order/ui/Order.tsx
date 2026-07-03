@@ -297,7 +297,19 @@ export default function CheckoutModal({
       dispatch(loadCompanyFromStorage());
       setShowAddAddressModal(false);
       setShowNeedAddressSheet(false);
+      return;
     }
+
+    setShowCalendarModal(false);
+    setShowAddressModal(false);
+    setShowChangePickupModal(false);
+    setShowAddToCartModal(false);
+    setShowCompanyModal(false);
+    setShowOrderDetailsModal(false);
+    setShowNeedAddressSheet(false);
+    setShowAddAddressModal(false);
+    setShowSuccessContent(false);
+    setPendingPickupAddress(null);
   }, [visible, dispatch]);
 
   // Загружаем получателей при выборе адреса

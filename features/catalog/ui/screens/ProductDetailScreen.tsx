@@ -33,6 +33,7 @@ import {
   Animated,
   BackHandler,
   Dimensions,
+  InteractionManager,
   LayoutAnimation,
   LayoutChangeEvent,
   NativeSyntheticEvent,
@@ -55,6 +56,7 @@ if (
 }
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
+const IOS_LEAVE_SCROLL_SETTLE_MS = 64;
 
 export function ProductDetailScreen() {
   const colorScheme = useColorScheme();
@@ -87,6 +89,9 @@ export function ProductDetailScreen() {
   const isLeavingRef = useRef(false);
   const lastSavedRecentlyViewedIdRef = useRef<string | null>(null);
   const [isGalleryActive, setIsGalleryActive] = useState(true);
+  const [isScrollFrozen, setIsScrollFrozen] = useState(false);
+  const leaveNavigationTaskRef = useRef<ReturnType<typeof InteractionManager.runAfterInteractions> | null>(null);
+  const leaveNavigationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const router = useRouter();
   const navigation = useNavigation();
@@ -127,6 +132,7 @@ export function ProductDetailScreen() {
 
       isLeavingRef.current = false;
       setIsGalleryActive(true);
+      setIsScrollFrozen(false);
 
       if (productId) {
         setIsExpanded(false);
@@ -153,6 +159,14 @@ export function ProductDetailScreen() {
       return () => {
         isLeavingRef.current = true;
         setIsGalleryActive(false);
+        setIsScrollFrozen(true);
+        scrollViewRef.current?.setNativeProps?.({ scrollEnabled: false });
+        leaveNavigationTaskRef.current?.cancel?.();
+        leaveNavigationTaskRef.current = null;
+        if (leaveNavigationTimerRef.current) {
+          clearTimeout(leaveNavigationTimerRef.current);
+          leaveNavigationTimerRef.current = null;
+        }
         dispatch(clearSimilarProducts());
         dispatch(setProductNavigationPending(false));
       };
@@ -393,29 +407,60 @@ export function ProductDetailScreen() {
     router.replace("/");
   }, [router, segments]);
 
+  const freezeScrollViews = useCallback(() => {
+    scrollViewRef.current?.setNativeProps?.({ scrollEnabled: false });
+  }, []);
+
+  const isMainScrollEnabled =
+    !isScrollFrozen && isGalleryActive && isScreenFocused;
+
+  const handleSimilarProductNavigate = useCallback(() => {
+    setIsScrollFrozen(true);
+    freezeScrollViews();
+  }, [freezeScrollViews]);
+
   const prepareToLeaveScreen = useCallback(() => {
     if (isLeavingRef.current) {
       return false;
     }
 
     isLeavingRef.current = true;
+    setIsScrollFrozen(true);
     setIsGalleryActive(false);
     tabAnim.stopAnimation();
-    scrollViewRef.current?.scrollTo({ x: 0, y: 0, animated: false });
+    freezeScrollViews();
     return true;
-  }, [tabAnim]);
+  }, [freezeScrollViews, tabAnim]);
+
+  const runNavigateAfterScrollStop = useCallback(
+    (navigate: () => void) => {
+      leaveNavigationTaskRef.current?.cancel?.();
+      if (leaveNavigationTimerRef.current) {
+        clearTimeout(leaveNavigationTimerRef.current);
+        leaveNavigationTimerRef.current = null;
+      }
+
+      leaveNavigationTaskRef.current = InteractionManager.runAfterInteractions(
+        () => {
+          const delay =
+            Platform.OS === "ios" ? IOS_LEAVE_SCROLL_SETTLE_MS : 0;
+          leaveNavigationTimerRef.current = setTimeout(() => {
+            leaveNavigationTimerRef.current = null;
+            navigate();
+          }, delay);
+        },
+      );
+    },
+    [],
+  );
 
   const handleBack = useCallback(() => {
     if (!prepareToLeaveScreen()) {
       return;
     }
 
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        navigateBack();
-      });
-    });
-  }, [navigateBack, prepareToLeaveScreen]);
+    runNavigateAfterScrollStop(navigateBack);
+  }, [navigateBack, prepareToLeaveScreen, runNavigateAfterScrollStop]);
 
   useEffect(() => {
     const unsubscribe = navigation.addListener("beforeRemove", (event) => {
@@ -428,15 +473,22 @@ export function ProductDetailScreen() {
         return;
       }
 
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          navigation.dispatch(event.data.action);
-        });
+      runNavigateAfterScrollStop(() => {
+        navigation.dispatch(event.data.action);
       });
     });
 
     return unsubscribe;
-  }, [navigation, prepareToLeaveScreen]);
+  }, [navigation, prepareToLeaveScreen, runNavigateAfterScrollStop]);
+
+  useEffect(() => {
+    return () => {
+      leaveNavigationTaskRef.current?.cancel?.();
+      if (leaveNavigationTimerRef.current) {
+        clearTimeout(leaveNavigationTimerRef.current);
+      }
+    };
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -573,8 +625,8 @@ export function ProductDetailScreen() {
             style={styles.container}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.scrollContent}
-            nestedScrollEnabled={Platform.OS === "android"}
-            scrollEnabled={isGalleryActive && isScreenFocused}
+            nestedScrollEnabled
+            scrollEnabled={isMainScrollEnabled}
           >
             <ThemedView
               style={styles.themeContainer}
@@ -921,6 +973,8 @@ export function ProductDetailScreen() {
               title="Похожие товары"
               handleAddToCartPress={handleAddToCartPress}
               returnTo={productReturnTo}
+              scrollEnabled={isMainScrollEnabled}
+              onBeforeNavigate={handleSimilarProductNavigate}
             />
           </ScrollView>
 

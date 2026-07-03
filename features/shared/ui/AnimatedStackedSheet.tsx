@@ -117,15 +117,17 @@ export function AnimatedStackedSheet({
   if (!mounted && !visible) return null;
 
   const sheetBottomPadding = 16 + insets.bottom;
+  const isInteractive = visible && mounted;
 
   return (
     <View
-      style={[styles.root, showBackdrop && styles.rootDimmed]}
-      pointerEvents="box-none"
+      style={[styles.root, showBackdrop && isInteractive && styles.rootDimmed]}
+      pointerEvents={isInteractive ? "box-none" : "none"}
     >
       <TouchableOpacity
         style={StyleSheet.absoluteFill}
         activeOpacity={1}
+        disabled={!isInteractive}
         onPress={closeWithAnimation}
       />
       <Animated.View

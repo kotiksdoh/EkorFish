@@ -101,7 +101,6 @@ export function OrderFromTemplateConfirmContent({
             const ok = await doFillCart();
             if (!ok) return;
             onCloseTemplates?.();
-            onClose();
             router.navigate("/shop");
           }}
           variant="third"
