@@ -1,10 +1,18 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { axiosErrorHandler } from "@/features/shared/services/api";
 import { axdef } from "@/features/shared/services/axios";
+import type { PresetOwnerPayload } from "@/features/shared/utils/presetOwnerPayload";
 
 export interface OrderPresetListItem {
   id: string;
   name: string;
+  description?: string;
+  reminderFrequency?: number;
+  companyId?: string | null;
+  individualProfileId?: string | null;
+  companyName?: string | null;
+  userLoginId?: string | null;
+  isPrivateToLogin?: boolean;
   totalProductsPrice: number;
   productsCount: number;
   createdAt: string;
@@ -39,13 +47,24 @@ type CreateOrderPresetPayload = {
   name: string;
   description: string;
   reminderFrequency: number;
-};
+  isPrivateToLogin?: boolean;
+} & PresetOwnerPayload;
 
 export const fetchOrderPresets = createAsyncThunk(
   "orderPresets/fetchList",
-  async (_, { rejectWithValue }) => {
+  async (filter: PresetOwnerPayload | void, { rejectWithValue, getState }) => {
     try {
-      const response = await axdef.get("/api/OrderPreset");
+      const state = getState() as { orderPresets: OrderPresetsState };
+      const ownerFilter = filter ?? state.orderPresets.listOwnerFilter ?? {};
+      const params: Record<string, string> = {};
+
+      if (ownerFilter.companyId) {
+        params.companyId = ownerFilter.companyId;
+      } else if (ownerFilter.individualProfileId) {
+        params.individualProfileId = ownerFilter.individualProfileId;
+      }
+
+      const response = await axdef.get("/api/OrderPreset", { params });
       return (response.data.data || []) as OrderPresetListItem[];
     } catch (error: any) {
       if (error.response?.status !== 401) return rejectWithValue(error);
@@ -89,8 +108,21 @@ export const createOrderPreset = createAsyncThunk(
         description: payload.description,
         reminderFrequency: payload.reminderFrequency,
       };
+
+      if (payload.companyId) {
+        body.companyId = payload.companyId;
+      }
+      if (payload.individualProfileId) {
+        body.individualProfileId = payload.individualProfileId;
+      }
+      if (
+        payload.companyId &&
+        typeof payload.isPrivateToLogin === "boolean"
+      ) {
+        body.isPrivateToLogin = payload.isPrivateToLogin;
+      }
+
       const response = await axdef.post("/api/OrderPreset", body);
-      // После создания обычно хочется обновить список
       await dispatch(fetchOrderPresets());
       return response.data.data as { id: string } | OrderPresetListItem;
     } catch (error: any) {
@@ -108,15 +140,26 @@ export const updateOrderPreset = createAsyncThunk(
       name: string;
       description: string;
       reminderFrequency: number;
+      companyId?: string;
+      isPrivateToLogin?: boolean;
     },
     { rejectWithValue, dispatch },
   ) => {
     try {
-      const response = await axdef.put(`/api/OrderPreset/${payload.presetId}`, {
+      const body: Record<string, unknown> = {
         name: payload.name,
         description: payload.description,
         reminderFrequency: payload.reminderFrequency,
-      });
+      };
+
+      if (payload.companyId) {
+        body.companyId = payload.companyId;
+      }
+      if (typeof payload.isPrivateToLogin === "boolean") {
+        body.isPrivateToLogin = payload.isPrivateToLogin;
+      }
+
+      const response = await axdef.put(`/api/OrderPreset/${payload.presetId}`, body);
       await dispatch(fetchOrderPresets());
       await dispatch(fetchOrderPresetDetails(payload.presetId));
       return response.data.data as {
@@ -234,6 +277,7 @@ export const deleteOrderPresetItemsBulk = createAsyncThunk(
 
 interface OrderPresetsState {
   list: OrderPresetListItem[];
+  listOwnerFilter: PresetOwnerPayload;
   isLoadingList: boolean;
   isCreating: boolean;
   isUpdating: boolean;
@@ -248,6 +292,7 @@ interface OrderPresetsState {
 
 const initialState: OrderPresetsState = {
   list: [],
+  listOwnerFilter: {},
   isLoadingList: false,
   isCreating: false,
   isUpdating: false,
@@ -280,8 +325,11 @@ const orderPresetsSlice = createSlice({
     },
   },
   extraReducers: (builder) => {
-    builder.addCase(fetchOrderPresets.pending, (state) => {
+    builder.addCase(fetchOrderPresets.pending, (state, action) => {
       state.isLoadingList = true;
+      if (action.meta.arg) {
+        state.listOwnerFilter = action.meta.arg;
+      }
     });
     builder.addCase(fetchOrderPresets.fulfilled, (state, action) => {
       state.list = action.payload || [];

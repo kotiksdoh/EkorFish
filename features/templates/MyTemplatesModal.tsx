@@ -2,6 +2,7 @@ import {
   ArrowIconRight,
   CalendarFilledIcon,
   CartIcon,
+  IconCompanyNew,
   PencilIcon,
   TemplateCatalogIcon,
   TemplateFindProductsIcon,
@@ -9,8 +10,11 @@ import {
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { ModalHeader } from "@/features/auth/ui/Header";
+import { setCompany } from "@/features/auth/authSlice";
 import { useKeyboardAwareScroll } from "@/features/shared/hooks/useKeyboardAwareScroll";
 import { AppModal } from "@/features/shared/ui/AppModal";
+import { CompanySelectModal } from "@/features/shared/ui/CompanySelectModal";
+import { CompanySelectionModal } from "@/features/shared/ui/CompanySelectionModalSmall";
 import { CustomCheckbox } from "@/features/shared/ui/components/CustomCheckBox";
 import AnimatedTextInput from "@/features/shared/ui/components/CustomInput";
 import { PrimaryButton } from "@/features/shared/ui/components/PrimartyButton";
@@ -25,8 +29,15 @@ import {
   updateOrderPresetItemQuantity
 } from "@/features/templates/orderPresetsSlice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { isIndividualCompany } from "@/features/shared/utils/companyType";
+import {
+  buildPresetOwnerPayload,
+  getPresetCompanyDisplayName,
+  isPresetPrivateToLogin,
+  resolveCompanyFromPreset,
+} from "@/features/shared/utils/presetOwnerPayload";
 import { Image } from "expo-image";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Animated, Dimensions, FlatList, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, View, useColorScheme } from 'react-native';
 
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -98,8 +109,15 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
   const insets = useSafeAreaInsets();
   const systemTheme = useColorScheme();
   const isDark = (systemTheme || "light") === "dark";
+  const me = useAppSelector((s) => s.auth.me);
+  const companies = me?.companies || [];
   const currentCompany = useAppSelector((s) => s.auth.currentCompany);
+  const isIndividual = isIndividualCompany(currentCompany);
   const dispatch = useAppDispatch();
+  const listOwnerFilter = useMemo(
+    () => buildPresetOwnerPayload(currentCompany, me),
+    [currentCompany, me],
+  );
 
   const templates = useAppSelector((s) => s.orderPresets.list);
   const pageData = useAppSelector((s) => s.orderPresets.pageData);
@@ -154,6 +172,15 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
   const [cName, setCName] = useState("");
   const [cDesc, setCDesc] = useState("");
   const [cReminder, setCReminder] = useState<number | null>(null);
+  const [cSelectedCompany, setCSelectedCompany] = useState<any>(null);
+  const [cIsPrivateToLogin, setCIsPrivateToLogin] = useState(true);
+  const [eSelectedCompany, setESelectedCompany] = useState<any>(null);
+  const [eIsPrivateToLogin, setEIsPrivateToLogin] = useState(true);
+  const [companyModalVisible, setCompanyModalVisible] = useState(false);
+  const [companyModalFor, setCompanyModalFor] = useState<"create" | "edit" | null>(
+    null,
+  );
+  const [registerModalVisible, setRegisterModalVisible] = useState(false);
   const {
     scrollRef: createScrollRef,
     keyboardHeight: createKeyboardHeight,
@@ -172,18 +199,22 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
   const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    if (visible) {
-      dispatch(fetchOrderPresets());
-      dispatch(fetchOrderPresetPageData());
-    } else {
+    if (!visible) {
       setDetailId(null);
       setDetailEditing(false);
       setCreateOpen(false);
       setOrderConfirmOpen(false);
       setOrderConfirmTemplate(null);
       setReminderPickerFor(null);
+      setCompanyModalVisible(false);
+      setCompanyModalFor(null);
+      setRegisterModalVisible(false);
+      return;
     }
-  }, [visible, dispatch]);
+
+    dispatch(fetchOrderPresets(listOwnerFilter));
+    dispatch(fetchOrderPresetPageData());
+  }, [visible, listOwnerFilter, dispatch]);
 
   useEffect(() => {
     if (visible && resumeDetailTemplateId) {
@@ -203,10 +234,42 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
   useEffect(() => {
     if (!detailPreset) return;
     setEName(detailPreset.name || "");
-    setEDesc((detailPreset as any)?.description || "");
-    setEReminder((detailPreset as any)?.reminderFrequency ?? 0);
+    setEDesc(detailPreset.description || "");
+    setEReminder(detailPreset.reminderFrequency ?? 0);
+    setESelectedCompany(
+      resolveCompanyFromPreset(detailPreset, companies, me, currentCompany),
+    );
+    setEIsPrivateToLogin(isPresetPrivateToLogin(detailPreset));
     setSelectedItemIds(new Set());
-  }, [detailPreset?.id]);
+  }, [
+    detailPreset?.id,
+    detailPreset?.companyId,
+    detailPreset?.individualProfileId,
+    companies,
+    me,
+  ]);
+
+  useEffect(() => {
+    if (!detailPreset) return;
+
+    const presetCompany = resolveCompanyFromPreset(
+      detailPreset,
+      companies,
+      me,
+      currentCompany,
+    );
+
+    if (presetCompany?.id && presetCompany.id !== currentCompany?.id) {
+      dispatch(setCompany(presetCompany));
+    }
+  }, [
+    detailPreset?.id,
+    detailPreset?.companyId,
+    detailPreset?.individualProfileId,
+    companies,
+    dispatch,
+    me,
+  ]);
 
   const toggleSelectItem = (itemId: string) => {
     setSelectedItemIds((prev) => {
@@ -237,7 +300,7 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
     if (dismissOrderConfirmIfOpen()) return;
     setDetailId(null);
     setDetailEditing(false);
-    dispatch(fetchOrderPresets());
+    dispatch(fetchOrderPresets(listOwnerFilter));
   };
 
   const openCreate = () => {
@@ -245,18 +308,59 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
     setCDesc("");
     const first = pageData?.reminderFrequencies?.[0]?.frequency;
     setCReminder(typeof first === "number" ? first : 0);
+    setCSelectedCompany(
+      isIndividual
+        ? currentCompany
+        : currentCompany?.type !== "individual"
+          ? currentCompany
+          : companies[0] || null,
+    );
+    setCIsPrivateToLogin(true);
     setCreateOpen(true);
+  };
+
+  const openCompanyPicker = (target: "create" | "edit") => {
+    if (isIndividual) return;
+    dismissKeyboard();
+    setCompanyModalFor(target);
+    setCompanyModalVisible(true);
+  };
+
+  const handleSelectCompany = (company: any) => {
+    if (companyModalFor === "create") {
+      setCSelectedCompany(company);
+    } else if (companyModalFor === "edit") {
+      setESelectedCompany(company);
+    }
+
+    if (company?.id && company.id !== currentCompany?.id) {
+      dispatch(setCompany(company));
+    }
+
+    setCompanyModalVisible(false);
+    setCompanyModalFor(null);
   };
 
   const submitCreate = async () => {
     const name = cName.trim() || "Без названия";
     const description = cDesc.trim();
     const reminderFrequency = cReminder ?? 0;
+    const ownerCompany = isIndividual ? currentCompany : cSelectedCompany;
+
+    if (!isIndividual && !ownerCompany?.id) {
+      return;
+    }
+
+    const ownerPayload = buildPresetOwnerPayload(ownerCompany, me);
     const res = await dispatch(
       createOrderPreset({
         name,
         description,
         reminderFrequency,
+        ...ownerPayload,
+        ...(ownerPayload.companyId
+          ? { isPrivateToLogin: cIsPrivateToLogin }
+          : {}),
       }),
     ).unwrap();
     const createdId = (res as any)?.id;
@@ -264,7 +368,7 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
     if (createdId) {
       setDetailId(String(createdId));
     } else {
-      dispatch(fetchOrderPresets());
+      dispatch(fetchOrderPresets(listOwnerFilter));
     }
   };
 
@@ -279,14 +383,25 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
 
   const handleSaveEdit = async () => {
     if (!detailId || !detailPreset) return;
-    await dispatch(
-      updateOrderPreset({
-        presetId: detailId,
-        name: (eName || "").trim() || "Без названия",
-        description: (eDesc || "").trim(),
-        reminderFrequency: eReminder ?? 0,
-      }),
-    );
+
+    const payload: {
+      presetId: string;
+      name: string;
+      description: string;
+      reminderFrequency: number;
+      isPrivateToLogin?: boolean;
+    } = {
+      presetId: detailId,
+      name: (eName || "").trim() || "Без названия",
+      description: (eDesc || "").trim(),
+      reminderFrequency: eReminder ?? 0,
+    };
+
+    if (!isIndividual) {
+      payload.isPrivateToLogin = eIsPrivateToLogin;
+    }
+
+    await dispatch(updateOrderPreset(payload));
     setDetailEditing(false);
   };
 
@@ -548,6 +663,110 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
       />
     ) : null;
 
+  const activePickerCompany =
+    companyModalFor === "create" ? cSelectedCompany : eSelectedCompany;
+
+  const renderCompanySelectRow = (
+    target: "create" | "edit",
+    selectedCompany: any,
+  ) => {
+    const isDisabled = isIndividual || target === "edit";
+
+    return (
+    <TouchableOpacity
+      style={[
+        styles.sheetSelectRow,
+        isDark && styles.sheetSelectRowDark,
+        isDisabled && styles.sheetSelectRowDisabled,
+      ]}
+      onPress={() => openCompanyPicker(target)}
+      disabled={isDisabled}
+      activeOpacity={isDisabled ? 1 : 0.7}
+    >
+      <View style={styles.sheetRowIcon}>
+        <IconCompanyNew
+          width={22}
+          height={22}
+          color={isDark ? "#FBFCFF" : "#80818B"}
+        />
+      </View>
+      <ThemedText
+        style={styles.sheetRowFieldLabel}
+        lightColor="#1B1B1C"
+        darkColor="#FBFCFF"
+      >
+        Компания
+      </ThemedText>
+      <View style={styles.sheetRowRight}>
+        <ThemedText
+          style={styles.rowValue}
+          numberOfLines={1}
+          lightColor="#80818B"
+          darkColor="#FBFCFF80"
+        >
+          {getPresetCompanyDisplayName(
+            isIndividual ? currentCompany : selectedCompany,
+            me,
+          )}
+        </ThemedText>
+        {!isDisabled ? <ArrowIconRight /> : null}
+      </View>
+    </TouchableOpacity>
+    );
+  };
+
+  const renderAvailabilitySection = (
+    value: boolean,
+    onChange: (next: boolean) => void,
+  ) => {
+    if (isIndividual) return null;
+
+    const renderOption = (
+      label: string,
+      isSelected: boolean,
+      onPress: () => void,
+    ) => (
+      <TouchableOpacity
+        style={styles.availabilityOption}
+        onPress={onPress}
+        activeOpacity={0.7}
+      >
+        <View
+          style={[
+            styles.radioOuter,
+            isSelected && styles.radioOuterSelected,
+            isDark && isSelected && styles.radioOuterSelectedDark,
+          ]}
+        >
+          {isSelected ? <View style={styles.radioInner} /> : null}
+        </View>
+        <ThemedText
+          lightColor="#1B1B1C"
+          darkColor="#FBFCFF"
+          style={styles.availabilityOptionText}
+        >
+          {label}
+        </ThemedText>
+      </TouchableOpacity>
+    );
+
+    return (
+      <View style={styles.availabilitySection}>
+        <ThemedText
+          style={styles.availabilityLabel}
+          lightColor="#80818B"
+          darkColor="#FBFCFF80"
+        >
+          Доступность
+        </ThemedText>
+        {renderOption("Только мне", value, () => onChange(true))}
+        {renderOption("Всем сотрудникам компании", !value, () =>
+          onChange(false),
+        )}
+      </View>
+    );
+  };
+
   const detailContent = (
     <AppModal
       visible={!!detailId}
@@ -627,24 +846,36 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
             >
               {detailPreset && !detailEditing ? (
               <>
-                {/* <View style={styles.metaRow}>
-                  <View style={styles.metaIcon}>
-                    <IconCompanyNew
-                      width={22}
-                      height={22}
-                      color={isDark ? "#FBFCFF" : "#80818B"}
-                    />
+                {!isIndividual ? (
+                  <View style={styles.metaRow}>
+                    <View style={styles.metaIcon}>
+                      <IconCompanyNew
+                        width={22}
+                        height={22}
+                        color={isDark ? "#FBFCFF" : "#80818B"}
+                      />
+                    </View>
+                    <ThemedText
+                      style={styles.metaText}
+                      lightColor="#1B1B1C"
+                      darkColor="#FBFCFF"
+                      numberOfLines={3}
+                    >
+                      {getPresetCompanyDisplayName(
+                        resolveCompanyFromPreset(
+                          detailPreset,
+                          companies,
+                          me,
+                          currentCompany,
+                        ),
+                        me,
+                      )}
+                    </ThemedText>
                   </View>
-                  <ThemedText
-                    style={styles.metaText}
-                    lightColor="#1B1B1C"
-                    darkColor="#FBFCFF"
-                    numberOfLines={3}
-                  >
-                    {currentCompany?.name?.trim() || "Компания не выбрана"}
-                  </ThemedText>
-                </View> */}
-                <View style={[styles.metaRow, styles.metaRowSecond]}>
+                ) : null}
+                <View
+                  style={[styles.metaRow, !isIndividual && styles.metaRowSecond]}
+                >
                   <View style={styles.metaIcon}>
                     <CalendarFilledIcon
                       width={22}
@@ -659,7 +890,7 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
                     darkColor="#FBFCFF"
                   >
                     {(pageData?.reminderFrequencies || []).find(
-                      (x: any) => x.frequency === (detailPreset as any)?.reminderFrequency,
+                      (x: any) => x.frequency === detailPreset?.reminderFrequency,
                     )?.name || "—"}
                   </ThemedText>
                 </View>
@@ -690,6 +921,10 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
                   style={styles.descInputWrap}
                   inputStyle={styles.descInput}
                 />
+                <View style={{ height: 12 }} />
+                {!isIndividual
+                  ? renderCompanySelectRow("edit", eSelectedCompany)
+                  : null}
                 <TouchableOpacity
                   style={[
                     styles.sheetSelectRow,
@@ -726,6 +961,7 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
                     <ArrowIconRight />
                   </View>
                 </TouchableOpacity>
+                {renderAvailabilitySection(eIsPrivateToLogin, setEIsPrivateToLogin)}
               </>
             ) : null}
 
@@ -1104,6 +1340,9 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
                   />
                     </View>
                   </TouchableWithoutFeedback>
+                  {!isIndividual
+                    ? renderCompanySelectRow("create", cSelectedCompany)
+                    : null}
                   <TouchableOpacity
                     style={[
                       styles.sheetSelectRow,
@@ -1149,6 +1388,10 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
                       <ArrowIconRight />
                     </View>
                   </TouchableOpacity>
+                  {renderAvailabilitySection(
+                    cIsPrivateToLogin,
+                    setCIsPrivateToLogin,
+                  )}
                 </ScrollView>
                 <View style={{ height: 16 }} />
                 <PrimaryButton
@@ -1156,7 +1399,9 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
                   onPress={submitCreate}
                   variant="primary"
                   fullWidth
-                  disabled={isCreating}
+                  disabled={
+                    isCreating || (!isIndividual && !cSelectedCompany?.id)
+                  }
                 />
                 </KeyboardAvoidingView>
                   </Animated.View>
@@ -1171,6 +1416,33 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
 
       {detailContent}
 
+      <CompanySelectionModal
+        visible={companyModalVisible}
+        onClose={() => {
+          setCompanyModalVisible(false);
+          setCompanyModalFor(null);
+        }}
+        companies={companies}
+        selectedCompanyId={activePickerCompany?.id}
+        onSelectCompany={handleSelectCompany}
+        onAddCompany={() => {
+          setCompanyModalVisible(false);
+          setRegisterModalVisible(true);
+        }}
+      />
+
+      <CompanySelectModal
+        visible={registerModalVisible}
+        onClose={() => setRegisterModalVisible(false)}
+        companies={companies}
+        selectedCompanyId={activePickerCompany?.id}
+        onSelectCompany={(company) => {
+          handleSelectCompany(company);
+          setRegisterModalVisible(false);
+        }}
+        screenScene="register"
+        onAddCompany={() => {}}
+      />
     </>
   );
 }
@@ -1194,15 +1466,15 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(0, 0, 0, 0.5)",
   },
-  /** Высота sheet «Создание шаблона» — 60% экрана */
+  /** Высота sheet «Создание шаблона» — 75% экрана */
   createOverlaySheet: {
     backgroundColor: "#FFFFFF",
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingHorizontal: 16,
     paddingTop: 8,
-    height: screenHeight * 0.6,
-    maxHeight: screenHeight * 0.6,
+    height: screenHeight * 0.75,
+    maxHeight: screenHeight * 0.75,
     overflow: "hidden",
   },
   createOverlayScroll: {
@@ -1458,6 +1730,51 @@ const styles = StyleSheet.create({
   },
   sheetSelectRowDark: {
     borderColor: "#252527",
+  },
+  sheetSelectRowDisabled: {
+    opacity: 0.55,
+  },
+  availabilitySection: {
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  availabilityLabel: {
+    fontSize: 13,
+    fontWeight: "500",
+    marginBottom: 4,
+  },
+  availabilityOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 12,
+  },
+  availabilityOptionText: {
+    fontSize: 16,
+    fontWeight: "500",
+    flex: 1,
+  },
+  radioOuter: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: "#D8DADE",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  radioOuterSelected: {
+    borderColor: "#203686",
+    borderWidth: 5,
+  },
+  radioOuterSelectedDark: {
+    borderColor: "#4C94FF",
+  },
+  radioInner: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: "#FFFFFF",
   },
   sheetRowIcon: {
     width: 36,

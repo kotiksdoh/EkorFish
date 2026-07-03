@@ -383,11 +383,15 @@ export default function TabTwoScreen() {
       if (resumeDetailTemplateId && hasAuthToken && authChecked) {
         setTemplatesModalVisible(true);
       }
+    }, [resumeDetailTemplateId, hasAuthToken, authChecked]),
+  );
 
+  useFocusEffect(
+    useCallback(() => {
       return () => {
         setTemplatesModalVisible(false);
       };
-    }, [resumeDetailTemplateId, hasAuthToken, authChecked]),
+    }, []),
   );
 
   useFocusEffect(

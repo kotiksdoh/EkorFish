@@ -29,6 +29,8 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderBottomWidth: 1,
     borderColor: "#F0F3F7",
+    marginTop: 8,
+    borderRadius: 10
   },
   text: { flex: 1, fontSize: 13, fontWeight: "500" },
   btn: {
