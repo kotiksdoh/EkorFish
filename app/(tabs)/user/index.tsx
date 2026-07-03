@@ -957,7 +957,6 @@ export default function TabTwoScreen() {
         onClose={() => setEditModalVisible(false)}
         onSave={handleSaveProfile}
         initialData={profileData}
-        handleLogout={handleLogout}
       />
 
       <MyOrdersModal

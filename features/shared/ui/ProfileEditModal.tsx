@@ -2,12 +2,20 @@ import { ArrowIconRight } from "@/assets/icons/icons";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Fonts } from "@/constants/theme";
+import {
+  getCategoryItems,
+  getSliderItems,
+} from "@/features/auth/authSlice";
+import { clearAuthSession } from "@/features/auth/services/clearAuthSession";
+import { axdef } from "@/features/shared/services/axios";
 import { AppModal } from "@/features/shared/ui/AppModal";
 import { PrimaryButton } from "@/features/shared/ui/components/PrimartyButton";
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as ImagePicker from 'expo-image-picker';
+import { useAppDispatch } from "@/store/hooks";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as ImagePicker from "expo-image-picker";
 import { LinearGradient } from "expo-linear-gradient";
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useRouter } from "expo-router";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
   Dimensions,
@@ -40,7 +48,6 @@ interface ProfileEditModalProps {
     avatar: string | null;
     coverColor: string;
   };
-  handleLogout: () => void;
 }
 
 // Цвета для светлой темы
@@ -144,11 +151,12 @@ export const ProfileEditModal = ({
   onClose,
   onSave,
   initialData,
-  handleLogout,
 }: ProfileEditModalProps) => {
   const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === "dark";
+  const dispatch = useAppDispatch();
+  const router = useRouter();
   
   // Выбираем цвета в зависимости от темы
   const colors = isDarkMode ? DARK_COLORS : LIGHT_COLORS;
@@ -183,6 +191,30 @@ export const ProfileEditModal = ({
   const loginDisplayValue = isPhoneLogin
     ? formatPhoneProfile(loginRaw)
     : loginRaw;
+
+  const handleLogout = useCallback(async () => {
+    onClose();
+
+    try {
+      try {
+        const deviceId = await AsyncStorage.getItem("device_id");
+        await axdef.post("/api/Account/logout", {
+          deviceId: deviceId || "",
+        });
+      } catch (logoutError) {
+        console.error("Ошибка при вызове logout API:", logoutError);
+      }
+
+      await clearAuthSession();
+      await Promise.all([
+        dispatch(getCategoryItems("")).unwrap(),
+        dispatch(getSliderItems("")).unwrap(),
+      ]);
+      router.replace("/");
+    } catch (error) {
+      console.error("Ошибка при выходе:", error);
+    }
+  }, [dispatch, onClose, router]);
 
   // Анимация появления основной модалки
   useEffect(() => {
@@ -439,9 +471,7 @@ export const ProfileEditModal = ({
                     <ThemedView lightColor="#FFFFFF" darkColor='#151516' style={styles.BottomCard}>
                       <PrimaryButton
                         title="Выйти"
-                        onPress={() => {
-                          handleLogout();
-                        }}
+                        onPress={handleLogout}
                         variant="third"
                         size="md"
                         loading={false}

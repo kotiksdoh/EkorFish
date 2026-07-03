@@ -7,7 +7,7 @@ import { ModalHeader } from "@/features/auth/ui/Header";
 import { baseUrl } from "@/features/shared/services/axios";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, Image, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { AppModal } from "@/features/shared/ui/AppModal";
 
@@ -90,6 +90,22 @@ export const CompanySelectModal: React.FC<CompanySelectModalProps> = ({
   const [isLoadingCompanies, setIsLoadingCompanies] = useState(false);
   const dispatch = useAppDispatch();
 
+  const resetCompanyForm = useCallback(() => {
+    setOrgName("");
+    setInn("");
+    setKpp("");
+    setLegalAddress("");
+    setContactPerson("");
+    setDateCreated("");
+  }, []);
+
+  useEffect(() => {
+    if (!visible) {
+      resetCompanyForm();
+      setCurrentScreen(screenScene);
+    }
+  }, [visible, screenScene, resetCompanyForm]);
+
   useEffect(() => {
     if (!visible || currentScreen !== CompanyScenario.DEFAULT) {
       return;
@@ -115,7 +131,8 @@ export const CompanySelectModal: React.FC<CompanySelectModalProps> = ({
       if (compliteCompany.fulfilled.match(res)) {
         dispatch(getMyInfo("")).then((res) => {
           if (getMyInfo.fulfilled.match(res)) {
-            dispatch(getMyParams(""))
+            dispatch(getMyParams(""));
+            resetCompanyForm();
             setCurrentScreen(CompanyScenario.DEFAULT);
           }
         });
@@ -361,10 +378,8 @@ export const CompanySelectModal: React.FC<CompanySelectModalProps> = ({
             <PrimaryButton
               title="+ Добавить аккаунт"
               onPress={() => {
-                //   onAddCompany();
+                resetCompanyForm();
                 setCurrentScreen(CompanyScenario.REG);
-
-                //   onClose();
               }}
               variant="primary"
               size="md"
