@@ -1,4 +1,5 @@
 import { clearAuthSession } from "@/features/auth/services/clearAuthSession";
+import { showSessionExpiredToast } from "@/features/shared/services/sessionExpiredToast";
 import {
   getPendingAccessToken,
   getPendingRefreshToken,
@@ -145,6 +146,7 @@ axdef.interceptors.response.use(
         );
         if (!refreshToken) {
           console.log("[AXIOS][401] refresh aborted: missing token_refresh, clearing session");
+          showSessionExpiredToast();
           await clearAuthSession();
           return Promise.reject(error);
         }
@@ -162,6 +164,7 @@ axdef.interceptors.response.use(
         );
         if (!nextTokens.accessToken || !nextTokens.refreshToken) {
           console.log("[AXIOS][401] refresh aborted: cannot parse tokens, clearing session");
+          showSessionExpiredToast();
           await clearAuthSession();
           return Promise.reject(error);
         }
@@ -175,6 +178,7 @@ axdef.interceptors.response.use(
         return axdef(originalRequest);
       } catch (err) {
         console.log("[AXIOS][401] refresh failed, clearing session", err);
+        showSessionExpiredToast();
         await clearAuthSession();
         return Promise.reject(err);
       }
@@ -185,6 +189,7 @@ axdef.interceptors.response.use(
       isRefreshTokenRequest(originalRequest)
     ) {
       console.log("[AXIOS][401] refresh-token rejected, clearing session");
+      showSessionExpiredToast();
       await clearAuthSession();
       return Promise.reject(error);
     }

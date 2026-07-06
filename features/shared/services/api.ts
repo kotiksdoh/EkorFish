@@ -1,6 +1,10 @@
 // import { openNotification } from "../helpers/notifications";
 import { showAppToast } from "./appToast";
 import {
+  SESSION_EXPIRED_MESSAGE,
+  showSessionExpiredToast,
+} from "./sessionExpiredToast";
+import {
   ax,
 } from "./axios";
 
@@ -22,7 +26,27 @@ function collectStringMessages(value: unknown): string[] {
 }
 
 const NETWORK_ERROR_MESSAGE = "Нет подключения к серверу";
-const SESSION_EXPIRED_MESSAGE = "Ваша сессия истекла, авторизуйтесь";
+
+export { SESSION_EXPIRED_MESSAGE, showSessionExpiredToast } from "./sessionExpiredToast";
+
+function extractHttpStatus(err: any): number | undefined {
+  const direct =
+    err?.response?.status ?? err?.status ?? err?.response?.data?.statusCode;
+
+  if (typeof direct === "number" && !Number.isNaN(direct)) {
+    return direct;
+  }
+
+  const message = String(err?.message ?? "");
+  const statusMatch = message.match(/status code (\d{3})/i);
+  if (statusMatch) {
+    return Number(statusMatch[1]);
+  }
+
+  return undefined;
+}
+
+const isUnauthorizedError = (err: any): boolean => extractHttpStatus(err) === 401;
 
 export const isAxiosNetworkError = (err: any): boolean => {
   if (!err || err.response) {
@@ -53,7 +77,7 @@ export const getAxiosErrorMessage = (
   err: any,
   fallback = "Неизвестная ошибка",
 ): string => {
-  if (err?.response?.status === 401) {
+  if (isUnauthorizedError(err)) {
     return SESSION_EXPIRED_MESSAGE;
   }
 
@@ -114,8 +138,21 @@ export const getAxiosErrorMessage = (
   
   export const axiosErrorHandler = (err: any) => {
     try {
-      console.error('Axios error:', err);
+      if (!err) return;
+
+      console.error("Axios error:", err);
+
+      if (isUnauthorizedError(err)) {
+        showSessionExpiredToast();
+        return;
+      }
+
       const errorMessage = getAxiosErrorMessage(err);
+      if (errorMessage === SESSION_EXPIRED_MESSAGE) {
+        showSessionExpiredToast();
+        return;
+      }
+
       showAppToast({
         type: "error",
         text1: errorMessage,

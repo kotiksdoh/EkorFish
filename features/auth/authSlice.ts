@@ -729,7 +729,15 @@ const authSlice = createSlice({
   initialState,
   reducers: {
     clearAuthState: (state) => {
-      return initialState;
+      const preserved = {
+        categories: state.categories,
+        sliders: state.sliders,
+        searchHints: state.searchHints,
+        searchHintsLower: state.searchHintsLower,
+        bootstrapStatus: state.bootstrapStatus,
+        towns: state.towns,
+      };
+      return { ...initialState, ...preserved };
     },
     setAuthError: (state, action: PayloadAction<string | null>) => {
       state.error = action.payload;
