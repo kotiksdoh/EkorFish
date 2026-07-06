@@ -234,7 +234,7 @@ const styles = StyleSheet.create({
   },
   inputAndroid: {
     paddingTop: Platform.OS === 'android' ? 25 : 25,
-    paddingBottom: Platform.OS === 'android' ? 10 : 10,
+    paddingBottom: Platform.OS === 'android' ? 8 : 8,
     includeFontPadding: false,
     textAlignVertical: 'center',
   },
