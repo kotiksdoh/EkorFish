@@ -37,7 +37,6 @@ import {
   getUncheckedPushesCountThunk,
   setCompany,
 } from "@/features/auth/authSlice";
-import { clearAuthSession } from "@/features/auth/services/clearAuthSession";
 import {
   authenticateWithBiometrics,
   getBiometricAvailability,
@@ -45,6 +44,7 @@ import {
   isBiometricLoginEnabled,
   setBiometricLoginEnabled,
 } from "@/features/auth/services/biometricLogin";
+import { clearAuthSession } from "@/features/auth/services/clearAuthSession";
 import { LoginModal } from "@/features/auth/ui/components/LoginModal";
 import { BonusPage } from "@/features/home/ui/screens/BonusScreen";
 import { axdef } from "@/features/shared/services/axios";
@@ -1202,7 +1202,7 @@ const styles = StyleSheet.create({
   },
   infoContentLast: {
     borderBottomWidth: 0,
-    paddingBottom: 0,
+    paddingBottom: 10,
   },
   infoLabel: {
     fontSize: 14,
