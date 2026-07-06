@@ -765,6 +765,7 @@ export function ProductDetailScreen() {
                       <CloseCircleIcon />
                     )}
                     <View style={styles.subContainerSubSub}>
+                      {stock?.name ?
                       <ThemedText
                         style={styles.subContainerCity}
                         lightColor={"#1B1B1C"}
@@ -772,6 +773,8 @@ export function ProductDetailScreen() {
                       >
                         {stock.name}
                       </ThemedText>
+                      : null
+                      }
                       <ThemedText
                         style={styles.subContainerCityInfo}
                         lightColor={"#1B1B1C"}
