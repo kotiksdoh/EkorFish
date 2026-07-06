@@ -410,6 +410,24 @@ export const ChevronDownIcon = ({
   </Svg>
 );
 
+export const FilterChipChevronIcon = ({
+  width = 16,
+  height = 16,
+  stroke = "#FBFCFF",
+  strokeOpacity = 0.5,
+  ...props
+}) => (
+  <Svg width={width} height={height} viewBox="0 0 16 16" fill="none" {...props}>
+    <Path
+      d="M11.5 6.5L8.65079 8.94218C8.2763 9.26317 7.7237 9.26317 7.34921 8.94218L4.5 6.5"
+      stroke={stroke}
+      strokeOpacity={strokeOpacity}
+      strokeWidth="1.5"
+      strokeLinecap="round"
+    />
+  </Svg>
+);
+
 // Logo иконка
 export const LogoIcon = ({
   width = 126,

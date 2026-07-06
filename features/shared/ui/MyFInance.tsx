@@ -1,5 +1,6 @@
 import {
   ArrowIconRight,
+  FilterChipChevronIcon,
   FilterXsIcon,
   PaymentPendingIcon,
 } from "@/assets/icons/icons";
@@ -29,7 +30,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { ActivityIndicator, Animated, Dimensions, KeyboardAvoidingView, NativeScrollEvent, NativeSyntheticEvent, Platform, ScrollView, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import { ActivityIndicator, Animated, Dimensions, KeyboardAvoidingView, NativeScrollEvent, NativeSyntheticEvent, Platform, Pressable, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -41,6 +42,21 @@ import AnimatedTextInput from "./components/CustomInput";
 import { PrimaryButton } from "./components/PrimartyButton";
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
+
+const isPaymentYearFilter = (filter: { paramName: string }) =>
+  filter.paramName === "PaymentDateYear" ||
+  filter.paramName === "paymentDateYear";
+
+const isPaymentMonthFilter = (filter: { paramName: string }) =>
+  filter.paramName === "PaymentDateMonth" ||
+  filter.paramName === "paymentDateMonth";
+
+const isYearOrMonthFilter = (filter: { paramName: string; name: string }) => {
+  const param = filter.paramName.toLowerCase();
+  if (param.includes("year") || param.includes("month")) return true;
+  const firstWord = filter.name.split(" ")[0];
+  return firstWord === "Год" || firstWord === "Месяц";
+};
 
 interface MyFinanceProps {
   visible: boolean;
@@ -94,13 +110,17 @@ const PaymentFiltersModal: React.FC<{
   const [monthYearError, setMonthYearError] = useState("");
 
   const [isClosing, setIsClosing] = useState(false);
+  const [scrollAreaHeight, setScrollAreaHeight] = useState(0);
   const modalTranslateY = useRef(new Animated.Value(screenHeight)).current;
 
   useEffect(() => {
     if (visible) {
       setLocalFilters(filters);
       setMonthYearError("");
+      return;
     }
+
+    setScrollAreaHeight(0);
   }, [visible, filters]);
 
   const isMonthYearPairValid = useMemo(() => {
@@ -173,7 +193,6 @@ const PaymentFiltersModal: React.FC<{
     (value) => value !== "",
   ).length;
 
-  // Группируем фильтры по первому слову в name
   const uniqueFilters = paymentFilters.filter((filter, index, self) => {
     const firstWord = filter.name.split(" ")[0];
     const firstIndex = self.findIndex(
@@ -190,85 +209,94 @@ const PaymentFiltersModal: React.FC<{
       onRequestClose={closeModalWithAnimation}
       statusBarTranslucent={true}
     >
-      <TouchableWithoutFeedback onPress={handleOverlayPress}>
-        <View style={styles.modalOverlay}>
-          <TouchableWithoutFeedback>
-            <Animated.View
-              style={[
-                styles.modalContainerFilter,
-                isDarkMode && { backgroundColor: "#202022" },
-                { transform: [{ translateY: modalTranslateY }] },
+      <View style={styles.modalOverlay}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={handleOverlayPress} />
+        <Animated.View
+          style={[
+            styles.modalContainerFilter,
+            isDarkMode && { backgroundColor: "#202022" },
+            { transform: [{ translateY: modalTranslateY }] },
+          ]}
+        >
+          <TouchableOpacity
+            style={styles.swipeHandleContainer}
+            activeOpacity={0.7}
+            onPress={closeModalWithAnimation}
+          >
+            <View style={styles.swipeHandle} />
+          </TouchableOpacity>
+
+          <View style={styles.modalHeader}>
+            <ThemedText style={styles.modalTitle}>Фильтры</ThemedText>
+            <TouchableOpacity onPress={resetFilters}>
+              <ThemedText
+                lightColor="#203686"
+                darkColor="#4C94FF"
+                style={styles.modalResetText}
+              >
+                Сбросить
+              </ThemedText>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.filterModalBody}>
+            <ScrollView
+              style={styles.modalContent}
+              contentContainerStyle={[
+                styles.modalContentContainer,
+                scrollAreaHeight > 0 && { minHeight: scrollAreaHeight },
               ]}
+              onLayout={(event) => {
+                setScrollAreaHeight(event.nativeEvent.layout.height);
+              }}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              nestedScrollEnabled
+              scrollEventThrottle={16}
+              bounces
             >
-              <TouchableOpacity
-                style={styles.swipeHandleContainer}
-                activeOpacity={0.7}
-                onPress={closeModalWithAnimation}
-              >
-                <View style={styles.swipeHandle} />
-              </TouchableOpacity>
-
-              <View style={styles.modalHeader}>
-                <ThemedText style={styles.modalTitle}>Фильтры</ThemedText>
-                <TouchableOpacity onPress={resetFilters}>
-                  <ThemedText
-                    lightColor="#203686"
-                    darkColor="#4C94FF"
-                    style={styles.modalResetText}
-                  >
-                    Сбросить
-                  </ThemedText>
-                </TouchableOpacity>
-              </View>
-
-              <ScrollView
-                style={styles.modalContent}
-                contentContainerStyle={styles.modalContentContainer}
-                showsVerticalScrollIndicator={false}
-                keyboardShouldPersistTaps="handled"
-              >
-                {uniqueFilters.map((filterGroup) => {
-                  return (
-                    <View key={filterGroup.id} style={styles.filterSection}>
-                      <ThemedText style={styles.filterSectionTitle}>
-                        {filterGroup.name.split(" (")[0]}
-                      </ThemedText>
-                      <View style={styles.filterChipsContainer}>
-                        {filterGroup.filterOptions.map((option) => (
-                          <TouchableOpacity
-                            key={option.id}
+              <View style={styles.filterModalScrollInner}>
+                {uniqueFilters.map((filterGroup) => (
+                  <View key={filterGroup.id} style={styles.filterSection}>
+                    <ThemedText style={styles.filterSectionTitle}>
+                      {filterGroup.name.split(" (")[0]}
+                    </ThemedText>
+                    <View style={styles.filterChipsContainer}>
+                      {filterGroup.filterOptions.map((option) => (
+                        <TouchableOpacity
+                          key={option.id}
+                          style={[
+                            styles.filterChip,
+                            isDarkMode && {
+                              backgroundColor: "#202022",
+                              borderColor: "#323235",
+                            },
+                            localFilters[filterGroup.paramName] ===
+                              option.code && styles.filterChipSelected,
+                          ]}
+                          onPress={() =>
+                            updateFilter(filterGroup.paramName, option.code)
+                          }
+                        >
+                          <ThemedText
                             style={[
-                              styles.filterChip,
-                              isDarkMode && {
-                                backgroundColor: "#202022",
-                                borderColor: "#323235",
-                              },
+                              styles.filterChipText,
                               localFilters[filterGroup.paramName] ===
-                                option.code && styles.filterChipSelected,
+                                option.code && styles.filterChipTextSelected,
                             ]}
-                            onPress={() =>
-                              updateFilter(filterGroup.paramName, option.code)
-                            }
                           >
-                            <ThemedText
-                              style={[
-                                styles.filterChipText,
-                                localFilters[filterGroup.paramName] ===
-                                  option.code && styles.filterChipTextSelected,
-                              ]}
-                            >
-                              {option.value}{" "}
-                              {/* Отображаем value для пользователя */}
-                            </ThemedText>
-                          </TouchableOpacity>
-                        ))}
-                      </View>
+                            {option.value}
+                          </ThemedText>
+                        </TouchableOpacity>
+                      ))}
                     </View>
-                  );
-                })}
-              </ScrollView>
+                  </View>
+                ))}
+              </View>
+            </ScrollView>
+          </View>
 
-              <View
+          <View
                 style={[
                   styles.filterModalFooter,
                   {
@@ -300,10 +328,8 @@ const PaymentFiltersModal: React.FC<{
                   </ThemedText>
                 </TouchableOpacity>
               </View>
-            </Animated.View>
-          </TouchableWithoutFeedback>
-        </View>
-      </TouchableWithoutFeedback>
+        </Animated.View>
+      </View>
     </AppModal>
   );
 };
@@ -364,89 +390,67 @@ const PaymentsHistoryScreen: React.FC<{ onBack: () => void }> = ({
   const groupedFilters = useMemo(() => {
     if (!paymentFilters || paymentFilters.length === 0) return [];
 
-    const groupedFilters = new Map();
+    const groups: Array<{
+      id: string | number;
+      name: string;
+      paramName: string;
+      displayValue: string;
+      isActive: boolean;
+    }> = [];
 
-    paymentFilters.forEach((filter) => {
+    const yearFilter = paymentFilters.find(isPaymentYearFilter);
+    const monthFilter = paymentFilters.find(isPaymentMonthFilter);
+
+    if (yearFilter && monthFilter) {
+      const selectedYearCode = filters[yearFilter.paramName] || "";
+      const selectedMonthCode = filters[monthFilter.paramName] || "";
+      const yearValue = getDisplayValue(
+        yearFilter.paramName,
+        selectedYearCode,
+      );
+      const monthValue = getDisplayValue(
+        monthFilter.paramName,
+        selectedMonthCode,
+      );
+
+      groups.push({
+        id: "year-month-group",
+        name: "Месяц",
+        paramName: "year-month-group",
+        displayValue:
+          selectedYearCode && selectedMonthCode
+            ? `${monthValue} ${yearValue}`
+            : "",
+        isActive: !!(selectedYearCode || selectedMonthCode),
+      });
+    }
+
+    const otherFilters = paymentFilters.filter(
+      (filter) => !isYearOrMonthFilter(filter),
+    );
+    const groupedByFirstWord = new Map<string, (typeof paymentFilters)[number]>();
+
+    otherFilters.forEach((filter) => {
       const firstWord = filter.name.split(" ")[0];
-      if (!groupedFilters.has(firstWord)) {
-        groupedFilters.set(firstWord, []);
+      if (!groupedByFirstWord.has(firstWord)) {
+        groupedByFirstWord.set(firstWord, filter);
       }
-      groupedFilters.get(firstWord).push(filter);
     });
 
-    const uniqueGroups = Array.from(groupedFilters.entries()).map(
-      ([groupName, filtersInGroup]) => {
-        const hasYearFilter = filtersInGroup.some(
-          (f: any) =>
-            f.paramName === "PaymentDateYear" ||
-            f.paramName === "paymentDateYear",
-        );
-        const hasMonthFilter = filtersInGroup.some(
-          (f: any) =>
-            f.paramName === "PaymentDateMonth" ||
-            f.paramName === "paymentDateMonth",
-        );
+    groupedByFirstWord.forEach((mainFilter, groupName) => {
+      const selectedCode = filters[mainFilter.paramName] || "";
+      const displayValue = getDisplayValue(mainFilter.paramName, selectedCode);
 
-        if (hasYearFilter && hasMonthFilter) {
-          const yearFilter = filtersInGroup.find(
-            (f: any) =>
-              f.paramName === "PaymentDateYear" ||
-              f.paramName === "paymentDateYear",
-          );
-          const monthFilter = filtersInGroup.find(
-            (f: any) =>
-              f.paramName === "PaymentDateMonth" ||
-              f.paramName === "paymentDateMonth",
-          );
+      groups.push({
+        id: mainFilter.id,
+        name: groupName,
+        paramName: mainFilter.paramName,
+        displayValue,
+        isActive: !!selectedCode,
+      });
+    });
 
-          const selectedYearCode = filters[yearFilter?.paramName || ""];
-          const selectedMonthCode = filters[monthFilter?.paramName || ""];
-
-          const yearValue = getDisplayValue(
-            yearFilter?.paramName,
-            selectedYearCode,
-          );
-          const monthValue = getDisplayValue(
-            monthFilter?.paramName,
-            selectedMonthCode,
-          );
-
-          let displayValue = "";
-          if (selectedYearCode && selectedMonthCode) {
-            displayValue = `${monthValue} ${yearValue}`;
-          } else if (selectedYearCode) {
-            displayValue = yearValue;
-          } else if (selectedMonthCode) {
-            displayValue = monthValue;
-          }
-
-          return {
-            id: "year-month-group",
-            name: groupName,
-            paramName: "year-month-group",
-            displayValue,
-            isActive: !!(selectedYearCode || selectedMonthCode),
-          };
-        }
-
-        const mainFilter = filtersInGroup[0];
-        const selectedCode = filters[mainFilter.paramName] || "";
-        const displayValue = getDisplayValue(
-          mainFilter.paramName,
-          selectedCode,
-        );
-
-        return {
-          id: mainFilter.id,
-          name: groupName,
-          paramName: mainFilter.paramName,
-          displayValue,
-          isActive: !!selectedCode,
-        };
-      },
-    );
-
-    return uniqueGroups;
+    return groups;
   }, [paymentFilters, filters, getDisplayValue]);
 
   const loadPayments = useCallback(
@@ -503,12 +507,10 @@ const PaymentsHistoryScreen: React.FC<{ onBack: () => void }> = ({
   const groupedPayments = useMemo(() => {
     if (paymentsList.length === 0) return [];
 
-    // Сортируем платежи от новых к старым
     const sortedPayments = [...paymentsList].sort(
       (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
     );
 
-    // Группируем по датам
     const grouped: { [key: string]: any[] } = {};
     sortedPayments.forEach((payment) => {
       if (!grouped[payment.date]) grouped[payment.date] = [];
@@ -563,47 +565,7 @@ const PaymentsHistoryScreen: React.FC<{ onBack: () => void }> = ({
         darkColor="#151516"
         style={styles.paymentsMainContainer}
       >
-        <View style={styles.filtersRow}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.subcategoriesContainer}
-            contentContainerStyle={styles.subcategoriesContent}
-          >
-            {groupedFilters.map((group, index) => {
-              return (
-                <TouchableOpacity
-                  key={`${group.paramName}-${group.id}-${index}`}
-                  style={[
-                    styles.subcategoryButton,
-                    group.isActive && styles.subcategoryButtonActive,
-                    isDark &&
-                      !group.isActive && {
-                        backgroundColor: "#202022",
-                      },
-                    isDark &&
-                      group.isActive && {
-                        backgroundColor: "#3881EE",
-                      },
-                  ]}
-                  onPress={() => setShowFiltersModal(true)}
-                >
-                  <ThemedText
-                    style={[
-                      styles.subcategoryText,
-                      group.isActive && styles.subcategoryTextActive,
-                      isDark && {
-                        color: "#FBFCFF",
-                      },
-                    ]}
-                  >
-                    {group.displayValue || group.name}
-                  </ThemedText>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-
+        <View style={styles.filtersToolbarRow}>
           <TouchableOpacity
             style={styles.filterButton}
             onPress={() => setShowFiltersModal(true)}
@@ -619,6 +581,51 @@ const PaymentsHistoryScreen: React.FC<{ onBack: () => void }> = ({
             </View>
             <ThemedText style={styles.filterButtonText}>Фильтры</ThemedText>
           </TouchableOpacity>
+        </View>
+
+        <View style={styles.activeFiltersWrapper}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.subcategoriesContainer}
+            contentContainerStyle={styles.subcategoriesContent}
+          >
+            {groupedFilters.map((group, index) => (
+              <TouchableOpacity
+                key={`${group.paramName}-${group.id}-${index}`}
+                style={[
+                  styles.subcategoryButton,
+                  group.isActive && styles.subcategoryButtonActive,
+                  isDark &&
+                    !group.isActive && {
+                      backgroundColor: "#202022",
+                    },
+                  isDark &&
+                    group.isActive && {
+                      backgroundColor: "#3881EE",
+                    },
+                ]}
+                onPress={() => setShowFiltersModal(true)}
+              >
+                <ThemedText
+                  style={[
+                    styles.subcategoryText,
+                    group.isActive && styles.subcategoryTextActive,
+                    isDark && {
+                      color: "#FBFCFF",
+                    },
+                  ]}
+                >
+                  {group.displayValue || group.name}
+                </ThemedText>
+                <FilterChipChevronIcon
+                  stroke={
+                    group.isActive || isDark ? "#FBFCFF" : "#1B1B1C"
+                  }
+                />
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
         </View>
 
         <ScrollView
@@ -661,13 +668,16 @@ const PaymentsHistoryScreen: React.FC<{ onBack: () => void }> = ({
             <>
               {groupedPayments.map((group) => (
                 <View key={group.date}>
+                  {/*  */}
                   <ThemedText
                     style={{
                       fontSize: 12,
                       textTransform: "uppercase",
                       marginVertical: 24,
+                      fontWeight: '600'
                     }}
                     darkColor="#FBFCFF80"
+                    lightColor="#80818B"
                   >
                     {formatDate(group.date)}
                   </ThemedText>
@@ -681,7 +691,7 @@ const PaymentsHistoryScreen: React.FC<{ onBack: () => void }> = ({
                             alignItems: "center",
                           }}
                         >
-                          <ThemedText darkColor="#4C94FF" weight="medium">
+                          <ThemedText lightColor="#203686" darkColor="#4C94FF" weight="medium">
                             {payment.paymentType || "Оплата"}
                           </ThemedText>
                           <View style={styles.amountContainer}>
@@ -706,6 +716,7 @@ const PaymentsHistoryScreen: React.FC<{ onBack: () => void }> = ({
                           <ThemedText
                             style={{ fontSize: 12 }}
                             darkColor="#FBFCFF80"
+                            lightColor="#80818B"
                           >
                             Счет №{payment.invoiceNumber} от{" "}
                             {formatDate(payment.invoiceDate)}
@@ -713,6 +724,7 @@ const PaymentsHistoryScreen: React.FC<{ onBack: () => void }> = ({
                           <ThemedText
                             style={{ fontSize: 12 }}
                             darkColor="#FBFCFF80"
+                            lightColor="#80818B"
                           >
                             {formatDate(payment.date)}
                           </ThemedText>
@@ -1877,8 +1889,10 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    maxHeight: "85%",
+    height: screenHeight * 0.85,
+    maxHeight: screenHeight * 0.85,
     minHeight: 280,
+    flexDirection: "column",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.25,
@@ -1916,15 +1930,21 @@ const styles = StyleSheet.create({
   modalResetText: {
     fontFamily: "Montserrat",
     fontSize: 16,
+    fontWeight: '500'
+  },
+  filterModalBody: {
+    flex: 1,
+    minHeight: 0,
   },
   modalContent: {
-    flexGrow: 0,
-    flexShrink: 1,
-    maxHeight: "70%",
+    flex: 1,
   },
   modalContentContainer: {
     paddingHorizontal: 20,
     paddingBottom: 8,
+  },
+  filterModalScrollInner: {
+    width: "100%",
   },
   filterModalFooter: {
     paddingHorizontal: 20,
@@ -2039,11 +2059,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 8,
   },
-  sortFilterRow: {
+  filtersToolbarRow: {
     flexDirection: "row",
     justifyContent: "flex-end",
+    alignItems: "center",
     paddingVertical: 16,
-    marginBottom: 8,
   },
   sortButton: {
     flexDirection: "row",
@@ -2392,6 +2412,9 @@ const styles = StyleSheet.create({
 
   // Категории
   subcategoryButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
     paddingHorizontal: 16,
     paddingVertical: 8,
     backgroundColor: "#F5F5F5",
@@ -2412,14 +2435,15 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   subcategoriesContainer: {
-    flex: 1,
-    marginBottom: 8,
+    flexGrow: 0,
   },
   subcategoriesContent: {
     flexDirection: "row",
     alignItems: "center",
     paddingRight: 16,
-    paddingVertical: 16,
+  },
+  activeFiltersWrapper: {
+    marginBottom: 8,
   },
 
   // Дополнительные элементы форм
