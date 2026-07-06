@@ -1,8 +1,9 @@
 // CatalogDetailScreen.tsx
-import { FilterXsIcon, SortIcon, WarningIcon } from "@/assets/icons/icons";
+import { FilterXsIcon, IconGeo, SortIcon, WarningIcon } from "@/assets/icons/icons";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { ModalHeader } from "@/features/auth/ui/Header";
+import { getTowns } from "@/features/auth/authSlice";
 import { useAuthGate } from "@/features/auth/hooks/useAuthGate";
 import SearchInput from "@/features/auth/ui/components/SearchInput";
 import {
@@ -94,6 +95,7 @@ export default function CatalogDetailScreen() {
   const categories = useAppSelector((state) => state.auth.categories);
   const cartItems = useAppSelector((state) => state.catalog.cart);
   const me = useAppSelector((state) => state.auth.me);
+  const towns = useAppSelector((state) => state.auth.towns);
   const templatePicker = useTemplatePicker();
   const { requireAuth, openLogin, authGateModal } = useAuthGate();
 
@@ -183,6 +185,13 @@ export default function CatalogDetailScreen() {
     }, []),
   );
 
+  const selectedTownName = useMemo(() => {
+    if (!me?.storageId) return null;
+    return towns.find((town) => String(town.id) === String(me.storageId))?.value ?? null;
+  }, [me?.storageId, towns]);
+
+  const hasSelectedCity = Boolean(me?.storageId);
+
   const sortOptions = PRODUCT_SORT_OPTIONS;
 
   const handleSortSelect = (sortId: ProductSortId) => {
@@ -203,6 +212,13 @@ export default function CatalogDetailScreen() {
     (shelfLifeRange.max ? 1 : 0);
 
   const dispatch = useAppDispatch();
+
+  useEffect(() => {
+    if (hasAuthToken) {
+      dispatch(getTowns());
+    }
+  }, [dispatch, hasAuthToken]);
+
   const insets = useSafeAreaInsets();
   const filtersFooterPadding = Math.max(insets.bottom, 16);
   const sortModalBottomPadding =
@@ -845,23 +861,55 @@ export default function CatalogDetailScreen() {
           {hasAuthToken && (
             <TouchableOpacity onPress={() => setShowTownModal(true)}>
               <ThemedView
-                darkColor="#202022"
-                lightColor="#F2F4F7"
+                darkColor={hasSelectedCity ? "#1A2540" : "#202022"}
+                lightColor={hasSelectedCity ? "#E8F1FF" : "#F2F4F7"}
                 style={styles.cityContainer}
               >
                 <ThemedView
-                  darkColor="#151516"
+                  darkColor={hasSelectedCity ? "#151516" : "#151516"}
                   lightColor="#FFFFFF"
-                  style={styles.cityIcon}
+                  style={[
+                    styles.cityIcon,
+                    hasSelectedCity && styles.cityIconSelected,
+                  ]}
                 >
-                  <WarningIcon
-                    stroke={isDarkMode ? "#FBFCFF" : "#1B1B1C"}
-                    fill={isDarkMode ? "#FBFCFF" : "#1B1B1C"}
-                  />
+                  {hasSelectedCity ? (
+                    <IconGeo
+                      width={20}
+                      height={20}
+                      color={isDarkMode ? "#4C94FF" : "#203686"}
+                    />
+                  ) : (
+                    <WarningIcon
+                      stroke={isDarkMode ? "#FBFCFF" : "#1B1B1C"}
+                      fill={isDarkMode ? "#FBFCFF" : "#1B1B1C"}
+                    />
+                  )}
                 </ThemedView>
-                <ThemedText darkColor="#FBFCFF" style={styles.cityText}>
-                  Укажите ваш город, чтобы увидеть наличие товаров
-                </ThemedText>
+                <View style={styles.cityTextBlock}>
+                  {hasSelectedCity ? (
+                    <>
+                      <ThemedText
+                        darkColor="#FBFCFF"
+                        lightColor="#1B1B1C"
+                        style={styles.cityTitleSelected}
+                      >
+                        {selectedTownName ?? "Ваш город"}
+                      </ThemedText>
+                      <ThemedText
+                        darkColor="#FBFCFF80"
+                        lightColor="#80818B"
+                        style={styles.citySubtitle}
+                      >
+                        Нажмите, чтобы изменить город
+                      </ThemedText>
+                    </>
+                  ) : (
+                    <ThemedText darkColor="#FBFCFF" style={styles.cityText}>
+                      Укажите ваш город, чтобы увидеть наличие товаров
+                    </ThemedText>
+                  )}
+                </View>
                 <ThemedText style={styles.arrowIcon}>›</ThemedText>
               </ThemedView>
             </TouchableOpacity>
@@ -875,9 +923,12 @@ export default function CatalogDetailScreen() {
       handleOpenFilters,
       handleSubcategorySelect,
       hasAuthToken,
+      hasSelectedCity,
       isDarkMode,
       isSubcategorySwitching,
+      me?.storageId,
       selectedSubcategoryId,
+      selectedTownName,
       sortBy,
       subcategoriesFromProps,
     ],
@@ -1769,10 +1820,24 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 8,
   },
-  cityText: {
+  cityIconSelected: {
+    padding: 10,
+  },
+  cityTextBlock: {
     flex: 1,
+    gap: 2,
+  },
+  cityText: {
     fontWeight: 500,
     fontSize: 14,
+  },
+  cityTitleSelected: {
+    fontWeight: "600",
+    fontSize: 15,
+  },
+  citySubtitle: {
+    fontWeight: "400",
+    fontSize: 12,
   },
   arrowIcon: {
     fontSize: 24,

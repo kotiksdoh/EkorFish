@@ -22,6 +22,7 @@ function collectStringMessages(value: unknown): string[] {
 }
 
 const NETWORK_ERROR_MESSAGE = "Нет подключения к серверу";
+const SESSION_EXPIRED_MESSAGE = "Ваша сессия истекла, авторизуйтесь";
 
 export const isAxiosNetworkError = (err: any): boolean => {
   if (!err || err.response) {
@@ -52,6 +53,10 @@ export const getAxiosErrorMessage = (
   err: any,
   fallback = "Неизвестная ошибка",
 ): string => {
+  if (err?.response?.status === 401) {
+    return SESSION_EXPIRED_MESSAGE;
+  }
+
   if (isAxiosNetworkError(err)) {
     return NETWORK_ERROR_MESSAGE;
   }
