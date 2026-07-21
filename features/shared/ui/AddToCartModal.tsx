@@ -9,12 +9,11 @@ import {
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import { Image } from "expo-image";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Animated,
   Dimensions,
-  Image,
   PanResponder,
   Platform,
   StyleSheet,
@@ -116,6 +115,7 @@ const getIconForCode = (
   const fillColor = isActive ? activeColor : inactiveColor;
 
   switch (code) {
+    // 
     case "retail":
       return <RetailIcon fill={fillColor} width={16} height={16} />;
     case "wholesale":
@@ -153,7 +153,6 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
   const [selectedOption, setSelectedOption] = useState<PurchaseOption | null>(
     null,
   );
-  const [isImageLoading, setIsImageLoading] = useState(false);
   const [imageError, setImageError] = useState(false);
 
   const translateY = useRef(new Animated.Value(MODAL_HEIGHT)).current;
@@ -172,9 +171,7 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
 
   useEffect(() => {
     if (visible && product) {
-      const hasImage = hasValidProductImage(product.image);
       setImageError(false);
-      setIsImageLoading(hasImage);
       if (existingCartItem && existingCartItem?.length > 0) {
         const firstCartItem = existingCartItem[0];
         const option = product.purchaseOptions.find(
@@ -210,7 +207,6 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
       setSelectedTab("");
       setQuantity(0);
       setSelectedOption(null);
-      setIsImageLoading(false);
       setImageError(false);
     }
   }, [visible, product, existingCartItem]);
@@ -300,6 +296,25 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
     }
   }, [product, selectedOption, quantity, onAddToCart, closeModal, variant, onAuthRequired]);
 
+  const showProductPlaceholder = useMemo(() => {
+    if (!product) return true;
+    return !hasValidProductImage(product.image) || imageError;
+  }, [product, imageError]);
+
+  const productImageSource = useMemo(() => {
+    if (!product || showProductPlaceholder) {
+      return PLACEHOLDER_IMAGE;
+    }
+    return { uri: product.image };
+  }, [product, showProductPlaceholder]);
+
+  const productImageRecyclingKey = useMemo(() => {
+    if (!product) return "no-product";
+    return hasValidProductImage(product.image) && !imageError
+      ? product.image
+      : `product-${product.id}`;
+  }, [product, imageError]);
+
   if (!product || !visible) return null;
 
   const maxStockQuantity = getMaxQuantityFromStocks(product);
@@ -335,9 +350,6 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
     return 12;
   };
 
-  const showProductPlaceholder =
-    !hasValidProductImage(product.image) || imageError;
-
   return (
     <Animated.View
       style={[
@@ -347,8 +359,13 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
           backgroundColor,
           paddingBottom: modalBottomPadding,
         },
+        !isDarkMode && {
+          borderColor: "#D8DADE",
+          shadowColor: "#1B1B1C",
+        },
         isDarkMode && {
-          borderColor: "#252527",
+          borderColor: "#323235",
+          shadowColor: "#000000",
         },
       ]}
       {...panResponder.panHandlers}
@@ -359,45 +376,23 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
 
       {!hideProductHeader ? (
         <View style={styles.header}>
-          <View style={styles.productImageWrapper}>
+          <View
+            style={[
+              styles.productImageWrapper,
+              isDarkMode
+                ? styles.productImageWrapperDark
+                : styles.productImageWrapperLight,
+            ]}
+          >
             <Image
-              source={
-                showProductPlaceholder
-                  ? PLACEHOLDER_IMAGE
-                  : { uri: product.image }
-              }
+              source={productImageSource}
               style={styles.productImage}
-              resizeMode={showProductPlaceholder ? "contain" : "cover"}
-              onLoadStart={
-                showProductPlaceholder ? undefined : () => setIsImageLoading(true)
-              }
-              onLoadEnd={
-                showProductPlaceholder ? undefined : () => setIsImageLoading(false)
-              }
-              onError={
-                showProductPlaceholder
-                  ? undefined
-                  : () => {
-                      setImageError(true);
-                      setIsImageLoading(false);
-                    }
-              }
+              contentFit={showProductPlaceholder ? "contain" : "cover"}
+              cachePolicy="disk"
+              recyclingKey={productImageRecyclingKey}
+              transition={0}
+              onError={() => setImageError(true)}
             />
-            {!showProductPlaceholder && isImageLoading ? (
-              <View
-                style={[
-                  styles.productImageLoading,
-                  isDarkMode
-                    ? styles.productImageLoadingDark
-                    : styles.productImageLoadingLight,
-                ]}
-              >
-                <ActivityIndicator
-                  size="small"
-                  color={isDarkMode ? "#4C94FF" : "#203686"}
-                />
-              </View>
-            ) : null}
           </View>
           <View style={styles.productInfo}>
             <ThemedText
@@ -499,24 +494,6 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
 
       {selectedOption && (
         <View style={styles.actionsContainer}>
-          <TouchableOpacity
-            style={[
-              styles.addToCartButton,
-              isAddToCartDisabled && styles.addToCartButtonDisabled,
-              isDarkMode && {
-                backgroundColor: "#202022",
-              },
-            ]}
-            onPress={handleAddToCart}
-            disabled={isAddToCartDisabled}
-          >
-            <ThemedText style={styles.addToCartButtonText}>
-              {variant === "template"
-                ? "В шаблон"
-                : "В корзину"}
-            </ThemedText>
-          </TouchableOpacity>
-
           <View
             style={[
               styles.quantityControls,
@@ -556,6 +533,23 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
               <QuantityStepperPlusIcon disabled={isAtMaxStock} />
             </TouchableOpacity>
           </View>
+
+          <TouchableOpacity
+            style={[
+              styles.addToCartButton,
+              isAddToCartDisabled && styles.addToCartButtonDisabled,
+            ]}
+            onPress={handleAddToCart}
+            disabled={isAddToCartDisabled}
+          >
+            <ThemedText
+              lightColor="#1B1B1C"
+              darkColor="#1B1B1C"
+              style={styles.addToCartButtonText}
+            >
+              {variant === "template" ? "В шаблон" : "В корзину"}
+            </ThemedText>
+          </TouchableOpacity>
         </View>
       )}
     </Animated.View>
@@ -575,6 +569,13 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     borderWidth: 1,
     zIndex: 9999,
+    shadowOffset: {
+      width: 0,
+      height: -6,
+    },
+    shadowOpacity: 0.12,
+    shadowRadius: 14,
+    elevation: 10,
   },
   swipeIndicatorContainer: {
     alignItems: "center",
@@ -594,24 +595,19 @@ const styles = StyleSheet.create({
     width: 71,
     height: 55,
     marginRight: 12,
-    position: "relative",
+    borderRadius: 8,
+    overflow: "hidden",
+  },
+  productImageWrapperLight: {
+    backgroundColor: "#F5F5F5",
+  },
+  productImageWrapperDark: {
+    backgroundColor: "#2E2E32",
   },
   productImage: {
     width: 71,
     height: 55,
     borderRadius: 8,
-  },
-  productImageLoading: {
-    ...StyleSheet.absoluteFillObject,
-    borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  productImageLoadingLight: {
-    backgroundColor: "#F5F5F5",
-  },
-  productImageLoadingDark: {
-    backgroundColor: "#151516",
   },
   productInfo: {
     flex: 1,
@@ -726,14 +722,14 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   addToCartButton: {
-    backgroundColor: "#F2F4F7",
+    backgroundColor: "#FFED32",
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 12,
     justifyContent: "center",
     alignItems: "center",
     flex: 1,
-    marginRight: 12,
+    marginLeft: 12,
   },
   addToCartButtonDisabled: {
     opacity: 0.5,

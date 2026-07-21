@@ -49,7 +49,7 @@ interface ServerProduct {
     if (!packageOption && serverProduct.purchaseOptions.length > 0) {
       packageOption = serverProduct.purchaseOptions[0];
     }
-  
+  // 
     const pricePerKg = packageOption?.price || 0;
     const price = pricePerKg * (packageOption?.step || 1);
   
