@@ -272,6 +272,13 @@ const ProductCardComponent: React.FC<ProductCardProps> = ({
   );
   const hasDates = Boolean(formattedDateFrom || formattedDateTo);
 
+  const measureShort = useMemo(() => {
+    const measureType =
+      productData?.measureType ?? productData?.originalProduct?.measureType;
+    const normalized = String(measureType || "").toLowerCase();
+    return normalized === "килограмм" || normalized === "кг" ? "кг" : "шт";
+  }, [productData?.measureType, productData?.originalProduct?.measureType]);
+
   const quantityBadgeLabel = isTemplatePick
     ? totalTemplateQuantity
     : totalCartQuantity;
@@ -399,7 +406,7 @@ const ProductCardComponent: React.FC<ProductCardProps> = ({
                     darkColor="#4C94FF"
                     style={styles.kgLabel}
                   >
-                     ₽ / кг
+                    {" "}₽ / {measureShort}
                   </ThemedText>
                 </View>
 
@@ -688,6 +695,7 @@ export const ProductCard = React.memo(ProductCardComponent, (prevProps, nextProp
     prevProps.isFavorite === nextProps.isFavorite &&
     prevProps.productData?.dateFrom === nextProps.productData?.dateFrom &&
     prevProps.productData?.dateTo === nextProps.productData?.dateTo &&
+    prevProps.productData?.measureType === nextProps.productData?.measureType &&
     prevProps.fullWidth === nextProps.fullWidth &&
     prevProps.isDis === nextProps.isDis &&
     prevProps.onAddToCartPress === nextProps.onAddToCartPress

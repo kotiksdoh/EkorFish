@@ -148,7 +148,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
       </View>
 
       {/* Кнопка меню (бургер) */}
-      {isActiveButton ? (
+      {/* {isActiveButton ? (
         <TouchableOpacity
           style={[
             styles.menuButton,
@@ -163,7 +163,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
         </TouchableOpacity>
       ) : (
         <></>
-      )}
+      )} */}
     </View>
   );
 };
