@@ -80,8 +80,8 @@ export function getTotalWeightKg(
   if (quantity <= 0) return 0;
 
   const isKilogram =
-    measureType === "килограмм" || measureType.toLowerCase() === "кг";
-  const weight = isKilogram ? quantity : quantity * step;
+    measureType === "кг" || measureType.toLowerCase() === "кг";
+  const weight = isKilogram ? quantity : quantity;
 
   return parseFloat(weight.toFixed(2));
 }
