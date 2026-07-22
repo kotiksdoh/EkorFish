@@ -6,6 +6,7 @@ import {
   QuantityStepperMinusIcon,
   QuantityStepperPlusIcon,
 } from "@/features/shared/ui/components/QuantityStepperIcons";
+import { getPurchaseOptionLabel } from "@/features/shared/utils/purchaseOptionLabels";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -117,15 +118,15 @@ const getIconForCode = (
   switch (code) {
     // 
     case "retail":
-      return <RetailIcon fill={fillColor} width={16} height={16} />;
+      return  <WholesaleIcon fill={fillColor} width={16} height={16} />;
     case "wholesale":
     case "wholesale_small":
     case "wholesale_large":
-      return <WholesaleIcon fill={fillColor} width={16} height={16} />;
+      return <PackageIcon fill={fillColor} width={16} height={16} />;
     case "package":
-      return <PackageIcon fill={fillColor} width={16} height={16} />;
+      return <RetailIcon fill={fillColor} width={16} height={16} />;
     case "promo":
-      return <PackageIcon fill={fillColor} width={16} height={16} />;
+      return <RetailIcon fill={fillColor} width={16} height={16} />;
     default:
       return null;
   }
@@ -417,7 +418,8 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
         <ThemedView lightColor="#F2F4F7" darkColor="#202022" style={styles.tabsContainer}>
           {product.purchaseOptions.map((option) => {
             const isActive = selectedTab === option.id;
-            const fontSize = getTabTextFontSize(option.name, tabWidth);
+            const optionLabel = getPurchaseOptionLabel(option.code, option.name);
+            const fontSize = getTabTextFontSize(optionLabel, tabWidth);
 
             return (
               <TouchableOpacity
@@ -448,7 +450,7 @@ export const AddToCartModal: React.FC<AddToCartModalProps> = ({
                     adjustsFontSizeToFit
                     minimumFontScale={0.8}
                   >
-                    {option.name}
+                    {optionLabel}
                   </ThemedText>
                 </View>
               </TouchableOpacity>

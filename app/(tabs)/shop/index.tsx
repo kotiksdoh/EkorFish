@@ -3,7 +3,6 @@ import {
   ArrowIconRight,
   CartIcon,
   IconCompanyNew,
-  InfoIcon,
   LemonIcon,
   LikeIcon,
   TrashIcon,
@@ -374,6 +373,17 @@ const pruneSelectedItems = (
   return next;
 };
 
+const getEffectiveSelectedItems = (
+  selectedItems: Set<string>,
+  cartItems: CartItem[],
+): Set<string> => {
+  const prunedSelection = pruneSelectedItems(selectedItems, cartItems);
+  if (prunedSelection.size > 0) {
+    return prunedSelection;
+  }
+  return new Set(cartItems.map((item) => item.id));
+};
+
 export default function ShopScreen() {
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === "dark";
@@ -666,15 +676,20 @@ export default function ShopScreen() {
     }
   };
 
+  const effectiveSelectedItems = useMemo(
+    () => getEffectiveSelectedItems(selectedItems, cartItems),
+    [selectedItems, cartItems],
+  );
+
   const totals = useMemo(() => {
     const availableItems = cartItems.filter((item) => isItemAvailable(item));
     const unavailableItems = cartItems.filter((item) => !isItemAvailable(item));
 
     const selectedAvailableItems = availableItems.filter((item) =>
-      selectedItems.has(item.id),
+      effectiveSelectedItems.has(item.id),
     );
     const selectedUnavailableItems = unavailableItems.filter((item) =>
-      selectedItems.has(item.id),
+      effectiveSelectedItems.has(item.id),
     );
 
     const totalItems = selectedAvailableItems.length;
@@ -710,7 +725,7 @@ export default function ShopScreen() {
       finalPrice,
       discountPercent,
     };
-  }, [cartItems, selectedItems, bonusParams, appliedPromoCode]);
+  }, [cartItems, effectiveSelectedItems, bonusParams, appliedPromoCode]);
 
   const selectedInCartCount = useMemo(
     () => cartItems.filter((item) => selectedItems.has(item.id)).length,
@@ -1039,26 +1054,6 @@ export default function ShopScreen() {
               disabled={isCheckoutBlocked}
             />
 
-            {selectedInCartCount === 0 ? (
-              <ThemedView
-                lightColor="#F2F4F7"
-                darkColor="#202022"
-                style={styles.chooseProducts}
-              >
-                <InfoIcon
-                  fill={isDarkMode ? "#FBFCFF80" : "#80818B"}
-                  stroke={isDarkMode ? "#FBFCFF80" : "#80818B"}
-                />
-                <ThemedText
-                  darkColor="#FBFCFF"
-                  lightColor="#1B1B1C"
-                  style={styles.chooseProductsText}
-                >
-                  Выберите товары, чтобы перейти к оформлению заказа
-                </ThemedText>
-              </ThemedView>
-            ) : null}
-
             <ThemedView
               lightColor="#E1F0FF"
               darkColor="#212945"
@@ -1162,7 +1157,7 @@ export default function ShopScreen() {
         <CheckoutModal
           visible={checkoutModalVisible}
           onClose={() => setCheckoutModalVisible(false)}
-          selectedItems={selectedItems}
+          selectedItems={effectiveSelectedItems}
           cartItems={cartItems}
           totals={totals}
         />

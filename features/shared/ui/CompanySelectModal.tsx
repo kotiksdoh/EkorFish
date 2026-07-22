@@ -5,11 +5,11 @@ import { ThemedView } from "@/components/themed-view";
 import { compliteCompany, getMyInfo, getMyParams } from "@/features/auth/authSlice";
 import { ModalHeader } from "@/features/auth/ui/Header";
 import { baseUrl } from "@/features/shared/services/axios";
+import { AppModal } from "@/features/shared/ui/AppModal";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import React, { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, Image, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
-import { AppModal } from "@/features/shared/ui/AppModal";
 
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import AnimatedTextInput from "./components/CustomInput";
