@@ -1,4 +1,4 @@
-import { ChevronDownIcon, CloseIcon } from "@/assets/icons/icons";
+import { ChevronDownIcon /*, CloseIcon */ } from "@/assets/icons/icons";
 import { ThemedText } from "@/components/themed-text";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import React, {
@@ -196,7 +196,7 @@ function SearchHistoryChipsComponent({
               onLayout={(event) => handleMeasureLayout(index, event)}
             >
               <ThemedText style={styles.historyItemText}>{item}</ThemedText>
-              <View style={styles.measureClosePlaceholder} />
+              {/* <View style={styles.measureClosePlaceholder} /> */}
             </View>
           ))}
         </View>
@@ -210,12 +210,12 @@ function SearchHistoryChipsComponent({
             onPress={() => onItemPress(item)}
           >
             <ThemedText style={styles.historyItemText}>{item}</ThemedText>
-            <TouchableOpacity
+            {/* <TouchableOpacity
               onPress={() => onItemRemove(item)}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <CloseIcon stroke="#80818B" width={16} height={16} />
-            </TouchableOpacity>
+            </TouchableOpacity> */}
           </TouchableOpacity>
         ))}
 
