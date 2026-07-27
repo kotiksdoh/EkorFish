@@ -1,8 +1,8 @@
 import { CheckCircleIcon, CloseCircleIcon } from "@/assets/icons/icons";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { ModalHeader } from "@/features/auth/ui/Header";
 import { useAuthGate } from "@/features/auth/hooks/useAuthGate";
+import { ModalHeader } from "@/features/auth/ui/Header";
 import {
   AddToCart,
   clearSimilarProducts,
@@ -775,6 +775,7 @@ export function ProductDetailScreen() {
                       </ThemedText>
                       : null
                       }
+                      {stock?.stockInfo ?
                       <ThemedText
                         style={styles.subContainerCityInfo}
                         lightColor={"#1B1B1C"}
@@ -782,6 +783,8 @@ export function ProductDetailScreen() {
                       >
                         {stock.stockInfo}
                       </ThemedText>
+                      : null
+                      }
                     </View>
                   </View>
                 ))
