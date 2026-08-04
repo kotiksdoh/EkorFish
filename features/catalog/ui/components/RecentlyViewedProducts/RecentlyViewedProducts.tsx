@@ -16,10 +16,12 @@ const cardWidth = (screenWidth - horizontalPadding * 2 - columnGap) / 2;
 
 interface RecentlyViewedProductsProps {
   onAddToCartPress: (product: RecentlyViewedProduct) => void;
+  returnTo?: "home" | "heart" | "catalog" | "shop" | "user";
 }
 
 export function RecentlyViewedProducts({
   onAddToCartPress,
+  returnTo = "shop",
 }: RecentlyViewedProductsProps) {
   const [products, setProducts] = useState<RecentlyViewedProduct[]>([]);
 
@@ -73,7 +75,7 @@ export function RecentlyViewedProducts({
               isFavorite={item.isFavorite}
               productData={item}
               fullWidth
-              returnTo="shop"
+              returnTo={returnTo}
               onAddToCartPress={onAddToCartPress}
             />
           </View>

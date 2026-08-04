@@ -1,14 +1,14 @@
 // features/search/ui/SearchScreenWithHistory.tsx
 import { ThemedView } from "@/components/themed-view";
-import {
-  getSegmentPopularProducts,
-} from "@/features/catalog/catalogSlice";
-import SimilarProducts from "@/features/catalog/ui/components/SimilarProducts/SimilarProducts";
+import { RecentlyViewedProducts } from "@/features/catalog/ui/components/RecentlyViewedProducts/RecentlyViewedProducts";
+// import {
+//   getSegmentPopularProducts,
+// } from "@/features/catalog/catalogSlice";
+// import SimilarProducts from "@/features/catalog/ui/components/SimilarProducts/SimilarProducts";
 import { SearchTopArea } from "@/features/home/ui/components/SearchTopArea/SearchTopArea";
 import { AddToCartModal } from "@/features/shared/ui/AddToCartModal";
 import { useTemplateAwareAddToCart } from "@/features/templates/useTemplateAwareAddToCart";
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { selectEffectiveStorageId } from "@/features/auth/selectors";
+import { useAppSelector } from "@/store/hooks";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { useCallback, useEffect, useState } from "react";
 import { Keyboard, ScrollView, StyleSheet } from "react-native";
@@ -27,11 +27,15 @@ const SearchCatalogScroll = React.memo(function SearchCatalogScroll({
 }: SearchCatalogScrollProps) {
   return (
     <ScrollView style={styles.content} keyboardShouldPersistTaps="handled">
-      <SimilarProducts
+      {/* <SimilarProducts
         title="Популярное в вашем сегменте"
         variant="segmentPopular"
         returnTo={returnTo}
         handleAddToCartPress={onAddToCartPress}
+      /> */}
+      <RecentlyViewedProducts
+        onAddToCartPress={onAddToCartPress}
+        returnTo={returnTo}
       />
       <Catalog />
     </ScrollView>
@@ -48,7 +52,6 @@ interface SearchScreenWithHistoryProps {
 export const SearchScreenWithHistory: React.FC<
   SearchScreenWithHistoryProps
 > = ({ visible, onClose, onSearch, returnTo = "catalog" }) => {
-  const dispatch = useAppDispatch();
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
   const {
     selectedProduct,
@@ -63,20 +66,19 @@ export const SearchScreenWithHistory: React.FC<
   } = useTemplateAwareAddToCart();
   const searchHints = useAppSelector((state) => state.auth.searchHints);
   const searchHintsLower = useAppSelector((state) => state.auth.searchHintsLower);
-  const effectiveStorageId = useAppSelector(selectEffectiveStorageId);
 
   useEffect(() => {
     if (visible) {
       loadSearchHistory();
-      dispatch(
-        getSegmentPopularProducts({
-          storageId: effectiveStorageId || undefined,
-        }),
-      );
+      // dispatch(
+      //   getSegmentPopularProducts({
+      //     storageId: effectiveStorageId || undefined,
+      //   }),
+      // );
     } else {
       Keyboard.dismiss();
     }
-  }, [dispatch, effectiveStorageId, visible]);
+  }, [visible]);
 
   const loadSearchHistory = async () => {
     try {
@@ -140,7 +142,7 @@ export const SearchScreenWithHistory: React.FC<
 
   const handleRemoveHistoryItem = useCallback(async (itemToRemove: string) => {
     setSearchHistory((currentHistory) => {
-      const newHistory = currentHistory.filter((item) => item !== itemToRemove);
+      const newHistory = currentHistory.filter((item) => itemToRemove !== item);
 
       void AsyncStorage.setItem(
         SEARCH_HISTORY_STORAGE_KEY,
