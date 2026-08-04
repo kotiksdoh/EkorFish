@@ -49,7 +49,8 @@ function formatProductListDate(value?: string | null): string | null {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return null;
 
-  return `${date.toLocaleDateString("ru-RU")} г.`;
+  // Неразрывный пробел перед «г.», чтобы год не уезжал на вторую строку
+  return `${date.toLocaleDateString("ru-RU")}\u00A0г.`;
 }
 
 const ProductCardComponent: React.FC<ProductCardProps> = ({
@@ -357,8 +358,12 @@ const ProductCardComponent: React.FC<ProductCardProps> = ({
                     style={styles.dateText}
                     lightColor="#80818B"
                     darkColor="#FBFCFF80"
+                    numberOfLines={1}
+                    ellipsizeMode="clip"
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.82}
                   >
-                    Выработка: {formattedDateFrom}
+                    {`Выработка:\u00A0${formattedDateFrom}`}
                   </ThemedText>
                 ) : null}
                 {formattedDateTo ? (
@@ -366,8 +371,12 @@ const ProductCardComponent: React.FC<ProductCardProps> = ({
                     style={styles.dateText}
                     lightColor="#80818B"
                     darkColor="#FBFCFF80"
+                    numberOfLines={1}
+                    ellipsizeMode="clip"
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.82}
                   >
-                    Годен до: {formattedDateTo}
+                    {`Годен до:\u00A0${formattedDateTo}`}
                   </ThemedText>
                 ) : null}
               </View>
