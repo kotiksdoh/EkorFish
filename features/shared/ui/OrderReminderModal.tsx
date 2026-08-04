@@ -336,9 +336,10 @@ export const OrderReminderModal: React.FC<OrderReminderModalProps> = ({
 
         <ScrollView
           showsVerticalScrollIndicator={false}
+          style={styles.scrollView}
           contentContainerStyle={[
             styles.scrollContent,
-            { paddingBottom: Math.max(insets.bottom, 24) + 24 },
+            { paddingBottom: 0 },
           ]}
         >
           {isLoadingOrderReminderSettings || !orderReminderSettings ? (
@@ -460,7 +461,11 @@ export const OrderReminderModal: React.FC<OrderReminderModalProps> = ({
               <ThemedView
                 lightColor="#FFFFFF"
                 darkColor="#151516"
-                style={styles.card}
+                style={[
+                  styles.card,
+                  styles.frequencyCard,
+                  { paddingBottom: Math.max(insets.bottom, 16) + 16 },
+                ]}
               >
                 <ThemedText style={styles.sectionTitle} lightColor="#1B1B1C" darkColor="#FBFCFF">
                   Как часто напоминать?
@@ -546,16 +551,18 @@ export const OrderReminderModal: React.FC<OrderReminderModalProps> = ({
                     );
                   })}
                 </View>
-              </ThemedView>
 
-              <PrimaryButton
-                title="Готово"
-                onPress={onClose}
-                variant="primary"
-                size="md"
-                fullWidth
-                loading={isUpdatingOrderReminderSettings}
-              />
+                <View style={styles.frequencyFooterSpacer} />
+
+                <PrimaryButton
+                  title="Готово"
+                  onPress={onClose}
+                  variant="primary"
+                  size="md"
+                  fullWidth
+                  loading={isUpdatingOrderReminderSettings}
+                />
+              </ThemedView>
             </>
           ) : null}
 
@@ -610,8 +617,11 @@ const styles = StyleSheet.create({
   modalContainer: {
     flex: 1,
   },
+  scrollView: {
+    flex: 1,
+  },
   scrollContent: {
-    // paddingHorizontal: 16,
+    flexGrow: 1,
     paddingTop: 8,
     gap: 16,
   },
@@ -625,6 +635,15 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     gap: 16,
+  },
+  frequencyCard: {
+    flexGrow: 1,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+  },
+  frequencyFooterSpacer: {
+    flexGrow: 1,
+    minHeight: 24,
   },
   toggleRow: {
     flexDirection: "row",
