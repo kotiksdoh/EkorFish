@@ -7,6 +7,6 @@ export interface ProductDetailGalleryProps {
   items: ProductGalleryItem[];
   autoPlayInterval?: number;
   showIndicators?: boolean;
-  /** false — без PagerView (безопасно при уходе с экрана на iOS) */
+  /** false — статичный слайд без карусели (безопасно при уходе с экрана) */
   isActive?: boolean;
 }

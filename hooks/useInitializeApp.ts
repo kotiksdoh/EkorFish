@@ -3,11 +3,13 @@ import { useEffect, useState } from "react";
 // import { loadAppData } from '@/store/slices/appSlice';
 import {
   clearAuthState,
+  flushPendingStorageId,
   getCategoryItems,
   getMyInfo,
   getMyParams,
   getSearchHints,
   getSliderItems,
+  hydratePendingStorageId,
   setBootstrapStatus,
 } from "@/features/auth/authSlice";
 import { registerSessionClearedHandler } from "@/features/auth/services/clearAuthSession";
@@ -74,8 +76,16 @@ const loadAppResources = async () => {
       "sliders",
     );
     await withTimeout(store.dispatch(getSearchHints()).unwrap(), "search-hints");
+    await withTimeout(
+      store.dispatch(hydratePendingStorageId()).unwrap(),
+      "pending-town",
+    );
     if (token) {
       await withTimeout(store.dispatch(getMyInfo("")).unwrap(), "my-info");
+      await withTimeout(
+        store.dispatch(flushPendingStorageId()).unwrap(),
+        "flush-pending-town",
+      );
       await withTimeout(store.dispatch(getMyParams("")).unwrap(), "params");
       await withTimeout(store.dispatch(getCart()).unwrap(), "cart");
       await withTimeout(store.dispatch(getMyOrders()).unwrap(), "orders");

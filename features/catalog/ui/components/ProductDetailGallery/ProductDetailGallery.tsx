@@ -1,21 +1,23 @@
 import { ProgressIndicator } from "@/features/home/ui/components/AutoSlider/ProgressIndicator";
 import { useIsFocused } from "@react-navigation/native";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  FlatList,
   LayoutChangeEvent,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   StyleSheet,
   TouchableOpacity,
   View,
 } from "react-native";
-import PagerView, {
-  PagerViewOnPageSelectedEvent,
-} from "react-native-pager-view";
 import {
   GALLERY_HEIGHT,
   ProductDetailGallerySlide,
 } from "./ProductDetailGallerySlide";
+import { ProductImageViewer } from "./ProductImageViewer";
 import {
   ProductDetailGalleryProps,
+  ProductGalleryItem,
 } from "./productDetailGalleryTypes";
 
 export type { ProductGalleryItem } from "./productDetailGalleryTypes";
@@ -30,12 +32,12 @@ export const ProductDetailGallery: React.FC<ProductDetailGalleryProps> = ({
   showIndicators = true,
   isActive = true,
 }) => {
-  const galleryItems = React.useMemo(
+  const galleryItems = useMemo(
     () => (items.length > 0 ? items : [...PLACEHOLDER_GALLERY_ITEMS]),
     [items],
   );
 
-  const galleryItemsKey = React.useMemo(
+  const galleryItemsKey = useMemo(
     () => galleryItems.map((item) => item.id).join("|"),
     [galleryItems],
   );
@@ -43,9 +45,11 @@ export const ProductDetailGallery: React.FC<ProductDetailGalleryProps> = ({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(autoPlayInterval > 0);
   const [galleryWidth, setGalleryWidth] = useState(0);
+  const [viewerVisible, setViewerVisible] = useState(false);
+  const [viewerIndex, setViewerIndex] = useState(0);
   const isScreenFocused = useIsFocused();
 
-  const pagerRef = useRef<PagerView>(null);
+  const flatListRef = useRef<FlatList<ProductGalleryItem>>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const resumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isUserInteractingRef = useRef(false);
@@ -56,6 +60,8 @@ export const ProductDetailGallery: React.FC<ProductDetailGalleryProps> = ({
 
   currentIndexRef.current = currentIndex;
   galleryWidthRef.current = galleryWidth;
+
+  const canUseCarousel = isActive && isScreenFocused;
 
   const setCurrentIndexSafe = useCallback((index: number) => {
     if (isMountedRef.current) {
@@ -95,15 +101,44 @@ export const ProductDetailGallery: React.FC<ProductDetailGalleryProps> = ({
     }, 2000);
   }, [autoPlayInterval, setIsAutoPlayingSafe]);
 
-  const canUsePager = isActive && isScreenFocused;
-
-  const goToPage = useCallback(
-    (index: number) => {
-      if (!isMountedRef.current || !isActive || !isScreenFocused) return;
+  const scrollToPage = useCallback(
+    (index: number, animated = true) => {
+      if (!isMountedRef.current || !canUseCarousel || galleryWidthRef.current <= 0) {
+        return;
+      }
       const safeIndex = clampIndex(index);
-      pagerRef.current?.setPage(safeIndex);
+      flatListRef.current?.scrollToOffset({
+        offset: galleryWidthRef.current * safeIndex,
+        animated,
+      });
     },
-    [clampIndex, isActive, isScreenFocused],
+    [canUseCarousel, clampIndex],
+  );
+
+  const openViewer = useCallback(
+    (index: number) => {
+      isUserInteractingRef.current = true;
+      setIsAutoPlayingSafe(false);
+      clearAutoplayTimer();
+      setViewerIndex(clampIndex(index));
+      setViewerVisible(true);
+    },
+    [clampIndex, clearAutoplayTimer, setIsAutoPlayingSafe],
+  );
+
+  const closeViewer = useCallback(() => {
+    setViewerVisible(false);
+    scheduleResumeAutoplay();
+  }, [scheduleResumeAutoplay]);
+
+  const handleViewerIndexChange = useCallback(
+    (index: number) => {
+      const safeIndex = clampIndex(index);
+      setViewerIndex(safeIndex);
+      setCurrentIndexSafe(safeIndex);
+      scrollToPage(safeIndex, false);
+    },
+    [clampIndex, scrollToPage, setCurrentIndexSafe],
   );
 
   const goToNextSlide = useCallback(() => {
@@ -111,7 +146,8 @@ export const ProductDetailGallery: React.FC<ProductDetailGalleryProps> = ({
       autoPlayInterval <= 0 ||
       galleryItems.length <= 1 ||
       isUserInteractingRef.current ||
-      !canUsePager
+      !canUseCarousel ||
+      viewerVisible
     ) {
       return;
     }
@@ -120,13 +156,14 @@ export const ProductDetailGallery: React.FC<ProductDetailGalleryProps> = ({
         ? currentIndexRef.current + 1
         : 0;
     setCurrentIndexSafe(nextIndex);
-    goToPage(nextIndex);
+    scrollToPage(nextIndex);
   }, [
     autoPlayInterval,
-    goToPage,
-    canUsePager,
+    canUseCarousel,
     galleryItems.length,
+    scrollToPage,
     setCurrentIndexSafe,
+    viewerVisible,
   ]);
 
   const handleLayout = useCallback((event: LayoutChangeEvent) => {
@@ -149,7 +186,7 @@ export const ProductDetailGallery: React.FC<ProductDetailGalleryProps> = ({
   }, [clearAutoplayTimer]);
 
   useEffect(() => {
-    if (!isActive || !isScreenFocused) {
+    if (!canUseCarousel) {
       isUserInteractingRef.current = false;
       clearAutoplayTimer();
       if (resumeTimerRef.current) {
@@ -157,14 +194,15 @@ export const ProductDetailGallery: React.FC<ProductDetailGalleryProps> = ({
         resumeTimerRef.current = null;
       }
     }
-  }, [clearAutoplayTimer, isActive, isScreenFocused]);
+  }, [canUseCarousel, clearAutoplayTimer]);
 
   useEffect(() => {
     clearAutoplayTimer();
     if (
       autoPlayInterval > 0 &&
       isAutoPlaying &&
-      canUsePager &&
+      canUseCarousel &&
+      !viewerVisible &&
       galleryItems.length > 1 &&
       !isUserInteractingRef.current
     ) {
@@ -177,8 +215,9 @@ export const ProductDetailGallery: React.FC<ProductDetailGalleryProps> = ({
     currentIndex,
     goToNextSlide,
     isAutoPlaying,
-    canUsePager,
+    canUseCarousel,
     galleryItems.length,
+    viewerVisible,
   ]);
 
   useEffect(() => {
@@ -189,44 +228,40 @@ export const ProductDetailGallery: React.FC<ProductDetailGalleryProps> = ({
     isUserInteractingRef.current = false;
     setIsAutoPlayingSafe(autoPlayInterval > 0);
     requestAnimationFrame(() => {
-      if (!isMountedRef.current || !isActive || !isScreenFocused) return;
-      pagerRef.current?.setPageWithoutAnimation(0);
+      if (!isMountedRef.current || !canUseCarousel) return;
+      flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
     });
   }, [
     autoPlayInterval,
+    canUseCarousel,
     galleryItemsKey,
-    isActive,
-    isScreenFocused,
     setCurrentIndexSafe,
     setIsAutoPlayingSafe,
   ]);
 
-  const handlePageScrollStateChanged = useCallback(
-    (state: "idle" | "dragging" | "settling") => {
-      if (state === "dragging") {
-        if (resumeTimerRef.current) {
-          clearTimeout(resumeTimerRef.current);
-          resumeTimerRef.current = null;
-        }
-        isUserInteractingRef.current = true;
-        setIsAutoPlayingSafe(false);
-        clearAutoplayTimer();
-        return;
-      }
+  const handleScrollBegin = useCallback(() => {
+    if (resumeTimerRef.current) {
+      clearTimeout(resumeTimerRef.current);
+      resumeTimerRef.current = null;
+    }
+    isUserInteractingRef.current = true;
+    setIsAutoPlayingSafe(false);
+    clearAutoplayTimer();
+  }, [clearAutoplayTimer, setIsAutoPlayingSafe]);
 
-      if (state === "idle") {
-        scheduleResumeAutoplay();
-      }
-    },
-    [clearAutoplayTimer, scheduleResumeAutoplay, setIsAutoPlayingSafe],
-  );
+  const handleScrollEnd = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const pageWidth =
+        event.nativeEvent.layoutMeasurement.width || galleryWidthRef.current;
+      if (pageWidth <= 0) return;
 
-  const handlePageSelected = useCallback(
-    (event: PagerViewOnPageSelectedEvent) => {
-      const index = clampIndex(event.nativeEvent.position);
+      const index = clampIndex(
+        Math.round(event.nativeEvent.contentOffset.x / pageWidth),
+      );
       setCurrentIndexSafe(index);
+      scheduleResumeAutoplay();
     },
-    [clampIndex, setCurrentIndexSafe],
+    [clampIndex, scheduleResumeAutoplay, setCurrentIndexSafe],
   );
 
   const handleIndicatorPress = useCallback(
@@ -236,7 +271,7 @@ export const ProductDetailGallery: React.FC<ProductDetailGalleryProps> = ({
       isUserInteractingRef.current = true;
       setIsAutoPlayingSafe(false);
       setCurrentIndexSafe(index);
-      goToPage(index);
+      scrollToPage(index);
 
       if (resumeTimerRef.current) {
         clearTimeout(resumeTimerRef.current);
@@ -248,12 +283,39 @@ export const ProductDetailGallery: React.FC<ProductDetailGalleryProps> = ({
         setIsAutoPlayingSafe(true);
       }, 3000);
     },
-    [autoPlayInterval, goToPage, setCurrentIndexSafe, setIsAutoPlayingSafe],
+    [autoPlayInterval, scrollToPage, setCurrentIndexSafe, setIsAutoPlayingSafe],
+  );
+
+  const renderItem = useCallback(
+    ({ item, index }: { item: ProductGalleryItem; index: number }) => (
+      <ProductDetailGallerySlide
+        slideId={item.id}
+        imageUrl={item.imageUrl}
+        pageWidth={galleryWidth}
+        onPress={() => openViewer(index)}
+      />
+    ),
+    [galleryWidth, openViewer],
+  );
+
+  const keyExtractor = useCallback(
+    (item: ProductGalleryItem, index: number) =>
+      item.id || `gallery-slide-${index}`,
+    [],
+  );
+
+  const getItemLayout = useCallback(
+    (_: ArrayLike<ProductGalleryItem> | null | undefined, index: number) => ({
+      length: galleryWidth,
+      offset: galleryWidth * index,
+      index,
+    }),
+    [galleryWidth],
   );
 
   const activeSlide = galleryItems[clampIndex(currentIndex)] ?? galleryItems[0];
 
-  if (!canUsePager) {
+  if (!canUseCarousel) {
     return (
       <View style={styles.container} onLayout={handleLayout}>
         {galleryWidth > 0 && activeSlide ? (
@@ -267,9 +329,17 @@ export const ProductDetailGallery: React.FC<ProductDetailGalleryProps> = ({
               slideId={activeSlide.id}
               imageUrl={activeSlide.imageUrl}
               pageWidth={galleryWidth}
+              onPress={() => openViewer(clampIndex(currentIndex))}
             />
           </View>
         ) : null}
+        <ProductImageViewer
+          visible={viewerVisible}
+          items={galleryItems}
+          initialIndex={viewerIndex}
+          onClose={closeViewer}
+          onIndexChange={handleViewerIndexChange}
+        />
       </View>
     );
   }
@@ -277,31 +347,25 @@ export const ProductDetailGallery: React.FC<ProductDetailGalleryProps> = ({
   return (
     <View style={styles.container} onLayout={handleLayout}>
       {galleryWidth > 0 ? (
-        <PagerView
+        <FlatList
           key={`product-gallery-${galleryItemsKey}`}
-          ref={pagerRef}
-          style={[styles.pager, { width: galleryWidth, height: GALLERY_HEIGHT }]}
-          initialPage={0}
-          offscreenPageLimit={1}
-          overdrag={false}
-          onPageScrollStateChanged={(event) =>
-            handlePageScrollStateChanged(event.nativeEvent.pageScrollState)
-          }
-          onPageSelected={handlePageSelected}
-        >
-          {galleryItems.map((item) => (
-            <View
-              key={item.id}
-              style={[styles.page, { width: galleryWidth, height: GALLERY_HEIGHT }]}
-            >
-              <ProductDetailGallerySlide
-                slideId={item.id}
-                imageUrl={item.imageUrl}
-                pageWidth={galleryWidth}
-              />
-            </View>
-          ))}
-        </PagerView>
+          ref={flatListRef}
+          data={galleryItems}
+          renderItem={renderItem}
+          keyExtractor={keyExtractor}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          onScrollBeginDrag={handleScrollBegin}
+          onMomentumScrollEnd={handleScrollEnd}
+          onScrollEndDrag={handleScrollEnd}
+          scrollEventThrottle={16}
+          bounces={false}
+          decelerationRate="fast"
+          nestedScrollEnabled
+          getItemLayout={getItemLayout}
+          style={{ width: galleryWidth, height: GALLERY_HEIGHT }}
+        />
       ) : null}
 
       {showIndicators && galleryItems.length > 1 ? (
@@ -318,7 +382,9 @@ export const ProductDetailGallery: React.FC<ProductDetailGalleryProps> = ({
                   index={index}
                   currentIndex={currentIndex}
                   autoPlayInterval={autoPlayInterval}
-                  isPlaying={isAutoPlaying && isScreenFocused}
+                  isPlaying={
+                    isAutoPlaying && isScreenFocused && !viewerVisible
+                  }
                   variant="product"
                 />
               </TouchableOpacity>
@@ -326,6 +392,14 @@ export const ProductDetailGallery: React.FC<ProductDetailGalleryProps> = ({
           </View>
         </View>
       ) : null}
+
+      <ProductImageViewer
+        visible={viewerVisible}
+        items={galleryItems}
+        initialIndex={viewerIndex}
+        onClose={closeViewer}
+        onIndexChange={handleViewerIndexChange}
+      />
     </View>
   );
 };
@@ -335,9 +409,6 @@ const styles = StyleSheet.create({
     width: "100%",
     height: GALLERY_HEIGHT,
     alignSelf: "stretch",
-  },
-  pager: {
-    flex: 1,
   },
   page: {
     alignSelf: "stretch",

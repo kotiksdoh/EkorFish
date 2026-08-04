@@ -1,7 +1,7 @@
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Image } from "expo-image";
 import React, { useEffect, useRef, useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 
 export const GALLERY_HEIGHT = 282;
 const PLACEHOLDER_IMAGE = require("@/assets/icons/png/noImage.png");
@@ -16,12 +16,14 @@ interface ProductDetailGallerySlideProps {
   slideId: string;
   imageUrl: string;
   pageWidth: number;
+  onPress?: () => void;
 }
 
 const ProductDetailGallerySlideComponent: React.FC<ProductDetailGallerySlideProps> = ({
   slideId,
   imageUrl,
   pageWidth,
+  onPress,
 }) => {
   const colorScheme = useColorScheme();
   const isDarkMode = colorScheme === "dark";
@@ -43,7 +45,11 @@ const ProductDetailGallerySlideComponent: React.FC<ProductDetailGallerySlideProp
   }, [imageUrl]);
 
   return (
-    <View style={[styles.slide, { width: pageWidth, height: GALLERY_HEIGHT }]}>
+    <Pressable
+      style={[styles.slide, { width: pageWidth, height: GALLERY_HEIGHT }]}
+      onPress={onPress}
+      disabled={!onPress || !hasRemoteImage}
+    >
       <View
         style={[
           styles.imageFrame,
@@ -64,7 +70,7 @@ const ProductDetailGallerySlideComponent: React.FC<ProductDetailGallerySlideProp
           }}
         />
       </View>
-    </View>
+    </Pressable>
   );
 };
 
@@ -73,7 +79,8 @@ export const ProductDetailGallerySlide = React.memo(
   (prev, next) =>
     prev.slideId === next.slideId &&
     prev.imageUrl === next.imageUrl &&
-    prev.pageWidth === next.pageWidth,
+    prev.pageWidth === next.pageWidth &&
+    prev.onPress === next.onPress,
 );
 
 const styles = StyleSheet.create({

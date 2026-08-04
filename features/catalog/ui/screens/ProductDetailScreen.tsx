@@ -2,6 +2,7 @@ import { CheckCircleIcon, CloseCircleIcon } from "@/assets/icons/icons";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { useAuthGate } from "@/features/auth/hooks/useAuthGate";
+import { selectEffectiveStorageId } from "@/features/auth/selectors";
 import { ModalHeader } from "@/features/auth/ui/Header";
 import {
   AddToCart,
@@ -76,7 +77,7 @@ export function ProductDetailScreen() {
   const [quantity, setQuantity] = useState(0);
   const [selectedTab, setSelectedTab] = useState<
     "description" | "characteristics"
-  >("description");
+  >("characteristics");
   const [tabContainerWidth, setTabContainerWidth] = useState(0);
   const [tabAnim] = useState(new Animated.Value(0));
   const [isCartModalVisible, setIsCartModalVisible] = useState(false);
@@ -104,6 +105,7 @@ export function ProductDetailScreen() {
   const cartItems = useAppSelector((state) => state.catalog.cart);
   const me = useAppSelector((state) => state.auth.me);
   const orderData = useAppSelector((state) => state.catalog.order);
+  const effectiveStorageId = useAppSelector(selectEffectiveStorageId);
 
   const product = useMemo(() => {
     if (!productId || String(activeProductId) !== String(productId)) {
@@ -137,7 +139,8 @@ export function ProductDetailScreen() {
       if (productId) {
         setIsExpanded(false);
         setSelectedPurchaseOptionIndex(0);
-        setSelectedTab("description");
+        setSelectedTab("characteristics");
+        tabAnim.setValue(0);
         setIsCartModalVisible(false);
         setExistingCartItem(null);
 
@@ -184,13 +187,13 @@ export function ProductDetailScreen() {
         categoryId: product.categoryId
           ? String(product.categoryId)
           : undefined,
-        storageId: me?.storageId ? String(me.storageId) : undefined,
+        storageId: effectiveStorageId || undefined,
       }),
     );
   }, [
     activeProductId,
     dispatch,
-    me?.storageId,
+    effectiveStorageId,
     product?.categoryId,
     product?.id,
     productId,
@@ -519,7 +522,7 @@ export function ProductDetailScreen() {
 
   const handleTabChange = (tab: "description" | "characteristics") => {
     Animated.spring(tabAnim, {
-      toValue: tab === "description" ? 0 : 1,
+      toValue: tab === "characteristics" ? 0 : 1,
       useNativeDriver: false,
       tension: 50,
       friction: 7,
@@ -820,30 +823,6 @@ export function ProductDetailScreen() {
                 <TouchableOpacity
                   style={[
                     styles.tabButton,
-                    selectedTab === "description" && styles.activeTabButton,
-                  ]}
-                  onPress={() => handleTabChange("description")}
-                  activeOpacity={0.7}
-                >
-                  <ThemedText
-                    style={[
-                      styles.tabText,
-                      selectedTab === "description" && styles.activeTabText,
-                    ]}
-                    lightColor={
-                      selectedTab === "description" ? "#1B1B1C" : "#80818B"
-                    }
-                    darkColor={
-                      selectedTab === "description" ? "#FBFCFF" : "#FBFCFF80"
-                    }
-                  >
-                    Описание
-                  </ThemedText>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[
-                    styles.tabButton,
                     selectedTab === "characteristics" && styles.activeTabButton,
                   ]}
                   onPress={() => handleTabChange("characteristics")}
@@ -866,28 +845,34 @@ export function ProductDetailScreen() {
                     Характеристика
                   </ThemedText>
                 </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.tabButton,
+                    selectedTab === "description" && styles.activeTabButton,
+                  ]}
+                  onPress={() => handleTabChange("description")}
+                  activeOpacity={0.7}
+                >
+                  <ThemedText
+                    style={[
+                      styles.tabText,
+                      selectedTab === "description" && styles.activeTabText,
+                    ]}
+                    lightColor={
+                      selectedTab === "description" ? "#1B1B1C" : "#80818B"
+                    }
+                    darkColor={
+                      selectedTab === "description" ? "#FBFCFF" : "#FBFCFF80"
+                    }
+                  >
+                    Описание
+                  </ThemedText>
+                </TouchableOpacity>
               </ThemedView>
 
               <View style={styles.tabContent}>
-                {selectedTab === "description" ? (
-                  product?.description ? (
-                    <ThemedText
-                      style={styles.descriptionText}
-                      lightColor="#1B1B1C"
-                      darkColor="#FBFCFF"
-                    >
-                      {product.description}
-                    </ThemedText>
-                  ) : (
-                    <ThemedText
-                      style={styles.descriptionText}
-                      lightColor="#80818B"
-                      darkColor="#FBFCFF80"
-                    >
-                      Описание товара отсутствует
-                    </ThemedText>
-                  )
-                ) : (
+                {selectedTab === "characteristics" ? (
                   <View style={styles.characteristicsContainer}>
                     <View style={styles.dates}>
                       <View style={styles.onceDate}>
@@ -971,6 +956,22 @@ export function ProductDetailScreen() {
                       </ThemedText>
                     )}
                   </View>
+                ) : product?.description ? (
+                  <ThemedText
+                    style={styles.descriptionText}
+                    lightColor="#1B1B1C"
+                    darkColor="#FBFCFF"
+                  >
+                    {product.description}
+                  </ThemedText>
+                ) : (
+                  <ThemedText
+                    style={styles.descriptionText}
+                    lightColor="#80818B"
+                    darkColor="#FBFCFF80"
+                  >
+                    Описание товара отсутствует
+                  </ThemedText>
                 )}
               </View>
             </ThemedView>

@@ -3,6 +3,7 @@ import { SortIcon } from "@/assets/icons/icons";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { useAuthGate } from "@/features/auth/hooks/useAuthGate";
+import { selectEffectiveStorageId } from "@/features/auth/selectors";
 import { ModalHeader } from "@/features/auth/ui/Header";
 import SearchInput from "@/features/auth/ui/components/SearchInput";
 import {
@@ -194,7 +195,7 @@ export default function HeartScreen() {
     ).length;
   };
 
-  const me = useAppSelector((state) => state.auth.me);
+  const effectiveStorageId = useAppSelector(selectEffectiveStorageId);
 
   // Загрузка продуктов ИЗБРАННОГО
   const loadProducts = useCallback(
@@ -216,7 +217,7 @@ export default function HeartScreen() {
           isFavorite: true,
           offset: isLoadMore ? products.length : 0,
           count: pageSize,
-          storageId: me?.storageId,
+          storageId: effectiveStorageId || undefined,
           isPromo: false,
         };
 
@@ -266,7 +267,7 @@ export default function HeartScreen() {
     [
       dispatch,
       hasMore,
-      me?.storageId,
+      effectiveStorageId,
       priceRange,
       products.length,
       searchQuery,

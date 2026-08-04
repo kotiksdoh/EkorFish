@@ -5,6 +5,7 @@ import { axdef } from "@/features/shared/services/axios";
 import { adaptProductsArray } from "@/features/shared/services/productAdapter";
 import { ProductCard } from "@/features/shared/ui/ProductCard";
 import { PrimaryButton } from "@/features/shared/ui/components/PrimartyButton";
+import { selectEffectiveStorageId } from "@/features/auth/selectors";
 import { useAppSelector } from "@/store/hooks";
 import { useRouter } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
@@ -32,7 +33,7 @@ function SpecialOffersComponent({
   returnTo = "home",
 }: SpecialOffersProps) {
   const router = useRouter();
-  const me = useAppSelector((state) => state.auth.me);
+  const effectiveStorageId = useAppSelector(selectEffectiveStorageId);
   const [promoProducts, setPromoProducts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -49,8 +50,8 @@ function SpecialOffersComponent({
         params.append("isPromo", "true");
         params.append("offset", "0");
         params.append("count", "10");
-        if (me?.storageId) {
-          params.append("storageId", String(me.storageId));
+        if (effectiveStorageId) {
+          params.append("storageId", String(effectiveStorageId));
         }
 
         const response = await axdef.get("/api/Catalog/product/list", {
@@ -80,7 +81,7 @@ function SpecialOffersComponent({
     return () => {
       isMounted = false;
     };
-  }, [me?.storageId]);
+  }, [effectiveStorageId]);
 
   const hasProducts = useMemo(() => promoProducts.length > 0, [promoProducts.length]);
 

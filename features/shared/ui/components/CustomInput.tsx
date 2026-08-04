@@ -86,6 +86,7 @@ const AnimatedTextInput: React.FC<AnimatedTextInputProps> = ({
   };
 
   const handleContainerPress = () => {
+    if (disabled) return;
     if (multiline && isFocused) {
       inputRef.current?.blur();
       return;
@@ -94,6 +95,7 @@ const AnimatedTextInput: React.FC<AnimatedTextInputProps> = ({
   };
 
   const handleChangeText = (text: string) => {
+    if (disabled) return;
     if (onChangeText) {
       onChangeText(text);
     }
@@ -133,6 +135,7 @@ const AnimatedTextInput: React.FC<AnimatedTextInputProps> = ({
           multiline && styles.containerMultiline,
           style,
           { backgroundColor: isDarkMode ? '#ECEFFA0D' : '#03051E08' },
+          disabled && styles.containerDisabled,
         ]}
       >
         <Animated.Text
@@ -161,6 +164,7 @@ const AnimatedTextInput: React.FC<AnimatedTextInputProps> = ({
           onFocus={handleFocus}
           onBlur={handleBlur}
           maxLength={maxLength}
+          editable={!disabled}
           textAlignVertical={multiline ? "top" : "center"}
           multiline={multiline}
           blurOnSubmit={!multiline}
@@ -185,6 +189,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     position: 'relative',
     overflow: 'hidden',
+  },
+  containerDisabled: {
+    opacity: 0.5,
   },
   containerMultiline: {
     height: undefined,

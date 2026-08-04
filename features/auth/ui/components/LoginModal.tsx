@@ -21,6 +21,13 @@ import ManagerSection from "@/features/shared/ui/ManagerSection";
 import SmartInput from "@/features/shared/ui/components/SmartInput";
 import { formatPhoneDisplay } from "@/features/shared/utils/phoneLinking";
 import { getSupportContactsFromParams } from "@/features/shared/utils/supportParams";
+import {
+  isCompanyTaxIdsValid,
+  isKppRequired,
+  isValidInn,
+  sanitizeInn,
+  sanitizeKpp,
+} from "@/features/shared/utils/companyTaxIds";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { syncPushTokenToBackend } from "@/hooks/usePushNotifications";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -34,6 +41,7 @@ import {
 import {
   compliteCompany,
   compliteProfile,
+  flushPendingStorageId,
   getCode,
   getMyInfo,
   getMyParams,
@@ -121,6 +129,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   const loading = useAppSelector((state) => state.auth.isLoading);
   const runPostLoginRequests = async () => {
     try {
+      await dispatch(flushPendingStorageId());
       await dispatch(getMyParams("")).unwrap();
       await dispatch(getCart()).unwrap();
       await dispatch(getMyOrders()).unwrap();
@@ -450,12 +459,18 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   };
 
   const handleAcceptCompany = () => {
+    const nextInn = sanitizeInn(inn);
+    const nextKpp = isKppRequired(nextInn) ? sanitizeKpp(kpp) : "";
+    if (!isCompanyTaxIdsValid(nextInn, nextKpp)) {
+      return;
+    }
+
     dispatch(
       compliteCompany({
         name: orgName,
-        inn: inn,
+        inn: nextInn,
         foundationDate: dateCreated,
-        kpp: kpp,
+        kpp: nextKpp,
         legalAddress: legalAddress,
         contactPerson: contactPerson,
       }),
@@ -1037,9 +1052,9 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                     placeholder="ИНН"
                     placeholderTextColor="#80818B"
                     value={inn}
-                    onChangeText={setInn}
-                    maxLength={10}
-                    // keyboardType="phone-pad"
+                    onChangeText={(text) => setInn(sanitizeInn(text))}
+                    maxLength={12}
+                    keyboardType="number-pad"
                     // autoFocus={true} // Автофокус на поле
                   />
                 </View>
@@ -1075,7 +1090,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                     loading={loading}
                     activeOpacity={0.8}
                     fullWidth
-                    disabled={loading || inn.length < 10}
+                    disabled={loading || !isValidInn(inn)}
                     style={stylesAccType.continueButton}
                   />
                 </View>
@@ -1271,15 +1286,24 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                     placeholder="ИНН"
                     placeholderTextColor="#80818B"
                     value={inn}
-                    onChangeText={setInn}
-                    maxLength={10}
-                    // keyboardType="phone-pad"
+                    onChangeText={(text) => {
+                      const nextInn = sanitizeInn(text);
+                      setInn(nextInn);
+                      if (!isKppRequired(nextInn)) {
+                        setKpp("");
+                      }
+                    }}
+                    maxLength={12}
+                    keyboardType="number-pad"
                   />
                   <AnimatedTextInput
                     placeholder="КПП"
                     placeholderTextColor="#80818B"
                     value={kpp}
-                    onChangeText={setKpp}
+                    onChangeText={(text) => setKpp(sanitizeKpp(text))}
+                    maxLength={9}
+                    autoCapitalize="characters"
+                    disabled={!isKppRequired(inn)}
                   />
                   <AnimatedTextInput
                     placeholder="Юридический адрес"
@@ -1312,8 +1336,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                   fullWidth
                   disabled={
                     !orgName ||
-                    !inn ||
-                    !kpp ||
+                    !isCompanyTaxIdsValid(inn, kpp) ||
                     !legalAddress ||
                     !contactPerson ||
                     !dateCreated ||

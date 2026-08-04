@@ -15,6 +15,12 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import AnimatedTextInput from "./components/CustomInput";
 import { DatePickerWithIcon } from "./components/DatePickerCustom";
 import { PrimaryButton } from "./components/PrimartyButton";
+import {
+  isCompanyTaxIdsValid,
+  isKppRequired,
+  sanitizeInn,
+  sanitizeKpp,
+} from "@/features/shared/utils/companyTaxIds";
 
 interface CompanySelectModalProps {
   visible: boolean;
@@ -118,12 +124,18 @@ export const CompanySelectModal: React.FC<CompanySelectModalProps> = ({
   }, [visible, currentScreen, dispatch]);
 
   const handleAcceptCompany = () => {
+    const nextInn = sanitizeInn(inn);
+    const nextKpp = isKppRequired(nextInn) ? sanitizeKpp(kpp) : "";
+    if (!isCompanyTaxIdsValid(nextInn, nextKpp)) {
+      return;
+    }
+
     dispatch(
       compliteCompany({
         name: orgName,
-        inn: inn,
+        inn: nextInn,
         foundationDate: dateCreated,
-        kpp: kpp,
+        kpp: nextKpp,
         legalAddress: legalAddress,
         contactPerson: contactPerson,
       }),
@@ -429,15 +441,24 @@ const [contactPerson, setContactPerson] = useState('') */}
                   placeholder="ИНН"
                   placeholderTextColor="#80818B"
                   value={inn}
-                  onChangeText={setInn}
-                  maxLength={10}
-                  // keyboardType="phone-pad"
+                  onChangeText={(text) => {
+                    const nextInn = sanitizeInn(text);
+                    setInn(nextInn);
+                    if (!isKppRequired(nextInn)) {
+                      setKpp("");
+                    }
+                  }}
+                  maxLength={12}
+                  keyboardType="number-pad"
                 />
                 <AnimatedTextInput
                   placeholder="КПП"
                   placeholderTextColor="#80818B"
                   value={kpp}
-                  onChangeText={setKpp}
+                  onChangeText={(text) => setKpp(sanitizeKpp(text))}
+                  maxLength={9}
+                  autoCapitalize="characters"
+                  disabled={!isKppRequired(inn)}
                 />
                 <AnimatedTextInput
                   placeholder="Юридический адрес"
@@ -476,8 +497,7 @@ const [contactPerson, setContactPerson] = useState('') */}
               fullWidth
               disabled={
                 !orgName ||
-                !inn ||
-                !kpp ||
+                !isCompanyTaxIdsValid(inn, kpp) ||
                 !legalAddress ||
                 !contactPerson ||
                 !dateCreated ||

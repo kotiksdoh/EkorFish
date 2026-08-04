@@ -4,9 +4,14 @@ import { ThemedView } from "@/components/themed-view";
 import {
   getPushSettings,
   getQuietPeriodSettings,
+  getTowns,
   updatePushPreference,
   updateQuietPeriodSettings,
 } from "@/features/auth/authSlice";
+import {
+  selectEffectiveStorageId,
+  selectTownNameByStorageId,
+} from "@/features/auth/selectors";
 import { ModalHeader } from "@/features/auth/ui/Header";
 import { useKeyboardAwareScroll } from "@/features/shared/hooks/useKeyboardAwareScroll";
 import {
@@ -22,8 +27,10 @@ import {
   isValidQuietTime,
 } from "@/features/shared/types/quietPeriodSettings";
 import { AppModal } from "@/features/shared/ui/AppModal";
+import { TownSelectionModal } from "@/features/shared/ui/TownSelectionModal";
 import { useAppTheme } from "@/hooks/use-theme-color";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -693,10 +700,26 @@ export const MySettingsModal: React.FC<MySettingsProps> = ({
   const { themeMode, setThemeMode, isDark } = useAppTheme();
   const [showNotifications, setShowNotifications] = useState<boolean>(false);
   const [showPrivacy, setShowPrivacy] = useState<boolean>(false);
+  const [showTownModal, setShowTownModal] = useState(false);
+  const [hasAuthToken, setHasAuthToken] = useState(false);
+  const dispatch = useAppDispatch();
+  const effectiveStorageId = useAppSelector(selectEffectiveStorageId);
+  const selectedTownName = useAppSelector((state) =>
+    selectTownNameByStorageId(state, effectiveStorageId),
+  );
+
+  useEffect(() => {
+    if (!visible) return;
+    void AsyncStorage.getItem("token").then((token) => {
+      setHasAuthToken(Boolean(token));
+    });
+    dispatch(getTowns());
+  }, [visible, dispatch]);
 
   const handleCloseAll = () => {
     setShowNotifications(false);
     setShowPrivacy(false);
+    setShowTownModal(false);
     onClose();
   };
 
@@ -741,6 +764,7 @@ export const MySettingsModal: React.FC<MySettingsProps> = ({
   }
 
   return (
+    <>
     <AppModal
       animationType="slide"
       transparent={true}
@@ -764,6 +788,40 @@ export const MySettingsModal: React.FC<MySettingsProps> = ({
           darkColor="#151516"
           style={[styles.paymentsPreviewContainer, { flex: 1 }]}
         >
+          <ThemedText style={styles.titleBlock} lightColor="#1B1B1C" darkColor="#FBFCFF">
+            Город
+          </ThemedText>
+
+          <TouchableOpacity
+            onPress={() => setShowTownModal(true)}
+            activeOpacity={0.7}
+          >
+            <View style={styles.documentRow}>
+              <View style={{ flex: 1, paddingRight: 12 }}>
+                <ThemedText style={styles.menuText} lightColor="#1B1B1C" darkColor="#FBFCFF">
+                  {selectedTownName || "Выберите город"}
+                </ThemedText>
+                {!effectiveStorageId ? (
+                  <ThemedText
+                    style={styles.cityHint}
+                    lightColor="#80818B"
+                    darkColor="#FBFCFF80"
+                  >
+                    Нужен для отображения наличия товаров
+                  </ThemedText>
+                ) : null}
+              </View>
+              <ArrowIconRight />
+            </View>
+          </TouchableOpacity>
+
+          <View
+            style={[
+              styles.divider,
+              { backgroundColor: isDark ? "#252527" : "#F0F3F7" },
+            ]}
+          />
+
           <ThemedText style={styles.titleBlock} lightColor="#1B1B1C" darkColor="#FBFCFF">
             Внешний вид
           </ThemedText>
@@ -852,6 +910,17 @@ export const MySettingsModal: React.FC<MySettingsProps> = ({
         </ThemedView>
       </ThemedView>
     </AppModal>
+
+    <TownSelectionModal
+      visible={showTownModal}
+      onClose={() => setShowTownModal(false)}
+      storageId={effectiveStorageId || ""}
+      localOnly={!hasAuthToken}
+      onTownSelected={() => {
+        setShowTownModal(false);
+      }}
+    />
+    </>
   );
 };
 
@@ -932,6 +1001,11 @@ const styles = StyleSheet.create({
   menuText:{
     fontWeight: '500',
     fontSize: 16
+  },
+  cityHint: {
+    marginTop: 2,
+    fontSize: 13,
+    lineHeight: 18,
   },
   titleBlock:{
     fontWeight: "600",

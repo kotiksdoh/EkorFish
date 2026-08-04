@@ -13,6 +13,11 @@ import {
 } from "./services/pendingAuthTokens";
 import type { OrderReminderSettings } from "@/features/shared/types/orderReminderSettings";
 import type { QuietPeriodSettings } from "@/features/shared/types/quietPeriodSettings";
+import {
+  clearPendingTownId,
+  getPendingTownId,
+  setPendingTownId,
+} from "@/features/shared/utils/pendingTownStorage";
 
 interface AuthState {
   user: any | null;
@@ -29,6 +34,8 @@ interface AuthState {
   predUserData: any;
   towns: Town[];
   isLoadingTowns: boolean;
+  /** Локально выбранный город до логина (AsyncStorage). */
+  pendingStorageId: string | null;
   currentCompany: any;
 
   bonusHistory: any[];
@@ -119,6 +126,7 @@ const initialState: AuthState = {
   predUserData: null,
   towns: [],
   isLoadingTowns: false,
+  pendingStorageId: null,
   currentCompany: null as any,
 
   bonusHistory: [],
@@ -338,9 +346,48 @@ export const updateUserTown = createAsyncThunk(
   async (payload: UpdateTownPayload, { rejectWithValue }) => {
     try {
       const data = await axdef.put(`/api/Account/town/${payload.storageId}`);
+      await clearPendingTownId();
       return data;
     } catch (error) {
       console.log(error);
+      return rejectWithValue(error);
+    }
+  },
+);
+
+export const hydratePendingStorageId = createAsyncThunk(
+  "user/hydratePendingStorageId",
+  async () => {
+    return await getPendingTownId();
+  },
+);
+
+export const savePendingStorageId = createAsyncThunk(
+  "user/savePendingStorageId",
+  async (storageId: string) => {
+    const normalized = String(storageId);
+    await setPendingTownId(normalized);
+    return normalized;
+  },
+);
+
+/** После логина/регистрации отправляет город из AsyncStorage на сервер. */
+export const flushPendingStorageId = createAsyncThunk(
+  "user/flushPendingStorageId",
+  async (_, { dispatch, getState, rejectWithValue }) => {
+    try {
+      const state = getState() as TRootState;
+      const pending =
+        state.auth.pendingStorageId || (await getPendingTownId());
+      if (!pending) {
+        return null;
+      }
+
+      await dispatch(updateUserTown({ storageId: pending })).unwrap();
+      await clearPendingTownId();
+      await dispatch(getMyInfo("")).unwrap();
+      return pending;
+    } catch (error) {
       return rejectWithValue(error);
     }
   },
@@ -729,6 +776,15 @@ const authSlice = createSlice({
   initialState,
   reducers: {
     clearAuthState: (state) => {
+      const profileStorageId = state.me?.storageId
+        ? String(state.me.storageId)
+        : null;
+      const pendingStorageId =
+        profileStorageId || state.pendingStorageId || null;
+      if (pendingStorageId) {
+        void setPendingTownId(pendingStorageId);
+      }
+
       const preserved = {
         categories: state.categories,
         sliders: state.sliders,
@@ -736,8 +792,12 @@ const authSlice = createSlice({
         searchHintsLower: state.searchHintsLower,
         bootstrapStatus: state.bootstrapStatus,
         towns: state.towns,
+        pendingStorageId,
       };
       return { ...initialState, ...preserved };
+    },
+    setPendingStorageId: (state, action: PayloadAction<string | null>) => {
+      state.pendingStorageId = action.payload;
     },
     setAuthError: (state, action: PayloadAction<string | null>) => {
       state.error = action.payload;
@@ -1266,8 +1326,8 @@ const authSlice = createSlice({
       state.isLoading = false;
       if (state.me) {
         state.me.storageId = action.meta.arg.storageId;
-        // state.me.townId = action.meta.arg.townId;
       }
+      state.pendingStorageId = null;
       console.log("Town updated successfully");
     });
 
@@ -1275,6 +1335,19 @@ const authSlice = createSlice({
       state.isLoading = false;
       axiosErrorHandler(action?.payload);
     });
+
+    builder.addCase(hydratePendingStorageId.fulfilled, (state, action) => {
+      state.pendingStorageId = action.payload;
+    });
+
+    builder.addCase(savePendingStorageId.fulfilled, (state, action) => {
+      state.pendingStorageId = action.payload;
+    });
+
+    builder.addCase(flushPendingStorageId.fulfilled, (state) => {
+      state.pendingStorageId = null;
+    });
+
     builder.addCase(loadCompanyFromStorage.pending, (state) => {});
     builder.addCase(loadCompanyFromStorage.fulfilled, (state, action) => {
       state.currentCompany = action.payload;
@@ -1348,5 +1421,6 @@ export const {
   clearAuthState,
   clearBonusHistory,
   setBootstrapStatus,
+  setPendingStorageId,
 } = authSlice.actions;
 export default authSlice.reducer;

@@ -14,6 +14,7 @@ import {
   GALLERY_HEIGHT,
   ProductDetailGallerySlide,
 } from "./ProductDetailGallerySlide";
+import { ProductImageViewer } from "./ProductImageViewer";
 import {
   ProductDetailGalleryProps,
   ProductGalleryItem,
@@ -34,6 +35,8 @@ export const ProductDetailGallery: React.FC<ProductDetailGalleryProps> = ({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
   const [galleryWidth, setGalleryWidth] = useState(0);
+  const [viewerVisible, setViewerVisible] = useState(false);
+  const [viewerIndex, setViewerIndex] = useState(0);
   const isScreenFocused = useIsFocused();
 
   const flatListRef = useRef<FlatList<ProductGalleryItem>>(null);
@@ -85,7 +88,12 @@ export const ProductDetailGallery: React.FC<ProductDetailGalleryProps> = ({
   );
 
   const goToNextSlide = useCallback(() => {
-    if (galleryItems.length <= 1 || isUserInteractingRef.current || !isScreenFocused) {
+    if (
+      galleryItems.length <= 1 ||
+      isUserInteractingRef.current ||
+      !isScreenFocused ||
+      viewerVisible
+    ) {
       return;
     }
     const nextIndex =
@@ -94,7 +102,33 @@ export const ProductDetailGallery: React.FC<ProductDetailGalleryProps> = ({
         : 0;
     setCurrentIndex(nextIndex);
     scrollToPage(nextIndex);
-  }, [isScreenFocused, galleryItems.length, scrollToPage]);
+  }, [isScreenFocused, galleryItems.length, scrollToPage, viewerVisible]);
+
+  const openViewer = useCallback(
+    (index: number) => {
+      isUserInteractingRef.current = true;
+      setIsAutoPlaying(false);
+      clearAutoplayTimer();
+      setViewerIndex(clampIndex(index));
+      setViewerVisible(true);
+    },
+    [clampIndex, clearAutoplayTimer],
+  );
+
+  const closeViewer = useCallback(() => {
+    setViewerVisible(false);
+    scheduleResumeAutoplay();
+  }, [scheduleResumeAutoplay]);
+
+  const handleViewerIndexChange = useCallback(
+    (index: number) => {
+      const safeIndex = clampIndex(index);
+      setViewerIndex(safeIndex);
+      setCurrentIndex(safeIndex);
+      scrollToPage(safeIndex, false);
+    },
+    [clampIndex, scrollToPage],
+  );
 
   const handleLayout = useCallback((event: LayoutChangeEvent) => {
     const nextWidth = Math.round(event.nativeEvent.layout.width);
@@ -118,6 +152,7 @@ export const ProductDetailGallery: React.FC<ProductDetailGalleryProps> = ({
     if (
       isAutoPlaying &&
       isScreenFocused &&
+      !viewerVisible &&
       galleryItems.length > 1 &&
       !isUserInteractingRef.current
     ) {
@@ -132,6 +167,7 @@ export const ProductDetailGallery: React.FC<ProductDetailGalleryProps> = ({
     isAutoPlaying,
     isScreenFocused,
     galleryItems.length,
+    viewerVisible,
   ]);
 
   useEffect(
@@ -198,14 +234,15 @@ export const ProductDetailGallery: React.FC<ProductDetailGalleryProps> = ({
   );
 
   const renderItem = useCallback(
-    ({ item }: { item: ProductGalleryItem }) => (
+    ({ item, index }: { item: ProductGalleryItem; index: number }) => (
       <ProductDetailGallerySlide
         slideId={item.id}
         imageUrl={item.imageUrl}
         pageWidth={galleryWidth}
+        onPress={() => openViewer(index)}
       />
     ),
-    [galleryWidth],
+    [galleryWidth, openViewer],
   );
 
   const keyExtractor = useCallback(
@@ -260,7 +297,7 @@ export const ProductDetailGallery: React.FC<ProductDetailGalleryProps> = ({
                   index={index}
                   currentIndex={currentIndex}
                   autoPlayInterval={autoPlayInterval}
-                  isPlaying={isAutoPlaying && isScreenFocused}
+                  isPlaying={isAutoPlaying && isScreenFocused && !viewerVisible}
                   variant="product"
                 />
               </TouchableOpacity>
@@ -268,6 +305,14 @@ export const ProductDetailGallery: React.FC<ProductDetailGalleryProps> = ({
           </View>
         </View>
       ) : null}
+
+      <ProductImageViewer
+        visible={viewerVisible}
+        items={galleryItems}
+        initialIndex={viewerIndex}
+        onClose={closeViewer}
+        onIndexChange={handleViewerIndexChange}
+      />
     </View>
   );
 };

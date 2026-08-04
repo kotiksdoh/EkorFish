@@ -1,7 +1,7 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { ModalHeader } from "@/features/auth/ui/Header";
-import { getMyInfo, getTowns, updateUserTown } from "@/features/auth/authSlice";
+import { getMyInfo, getTowns, savePendingStorageId, updateUserTown } from "@/features/auth/authSlice";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import React, { useEffect, useRef, useState } from "react";
@@ -25,6 +25,11 @@ interface TownSelectionModalProps {
   stacked?: boolean;
   /** Только выбор склада без обновления профиля (заявка на возврат). */
   selectionOnly?: boolean;
+  /**
+   * Выбор города без API: сохранить в AsyncStorage (гость).
+   * После логина город отправится через flushPendingStorageId.
+   */
+  localOnly?: boolean;
   /** Переопределение заголовка (например, заявка на возврат). */
   modalTitle?: string;
 }
@@ -37,6 +42,7 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
   embedded = false,
   stacked = false,
   selectionOnly = false,
+  localOnly = false,
   modalTitle,
 }) => {
   const townModalTitle = modalTitle ?? "Укажите город";
@@ -129,6 +135,21 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
     if (selectionOnly) {
       onTownSelected(selectedTownId);
       onClose();
+      return;
+    }
+
+    if (localOnly) {
+      setIsUpdating(true);
+      try {
+        await dispatch(savePendingStorageId(selectedTownId)).unwrap();
+        closeModalWithAnimation(() => {
+          onTownSelected(selectedTownId);
+        });
+      } catch (error) {
+        console.error("Error saving local town:", error);
+      } finally {
+        setIsUpdating(false);
+      }
       return;
     }
 

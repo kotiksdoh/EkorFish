@@ -1,6 +1,7 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { getSegmentPopularProducts } from "@/features/catalog/catalogSlice";
+import { selectEffectiveStorageId } from "@/features/auth/selectors";
 import { ProductCard } from "@/features/shared/ui/ProductCard";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import React, { useEffect, useMemo } from "react";
@@ -30,7 +31,7 @@ export function RecommendedOrderProducts({
   returnTo = "catalog",
 }: RecommendedOrderProductsProps) {
   const dispatch = useAppDispatch();
-  const me = useAppSelector((state) => state.auth.me);
+  const effectiveStorageId = useAppSelector(selectEffectiveStorageId);
   const products = useAppSelector(
     (state) => state.catalog.segmentPopularProducts,
   );
@@ -43,10 +44,10 @@ export function RecommendedOrderProducts({
 
     dispatch(
       getSegmentPopularProducts({
-        storageId: me?.storageId ? String(me.storageId) : undefined,
+        storageId: effectiveStorageId || undefined,
       }),
     );
-  }, [dispatch, me?.storageId, visible]);
+  }, [dispatch, effectiveStorageId, visible]);
 
   const displayProducts = useMemo(() => products.slice(0, 4), [products]);
 

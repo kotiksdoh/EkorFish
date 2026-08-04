@@ -8,6 +8,7 @@ import { SearchTopArea } from "@/features/home/ui/components/SearchTopArea/Searc
 import { AddToCartModal } from "@/features/shared/ui/AddToCartModal";
 import { useTemplateAwareAddToCart } from "@/features/templates/useTemplateAwareAddToCart";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { selectEffectiveStorageId } from "@/features/auth/selectors";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { useCallback, useEffect, useState } from "react";
 import { Keyboard, ScrollView, StyleSheet } from "react-native";
@@ -62,20 +63,20 @@ export const SearchScreenWithHistory: React.FC<
   } = useTemplateAwareAddToCart();
   const searchHints = useAppSelector((state) => state.auth.searchHints);
   const searchHintsLower = useAppSelector((state) => state.auth.searchHintsLower);
-  const me = useAppSelector((state) => state.auth.me);
+  const effectiveStorageId = useAppSelector(selectEffectiveStorageId);
 
   useEffect(() => {
     if (visible) {
       loadSearchHistory();
       dispatch(
         getSegmentPopularProducts({
-          storageId: me?.storageId ? String(me.storageId) : undefined,
+          storageId: effectiveStorageId || undefined,
         }),
       );
     } else {
       Keyboard.dismiss();
     }
-  }, [dispatch, me?.storageId, visible]);
+  }, [dispatch, effectiveStorageId, visible]);
 
   const loadSearchHistory = async () => {
     try {
