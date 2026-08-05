@@ -11,7 +11,11 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { Gesture, GestureDetector, GestureHandlerRootView } from "react-native-gesture-handler";
+import {
+  Gesture,
+  GestureDetector,
+  GestureHandlerRootView,
+} from "react-native-gesture-handler";
 import Animated, {
   runOnJS,
   useAnimatedStyle,
@@ -23,12 +27,31 @@ import { ProductGalleryItem } from "./productDetailGalleryTypes";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const PLACEHOLDER_IMAGE = require("@/assets/icons/png/noImage.png");
+
 const MIN_SCALE = 1;
 const MAX_SCALE = 4;
-const DOUBLE_TAP_SCALE = 2.5;
+const ZOOM_EPS = 1.02;
+const DOUBLE_TAP_SCALE = 2;
+const IMAGE_WIDTH = SCREEN_WIDTH;
+const IMAGE_HEIGHT = SCREEN_HEIGHT * 0.75;
 
 function hasRemoteUrl(url: string): boolean {
   return typeof url === "string" && url.trim().startsWith("http");
+}
+
+function clamp(value: number, min: number, max: number) {
+  "worklet";
+  return Math.min(max, Math.max(min, value));
+}
+
+function clampTranslation(tx: number, ty: number, scale: number) {
+  "worklet";
+  const maxX = Math.max(0, (IMAGE_WIDTH * (scale - 1)) / 2);
+  const maxY = Math.max(0, (IMAGE_HEIGHT * (scale - 1)) / 2);
+  return {
+    x: clamp(tx, -maxX, maxX),
+    y: clamp(ty, -maxY, maxY),
+  };
 }
 
 interface ZoomableImageProps {
@@ -45,106 +68,165 @@ const ZoomableImage: React.FC<ZoomableImageProps> = ({
   onZoomChange,
 }) => {
   const remote = hasRemoteUrl(imageUrl);
+
   const scale = useSharedValue(1);
-  const savedScale = useSharedValue(1);
+  const startScale = useSharedValue(1);
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
-  const savedTranslateX = useSharedValue(0);
-  const savedTranslateY = useSharedValue(0);
+  const startTranslateX = useSharedValue(0);
+  const startTranslateY = useSharedValue(0);
+  const isZoomedSV = useSharedValue(false);
 
-  const notifyZoom = useCallback(
-    (nextScale: number) => {
-      onZoomChange(nextScale > 1.01);
+  const syncZoomedFlag = useCallback(
+    (zoomed: boolean) => {
+      onZoomChange(zoomed);
     },
     [onZoomChange],
   );
 
-  const resetZoomValues = useCallback(() => {
-    scale.value = 1;
-    savedScale.value = 1;
-    translateX.value = 0;
-    translateY.value = 0;
-    savedTranslateX.value = 0;
-    savedTranslateY.value = 0;
+  const setZoomedIfNeeded = (zoomed: boolean) => {
+    "worklet";
+    if (isZoomedSV.value === zoomed) return;
+    isZoomedSV.value = zoomed;
+    runOnJS(syncZoomedFlag)(zoomed);
+  };
+
+  const resetTransform = (animated: boolean) => {
+    "worklet";
+    if (animated) {
+      scale.value = withTiming(1);
+      translateX.value = withTiming(0);
+      translateY.value = withTiming(0);
+    } else {
+      scale.value = 1;
+      translateX.value = 0;
+      translateY.value = 0;
+    }
+    startScale.value = 1;
+    startTranslateX.value = 0;
+    startTranslateY.value = 0;
+    setZoomedIfNeeded(false);
+  };
+
+  useEffect(() => {
+    if (!isActive) {
+      scale.value = 1;
+      startScale.value = 1;
+      translateX.value = 0;
+      translateY.value = 0;
+      startTranslateX.value = 0;
+      startTranslateY.value = 0;
+      if (isZoomedSV.value) {
+        isZoomedSV.value = false;
+        onZoomChange(false);
+      }
+    }
   }, [
-    savedScale,
-    savedTranslateX,
-    savedTranslateY,
+    isActive,
+    isZoomedSV,
+    onZoomChange,
     scale,
+    startScale,
+    startTranslateX,
+    startTranslateY,
     translateX,
     translateY,
   ]);
 
-  useEffect(() => {
-    if (!isActive) {
-      resetZoomValues();
-      onZoomChange(false);
-    }
-  }, [isActive, onZoomChange, resetZoomValues]);
-
   const pinch = Gesture.Pinch()
+    .onBegin(() => {
+      // База всегда с текущего scale — иначе скачки к MAX
+      startScale.value = scale.value;
+      startTranslateX.value = translateX.value;
+      startTranslateY.value = translateY.value;
+    })
     .onUpdate((event) => {
-      scale.value = Math.min(
+      const nextScale = clamp(
+        startScale.value * event.scale,
+        MIN_SCALE,
         MAX_SCALE,
-        Math.max(MIN_SCALE, savedScale.value * event.scale),
       );
+      scale.value = nextScale;
+
+      const clamped = clampTranslation(
+        translateX.value,
+        translateY.value,
+        nextScale,
+      );
+      translateX.value = clamped.x;
+      translateY.value = clamped.y;
+
+      setZoomedIfNeeded(nextScale > ZOOM_EPS);
     })
     .onEnd(() => {
-      if (scale.value <= 1.01) {
-        scale.value = withTiming(1);
-        savedScale.value = 1;
-        translateX.value = withTiming(0);
-        translateY.value = withTiming(0);
-        savedTranslateX.value = 0;
-        savedTranslateY.value = 0;
-        runOnJS(notifyZoom)(1);
+      if (scale.value <= ZOOM_EPS) {
+        resetTransform(true);
         return;
       }
-      savedScale.value = scale.value;
-      runOnJS(notifyZoom)(scale.value);
+      startScale.value = scale.value;
+      const clamped = clampTranslation(
+        translateX.value,
+        translateY.value,
+        scale.value,
+      );
+      translateX.value = clamped.x;
+      translateY.value = clamped.y;
+      startTranslateX.value = clamped.x;
+      startTranslateY.value = clamped.y;
+      setZoomedIfNeeded(true);
     });
 
   const pan = Gesture.Pan()
+    .maxPointers(1)
     .averageTouches(true)
+    // Не перехватываем свайп листа, пока нет зума.
+    // Важно смотреть на scale (не «сохранённый»), иначе pan «оживает» только после лишнего жеста.
     .manualActivation(true)
     .onTouchesMove((_, state) => {
-      if (savedScale.value > 1.01) {
+      if (scale.value > ZOOM_EPS) {
         state.activate();
       } else {
         state.fail();
       }
     })
+    .onBegin(() => {
+      startTranslateX.value = translateX.value;
+      startTranslateY.value = translateY.value;
+    })
     .onUpdate((event) => {
-      translateX.value = savedTranslateX.value + event.translationX;
-      translateY.value = savedTranslateY.value + event.translationY;
+      if (scale.value <= ZOOM_EPS) return;
+      const next = clampTranslation(
+        startTranslateX.value + event.translationX,
+        startTranslateY.value + event.translationY,
+        scale.value,
+      );
+      translateX.value = next.x;
+      translateY.value = next.y;
     })
     .onEnd(() => {
-      savedTranslateX.value = translateX.value;
-      savedTranslateY.value = translateY.value;
+      startTranslateX.value = translateX.value;
+      startTranslateY.value = translateY.value;
     });
 
   const doubleTap = Gesture.Tap()
     .numberOfTaps(2)
+    .maxDuration(250)
     .onEnd(() => {
-      if (savedScale.value > 1.01) {
-        scale.value = withTiming(1);
-        savedScale.value = 1;
-        translateX.value = withTiming(0);
-        translateY.value = withTiming(0);
-        savedTranslateX.value = 0;
-        savedTranslateY.value = 0;
-        runOnJS(notifyZoom)(1);
+      if (scale.value > ZOOM_EPS) {
+        resetTransform(true);
         return;
       }
       scale.value = withTiming(DOUBLE_TAP_SCALE);
-      savedScale.value = DOUBLE_TAP_SCALE;
-      runOnJS(notifyZoom)(DOUBLE_TAP_SCALE);
+      startScale.value = DOUBLE_TAP_SCALE;
+      translateX.value = withTiming(0);
+      translateY.value = withTiming(0);
+      startTranslateX.value = 0;
+      startTranslateY.value = 0;
+      setZoomedIfNeeded(true);
     });
 
-  const composed = Gesture.Simultaneous(
-    pinch,
-    Gesture.Exclusive(doubleTap, pan),
-  );
+  // Simultaneous: pan НЕ ждёт fail double-tap (Exclusive ломал сдвиг одним пальцем)
+  const composed = Gesture.Simultaneous(pinch, pan, doubleTap);
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [
@@ -157,7 +239,7 @@ const ZoomableImage: React.FC<ZoomableImageProps> = ({
   return (
     <View style={styles.page}>
       <GestureDetector gesture={composed}>
-        <Animated.View style={[styles.imageWrap, animatedStyle]}>
+        <Animated.View collapsable={false} style={[styles.imageWrap, animatedStyle]}>
           <Image
             source={remote ? { uri: imageUrl } : PLACEHOLDER_IMAGE}
             style={styles.image}
@@ -198,7 +280,7 @@ export const ProductImageViewer: React.FC<ProductImageViewerProps> = ({
       setIsZoomed(false);
       return;
     }
-    const safeIndex = Math.max(0, Math.min(initialIndex, items.length - 1));
+    const safeIndex = Math.max(0, Math.min(initialIndex, Math.max(items.length - 1, 0)));
     setIndex(safeIndex);
     indexRef.current = safeIndex;
     setIsZoomed(false);
@@ -295,7 +377,10 @@ export const ProductImageViewer: React.FC<ProductImageViewerProps> = ({
         />
 
         {items.length > 1 ? (
-          <View style={[styles.counter, { bottom: insets.bottom + 20 }]}>
+          <View
+            pointerEvents="none"
+            style={[styles.counter, { bottom: insets.bottom + 20 }]}
+          >
             <View style={styles.dots}>
               {items.map((item, i) => (
                 <View
@@ -339,8 +424,8 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   imageWrap: {
-    width: SCREEN_WIDTH,
-    height: SCREEN_HEIGHT * 0.75,
+    width: IMAGE_WIDTH,
+    height: IMAGE_HEIGHT,
     justifyContent: "center",
     alignItems: "center",
   },
