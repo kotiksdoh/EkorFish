@@ -4,7 +4,7 @@ import { ModalHeader } from "@/features/auth/ui/Header";
 import { getMyInfo, getTowns, savePendingStorageId, updateUserTown } from "@/features/auth/authSlice";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Animated, Dimensions, ScrollView, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 import { AppModal } from "@/features/shared/ui/AppModal";
 
@@ -59,28 +59,39 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
   const [modalTranslateY] = useState(new Animated.Value(screenHeight));
   const [isClosing, setIsClosing] = useState(false);
   const wasVisibleRef = useRef(false);
-  const stackedCloseRef = useRef<(() => void) | null>(null);
-  const afterStackedCloseRef = useRef<(() => void) | undefined>(undefined);
+  const onCloseRef = useRef(onClose);
+  const onTownSelectedRef = useRef(onTownSelected);
+
+  onCloseRef.current = onClose;
+  onTownSelectedRef.current = onTownSelected;
 
   const footerBottomPadding = stacked
     ? 8
     : Math.max(insets.bottom, 48) + 16;
 
+  // Важно: стабильный колбэк. Иначе при выборе города (setState)
+  // AnimatedStackedSheet получает новый onClose → снова играет open-анимацию.
+  const handleStackedDismiss = useCallback(() => {
+    onCloseRef.current();
+  }, []);
+
   useEffect(() => {
     if (!visible) {
       wasVisibleRef.current = false;
+      setIsClosing(false);
       return;
     }
 
     const justOpened = !wasVisibleRef.current;
     wasVisibleRef.current = true;
-
     if (!justOpened) return;
 
     if (storageId) {
       setSelectedTownId(storageId);
     } else if (me?.storageId) {
       setSelectedTownId(me.storageId);
+    } else {
+      setSelectedTownId(null);
     }
 
     dispatch(getTowns());
@@ -95,33 +106,15 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
       stiffness: 180,
       mass: 0.85,
     }).start();
+    // Только visible: storageId/me не должны заново инициализировать открытую модалку
   }, [visible, dispatch, embedded, stacked, modalTranslateY, storageId, me?.storageId]);
-
-  const finishClose = (afterClose?: () => void) => {
-    onClose();
-    afterClose?.();
-  };
 
   const closeModalWithAnimation = (onClosed?: () => void) => {
     const afterClose = typeof onClosed === "function" ? onClosed : undefined;
 
-    // Stacked sheet: сначала анимация, потом onClose — иначе тап «пробивает»
-    // в кнопку «Город» под sheet и модалка открывается снова.
-    if (stacked) {
-      if (isClosing) return;
-      setIsClosing(true);
-      afterStackedCloseRef.current = afterClose;
-      if (stackedCloseRef.current) {
-        stackedCloseRef.current();
-        return;
-      }
-      setIsClosing(false);
-      finishClose(afterClose);
-      return;
-    }
-
-    if (embedded || selectionOnly) {
-      finishClose(afterClose);
+    if (embedded || stacked || selectionOnly) {
+      onCloseRef.current();
+      afterClose?.();
       return;
     }
 
@@ -135,15 +128,9 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
     }).start(() => {
       setIsClosing(false);
       modalTranslateY.setValue(screenHeight);
-      finishClose(afterClose);
+      onCloseRef.current();
+      afterClose?.();
     });
-  };
-
-  const handleStackedSheetClosed = () => {
-    const afterClose = afterStackedCloseRef.current;
-    afterStackedCloseRef.current = undefined;
-    setIsClosing(false);
-    finishClose(afterClose);
   };
 
   const handleOverlayPress = () => {
@@ -157,22 +144,22 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
   };
 
   const handleApplyPress = async () => {
-    if (!selectedTownId || isUpdating || isClosing) return;
+    if (!selectedTownId || isUpdating) return;
 
     if (selectionOnly) {
-      closeModalWithAnimation(() => {
-        onTownSelected(selectedTownId);
-      });
+      const id = selectedTownId;
+      onTownSelectedRef.current(id);
+      onCloseRef.current();
       return;
     }
 
     if (localOnly) {
       setIsUpdating(true);
       try {
-        await dispatch(savePendingStorageId(selectedTownId)).unwrap();
-        closeModalWithAnimation(() => {
-          onTownSelected(selectedTownId);
-        });
+        const id = selectedTownId;
+        await dispatch(savePendingStorageId(id)).unwrap();
+        onTownSelectedRef.current(id);
+        onCloseRef.current();
       } catch (error) {
         console.error("Error saving local town:", error);
       } finally {
@@ -184,15 +171,15 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
     setIsUpdating(true);
 
     try {
+      const id = selectedTownId;
       await dispatch(
         updateUserTown({
-          storageId: selectedTownId,
+          storageId: id,
         }),
       );
       await dispatch(getMyInfo(""));
-      closeModalWithAnimation(() => {
-        onTownSelected(selectedTownId);
-      });
+      onTownSelectedRef.current(id);
+      onCloseRef.current();
     } catch (error) {
       console.error("Error updating town:", error);
     } finally {
@@ -277,10 +264,10 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
           isDarkMode && {
             backgroundColor: "#3881EE",
           },
-          (!selectedTownId || isUpdating || isClosing) && styles.applyButtonDisabled,
+          (!selectedTownId || isUpdating) && styles.applyButtonDisabled,
         ]}
         onPress={handleApplyPress}
-        disabled={!selectedTownId || isUpdating || isClosing}
+        disabled={!selectedTownId || isUpdating}
       >
         {isUpdating ? (
           <ActivityIndicator size="small" color="#FFFFFF" />
@@ -299,10 +286,7 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
     return (
       <AnimatedStackedSheet
         visible={visible}
-        onClose={handleStackedSheetClosed}
-        onBindCloseRequest={(close) => {
-          stackedCloseRef.current = close;
-        }}
+        onClose={handleStackedDismiss}
         contentHorizontalPadding={0}
       >
         <View style={styles.modalHeader}>

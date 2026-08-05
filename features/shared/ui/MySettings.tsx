@@ -716,6 +716,10 @@ export const MySettingsModal: React.FC<MySettingsProps> = ({
     dispatch(getTowns());
   }, [visible, dispatch]);
 
+  const closeTownModal = useCallback(() => {
+    setShowTownModal(false);
+  }, []);
+
   const handleCloseAll = () => {
     setShowNotifications(false);
     setShowPrivacy(false);
@@ -912,12 +916,10 @@ export const MySettingsModal: React.FC<MySettingsProps> = ({
       <TownSelectionModal
         stacked
         visible={showTownModal}
-        onClose={() => setShowTownModal(false)}
+        onClose={closeTownModal}
         storageId={effectiveStorageId || ""}
         localOnly={!hasAuthToken}
-        onTownSelected={() => {
-          setShowTownModal(false);
-        }}
+        onTownSelected={closeTownModal}
       />
     </AppModal>
   );
