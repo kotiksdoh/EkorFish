@@ -11,16 +11,16 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import React, { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, Image, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import AnimatedTextInput from "./components/CustomInput";
-import { DatePickerWithIcon } from "./components/DatePickerCustom";
-import { PrimaryButton } from "./components/PrimartyButton";
 import {
   isCompanyTaxIdsValid,
   isKppRequired,
   sanitizeInn,
   sanitizeKpp,
 } from "@/features/shared/utils/companyTaxIds";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import AnimatedTextInput from "./components/CustomInput";
+import { DatePickerWithIcon } from "./components/DatePickerCustom";
+import { PrimaryButton } from "./components/PrimartyButton";
 
 interface CompanySelectModalProps {
   visible: boolean;
@@ -473,7 +473,7 @@ const [contactPerson, setContactPerson] = useState('') */}
                   onChangeText={setContactPerson}
                 />
                 <DatePickerWithIcon
-                  placeholder="Дата образования вашей компании"
+                  placeholder="Дата образования компании"
                   placeholderTextColor="#80818B"
                   value={dateCreated}
                   onChangeText={setDateCreated}

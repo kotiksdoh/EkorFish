@@ -59,6 +59,8 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
   const [modalTranslateY] = useState(new Animated.Value(screenHeight));
   const [isClosing, setIsClosing] = useState(false);
   const wasVisibleRef = useRef(false);
+  const stackedCloseRef = useRef<(() => void) | null>(null);
+  const afterStackedCloseRef = useRef<(() => void) | undefined>(undefined);
 
   const footerBottomPadding = stacked
     ? 8
@@ -95,12 +97,31 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
     }).start();
   }, [visible, dispatch, embedded, stacked, modalTranslateY, storageId, me?.storageId]);
 
+  const finishClose = (afterClose?: () => void) => {
+    onClose();
+    afterClose?.();
+  };
+
   const closeModalWithAnimation = (onClosed?: () => void) => {
     const afterClose = typeof onClosed === "function" ? onClosed : undefined;
 
-    if (embedded || stacked || selectionOnly) {
-      onClose();
-      afterClose?.();
+    // Stacked sheet: сначала анимация, потом onClose — иначе тап «пробивает»
+    // в кнопку «Город» под sheet и модалка открывается снова.
+    if (stacked) {
+      if (isClosing) return;
+      setIsClosing(true);
+      afterStackedCloseRef.current = afterClose;
+      if (stackedCloseRef.current) {
+        stackedCloseRef.current();
+        return;
+      }
+      setIsClosing(false);
+      finishClose(afterClose);
+      return;
+    }
+
+    if (embedded || selectionOnly) {
+      finishClose(afterClose);
       return;
     }
 
@@ -114,9 +135,15 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
     }).start(() => {
       setIsClosing(false);
       modalTranslateY.setValue(screenHeight);
-      onClose();
-      afterClose?.();
+      finishClose(afterClose);
     });
+  };
+
+  const handleStackedSheetClosed = () => {
+    const afterClose = afterStackedCloseRef.current;
+    afterStackedCloseRef.current = undefined;
+    setIsClosing(false);
+    finishClose(afterClose);
   };
 
   const handleOverlayPress = () => {
@@ -130,11 +157,12 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
   };
 
   const handleApplyPress = async () => {
-    if (!selectedTownId) return;
+    if (!selectedTownId || isUpdating || isClosing) return;
 
     if (selectionOnly) {
-      onTownSelected(selectedTownId);
-      onClose();
+      closeModalWithAnimation(() => {
+        onTownSelected(selectedTownId);
+      });
       return;
     }
 
@@ -249,10 +277,10 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
           isDarkMode && {
             backgroundColor: "#3881EE",
           },
-          (!selectedTownId || isUpdating) && styles.applyButtonDisabled,
+          (!selectedTownId || isUpdating || isClosing) && styles.applyButtonDisabled,
         ]}
         onPress={handleApplyPress}
-        disabled={!selectedTownId || isUpdating}
+        disabled={!selectedTownId || isUpdating || isClosing}
       >
         {isUpdating ? (
           <ActivityIndicator size="small" color="#FFFFFF" />
@@ -271,7 +299,10 @@ export const TownSelectionModal: React.FC<TownSelectionModalProps> = ({
     return (
       <AnimatedStackedSheet
         visible={visible}
-        onClose={() => closeModalWithAnimation()}
+        onClose={handleStackedSheetClosed}
+        onBindCloseRequest={(close) => {
+          stackedCloseRef.current = close;
+        }}
         contentHorizontalPadding={0}
       >
         <View style={styles.modalHeader}>

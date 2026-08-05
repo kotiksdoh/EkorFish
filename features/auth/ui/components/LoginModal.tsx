@@ -19,8 +19,6 @@ import { AppModal } from "@/features/shared/ui/AppModal";
 import { LegalDocumentModal } from "@/features/shared/ui/LegalDocumentModal";
 import ManagerSection from "@/features/shared/ui/ManagerSection";
 import SmartInput from "@/features/shared/ui/components/SmartInput";
-import { formatPhoneDisplay } from "@/features/shared/utils/phoneLinking";
-import { getSupportContactsFromParams } from "@/features/shared/utils/supportParams";
 import {
   isCompanyTaxIdsValid,
   isKppRequired,
@@ -28,6 +26,8 @@ import {
   sanitizeInn,
   sanitizeKpp,
 } from "@/features/shared/utils/companyTaxIds";
+import { formatPhoneDisplay } from "@/features/shared/utils/phoneLinking";
+import { getSupportContactsFromParams } from "@/features/shared/utils/supportParams";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { syncPushTokenToBackend } from "@/hooks/usePushNotifications";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -1318,7 +1318,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                     onChangeText={setContactPerson}
                   />
                   <DatePickerWithIcon
-                    placeholder="Дата образования вашей компании"
+                    placeholder="Дата образования компании"
                     placeholderTextColor="#80818B"
                     value={dateCreated}
                     onChangeText={setDateCreated}
