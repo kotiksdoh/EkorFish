@@ -764,7 +764,6 @@ export const MySettingsModal: React.FC<MySettingsProps> = ({
   }
 
   return (
-    <>
     <AppModal
       animationType="slide"
       transparent={true}
@@ -909,18 +908,18 @@ export const MySettingsModal: React.FC<MySettingsProps> = ({
           </TouchableOpacity> */}
         </ThemedView>
       </ThemedView>
-    </AppModal>
 
-    <TownSelectionModal
-      visible={showTownModal}
-      onClose={() => setShowTownModal(false)}
-      storageId={effectiveStorageId || ""}
-      localOnly={!hasAuthToken}
-      onTownSelected={() => {
-        setShowTownModal(false);
-      }}
-    />
-    </>
+      <TownSelectionModal
+        stacked
+        visible={showTownModal}
+        onClose={() => setShowTownModal(false)}
+        storageId={effectiveStorageId || ""}
+        localOnly={!hasAuthToken}
+        onTownSelected={() => {
+          setShowTownModal(false);
+        }}
+      />
+    </AppModal>
   );
 };
 

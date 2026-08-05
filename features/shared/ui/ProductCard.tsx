@@ -415,7 +415,7 @@ const ProductCardComponent: React.FC<ProductCardProps> = ({
                     darkColor="#4C94FF"
                     style={styles.kgLabel}
                   >
-                    {" "}₽ / {measureShort}
+                    {" "}₽/{measureShort}
                   </ThemedText>
                 </View>
 
@@ -656,7 +656,7 @@ const styles = StyleSheet.create({
   kgPrice: {
     fontFamily: "Montserrat",
     fontWeight: "600",
-    fontSize: 16,
+    fontSize: 15,
     lineHeight: 19.8,
     letterSpacing: 0,
     fontVariant: ["lining-nums", "proportional-nums"],
@@ -664,7 +664,7 @@ const styles = StyleSheet.create({
   kgLabel: {
     fontFamily: "Montserrat",
     fontWeight: "600",
-    fontSize: 18,
+    fontSize: 15,
   },
   fullPrice: {
     fontFamily: "Montserrat",
