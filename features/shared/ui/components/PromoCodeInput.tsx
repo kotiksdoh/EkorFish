@@ -11,6 +11,10 @@ import {
     TouchableWithoutFeedback,
     View,
 } from "react-native";
+import {
+  IOS_KEYBOARD_DONE_ACCESSORY_ID,
+  IosKeyboardDoneAccessory,
+} from "./IosKeyboardDoneAccessory";
 
 interface PromoCodeInputProps {
   value: string;
@@ -98,76 +102,82 @@ export const PromoCodeInput: React.FC<PromoCodeInputProps> = ({
   };
 
   return (
-    <TouchableWithoutFeedback onPress={() => inputRef.current?.focus()}>
-      <View
-        style={[
-          styles.container,
-          {
-            backgroundColor: isDarkMode ? "#ECEFFA0D" : "#03051E08",
-          },
-        ]}
-      >
-        <Animated.Text style={[styles.placeholder, animatedLabelStyle]}>
-          Промокод
-        </Animated.Text>
+    <>
+      <TouchableWithoutFeedback onPress={() => inputRef.current?.focus()}>
+        <View
+          style={[
+            styles.container,
+            {
+              backgroundColor: isDarkMode ? "#ECEFFA0D" : "#03051E08",
+            },
+          ]}
+        >
+          <Animated.Text style={[styles.placeholder, animatedLabelStyle]}>
+            Промокод
+          </Animated.Text>
 
-        <View style={styles.contentRow}>
-          <TextInput
-            ref={inputRef}
-            style={[
-              styles.input,
-              Platform.OS === "android" && styles.inputAndroid,
-              { color: textColor },
-            ]}
-            value={value}
-            onChangeText={handleChangeText}
-            onFocus={handleFocus}
-            onBlur={handleBlur}
-            autoCapitalize="characters"
-            autoCorrect={false}
-            editable={!disabled && !loading}
-            placeholder=""
-            placeholderTextColor="transparent"
-            returnKeyType="done"
-            onSubmitEditing={() => {
-              if (canApply) {
-                onApply();
+          <View style={styles.contentRow}>
+            <TextInput
+              ref={inputRef}
+              style={[
+                styles.input,
+                Platform.OS === "android" && styles.inputAndroid,
+                { color: textColor },
+              ]}
+              value={value}
+              onChangeText={handleChangeText}
+              onFocus={handleFocus}
+              onBlur={handleBlur}
+              autoCapitalize="characters"
+              autoCorrect={false}
+              editable={!disabled && !loading}
+              placeholder=""
+              placeholderTextColor="transparent"
+              returnKeyType="done"
+              inputAccessoryViewID={
+                Platform.OS === "ios" ? IOS_KEYBOARD_DONE_ACCESSORY_ID : undefined
               }
-            }}
-          />
+              onSubmitEditing={() => {
+                if (canApply) {
+                  onApply();
+                }
+              }}
+            />
 
-          <TouchableOpacity
-            style={[
-              styles.applyButton,
-              {
-                backgroundColor: isDarkMode ? "#323235" : "#EBEDF0",
-              },
-              !canApply && styles.applyButtonDisabled,
-            ]}
-            onPress={onApply}
-            disabled={!canApply}
-            activeOpacity={0.8}
-          >
-            {loading ? (
-              <ActivityIndicator
-                size="small"
-                color={isDarkMode ? "#FBFCFF" : "#1B1B1C"}
-              />
-            ) : (
-              <Text
-                style={[
-                  styles.applyButtonText,
-                  { color: isDarkMode ? "#FBFCFF" : "#1B1B1C" },
-                  !canApply && styles.applyButtonTextDisabled,
-                ]}
-              >
-                Применить
-              </Text>
-            )}
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.applyButton,
+                {
+                  backgroundColor: isDarkMode ? "#323235" : "#EBEDF0",
+                },
+                !canApply && styles.applyButtonDisabled,
+              ]}
+              onPress={onApply}
+              disabled={!canApply}
+              activeOpacity={0.8}
+            >
+              {loading ? (
+                <ActivityIndicator
+                  size="small"
+                  color={isDarkMode ? "#FBFCFF" : "#1B1B1C"}
+                />
+              ) : (
+                <Text
+                  style={[
+                    styles.applyButtonText,
+                    { color: isDarkMode ? "#FBFCFF" : "#1B1B1C" },
+                    !canApply && styles.applyButtonTextDisabled,
+                  ]}
+                >
+                  Применить
+                </Text>
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
-    </TouchableWithoutFeedback>
+      </TouchableWithoutFeedback>
+      <IosKeyboardDoneAccessory />
+    </>
   );
 };
 

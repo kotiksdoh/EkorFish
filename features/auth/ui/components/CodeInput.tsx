@@ -1,6 +1,11 @@
 // features/auth/components/CodeInput.tsx
+import {
+  IOS_KEYBOARD_DONE_ACCESSORY_ID,
+  IosKeyboardDoneAccessory,
+} from '@/features/shared/ui/components/IosKeyboardDoneAccessory';
 import React, { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
 import {
+    Platform,
     StyleProp,
     StyleSheet,
     TextInput,
@@ -124,6 +129,9 @@ export const CodeInput = forwardRef<CodeInputRef, CodeInputProps>(({
           selectionColor="#203686"
           autoFocus={index === 0 && autoFocus}
           caretHidden={true}
+          inputAccessoryViewID={
+            Platform.OS === 'ios' ? IOS_KEYBOARD_DONE_ACCESSORY_ID : undefined
+          }
           {...restProps}
         />
       </View>
@@ -133,6 +141,7 @@ export const CodeInput = forwardRef<CodeInputRef, CodeInputProps>(({
   return (
     <View style={[styles.container, containerStyle]}>
       {codeDigitsArray.map((_, index) => renderInput(index))}
+      <IosKeyboardDoneAccessory />
     </View>
   );
 });

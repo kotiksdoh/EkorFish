@@ -5,14 +5,19 @@ import {
   getFixedTextInputStyle,
   getFixedTextStyle,
 } from '@/utils/fixedTextStyle';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
 import {
   Animated,
+  InputAccessoryView,
+  Keyboard,
   Platform,
   StyleSheet,
+  Text,
   TextInput,
   TextInputProps,
-  TouchableWithoutFeedback
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
 } from 'react-native';
 
 interface SmartInputProps extends Omit<TextInputProps, 'style' | 'value' | 'onChangeText'> {
@@ -45,6 +50,9 @@ const SmartInput: React.FC<SmartInputProps> = ({
   const [isPhoneMode, setIsPhoneMode] = useState(false);
   const animatedValue = useState(new Animated.Value(value ? 1 : 0))[0];
   const inputRef = useRef<TextInput>(null);
+  const reactId = useId();
+  const iosDoneAccessoryId = `ekorfish.smart.keyboard.done.${reactId.replace(/:/g, "")}`;
+  const showIosDoneAccessory = Platform.OS === 'ios';
 
   // Простая проверка на email символы
   const isEmailLike = (text: string): boolean => {
@@ -174,38 +182,59 @@ const SmartInput: React.FC<SmartInputProps> = ({
   };
 
   return (
-    <TouchableWithoutFeedback onPress={() => inputRef.current?.focus()}>
-      <ThemedView lightColor='#03051E08' darkColor='#ECEFFA0D' style={[styles.container, style]}>
-        <Animated.Text
-          {...FIXED_TEXT_PROPS}
-          style={getFixedTextStyle([styles.placeholder, animatedStyle])}
-        >
-          {placeholder}
-        </Animated.Text>
-        <TextInput
-          ref={inputRef}
-          {...FIXED_TEXT_PROPS}
-          style={getFixedTextInputStyle([
-            styles.input,
-            Platform.OS === 'android' && styles.inputAndroid,
-            inputStyle,
-            { color },
-          ])}
-          placeholder=""
-          placeholderTextColor="transparent"
-          keyboardType={isPhoneMode ? 'phone-pad' : 'email-address'}
-          value={inputValue}
-          onChangeText={handleChangeText}
-          onFocus={handleFocus}
-          onBlur={handleBlur}
-          maxLength={isPhoneMode ? 18 : maxLength}
-          textAlignVertical="center"
-          autoCapitalize="none"
-          autoCorrect={false}
-          {...props}
-        />
-      </ThemedView>
-    </TouchableWithoutFeedback>
+    <>
+      <TouchableWithoutFeedback onPress={() => inputRef.current?.focus()}>
+        <ThemedView lightColor='#03051E08' darkColor='#ECEFFA0D' style={[styles.container, style]}>
+          <Animated.Text
+            {...FIXED_TEXT_PROPS}
+            style={getFixedTextStyle([styles.placeholder, animatedStyle])}
+          >
+            {placeholder}
+          </Animated.Text>
+          <TextInput
+            ref={inputRef}
+            {...FIXED_TEXT_PROPS}
+            style={getFixedTextInputStyle([
+              styles.input,
+              Platform.OS === 'android' && styles.inputAndroid,
+              inputStyle,
+              { color },
+            ])}
+            placeholder=""
+            placeholderTextColor="transparent"
+            keyboardType={isPhoneMode ? 'phone-pad' : 'email-address'}
+            value={inputValue}
+            onChangeText={handleChangeText}
+            onFocus={handleFocus}
+            onBlur={handleBlur}
+            maxLength={isPhoneMode ? 18 : maxLength}
+            textAlignVertical="center"
+            autoCapitalize="none"
+            autoCorrect={false}
+            {...props}
+            inputAccessoryViewID={
+              showIosDoneAccessory
+                ? iosDoneAccessoryId
+                : props.inputAccessoryViewID
+            }
+          />
+        </ThemedView>
+      </TouchableWithoutFeedback>
+      {showIosDoneAccessory ? (
+        <InputAccessoryView nativeID={iosDoneAccessoryId}>
+          <View style={styles.accessoryBar}>
+            <TouchableOpacity
+              onPress={Keyboard.dismiss}
+              hitSlop={{ top: 8, bottom: 8, left: 12, right: 12 }}
+              accessibilityRole="button"
+              accessibilityLabel="Готово"
+            >
+              <Text style={styles.accessoryDone}>Готово</Text>
+            </TouchableOpacity>
+          </View>
+        </InputAccessoryView>
+      ) : null}
+    </>
   );
 };
 
@@ -245,6 +274,21 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
     pointerEvents: 'none',
     fontWeight: '400'
+  },
+  accessoryBar: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: '#D1D3D9',
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(0,0,0,0.15)',
+  },
+  accessoryDone: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#203686',
   },
 });
 

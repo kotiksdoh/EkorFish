@@ -6,14 +6,19 @@ import {
   getFixedTextInputStyle,
   getFixedTextStyle,
 } from '@/utils/fixedTextStyle';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
 import {
   Animated,
+  InputAccessoryView,
+  Keyboard,
   Platform,
   StyleSheet,
+  Text,
   TextInput,
   TextInputProps,
-  TouchableWithoutFeedback
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
 } from 'react-native';
 
 interface AnimatedTextInputProps extends Omit<TextInputProps, 'style'> {
@@ -54,6 +59,9 @@ const AnimatedTextInput: React.FC<AnimatedTextInputProps> = ({
   const [isFocused, setIsFocused] = useState(false);
   const animatedValue = useState(new Animated.Value(value ? 1 : 0))[0];
   const inputRef = useRef<TextInput>(null);
+  const reactId = useId();
+  const iosDoneAccessoryId = `ekorfish.keyboard.done.${reactId.replace(/:/g, "")}`;
+  const showIosDoneAccessory = Platform.OS === 'ios';
 
   useEffect(() => {
     Animated.timing(animatedValue, {
@@ -128,54 +136,87 @@ const AnimatedTextInput: React.FC<AnimatedTextInputProps> = ({
   };
 
   return (
-    <TouchableWithoutFeedback onPress={handleContainerPress}>
-      <ThemedView 
-        style={[
-          styles.container,
-          multiline && styles.containerMultiline,
-          style,
-          { backgroundColor: isDarkMode ? '#ECEFFA0D' : '#03051E08' },
-          disabled && styles.containerDisabled,
-        ]}
-      >
-        <Animated.Text
-          {...FIXED_TEXT_PROPS}
-          style={getFixedTextStyle([styles.placeholder, animatedStyle])}
+    <>
+      <TouchableWithoutFeedback onPress={handleContainerPress}>
+        <ThemedView
+          style={[
+            styles.container,
+            multiline && styles.containerMultiline,
+            style,
+            { backgroundColor: isDarkMode ? '#ECEFFA0D' : '#03051E08' },
+            disabled && styles.containerDisabled,
+          ]}
         >
-          {placeholder}
-        </Animated.Text>
-        <TextInput
-          ref={inputRef}
-          {...FIXED_TEXT_PROPS}
-          style={getFixedTextInputStyle([
-            styles.input,
-            multiline && styles.inputMultiline,
-            Platform.OS === 'android' && !multiline && styles.inputAndroid,
-            Platform.OS === 'android' && multiline && styles.inputAndroidMultiline,
-            inputStyle,
-            { color },
-          ])}
-          placeholder=""
-          placeholderTextColor="transparent"
-          underlineColorAndroid="transparent"
-          keyboardType={keyboardType as any}
-          value={value}
-          onChangeText={handleChangeText}
-          onFocus={handleFocus}
-          onBlur={handleBlur}
-          maxLength={maxLength}
-          editable={!disabled}
-          textAlignVertical={multiline ? "top" : "center"}
-          multiline={multiline}
-          blurOnSubmit={!multiline}
-          returnKeyType={multiline ? "done" : returnKeyType}
-          onSubmitEditing={
-            multiline ? () => inputRef.current?.blur() : onSubmitEditing
-          }
-          {...textInputProps}
-        />
-      </ThemedView>
-    </TouchableWithoutFeedback>
+          <Animated.Text
+            {...FIXED_TEXT_PROPS}
+            style={getFixedTextStyle([styles.placeholder, animatedStyle])}
+          >
+            {placeholder}
+          </Animated.Text>
+          <TextInput
+            ref={inputRef}
+            {...FIXED_TEXT_PROPS}
+            style={getFixedTextInputStyle([
+              styles.input,
+              multiline && styles.inputMultiline,
+              Platform.OS === 'android' && !multiline && styles.inputAndroid,
+              Platform.OS === 'android' && multiline && styles.inputAndroidMultiline,
+              inputStyle,
+              { color },
+            ])}
+            placeholder=""
+            placeholderTextColor="transparent"
+            underlineColorAndroid="transparent"
+            keyboardType={keyboardType as any}
+            value={value}
+            onChangeText={handleChangeText}
+            onFocus={handleFocus}
+            onBlur={handleBlur}
+            maxLength={maxLength}
+            editable={!disabled}
+            textAlignVertical={multiline ? "top" : "center"}
+            multiline={multiline}
+            blurOnSubmit={!multiline}
+            returnKeyType={multiline ? "done" : returnKeyType}
+            onSubmitEditing={
+              multiline ? () => inputRef.current?.blur() : onSubmitEditing
+            }
+            {...textInputProps}
+            inputAccessoryViewID={
+              showIosDoneAccessory
+                ? iosDoneAccessoryId
+                : textInputProps.inputAccessoryViewID
+            }
+          />
+        </ThemedView>
+      </TouchableWithoutFeedback>
+      {showIosDoneAccessory ? (
+        <InputAccessoryView nativeID={iosDoneAccessoryId}>
+          <View
+            style={[
+              styles.accessoryBar,
+              { backgroundColor: isDarkMode ? '#2C2C2E' : '#D1D3D9' },
+            ]}
+          >
+            <TouchableOpacity
+              onPress={Keyboard.dismiss}
+              hitSlop={{ top: 8, bottom: 8, left: 12, right: 12 }}
+              accessibilityRole="button"
+              accessibilityLabel="Готово"
+            >
+              <Text
+                style={[
+                  styles.accessoryDone,
+                  { color: isDarkMode ? '#4C94FF' : '#203686' },
+                ]}
+              >
+                Готово
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </InputAccessoryView>
+      ) : null}
+    </>
   );
 };
 
@@ -236,6 +277,19 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
     pointerEvents: 'none',
     fontWeight: '500'
+  },
+  accessoryBar: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(0,0,0,0.15)',
+  },
+  accessoryDone: {
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 

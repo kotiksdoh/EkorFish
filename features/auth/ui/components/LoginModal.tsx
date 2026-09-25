@@ -20,6 +20,10 @@ import { LegalDocumentModal } from "@/features/shared/ui/LegalDocumentModal";
 import ManagerSection from "@/features/shared/ui/ManagerSection";
 import SmartInput from "@/features/shared/ui/components/SmartInput";
 import {
+  IOS_KEYBOARD_DONE_ACCESSORY_ID,
+  IosKeyboardDoneAccessory,
+} from "@/features/shared/ui/components/IosKeyboardDoneAccessory";
+import {
   isCompanyTaxIdsValid,
   isKppRequired,
   isValidInn,
@@ -745,6 +749,11 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                           placeholderTextColor="#80818B"
                           editable={!loading}
                           selectTextOnFocus={!loading}
+                          inputAccessoryViewID={
+                            Platform.OS === "ios"
+                              ? IOS_KEYBOARD_DONE_ACCESSORY_ID
+                              : undefined
+                          }
                           // Для iOS добавляем обработку через onSelectionChange
                           onSelectionChange={(event) => {
                             if (Platform.OS === "ios") {
@@ -755,6 +764,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                         />
                       ))}
                     </View>
+                    <IosKeyboardDoneAccessory />
                     {/* Сообщение об ошибке */}
                     {/* {error && (
                     <ThemedText style={styles.errorText} lightColor={'#FF3B30'}>

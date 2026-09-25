@@ -9,12 +9,12 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { putFavorite, putUnFavorite } from "@/features/catalog/catalogSlice";
 import { SearchScreenWithHistory } from "@/features/home/ui/screens/SearchScreenWithHistory";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAppDispatch } from "@/store/hooks";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Linking from "expo-linking";
 import { useRouter } from "expo-router";
 import React, { ReactNode, useEffect, useState } from "react";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
   Share,
   StyleSheet,
@@ -92,7 +92,7 @@ export const ModalHeader: React.FC<ModalHeaderProps> = ({
     }
   };
 
-  const truncateTitle = (text: string | undefined, maxLength: number = 25) => {
+  const truncateTitle = (text: string | undefined, maxLength: number = 20) => {
     if (!text) return "";
     if (text.length <= maxLength) return text;
     return text.substring(0, maxLength) + "...";

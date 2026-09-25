@@ -772,8 +772,8 @@ const ReconciliationActScreen: React.FC<{ onBack: () => void }> = ({
   const currentCompany = useAppSelector((state) => state.auth.currentCompany);
   const isIndividual = isIndividualCompany(currentCompany);
 
-  const [startDate, setStartDate] = useState<Date | null>(null);
-  const [endDate, setEndDate] = useState<Date | null>(null);
+  const [startDate, setStartDate] = useState<Date | null>(new Date(2026, 8, 1));
+  const [endDate, setEndDate] = useState<Date | null>(new Date(2026, 8, 25));
   const [selectedCompany, setSelectedCompany] = useState<any>(null);
   const [email, setEmail] = useState("");
   const [comment, setComment] = useState("");
