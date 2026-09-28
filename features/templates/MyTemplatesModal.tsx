@@ -1085,7 +1085,7 @@ export function MyTemplatesModal({ visible, onClose }: Props) {
                     <TemplateFindProductsIcon
                       width={24}
                       height={24}
-                      stroke="#1B1B1C"
+                      stroke={isDark ? "#FBFCFF" : "#1B1B1C"}
                     />
                   }
                 />

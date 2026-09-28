@@ -45,6 +45,7 @@ export function OrderReorderSheet({
           : `Повторить заказ №${orderId}?`
       }
       titleAlign="left"
+      contentBottomPadding={Platform.OS === "android" ? 48 : 24}
       onClose={onClose}
     >
       {canReorderFully ? (
@@ -86,12 +87,7 @@ export function OrderReorderSheet({
           >
             Текущая корзина будет очищена
           </ThemedText>
-          <View
-            style={[
-              styles.reorderButtonsRow,
-              Platform.OS === "android" && { paddingBottom: 2 },
-            ]}
-          >
+          <View style={styles.reorderButtonsRow}>
             <PrimaryButton
               title="Отмена"
               onPress={onClose}
@@ -135,12 +131,7 @@ export function OrderReorderSheet({
           >
             Текущая корзина будет очищена
           </ThemedText>
-          <View
-            style={[
-              styles.reorderButtonsColumn,
-              Platform.OS === "android" && { paddingBottom: 28 },
-            ]}
-          >
+          <View style={styles.reorderButtonsColumn}>
             <PrimaryButton
               title={isReordering ? "Загрузка..." : "Повторить с заменой"}
               onPress={onConfirm}

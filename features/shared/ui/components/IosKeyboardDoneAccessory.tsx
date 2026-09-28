@@ -13,7 +13,7 @@ import {
 /** Общий nativeID — можно вешать на несколько TextInput сразу. */
 export const IOS_KEYBOARD_DONE_ACCESSORY_ID = "ekorfish.keyboard.done.shared";
 
-/** Панель «Готово» над клавиатурой iOS (для number-pad и сырых TextInput). */
+/** Панель «Скрыть» над клавиатурой iOS (для number-pad и сырых TextInput). */
 export function IosKeyboardDoneAccessory({
   nativeID = IOS_KEYBOARD_DONE_ACCESSORY_ID,
 }: {
@@ -36,7 +36,7 @@ export function IosKeyboardDoneAccessory({
           onPress={Keyboard.dismiss}
           hitSlop={{ top: 8, bottom: 8, left: 12, right: 12 }}
           accessibilityRole="button"
-          accessibilityLabel="Готово"
+          accessibilityLabel="Скрыть"
         >
           <Text
             style={[
@@ -44,7 +44,7 @@ export function IosKeyboardDoneAccessory({
               { color: isDarkMode ? "#4C94FF" : "#203686" },
             ]}
           >
-            Готово
+            Скрыть
           </Text>
         </TouchableOpacity>
       </View>

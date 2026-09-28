@@ -227,9 +227,9 @@ const SmartInput: React.FC<SmartInputProps> = ({
               onPress={Keyboard.dismiss}
               hitSlop={{ top: 8, bottom: 8, left: 12, right: 12 }}
               accessibilityRole="button"
-              accessibilityLabel="Готово"
+              accessibilityLabel="Скрыть"
             >
-              <Text style={styles.accessoryDone}>Готово</Text>
+              <Text style={styles.accessoryDone}>Скрыть</Text>
             </TouchableOpacity>
           </View>
         </InputAccessoryView>

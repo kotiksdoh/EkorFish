@@ -1085,6 +1085,7 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
               : `Повторить заказ №${orderDetails?.orderId}?`
           }
           titleAlign="left"
+          contentBottomPadding={Platform.OS === "android" ? 48 : 24}
           onClose={() => setReorderModalVisible(false)}
         >
           {canReorderFully ? (
@@ -1123,12 +1124,7 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
               >
                 Текущая корзина будет очищена
               </ThemedText>
-              <View
-                style={[
-                  styles.reorderButtonsRow,
-                  Platform.OS === "android" && { paddingBottom: 2 },
-                ]}
-              >
+              <View style={styles.reorderButtonsRow}>
                 <PrimaryButton
                   title="Отмена"
                   onPress={() => setReorderModalVisible(false)}
@@ -1172,12 +1168,7 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
               >
                 Текущая корзина будет очищена
               </ThemedText>
-              <View
-                style={[
-                  styles.reorderButtonsColumn,
-                  Platform.OS === "android" && { paddingBottom: 28 },
-                ]}
-              >
+              <View style={styles.reorderButtonsColumn}>
                 <PrimaryButton
                   title={isReordering ? "Загрузка..." : "Повторить с заменой"}
                   onPress={handleReorder}
@@ -1201,6 +1192,7 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
           visible={cancelModalVisible}
           title={`Отменить заказ №${orderDetails?.orderId}?`}
           titleAlign="left"
+          contentBottomPadding={Platform.OS === "android" ? 48 : 24}
           onClose={() => {
             if (!isCancelling) {
               setCancelModalVisible(false);
@@ -1214,12 +1206,7 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
           >
             Заказ будет отменён. После отмены восстановить его будет нельзя.
           </ThemedText>
-          <View
-            style={[
-              styles.reorderButtonsRow,
-              Platform.OS === "android" && { paddingBottom: 2 },
-            ]}
-          >
+          <View style={styles.reorderButtonsRow}>
             <PrimaryButton
               title="Назад"
               onPress={() => setCancelModalVisible(false)}

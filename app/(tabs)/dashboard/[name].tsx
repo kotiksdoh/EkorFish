@@ -248,7 +248,24 @@ export default function CatalogDetailScreen() {
   const activeCategoryIdRef = useRef(activeCategoryId);
   const selectedSubcategoryIdRef = useRef<string | null>(selectedSubcategoryId);
   const activeProductListModeRef = useRef(activeProductListMode);
+  /** Пропуск focus-reload, если этот же заход уже грузит useEffect по params. */
+  const skipFocusReloadOnceRef = useRef(false);
+  const categoryRouteKeyRef = useRef<string | null>(null);
   const [isPagingMore, setIsPagingMore] = useState(false);
+
+  const categoryRouteKey = useMemo(
+    () =>
+      `${catalogId ?? ""}|${isPromo ? "1" : "0"}|${
+        typeof search === "string" ? search : ""
+      }`,
+    [catalogId, isPromo, search],
+  );
+
+  // Синхронно при смене category/search/promo: focus не должен дублировать load.
+  if (categoryRouteKeyRef.current !== categoryRouteKey) {
+    categoryRouteKeyRef.current = categoryRouteKey;
+    skipFocusReloadOnceRef.current = true;
+  }
 
   activeCategoryIdRef.current = activeCategoryId;
   selectedSubcategoryIdRef.current = selectedSubcategoryId;
@@ -485,15 +502,19 @@ export default function CatalogDetailScreen() {
       resetAndLoadCategoryRef.current();
     });
     return () => cancelAnimationFrame(frame);
-  }, [catalogId, isPromo, search]);
+  }, [categoryRouteKey]);
 
   useFocusEffect(
     useCallback(() => {
       isScreenFocusedRef.current = true;
 
-      if (catalogId) {
+      const skipBecauseParamsLoad = skipFocusReloadOnceRef.current;
+      if (skipBecauseParamsLoad) {
+        skipFocusReloadOnceRef.current = false;
+      } else if (catalogId) {
         const activeCat = activeCategoryIdRef.current;
         const listMode = activeProductListModeRef.current;
+        // Возврат на уже открытый экран (стек): избранное или список другой категории в store.
         if (
           listMode === "favorites" ||
           (activeCat !== null && activeCat !== String(catalogId))

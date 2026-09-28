@@ -7,7 +7,7 @@ import { useAppTheme } from '@/hooks/use-theme-color';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { Image } from "expo-image";
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import { ActivityIndicator, Alert, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { AppModal } from "@/features/shared/ui/AppModal";
 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -94,6 +94,7 @@ export const ManagerReviewModal: React.FC<ManagerReviewModalProps> = ({
     const [comment, setComment] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showThankYou, setShowThankYou] = useState(false);
+    const [scrollAreaHeight, setScrollAreaHeight] = useState(0);
     const {
         scrollRef,
         keyboardHeight,
@@ -203,189 +204,192 @@ export const ManagerReviewModal: React.FC<ManagerReviewModalProps> = ({
             onRequestClose={handleClose}
             statusBarTranslucent={true}
         >
-            <TouchableWithoutFeedback onPress={handleClose}>
-                <View style={styles.modalOverlay}>
-                    <TouchableWithoutFeedback>
-                        <View
-                            style={[
-                                styles.modalContainer,
-                                showThankYou && styles.modalContainerCompact,
-                                isDark && styles.modalContainerDark,
-                                androidKeyboardMargin > 0 && {
-                                    marginBottom: androidKeyboardMargin,
-                                },
-                            ]}
-                        >
-                            {/* Защелка для свайпа */}
-                            <TouchableOpacity
-                                style={styles.swipeHandleContainer}
-                                activeOpacity={0.7}
-                                onPress={handleClose}
+            <View style={styles.modalOverlay}>
+                <Pressable style={StyleSheet.absoluteFill} onPress={handleClose} />
+                <View
+                    style={[
+                        styles.modalContainer,
+                        showThankYou && styles.modalContainerCompact,
+                        isDark && styles.modalContainerDark,
+                        androidKeyboardMargin > 0 && {
+                            marginBottom: androidKeyboardMargin,
+                        },
+                    ]}
+                >
+                    {/* Защелка для свайпа */}
+                    <TouchableOpacity
+                        style={styles.swipeHandleContainer}
+                        activeOpacity={0.7}
+                        onPress={handleClose}
+                    >
+                        <View style={[styles.swipeHandle, isDark && styles.swipeHandleDark]} />
+                    </TouchableOpacity>
+
+                    {showThankYou ? (
+                        <ThankYouScreen
+                            managerName={managerName}
+                            onClose={handleClose}
+                            bottomInset={footerPadding}
+                        />
+                    ) : (
+                        // Форма оценки
+                        <>
+                            <KeyboardAvoidingView
+                                style={styles.keyboardAvoiding}
+                                behavior={Platform.OS === "ios" ? "padding" : undefined}
+                                keyboardVerticalOffset={Platform.OS === "ios" ? 12 : 0}
                             >
-                                <View style={[styles.swipeHandle, isDark && styles.swipeHandleDark]} />
-                            </TouchableOpacity>
+                            <ScrollView
+                                ref={scrollRef}
+                                style={styles.scrollView}
+                                showsVerticalScrollIndicator={false}
+                                keyboardShouldPersistTaps="handled"
+                                keyboardDismissMode="on-drag"
+                                nestedScrollEnabled
+                                onScroll={handleScroll}
+                                scrollEventThrottle={16}
+                                bounces
+                                onLayout={(event) => {
+                                    setScrollAreaHeight(event.nativeEvent.layout.height);
+                                }}
+                                contentContainerStyle={[
+                                    styles.scrollContent,
+                                    scrollAreaHeight > 0 && { minHeight: scrollAreaHeight },
+                                    {
+                                        paddingBottom:
+                                            scrollBottomPadding +
+                                            (keyboardHeight > 0 ? 24 : 0),
+                                    },
+                                ]}
+                            >
+                                {/* Заголовок */}
+                                <ThemedText style={styles.modalTitle}>
+                                    Оценить менеджера
+                                </ThemedText>
 
-                            {showThankYou ? (
-                                <ThankYouScreen
-                                    managerName={managerName}
-                                    onClose={handleClose}
-                                    bottomInset={footerPadding}
-                                />
-                            ) : (
-                                // Форма оценки
-                                <>
-                                    <KeyboardAvoidingView
-                                        style={styles.keyboardAvoiding}
-                                        behavior={Platform.OS === "ios" ? "padding" : undefined}
-                                        keyboardVerticalOffset={Platform.OS === "ios" ? 12 : 0}
-                                    >
-                                    <ScrollView
-                                        ref={scrollRef}
-                                        style={styles.scrollView}
-                                        showsVerticalScrollIndicator={false}
-                                        keyboardShouldPersistTaps="handled"
-                                        keyboardDismissMode="on-drag"
-                                        onScroll={handleScroll}
-                                        scrollEventThrottle={16}
-                                        contentContainerStyle={[
-                                            styles.scrollContent,
-                                            {
-                                                paddingBottom:
-                                                    scrollBottomPadding +
-                                                    (keyboardHeight > 0 ? 24 : 0),
-                                            },
-                                        ]}
-                                    >
-                                        {/* Заголовок */}
-                                        <ThemedText style={styles.modalTitle}>
-                                            Оценить менеджера
-                                        </ThemedText>
-
-                                        {/* Информация о менеджере */}
-                                        <View style={styles.managerInfoContainer}>
-                                            <View style={styles.managerAvatarContainer}>
-                                                {managerImage ? (
-                                                    <Image
-                                                        source={{ uri: `${baseUrl}/${managerImage}` }}
-                                                        style={styles.managerAvatar}
-                                                    />
-                                                ) : (
-                                                    <View
-                                                        style={[
-                                                            styles.managerAvatar,
-                                                            styles.avatarPlaceholder,
-                                                            isDark && styles.avatarPlaceholderDark,
-                                                        ]}
-                                                    >
-                                                        <ThemedText style={styles.avatarPlaceholderText}>
-                                                            {managerName?.charAt(0) || 'М'}
-                                                        </ThemedText>
-                                                    </View>
-                                                )}
-                                            </View>
-                                            <ThemedText style={styles.managerName}>
-                                                {managerName}
-                                            </ThemedText>
-                                        </View>
-
-                                        {/* Звезды рейтинга */}
-                                        <ThemedView style={styles.ratingContainer} lightColor='#F2F4F7' darkColor='#2E2E32'>
-                                            <ThemedText style={styles.ratingLabel}>
-                                                Как вам работа с менеджером?
-                                            </ThemedText>
-                                            <View style={styles.starsContainer}>
-                                                {[1, 2, 3, 4, 5].map((star) => (
-                                                    <StarIcon
-                                                        key={star}
-                                                        size={40}
-                                                        filled={star <= rating}
-                                                        onPress={() => handleStarPress(star)}
-                                                    />
-                                                ))}
-                                            </View>
-                                        </ThemedView>
-
-                                        {/* Опции для выбора */}
-                                        {isLoadingManagerReviewOption ? (
-                                            <View style={styles.reviewOptionsLoader}>
-                                                <ActivityIndicator size="small" color={isDark ? "#4C94FF" : "#203686"} />
-                                                <ThemedText lightColor="#80818B" darkColor="#FBFCFF80">
-                                                    Загрузка вариантов оценки...
+                                {/* Информация о менеджере */}
+                                <View style={styles.managerInfoContainer}>
+                                    <View style={styles.managerAvatarContainer}>
+                                        {managerImage ? (
+                                            <Image
+                                                source={{ uri: `${baseUrl}/${managerImage}` }}
+                                                style={styles.managerAvatar}
+                                            />
+                                        ) : (
+                                            <View
+                                                style={[
+                                                    styles.managerAvatar,
+                                                    styles.avatarPlaceholder,
+                                                    isDark && styles.avatarPlaceholderDark,
+                                                ]}
+                                            >
+                                                <ThemedText style={styles.avatarPlaceholderText}>
+                                                    {managerName?.charAt(0) || 'М'}
                                                 </ThemedText>
-                                            </View>
-                                        ) : reviewOptions.length > 0 && (
-                                            <View style={styles.optionsContainer}>
-                                                <ThemedText style={styles.optionsLabel}>
-                                                    Что понравилось особенно?
-                                                </ThemedText>
-                                                <View style={styles.optionsList}>
-                                                    {reviewOptions.map((option: any) => (
-                                                        <TouchableOpacity
-                                                            key={option.id}
-                                                            style={styles.optionItem}
-                                                            onPress={() => handleOptionToggle(option.id)}
-                                                            activeOpacity={0.7}
-                                                        >
-                                                            <CustomCheckbox
-                                                                style={styles.checkbox}
-                                                                value={selectedOptions.includes(option.id)}
-                                                                onValueChange={() => handleOptionToggle(option.id)}
-                                                                lightColor="#F2F4F7"
-                                                                darkColor="#202022"
-                                                                disabled={false}
-                                                            />
-                                                            <ThemedText style={styles.optionText}>
-                                                                {option.value}
-                                                            </ThemedText>
-                                                        </TouchableOpacity>
-                                                    ))}
-                                                </View>
                                             </View>
                                         )}
-
-                                        {/* Комментарий */}
-                                        <View style={styles.commentContainer}>
-                                            <AnimatedTextInput
-                                                placeholder="Комментарий"
-                                                placeholderTextColor="#80818B"
-                                                value={comment}
-                                                onChangeText={setComment}
-                                                multiline
-                                                onFocus={handleCommentFocus}
-                                                style={[
-                                                    styles.commentInput,
-                                                    isDark && styles.commentInputDark,
-                                                ]}
-                                            />
-                                        </View>
-                                    </ScrollView>
-
-                                    <View
-                                        style={[
-                                            styles.buttonContainer,
-                                            styles.buttonContainerFixed,
-                                            { paddingBottom: footerPadding },
-                                            isDark && styles.buttonContainerFixedDark,
-                                        ]}
-                                    >
-                                        <PrimaryButton
-                                            title={isSubmitting ? "Отправка..." : "Поставить оценку"}
-                                            onPress={handleSubmit}
-                                            variant="primary"
-                                            size="md"
-                                            activeOpacity={0.8}
-                                            fullWidth
-                                            disabled={isSubmitDisabled}
-                                            loading={isSubmitting}
-                                        />
                                     </View>
-                                    </KeyboardAvoidingView>
-                                </>
-                            )}
-                        </View>
-                    </TouchableWithoutFeedback>
+                                    <ThemedText style={styles.managerName}>
+                                        {managerName}
+                                    </ThemedText>
+                                </View>
+
+                                {/* Звезды рейтинга */}
+                                <ThemedView style={styles.ratingContainer} lightColor='#F2F4F7' darkColor='#2E2E32'>
+                                    <ThemedText style={styles.ratingLabel}>
+                                        Как вам работа с менеджером?
+                                    </ThemedText>
+                                    <View style={styles.starsContainer}>
+                                        {[1, 2, 3, 4, 5].map((star) => (
+                                            <StarIcon
+                                                key={star}
+                                                size={40}
+                                                filled={star <= rating}
+                                                onPress={() => handleStarPress(star)}
+                                            />
+                                        ))}
+                                    </View>
+                                </ThemedView>
+
+                                {/* Опции для выбора */}
+                                {isLoadingManagerReviewOption ? (
+                                    <View style={styles.reviewOptionsLoader}>
+                                        <ActivityIndicator size="small" color={isDark ? "#4C94FF" : "#203686"} />
+                                        <ThemedText lightColor="#80818B" darkColor="#FBFCFF80">
+                                            Загрузка вариантов оценки...
+                                        </ThemedText>
+                                    </View>
+                                ) : reviewOptions.length > 0 && (
+                                    <View style={styles.optionsContainer}>
+                                        <ThemedText style={styles.optionsLabel}>
+                                            Что понравилось особенно?
+                                        </ThemedText>
+                                        <View style={styles.optionsList}>
+                                            {reviewOptions.map((option: any) => (
+                                                <TouchableOpacity
+                                                    key={option.id}
+                                                    style={styles.optionItem}
+                                                    onPress={() => handleOptionToggle(option.id)}
+                                                    activeOpacity={0.7}
+                                                >
+                                                    <CustomCheckbox
+                                                        style={styles.checkbox}
+                                                        value={selectedOptions.includes(option.id)}
+                                                        onValueChange={() => handleOptionToggle(option.id)}
+                                                        lightColor="#F2F4F7"
+                                                        darkColor="#202022"
+                                                        disabled={false}
+                                                    />
+                                                    <ThemedText style={styles.optionText}>
+                                                        {option.value}
+                                                    </ThemedText>
+                                                </TouchableOpacity>
+                                            ))}
+                                        </View>
+                                    </View>
+                                )}
+
+                                {/* Комментарий */}
+                                <View style={styles.commentContainer}>
+                                    <AnimatedTextInput
+                                        placeholder="Комментарий"
+                                        placeholderTextColor="#80818B"
+                                        value={comment}
+                                        onChangeText={setComment}
+                                        multiline
+                                        onFocus={handleCommentFocus}
+                                        style={[
+                                            styles.commentInput,
+                                            isDark && styles.commentInputDark,
+                                        ]}
+                                    />
+                                </View>
+                            </ScrollView>
+
+                            <View
+                                style={[
+                                    styles.buttonContainer,
+                                    styles.buttonContainerFixed,
+                                    { paddingBottom: footerPadding },
+                                    isDark && styles.buttonContainerFixedDark,
+                                ]}
+                            >
+                                <PrimaryButton
+                                    title={isSubmitting ? "Отправка..." : "Поставить оценку"}
+                                    onPress={handleSubmit}
+                                    variant="primary"
+                                    size="md"
+                                    activeOpacity={0.8}
+                                    fullWidth
+                                    disabled={isSubmitDisabled}
+                                    loading={isSubmitting}
+                                />
+                            </View>
+                            </KeyboardAvoidingView>
+                        </>
+                    )}
                 </View>
-            </TouchableWithoutFeedback>
+            </View>
         </AppModal>
     );
 };

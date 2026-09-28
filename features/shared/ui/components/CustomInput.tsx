@@ -202,7 +202,7 @@ const AnimatedTextInput: React.FC<AnimatedTextInputProps> = ({
               onPress={Keyboard.dismiss}
               hitSlop={{ top: 8, bottom: 8, left: 12, right: 12 }}
               accessibilityRole="button"
-              accessibilityLabel="Готово"
+              accessibilityLabel="Скрыть"
             >
               <Text
                 style={[
@@ -210,7 +210,7 @@ const AnimatedTextInput: React.FC<AnimatedTextInputProps> = ({
                   { color: isDarkMode ? '#4C94FF' : '#203686' },
                 ]}
               >
-                Готово
+                Скрыть
               </Text>
             </TouchableOpacity>
           </View>
