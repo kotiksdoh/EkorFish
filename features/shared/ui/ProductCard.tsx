@@ -41,7 +41,7 @@ interface ProductCardProps {
 }
 
 // Заглушка для изображения
-const PLACEHOLDER_IMAGE = require("@/assets/icons/png/noImage.png");
+const PLACEHOLDER_IMAGE = require("@/assets/icons/png/productNoPhoto.webp");
 
 function formatProductListDate(value?: string | null): string | null {
   if (!value || typeof value !== "string") return null;

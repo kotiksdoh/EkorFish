@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 
 export const GALLERY_HEIGHT = 282;
-const PLACEHOLDER_IMAGE = require("@/assets/icons/png/noImage.png");
+const PLACEHOLDER_IMAGE = require("@/assets/icons/png/productNoPhoto.webp");
 
 function hasGalleryImageUrl(url: string): boolean {
   if (!url || typeof url !== "string") return false;

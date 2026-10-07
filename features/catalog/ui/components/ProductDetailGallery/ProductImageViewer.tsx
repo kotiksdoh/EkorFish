@@ -26,7 +26,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ProductGalleryItem } from "./productDetailGalleryTypes";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
-const PLACEHOLDER_IMAGE = require("@/assets/icons/png/noImage.png");
+const PLACEHOLDER_IMAGE = require("@/assets/icons/png/productNoPhoto.webp");
 
 const MIN_SCALE = 1;
 const MAX_SCALE = 4;

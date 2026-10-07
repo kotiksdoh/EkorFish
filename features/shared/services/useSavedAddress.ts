@@ -7,22 +7,26 @@ export const useSavedAddress = (companyId: string | undefined) => {
     const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
-        if (companyId) {
-            loadSavedAddress();
+        if (!companyId) {
+            setSavedAddress(null);
+            return;
         }
+
+        // Сразу сбрасываем адрес прошлой компании, пока грузим для новой.
+        setSavedAddress(null);
+        void loadSavedAddress(companyId);
     }, [companyId]);
 
-    const loadSavedAddress = async () => {
-        if (!companyId) return;
+    const loadSavedAddress = async (id: string = companyId || "") => {
+        if (!id) return;
         
         setIsLoading(true);
         try {
-            const saved = await getSavedAddress(companyId);
-            if (saved) {
-                setSavedAddress(saved.address);
-            }
+            const saved = await getSavedAddress(id);
+            setSavedAddress(saved ? saved.address : null);
         } catch (error) {
             console.error('Error loading saved address:', error);
+            setSavedAddress(null);
         } finally {
             setIsLoading(false);
         }
@@ -59,6 +63,6 @@ export const useSavedAddress = (companyId: string | undefined) => {
         isLoading,
         saveAddress,
         removeAddress,
-        refresh: loadSavedAddress,
+        refresh: () => loadSavedAddress(),
     };
 };

@@ -397,10 +397,41 @@ export default function CheckoutModal({
   const displayAddress = selectedAddress ?? resolveDefaultCompanyAddress();
 
   useEffect(() => {
-    if (currentCompany?.id && savedAddress && selectedMethod === DeliveryMethod.Delivery) {
-      setSelectedAddress(savedAddress);
+    if (selectedMethod !== DeliveryMethod.Delivery || !currentCompany?.id) {
+      return;
     }
-  }, [currentCompany?.id, savedAddress, selectedMethod]);
+
+    const savedBelongsToCompany =
+      Boolean(savedAddress?.id) &&
+      companyDeliveryAddresses.some((a: any) => a.id === savedAddress.id);
+
+    if (savedBelongsToCompany) {
+      setSelectedAddress(savedAddress);
+      return;
+    }
+
+    // Если адрес уже показывается из списка компании — считаем его выбранным,
+    // иначе в списке пустой radio и заказ нельзя оформить.
+    if (companyDeliveryAddresses.length > 0) {
+      setSelectedAddress((prev: any) => {
+        if (
+          prev?.id &&
+          companyDeliveryAddresses.some((a: any) => a.id === prev.id)
+        ) {
+          return prev;
+        }
+        return companyDeliveryAddresses[0];
+      });
+      return;
+    }
+
+    setSelectedAddress(null);
+  }, [
+    currentCompany?.id,
+    savedAddress,
+    selectedMethod,
+    companyDeliveryAddresses,
+  ]);
 
   const handleAddressAdded = useCallback(
     async (newAddress: any) => {

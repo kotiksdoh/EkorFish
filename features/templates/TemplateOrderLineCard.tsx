@@ -36,7 +36,7 @@ type Props = {
 function resolveImageSource(line: TemplateLineItem) {
   const img = line.productImage;
   if (!img || typeof img !== "string") {
-    return require("@/assets/icons/png/noImage.png");
+    return require("@/assets/icons/png/productNoPhoto.webp");
   }
   if (img.startsWith("http")) {
     return { uri: img };

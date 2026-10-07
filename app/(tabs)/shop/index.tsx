@@ -150,7 +150,7 @@ const CartItemComponent = ({
             />
           ) : (
             <Image
-              source={require("@/assets/icons/png/noImage.png")}
+              source={require("@/assets/icons/png/productNoPhoto.webp")}
               style={styles.image}
               contentFit="cover"
             />

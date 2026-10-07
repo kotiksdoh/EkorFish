@@ -116,7 +116,7 @@ export function ReasonPickerContent({
                   source={
                     product.productImage
                       ? { uri: `${baseUrl}/${product.productImage}` }
-                      : require("@/assets/icons/png/noImage.png")
+                      : require("@/assets/icons/png/productNoPhoto.webp")
                   }
                   style={styles.productImage}
                   contentFit="cover"

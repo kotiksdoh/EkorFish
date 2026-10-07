@@ -24,7 +24,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get("window");
 const MODAL_HEIGHT = SCREEN_HEIGHT * 0.44;
-const PLACEHOLDER_IMAGE = require("@/assets/icons/png/noImage.png");
+const PLACEHOLDER_IMAGE = require("@/assets/icons/png/productNoPhoto.webp");
 
 function hasValidProductImage(image?: string | null): boolean {
   if (!image || typeof image !== "string") return false;

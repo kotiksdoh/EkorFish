@@ -454,7 +454,7 @@ export const MyReturnsThirdStep: React.FC<MyReturnsThirdStepProps> = ({
   const renderProductRow = (item: (typeof selectedProducts)[0], isLast: boolean) => {
     const imageSource = item.productImage
       ? { uri: `${baseUrl}/${item.productImage}` }
-      : require("@/assets/icons/png/noImage.png");
+      : require("@/assets/icons/png/productNoPhoto.webp");
 
     return (
       <View

@@ -59,7 +59,7 @@ const CartItemComponent = memo(({
     if (item.productImage) {
       return { uri: `${baseUrl}/${item.productImage}` };
     }
-    return require("@/assets/icons/png/noImage.png");
+    return require("@/assets/icons/png/productNoPhoto.webp");
   }, [item.productImage]);
 
   return (

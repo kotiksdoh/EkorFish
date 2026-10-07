@@ -776,7 +776,7 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                         />
                       ) : (
                         <Image
-                          source={require("@/assets/icons/png/noImage.png")}
+                          source={require("@/assets/icons/png/productNoPhoto.webp")}
                           style={styles.productImage}
                           contentFit="cover"
                         />
@@ -875,7 +875,7 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                     />
                   ) : (
                     <Image
-                      source={require("@/assets/icons/png/noImage.png")}
+                      source={require("@/assets/icons/png/productNoPhoto.webp")}
                       style={styles.modalProductImage}
                       contentFit="cover"
                     />

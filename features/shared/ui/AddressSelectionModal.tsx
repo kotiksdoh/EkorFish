@@ -71,6 +71,9 @@ export const AddressSelectionModal: React.FC<AddressSelectionModalProps> = ({
 
   useEffect(() => {
     if (visible && currentCompany?.id) {
+      // Не показываем адреса прошлой компании, пока не подгрузятся новые.
+      setLocalAddresses([]);
+      setSavedAddressId(null);
       loadAddresses();
       loadSavedAddress();
     }

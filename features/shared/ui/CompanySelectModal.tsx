@@ -227,7 +227,7 @@ export const CompanySelectModal: React.FC<CompanySelectModalProps> = ({
         >
           {/* Хедер модалки */}
           <ModalHeader
-            title="Выбрать другую компанию"
+            title="Мои компании"
             showBackButton={true}
             onBackPress={() => {
               onClose();
@@ -388,7 +388,7 @@ export const CompanySelectModal: React.FC<CompanySelectModalProps> = ({
             ]}
           >
             <PrimaryButton
-              title="+ Добавить аккаунт"
+              title="+ Добавить компанию"
               onPress={() => {
                 resetCompanyForm();
                 setCurrentScreen(CompanyScenario.REG);
@@ -407,7 +407,7 @@ export const CompanySelectModal: React.FC<CompanySelectModalProps> = ({
           style={styles.modalContainer}
         >
           <ModalHeader
-            title="Добавление аккаунта"
+            title="Добавление компании"
             showBackButton={true}
             onBackPress={() => {
               if (screenScene === "register") {

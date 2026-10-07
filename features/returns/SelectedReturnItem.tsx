@@ -38,7 +38,7 @@ export const SelectedReturnItem = memo(({ item, onSelectReason }: SelectedReturn
 
   const imageSource = item.productImage
     ? { uri: `${baseUrl}/${item.productImage}` }
-    : require("@/assets/icons/png/noImage.png");
+    : require("@/assets/icons/png/productNoPhoto.webp");
 
   const hasReason = isReturnReasonSelected(item.reason);
 

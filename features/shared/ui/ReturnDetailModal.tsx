@@ -383,7 +383,7 @@ export const ReturnDetailModal: React.FC<ReturnDetailModalProps> = ({
   const renderReturnItemCard = (item: ReturnLine, key: string) => {
     const imageSource = item.productImage
       ? { uri: `${baseUrl}/${item.productImage}` }
-      : require("@/assets/icons/png/noImage.png");
+      : require("@/assets/icons/png/productNoPhoto.webp");
     const hasReason = isReturnReasonSelected(item.reason);
 
     return (
